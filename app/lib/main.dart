@@ -10,6 +10,7 @@ import 'core/register.dart';
 import 'core/symbolic/solar.dart';
 import 'core/theme.dart';
 import 'features/prototype/fixtures.dart';
+import 'features/onboarding/onboarding_flow.dart';
 import 'features/shell/eter_shell.dart';
 
 /// Bootstrap.
@@ -49,6 +50,8 @@ class _EterAppState extends ConsumerState<EterApp> {
   Timer? _phaseTimer;
   DateTime? _scheduledBoundary;
   Stream<ProfileRow?>? _profileStream;
+  Future<Map<String, IntakeAnswerRow>>? _intakeFuture;
+  bool _onboardingCompletedNow = false;
 
   @override
   void dispose() {
@@ -107,6 +110,7 @@ class _EterAppState extends ConsumerState<EterApp> {
         );
         final register = EterRegister.resolve(mode, phase);
         final night = register == EterRegister.night;
+        final intakeFuture = _intakeFuture ??= db.loadIntakeAnswers();
         return MaterialApp(
           title: 'Eter',
           debugShowCheckedModeBanner: false,
@@ -115,7 +119,27 @@ class _EterAppState extends ConsumerState<EterApp> {
           themeMode: night ? ThemeMode.dark : ThemeMode.light,
           home: EterRegisterScope(
             register: register,
-            child: EterShell(startSurface: profile?.startSurface ?? 'dashboard'),
+            child: profile == null
+                ? const SizedBox.shrink()
+                : FutureBuilder<Map<String, IntakeAnswerRow>>(
+                    future: intakeFuture,
+                    builder: (context, intake) {
+                      if (!intake.hasData) return const SizedBox.shrink();
+                      final complete = _onboardingCompletedNow ||
+                          intake.data?['onboarding_complete']?.value == 'true';
+                      if (!complete) {
+                        return OnboardingFlow(
+                          database: db,
+                          profile: profile,
+                          onComplete: () =>
+                              setState(() => _onboardingCompletedNow = true),
+                        );
+                      }
+                      return EterShell(
+                        startSurface: profile.startSurface,
+                      );
+                    },
+                  ),
           ),
         );
       },

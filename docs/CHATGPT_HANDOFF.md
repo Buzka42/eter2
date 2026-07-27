@@ -78,9 +78,12 @@ defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
 
 - Build one Dashboard expansion at a time. Guidance, intake/burn, RHR, HRV,
   single-night sleep stages, weight, recovery summary, per-item nutrition
-  correction and the offline/cached Vessel are complete. The 7/30-day sleep
-  view and activity-by-time instrument still need connected-series handling;
-  the fixture deliberately shows activity as unavailable rather than zero.
+  correction, the offline/cached Vessel, and the local onboarding/consent gate
+  are complete. Onboarding defaults every outbound permission off, records AI,
+  journal-prose and cloud consent separately, and remains usable without any
+  of them. The 7/30-day sleep view and activity-by-time instrument still need
+  connected-series handling; the fixture deliberately shows activity as
+  unavailable rather than zero.
 - Do not redesign tokens, add a component library, or add a chart package.
   Charts are `CustomPainter` in the `EngravedBalance` idiom.
 - Non-negotiables in `UI_BRIEF.md` §2 are defects if violated: no capsules,
