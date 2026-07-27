@@ -1,0 +1,138 @@
+{
+  "_comment": "Static attributes only. The long-form interpretation is composed per user against their actual chart and cached in VesselReadings -- never shipped generic. Death and The Devil keep their authentic names with reframed subtitles.",
+  "schemaVersion": 1,
+  "cards": [
+    {
+      "slug": "the-fool",
+      "subtitle": "Card of Beginnings",
+      "correspondence": "Air",
+      "keywords": ["beginning", "innocence", "leap", "spontaneity", "trust"]
+    },
+    {
+      "slug": "the-magician",
+      "subtitle": "Card of Will",
+      "correspondence": "Mercury",
+      "keywords": ["will", "skill", "focus", "manifestation", "resourcefulness"]
+    },
+    {
+      "slug": "the-high-priestess",
+      "subtitle": "Card of Inner Knowing",
+      "correspondence": "Moon",
+      "keywords": ["intuition", "mystery", "stillness", "the unseen", "patience"]
+    },
+    {
+      "slug": "the-empress",
+      "subtitle": "Card of Abundance",
+      "correspondence": "Venus",
+      "keywords": ["abundance", "nurture", "fertility", "beauty", "growth"]
+    },
+    {
+      "slug": "the-emperor",
+      "subtitle": "Card of Command",
+      "correspondence": "Aries",
+      "keywords": ["authority", "structure", "order", "protection", "resolve"]
+    },
+    {
+      "slug": "the-hierophant",
+      "subtitle": "Card of Foundations",
+      "correspondence": "Taurus",
+      "keywords": ["tradition", "teaching", "counsel", "belonging", "doctrine"]
+    },
+    {
+      "slug": "the-lovers",
+      "subtitle": "Card of Union",
+      "correspondence": "Gemini",
+      "keywords": ["union", "choice", "attraction", "alignment", "discernment"]
+    },
+    {
+      "slug": "the-chariot",
+      "subtitle": "Card of Momentum",
+      "correspondence": "Cancer",
+      "keywords": ["momentum", "direction", "mastery", "advance", "control"]
+    },
+    {
+      "slug": "strength",
+      "subtitle": "Card of Inner Fire",
+      "correspondence": "Leo",
+      "keywords": ["power", "energy", "action", "courage", "magnanimity"]
+    },
+    {
+      "slug": "the-hermit",
+      "subtitle": "Card of Focus",
+      "correspondence": "Virgo",
+      "keywords": ["solitude", "search", "inner light", "prudence", "withdrawal"]
+    },
+    {
+      "slug": "wheel-of-fortune",
+      "subtitle": "Card of Turning",
+      "correspondence": "Jupiter",
+      "keywords": ["cycles", "turning", "fortune", "timing", "change"]
+    },
+    {
+      "slug": "justice",
+      "subtitle": "Card of Balance",
+      "correspondence": "Libra",
+      "keywords": ["balance", "judgement", "truth", "accountability", "equilibrium"]
+    },
+    {
+      "slug": "the-hanged-man",
+      "subtitle": "Card of Perspective",
+      "correspondence": "Water",
+      "keywords": ["suspension", "surrender", "reversal", "perspective", "waiting"]
+    },
+    {
+      "slug": "death",
+      "subtitle": "Card of Transformation",
+      "correspondence": "Scorpio",
+      "keywords": ["transformation", "release", "passage", "renewal", "threshold"]
+    },
+    {
+      "slug": "temperance",
+      "subtitle": "Card of Flow",
+      "correspondence": "Sagittarius",
+      "keywords": ["moderation", "blending", "flow", "synthesis", "measure"]
+    },
+    {
+      "slug": "the-devil",
+      "subtitle": "Card of Ambition",
+      "correspondence": "Capricorn",
+      "keywords": ["appetite", "attachment", "drive", "shadow", "materiality"]
+    },
+    {
+      "slug": "the-tower",
+      "subtitle": "Card of Revelation",
+      "correspondence": "Mars",
+      "keywords": ["upheaval", "revelation", "collapse", "awakening", "sudden change"]
+    },
+    {
+      "slug": "the-star",
+      "subtitle": "Card of Hope",
+      "correspondence": "Aquarius",
+      "keywords": ["hope", "clarity", "renewal", "guidance", "serenity"]
+    },
+    {
+      "slug": "the-moon",
+      "subtitle": "Card of Intuition",
+      "correspondence": "Pisces",
+      "keywords": ["dream", "instinct", "tide", "uncertainty", "the half-seen"]
+    },
+    {
+      "slug": "the-sun",
+      "subtitle": "Card of Vitality",
+      "correspondence": "Sun",
+      "keywords": ["vitality", "clarity", "joy", "success", "illumination"]
+    },
+    {
+      "slug": "judgement",
+      "subtitle": "Card of Awakening",
+      "correspondence": "Fire",
+      "keywords": ["awakening", "reckoning", "calling", "rebirth", "absolution"]
+    },
+    {
+      "slug": "the-world",
+      "subtitle": "Card of Completion",
+      "correspondence": "Saturn",
+      "keywords": ["completion", "wholeness", "integration", "arrival", "fulfilment"]
+    }
+  ]
+}

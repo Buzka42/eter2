@@ -1,0 +1,69 @@
+{
+  "_comment": "Static attributes only. Keys are the values calculateLifePath can return -- 1-9 plus the master numbers 11, 22 and 33. Must stay in step with MajorArcana.supportedLifePaths; a test asserts it.",
+  "schemaVersion": 1,
+  "paths": [
+    {
+      "value": 1,
+      "title": "The Initiator",
+      "keywords": ["independence", "beginning", "drive", "self-reliance", "leadership"]
+    },
+    {
+      "value": 2,
+      "title": "The Mediator",
+      "keywords": ["sensitivity", "partnership", "diplomacy", "patience", "receptivity"]
+    },
+    {
+      "value": 3,
+      "title": "The Expressor",
+      "keywords": ["expression", "imagination", "sociability", "delight", "communication"]
+    },
+    {
+      "value": 4,
+      "title": "The Builder",
+      "keywords": ["order", "discipline", "foundation", "endurance", "craft"]
+    },
+    {
+      "value": 5,
+      "title": "The Seeker",
+      "keywords": ["freedom", "change", "curiosity", "movement", "adaptability"]
+    },
+    {
+      "value": 6,
+      "title": "The Keeper",
+      "keywords": ["responsibility", "care", "harmony", "service", "devotion"]
+    },
+    {
+      "value": 7,
+      "title": "The Contemplative",
+      "keywords": ["analysis", "solitude", "depth", "inquiry", "discernment"]
+    },
+    {
+      "value": 8,
+      "title": "The Steward",
+      "keywords": ["authority", "capacity", "consequence", "ambition", "material mastery"]
+    },
+    {
+      "value": 9,
+      "title": "The Humanitarian",
+      "keywords": ["compassion", "completion", "breadth", "release", "generosity"]
+    },
+    {
+      "value": 11,
+      "title": "The Illuminator",
+      "keywords": ["intuition", "vision", "sensitivity", "inspiration", "revelation"],
+      "master": true
+    },
+    {
+      "value": 22,
+      "title": "The Master Builder",
+      "keywords": ["vision made real", "scale", "endurance", "structure", "legacy"],
+      "master": true
+    },
+    {
+      "value": 33,
+      "title": "The Master Teacher",
+      "keywords": ["devotion", "guidance", "compassion at scale", "responsibility", "uplift"],
+      "master": true
+    }
+  ]
+}

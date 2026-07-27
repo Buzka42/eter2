@@ -1,0 +1,19 @@
+{
+  "_comment": "Static attributes only. Names match exactly what NatalChartEngine emits as ZodiacPosition.name -- a test asserts the two sets are identical, so renaming a point here without renaming it there fails the build rather than silently rendering a blank position.",
+  "schemaVersion": 1,
+  "points": [
+    { "name": "Sun", "domain": "the essential self", "keywords": ["identity", "vitality", "purpose"] },
+    { "name": "Moon", "domain": "the inner weather", "keywords": ["feeling", "instinct", "need"] },
+    { "name": "Mercury", "domain": "mind and speech", "keywords": ["thought", "exchange", "learning"] },
+    { "name": "Venus", "domain": "attraction and value", "keywords": ["love", "beauty", "worth"] },
+    { "name": "Mars", "domain": "drive and assertion", "keywords": ["action", "desire", "conflict"] },
+    { "name": "Jupiter", "domain": "expansion and meaning", "keywords": ["growth", "faith", "opportunity"] },
+    { "name": "Saturn", "domain": "limit and structure", "keywords": ["discipline", "time", "consequence"] },
+    { "name": "Uranus", "domain": "disruption and freedom", "keywords": ["change", "invention", "break"] },
+    { "name": "Neptune", "domain": "dissolution and dream", "keywords": ["imagination", "longing", "blur"] },
+    { "name": "Pluto", "domain": "depth and power", "keywords": ["transformation", "compulsion", "renewal"] },
+    { "name": "North Node", "domain": "the direction of growth", "keywords": ["calling", "unfamiliar", "forward"] },
+    { "name": "Ascendant", "domain": "the meeting point", "keywords": ["approach", "manner", "threshold"] },
+    { "name": "Midheaven", "domain": "the visible life", "keywords": ["vocation", "standing", "aim"] }
+  ]
+}

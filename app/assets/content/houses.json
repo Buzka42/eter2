@@ -1,0 +1,18 @@
+{
+  "_comment": "Static attributes only. Twelve equal houses, matching natal_chart.dart's house system.",
+  "schemaVersion": 1,
+  "houses": [
+    { "number": 1, "title": "The Ascendant", "domain": "self and first impression", "keywords": ["identity", "appearance", "approach"] },
+    { "number": 2, "title": "The Second House", "domain": "resources and worth", "keywords": ["possession", "value", "security"] },
+    { "number": 3, "title": "The Third House", "domain": "mind and near world", "keywords": ["communication", "siblings", "short journeys"] },
+    { "number": 4, "title": "The Fourth House", "domain": "root and home", "keywords": ["family", "foundation", "private life"] },
+    { "number": 5, "title": "The Fifth House", "domain": "play and creation", "keywords": ["romance", "children", "expression"] },
+    { "number": 6, "title": "The Sixth House", "domain": "work and body", "keywords": ["routine", "health", "service"] },
+    { "number": 7, "title": "The Descendant", "domain": "the other", "keywords": ["partnership", "contracts", "open opposition"] },
+    { "number": 8, "title": "The Eighth House", "domain": "depth and exchange", "keywords": ["transformation", "shared resources", "the hidden"] },
+    { "number": 9, "title": "The Ninth House", "domain": "the far horizon", "keywords": ["belief", "travel", "higher study"] },
+    { "number": 10, "title": "The Midheaven", "domain": "vocation and public life", "keywords": ["calling", "reputation", "authority"] },
+    { "number": 11, "title": "The Eleventh House", "domain": "community and hope", "keywords": ["friendship", "alliance", "aspiration"] },
+    { "number": 12, "title": "The Twelfth House", "domain": "the interior and unseen", "keywords": ["solitude", "dream", "surrender"] }
+  ]
+}

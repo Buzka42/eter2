@@ -1,0 +1,18 @@
+{
+  "_comment": "Static attributes only. Keys match Zodiac enum names exactly; a test asserts the two sets are identical. Label, element, arcana, numeral and subtitle already live on the enum in core/arcana/zodiac.dart and are deliberately not duplicated here.",
+  "schemaVersion": 1,
+  "signs": [
+    { "key": "aries", "modality": "cardinal", "ruler": "Mars", "keywords": ["initiative", "courage", "urgency", "assertion"] },
+    { "key": "taurus", "modality": "fixed", "ruler": "Venus", "keywords": ["steadiness", "pleasure", "persistence", "security"] },
+    { "key": "gemini", "modality": "mutable", "ruler": "Mercury", "keywords": ["curiosity", "exchange", "versatility", "wit"] },
+    { "key": "cancer", "modality": "cardinal", "ruler": "Moon", "keywords": ["protection", "memory", "feeling", "belonging"] },
+    { "key": "leo", "modality": "fixed", "ruler": "Sun", "keywords": ["warmth", "expression", "pride", "generosity"] },
+    { "key": "virgo", "modality": "mutable", "ruler": "Mercury", "keywords": ["precision", "service", "refinement", "analysis"] },
+    { "key": "libra", "modality": "cardinal", "ruler": "Venus", "keywords": ["balance", "relation", "fairness", "grace"] },
+    { "key": "scorpio", "modality": "fixed", "ruler": "Pluto", "keywords": ["intensity", "depth", "resolve", "transformation"] },
+    { "key": "sagittarius", "modality": "mutable", "ruler": "Jupiter", "keywords": ["expansion", "candour", "search", "freedom"] },
+    { "key": "capricorn", "modality": "cardinal", "ruler": "Saturn", "keywords": ["ambition", "endurance", "structure", "responsibility"] },
+    { "key": "aquarius", "modality": "fixed", "ruler": "Uranus", "keywords": ["independence", "vision", "detachment", "community"] },
+    { "key": "pisces", "modality": "mutable", "ruler": "Neptune", "keywords": ["empathy", "imagination", "dissolution", "compassion"] }
+  ]
+}
