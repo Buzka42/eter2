@@ -14,6 +14,10 @@ abstract final class EterColors {
   static const ink900 = Color(0xFF1C2B3A);
   static const ink600 = Color(0xFF4A6076);
   static const ink400 = Color(0xFF8AA0B4);
+  // Parchment — the Journal's warm paper field, from the steering brief's
+  // palette ("midnight navy, cloud blue, parchment, warm ivory, antique
+  // gold"). Not a surface colour for anything else.
+  static const parchment = Color(0xFFFAF5EA);
   // Gold
   static const aura300 = Color(0xFFE9CF9A);
   static const aura500 = Color(0xFFD4AF6A);
