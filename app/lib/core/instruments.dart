@@ -422,3 +422,205 @@ class EngravedSleepStages extends StatelessWidget {
     );
   }
 }
+
+/// Several nights of stage totals. Each night is a narrow measured column,
+/// preserving the stage composition without importing a dashboard chart
+/// language. Unknown sleep remains a visible stage rather than being divided
+/// into invented light/deep/REM values.
+class EngravedSleepHistory extends StatelessWidget {
+  const EngravedSleepHistory({
+    super.key,
+    required this.nights,
+    required this.windowDays,
+  });
+
+  final List<Map<String, int>> nights;
+  final int windowDays;
+
+  @override
+  Widget build(BuildContext context) {
+    if (nights.isEmpty) return const SizedBox.shrink();
+    final ink = EterInk.of(context);
+    final totals = [
+      for (final night in nights)
+        night.values.fold<int>(0, (sum, minutes) => sum + minutes),
+    ];
+    final average = totals.fold<int>(0, (a, b) => a + b) / totals.length;
+    final summary = nights.indexed.map((entry) {
+      final stages = entry.$2.entries
+          .map((stage) => '${stage.key} ${stage.value} minutes')
+          .join(', ');
+      return 'Night ${entry.$1 + 1}: $stages';
+    }).join('. ');
+    return Semantics(
+      container: true,
+      label: '$windowDays day sleep history, ${nights.length} nights. '
+          'Average ${(average / 60).toStringAsFixed(1)} hours. $summary.',
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: 132,
+          child: CustomPaint(
+            painter: _SleepHistoryPainter(
+              nights: nights,
+              line: ink.line,
+              strong: ink.lineStrong,
+            ),
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Text(
+                '${(average / 60).toStringAsFixed(1)} h AVG',
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SleepHistoryPainter extends CustomPainter {
+  const _SleepHistoryPainter({
+    required this.nights,
+    required this.line,
+    required this.strong,
+  });
+
+  final List<Map<String, int>> nights;
+  final Color line;
+  final Color strong;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const top = 26.0;
+    final bottom = size.height - 18;
+    final height = bottom - top;
+    final maxMinutes = math.max(
+      480,
+      nights
+          .map((night) => night.values.fold<int>(0, (a, b) => a + b))
+          .reduce(math.max),
+    );
+    final axis = Paint()
+      ..color = line
+      ..strokeWidth = 1;
+    canvas.drawLine(Offset(0, bottom), Offset(size.width, bottom), axis);
+    final slot = size.width / nights.length;
+    final barWidth = math.min(12.0, slot * .42);
+    const order = ['awake', 'rem', 'light', 'deep', 'unknown'];
+    for (var i = 0; i < nights.length; i++) {
+      var y = bottom;
+      for (final stage in order) {
+        final minutes = nights[i][stage] ?? 0;
+        if (minutes == 0) continue;
+        final segment = height * minutes / maxMinutes;
+        final paint = Paint()
+          ..color = switch (stage) {
+            'deep' => strong,
+            'rem' => strong.withValues(alpha: .65),
+            'unknown' => line.withValues(alpha: .45),
+            _ => line,
+          };
+        canvas.drawRect(
+          Rect.fromLTWH(
+            slot * i + (slot - barWidth) / 2,
+            y - segment,
+            barWidth,
+            math.max(1, segment - 1),
+          ),
+          paint,
+        );
+        y -= segment;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SleepHistoryPainter old) =>
+      old.nights != nights || old.line != line || old.strong != strong;
+}
+
+/// Active energy by local hour. The complete 24-value sequence is exposed to
+/// assistive technology; the bars are only its engraved visual equivalent.
+class EngravedActivityDay extends StatelessWidget {
+  const EngravedActivityDay({super.key, required this.kcalByHour});
+
+  final List<double> kcalByHour;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kcalByHour.length != 24) return const SizedBox.shrink();
+    final ink = EterInk.of(context);
+    final total = kcalByHour.fold<double>(0, (a, b) => a + b);
+    final active = [
+      for (var hour = 0; hour < 24; hour++)
+        if (kcalByHour[hour] > 0)
+          '${hour.toString().padLeft(2, '0')}:00 '
+              '${kcalByHour[hour].round()} kilocalories',
+    ].join(', ');
+    return Semantics(
+      container: true,
+      label: 'Activity by time of day. Total ${total.round()} '
+          'kilocalories. $active.',
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: 112,
+          child: CustomPaint(
+            painter: _ActivityDayPainter(
+              values: kcalByHour,
+              line: ink.line,
+              strong: ink.lineStrong,
+            ),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final label in const ['00', '06', '12', '18', '24'])
+                    Text(label, style: Theme.of(context).textTheme.labelSmall),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityDayPainter extends CustomPainter {
+  const _ActivityDayPainter({
+    required this.values,
+    required this.line,
+    required this.strong,
+  });
+  final List<double> values;
+  final Color line;
+  final Color strong;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bottom = size.height - 22;
+    const top = 8.0;
+    final maxValue = math.max(1.0, values.reduce(math.max));
+    final slot = size.width / values.length;
+    final axis = Paint()
+      ..color = line
+      ..strokeWidth = 1;
+    canvas.drawLine(Offset(0, bottom), Offset(size.width, bottom), axis);
+    for (var i = 0; i < values.length; i++) {
+      final barHeight = (bottom - top) * values[i] / maxValue;
+      canvas.drawLine(
+        Offset(slot * (i + .5), bottom),
+        Offset(slot * (i + .5), bottom - barHeight),
+        Paint()
+          ..color = values[i] == maxValue ? strong : line
+          ..strokeWidth = math.max(1.4, slot * .32),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ActivityDayPainter old) =>
+      old.values != values || old.line != line || old.strong != strong;
+}

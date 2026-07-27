@@ -1,5 +1,6 @@
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/controls.dart';
+import 'package:eter/core/instruments.dart';
 import 'package:eter/core/register.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,15 +159,16 @@ void main() {
         .onPressed!
         .call();
     await tester.pump();
-    final verticalScroll = find
+    final estimateScroll = find
         .byWidgetPredicate(
           (widget) =>
               widget is Scrollable &&
               widget.axisDirection == AxisDirection.down,
         )
         .hitTestable();
-    final position = tester.state<ScrollableState>(verticalScroll).position;
-    position.jumpTo(position.maxScrollExtent);
+    final estimatePosition =
+        tester.state<ScrollableState>(estimateScroll).position;
+    estimatePosition.jumpTo(estimatePosition.maxScrollExtent);
     await tester.pump();
     await expectLater(
       find.byType(ProviderScope),
@@ -197,6 +199,36 @@ void main() {
     await expectLater(
       find.byType(ProviderScope),
       matchesGoldenFile('body-historical-signals-day-390x844.png'),
+    );
+    await disposePrototype(tester);
+  });
+
+  testWidgets('body activity-by-time day review capture', (tester) async {
+    await pumpPrototype(tester, register: EterRegister.day);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('THE BODY'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 120)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    final activityScroll = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
+        .hitTestable();
+    await tester.scrollUntilVisible(
+      find.byType(EngravedActivityDay),
+      500,
+      scrollable: activityScroll,
+    );
+    await tester.pump();
+    await expectLater(
+      find.byType(ProviderScope),
+      matchesGoldenFile('body-activity-day-390x844.png'),
     );
     await disposePrototype(tester);
   });

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../core/db/app_database.dart';
+import '../../core/energy/energy.dart' as energy;
 import '../../core/arcana/major_arcana.dart';
 import '../../core/symbolic/numerology.dart';
 
@@ -115,6 +116,47 @@ abstract final class PrototypeFixtures {
       );
     }
 
+    if ((await db.loadMinuteBuckets(dayStart, dayEnd)).isEmpty) {
+      const hourlyKcal = <double>[
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        4,
+        12,
+        18,
+        15,
+        11,
+        16,
+        24,
+        19,
+        13,
+        9,
+        21,
+        38,
+        96,
+        72,
+        34,
+        18,
+        7,
+        3,
+      ];
+      await db.ingestRawBuckets([
+        for (var hour = 0; hour < 24; hour++)
+          if (hourlyKcal[hour] > 0)
+            energy.MinuteBucket(
+              minuteUtc: dayStart.add(Duration(hours: hour)).toUtc(),
+              activeKcal: hourlyKcal[hour],
+              sourceId: 'fixture-hub',
+              priority: energy.SourcePriority.hub,
+              steps: (hourlyKcal[hour] * 12).round(),
+            ),
+      ]);
+      await db.recomputeMinuteWinners(dayStart, dayEnd);
+    }
+
     await db.recordDailyVitals(
       DailyVitalsCompanion.insert(
         date: today,
@@ -174,6 +216,53 @@ abstract final class PrototypeFixtures {
         source: 'fixture',
         segments: stages,
       );
+    }
+
+    final sleepHistory = await db.loadSleepForNights(
+      eterIsoDate(now.subtract(const Duration(days: 6))),
+      today,
+    );
+    if ({for (final row in sleepHistory) row.nightOf}.length < 7) {
+      for (var offset = 6; offset >= 1; offset--) {
+        final night = now.subtract(Duration(days: offset));
+        final nightOf = eterIsoDate(night);
+        if (sleepHistory.any((row) => row.nightOf == nightOf)) continue;
+        var cursor = DateTime.utc(
+          night.year,
+          night.month,
+          night.day - 1,
+          22,
+          30 + offset,
+        );
+        final stages = <SleepSegmentsCompanion>[];
+        for (final (stage, baseMinutes) in const [
+          ('light', 102),
+          ('deep', 72),
+          ('rem', 61),
+          ('light', 138),
+          ('awake', 14),
+          ('rem', 48),
+        ]) {
+          final minutes = baseMinutes + ((offset % 3) - 1) * 6;
+          final end = cursor.add(Duration(minutes: minutes));
+          stages.add(
+            SleepSegmentsCompanion.insert(
+              startUtc: cursor,
+              endUtc: end,
+              stage: stage,
+              source: 'fixture',
+              priority: 1,
+              nightOf: nightOf,
+            ),
+          );
+          cursor = end;
+        }
+        await db.replaceSleepForNight(
+          nightOf: nightOf,
+          source: 'fixture',
+          segments: stages,
+        );
+      }
     }
 
     if ((await db.watchWeightEntries(limit: 30).first).isEmpty) {

@@ -99,7 +99,9 @@ the exact negative space it must occupy.
 - The ETER celestial header — already implemented as `CustomPainter`
   (one-colour paths tinted by register, per the manifest's own instruction).
 - Controls, rules, chevrons, microphone/calendar icons, evidence marks,
-  charts, the beam balance, toggles, focus states, all text.
+  charts, the beam balance, toggles, focus states, all text. This includes the
+  shipped 7/30-day sleep-stage and 24-hour activity instruments: both are
+  accessible code-native engravings and require no raster or animation asset.
 - Journal paper — a code-defined parchment field plus the existing
   `grain-subtle.webp` at low opacity.
 - Night sky, night loops, card art, card backs — the shipped set is reused

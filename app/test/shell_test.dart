@@ -362,10 +362,10 @@ void main() {
 
     expect(find.byType(EngravedTrend), findsNWidgets(3));
     expect(find.byType(EngravedSleepStages), findsOneWidget);
-    expect(
-      find.textContaining('Activity by time of day is unavailable'),
-      findsOneWidget,
-    );
+    expect(find.byType(EngravedSleepHistory), findsOneWidget);
+    expect(find.byType(EngravedActivityDay), findsOneWidget);
+    expect(find.textContaining('Activity by time of day is unavailable'),
+        findsNothing);
     expect(
       find.bySemanticsLabel(
         RegExp(r'Resting heart rate trend, 14 readings'),
@@ -374,6 +374,33 @@ void main() {
     );
     expect(
       find.bySemanticsLabel(RegExp(r'Sleep stages\.')),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'7 day sleep history, 7 nights\.'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'Activity by time of day\. Total 430 kilocalories\.'),
+      ),
+      findsOneWidget,
+    );
+
+    final thirtyDays = find.text('30 DAYS');
+    await tester.ensureVisible(thirtyDays);
+    await tester.pump();
+    await tester.tap(thirtyDays);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'30 day sleep history, 7 nights\.'),
+      ),
       findsOneWidget,
     );
     semantics.dispose();

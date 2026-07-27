@@ -315,8 +315,11 @@ class _HistoricalSignals extends StatefulWidget {
 
 class _HistoricalSignalsState extends State<_HistoricalSignals> {
   late Future<List<DailyVitalsRow>> _vitals;
+  late Future<List<SleepSegmentRow>> _sleepHistory;
   late Stream<List<SleepSegmentRow>> _sleep;
+  late Stream<List<MinuteBucketRow>> _activity;
   late Stream<List<WeightEntryRow>> _weight;
+  int _sleepWindow = 7;
 
   @override
   void initState() {
@@ -336,7 +339,25 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
       widget.today,
     );
     _sleep = widget.db.watchSleepForNight(widget.today);
+    _loadSleepHistory();
+    final (dayStart, dayEnd) = eterDayBounds(widget.now);
+    _activity = widget.db.watchMinuteBuckets(dayStart, dayEnd);
     _weight = widget.db.watchWeightEntries(limit: 30);
+  }
+
+  void _loadSleepHistory() {
+    _sleepHistory = widget.db.loadSleepForNights(
+      eterIsoDate(widget.now.subtract(Duration(days: _sleepWindow - 1))),
+      widget.today,
+    );
+  }
+
+  void _selectSleepWindow(int days) {
+    if (_sleepWindow == days) return;
+    setState(() {
+      _sleepWindow = days;
+      _loadSleepHistory();
+    });
   }
 
   @override
@@ -418,6 +439,50 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
           },
         ),
         const SizedBox(height: EterSpace.s24),
+        Text('SLEEP HISTORY', style: text.labelSmall),
+        Row(
+          children: [
+            _PeriodChoice(
+              label: '7 days',
+              selected: _sleepWindow == 7,
+              onTap: () => _selectSleepWindow(7),
+            ),
+            const SizedBox(width: EterSpace.s16),
+            _PeriodChoice(
+              label: '30 days',
+              selected: _sleepWindow == 30,
+              onTap: () => _selectSleepWindow(30),
+            ),
+          ],
+        ),
+        FutureBuilder<List<SleepSegmentRow>>(
+          future: _sleepHistory,
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <SleepSegmentRow>[];
+            final byNight = <String, Map<String, int>>{};
+            for (final row in rows) {
+              final night =
+                  byNight.putIfAbsent(row.nightOf, () => <String, int>{});
+              final minutes = row.endUtc.difference(row.startUtc).inMinutes;
+              night.update(
+                row.stage,
+                (value) => value + minutes,
+                ifAbsent: () => minutes,
+              );
+            }
+            if (byNight.length < 2) {
+              return Text(
+                'A sleep history needs at least two recorded nights.',
+                style: text.bodyMedium,
+              );
+            }
+            return EngravedSleepHistory(
+              nights: byNight.values.toList(),
+              windowDays: _sleepWindow,
+            );
+          },
+        ),
+        const SizedBox(height: EterSpace.s24),
         StreamBuilder<List<WeightEntryRow>>(
           stream: _weight,
           builder: (context, snapshot) {
@@ -441,13 +506,73 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
             );
           },
         ),
-        const SizedBox(height: EterSpace.s16),
-        Text(
-          'Activity by time of day is unavailable until minute-level movement '
-          'data is connected.',
-          style: text.bodySmall,
+        const SizedBox(height: EterSpace.s24),
+        StreamBuilder<List<MinuteBucketRow>>(
+          stream: _activity,
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <MinuteBucketRow>[];
+            if (rows.isEmpty) {
+              return Text(
+                'Activity by time of day is unavailable until minute-level '
+                'movement data is connected.',
+                style: text.bodySmall,
+              );
+            }
+            final hourly = List<double>.filled(24, 0);
+            for (final row in rows) {
+              hourly[row.minuteUtc.toLocal().hour] += row.activeKcal;
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('ACTIVITY BY TIME', style: text.labelSmall),
+                const SizedBox(height: EterSpace.s8),
+                EngravedActivityDay(kcalByHour: hourly),
+              ],
+            );
+          },
         ),
       ],
+    );
+  }
+}
+
+class _PeriodChoice extends StatelessWidget {
+  const _PeriodChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = EterInk.of(context);
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 64),
+          child: Center(
+            child: Text(
+              label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: selected ? ink.lineStrong : ink.labelMuted,
+                    decoration: selected
+                        ? TextDecoration.underline
+                        : TextDecoration.none,
+                    decorationColor: ink.lineStrong,
+                  ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

@@ -81,9 +81,10 @@ defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
   correction, the offline/cached Vessel, and the local onboarding/consent gate
   are complete. Onboarding defaults every outbound permission off, records AI,
   journal-prose and cloud consent separately, and remains usable without any
-  of them. The 7/30-day sleep view and activity-by-time instrument still need
-  connected-series handling; the fixture deliberately shows activity as
-  unavailable rather than zero.
+  of them. The 7/30-day stacked sleep history and 24-hour activity instrument
+  are also complete against the real sleep-segment and winning-minute
+  contracts. Their empty states still say when connected-series data is
+  absent; they never convert absence into zero.
 - Do not redesign tokens, add a component library, or add a chart package.
   Charts are `CustomPainter` in the `EngravedBalance` idiom.
 - Non-negotiables in `UI_BRIEF.md` §2 are defects if violated: no capsules,
