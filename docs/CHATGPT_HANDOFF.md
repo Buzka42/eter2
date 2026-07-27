@@ -18,7 +18,7 @@ Flutter against the real Drift contracts with fixture content
 | Signature arrival | `app/lib/core/arrival.dart` | One widget serves guidance and Journal. Word groups resolve from blur in ≤ `durSentence` per sentence, pauses between sentences, ≤4 dp displacement on `easeAir`, tap completes, reduced motion renders settled on frame one. |
 | Shell | `app/lib/features/shell/eter_shell.dart`, `shell_header.dart` | Horizontal pager Journal↔Dashboard, `allowImplicitScrolling` + keep-alive for state preservation, persistent two-word switch with travelling gold hairline, ETER celestial header as `CustomPainter` (commissioned as code in the asset manifest). |
 | Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Guidance from `GuidanceHistory` (synthesis), one borderless `Body` disclosure, in-place `AnimatedSize` expansion: conclusion in words first, then one fixture-backed `EngravedBalance`, explicit close. Absences stated, never zeroed. |
-| Journal | `app/lib/features/journal/journal_page.dart` | Date-led parchment page (grain reused, no border), tap-page-to-write, 900 ms autosave, borderless dictate (`speech_to_text`) and Done actions, marginal privacy switch writing `excludedFromAi`, entries arrive via the shared reveal. |
+| Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Entries read as continuous timed prose and arrive via the shared reveal. |
 | Register wiring | `app/lib/main.dart` | `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), one scheduled rebuild at the next phase change, no polling. |
 | Tokens | `app/lib/core/tokens.dart` | One additive token: `EterColors.parchment`. Nothing else touched. |
 
@@ -29,28 +29,26 @@ Flutter against the real Drift contracts with fixture content
   settled rendering). Keep it green.
 - `flutter analyze` — no issues.
 
-## Known-open — start here
+## Approval-gate status
 
-1. **Shell navigation in widget tests.** In `app/test/shell_test.dart`, 3/8
-   pass. The failing five share one symptom: after
-   `tester.tap(find.text('JOURNAL'))` + `pump(400 ms)`, `JournalPage` is not
-   in the tree and the page does not change. Two hypotheses, in order:
-   (a) test-environment artifact — the offscreen page is not mounted even
-   with `allowImplicitScrolling`, and/or the tap does not reach `_goTo`;
-   (b) a real defect in the switch or pager. Check on a device or emulator
-   first; if the tap works there, fix the tests, not the shell. If it does
-   not, the fallback is `_controller.jumpToPage`, which cannot silently fail.
-2. **Unverified behaviours the tests were meant to prove:** expansion and
-   half-written-entry state surviving the page crossing; the exclusion
-   switch persisting `excludedFromAi`; tap-target sizes via
-   `tester.getSemantics` (needs `tester.ensureSemantics()` first).
-3. **Golden captures — the remaining gate deliverable.** Widths 320/390/600
-   dp × text scales 1.0/2.0 × day/night for the Dashboard, plus Journal
-   day/night and one mid-arrival capture. Harness pieces exist in
-   `app/test/helpers/prototype_harness.dart` (real fonts via `FontLoader`,
-   pinned clock via `nowProvider`, in-memory Drift, surface sizing). Put
-   scenarios in `app/test/golden/`, images beside them; `test/**/failures/`
-   is already gitignored — keep it that way.
+The previously open shell and capture work is complete:
+
+1. Explicit Journal/Dashboard words use deterministic page jumps; swiping
+   retains the continuous pager motion. Shell tests cover navigation, retained
+   expansion/draft state and exact semantics.
+2. `test/golden/prototype_visual_test.dart` captures Dashboard at 320×568,
+   390×844 and 600×960, each at text scales 1.0 and 2.0 in day and night,
+   plus Journal day/night and a mid-arrival frame.
+3. The matrix caught and drove fixes for the 320 dp/200% Body-row overflow and
+   the decorative wordmark's dynamic-type collision. The wordmark now keeps
+   fixed lockup geometry while all reading and navigation content scales.
+4. Day background option A (`bg-air-day-v6`) is integrated and intentionally
+   still. Option B and two header-direction studies remain in `assets/review/`
+   for product-owner comparison.
+
+The next implementation phase may now expand the complete product one section
+at a time in the order defined by `UI_BRIEF.md`. Do not reintroduce prototype
+chrome while doing so.
 
 ## Test-environment lessons (hard-won, do not rediscover)
 
@@ -87,12 +85,10 @@ Flutter against the real Drift contracts with fixture content
 - Fixture data against the real database contracts; the schema is stable.
 - The arrival widget must remain the only implementation of the reveal.
 
-## Definition of done for the next step
+## Definition of done for this milestone
 
-1. The six approval questions in `UI_DIRECTION.md` answered *yes* against
-   the running prototype (they require the captures in item 3 above).
-2. `shell_test.dart` green, `arrival_test.dart` still green, goldens
-   committed (no `failures/` images).
-3. `bg-air-day-v6` commissioned via `ART_COMMISSIONS.md`, accepted through
-   its gate, swapped into `SkyBackground` (replacing the v5 fallback) and
-   recorded in the manifest log.
+1. The approval questions in `UI_DIRECTION.md` answer *yes* against the
+   committed capture matrix.
+2. The complete Flutter test suite and `flutter analyze` are green.
+3. Goldens contain no `failures/` output; v6 background and its retained
+   master/review alternatives are recorded in the asset and commission logs.

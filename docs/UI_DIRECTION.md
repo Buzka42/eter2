@@ -166,13 +166,16 @@ opening the same private book each day.
   folio mark or a short hairline—not individual cards.
 - Place the insertion point where a pen would begin on a page. Tapping the open
   page starts writing immediately.
-- Dictation is a small conventional microphone glyph with the visible label
-  available to semantics. Save may be a compact `Done` word; autosave should
-  reduce the need to present Save persistently.
+- Dictation is the page's only persistent action: a small borderless word
+  (`DICTATE`, changing to an explicit stop state while listening) with a
+  conventional meaning and a 48×48 dp invisible target. Saving is automatic
+  and invisible. Do not add Done, Save, checkmarks, completion controls or a
+  composer toolbar.
 - Date browsing should evoke page movement through typography and transition,
   but must also have explicit previous/next and calendar targets.
-- Privacy inclusion is a marginal note beneath the entry, not a prominent
-  toggle row interrupting the writing.
+- AI inclusion remains a data capability, but it is not edited in the writing
+  surface. If exposed later, place it in entry management outside the capture
+  flow; never interrupt the page with a toggle or checkmark.
 - Night Journal remains `SurfaceIntent.plain`: warm ivory-on-navy or a dark
   paper field, without constellations beneath prose.
 
@@ -255,7 +258,7 @@ prototype containing:
 - explicit close and state restoration;
 - 320 dp, 390 dp and 600 dp width captures at text scales 1.0 and 2.0.
 
-Approve the prototype on four questions:
+Approve the prototype on six questions:
 
 1. Does the first glance land on guidance rather than navigation or metrics?
 2. Can a new user discover Journal and Body without being taught a gesture?
@@ -265,6 +268,19 @@ Approve the prototype on four questions:
 6. Can any visible border or control be removed without harming discovery?
 
 If any answer is no, fix the defining interaction before expanding scope.
+
+### Gate result — 28 July 2026
+
+All six questions answer **yes** against the committed day/night capture
+matrix. Guidance owns the first glance; Journal and Body are explicit text
+destinations; night changes depth rather than density; reduced motion removes
+animation without removing content; the Journal is an open ruled page with
+only typing and dictation; and ordinary actions retain no visible enclosure.
+
+The matrix includes 320×568, 390×844 and 600×960 Dashboard captures at text
+scales 1.0 and 2.0 in both registers, Journal in both registers, and one
+mid-arrival frame. The 200% review directly found and resolved the Body-row
+overflow and decorative-header collision.
 
 ## Handoff instruction for Kimi K3
 

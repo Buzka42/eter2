@@ -141,11 +141,9 @@ class _SkyBackgroundState extends State<SkyBackground>
 
   /// A very slow parallax drift across the plate.
   ///
-  /// Both skies were dead still: the night astrophotograph and the day cloud
-  /// are single bitmaps, so nothing moved unless the air-field video happened
-  /// to be loaded. A 3% oversample panned over three minutes gives the sky the
-  /// sense of turning overhead without any new asset, any decode, or any
-  /// motion fast enough to read as an animation.
+  /// Night receives a 3% oversample panned over three minutes, giving the sky
+  /// the sense of turning overhead without motion fast enough to demand
+  /// attention. Day is still by product rule.
   AnimationController? _drift;
 
   @override
@@ -224,7 +222,7 @@ class _SkyBackgroundState extends State<SkyBackground>
       fit: StackFit.expand,
       children: [
         _DriftingPlate(
-          drift: reduceMotion ? null : _drift,
+          drift: reduceMotion || !night ? null : _drift,
           oversample: _driftOversample,
           child: Image.asset(
             // Night Sky is the v3 astrophotography plate: the delivered master
@@ -235,12 +233,11 @@ class _SkyBackgroundState extends State<SkyBackground>
             // cover crop, and the symbolic overlay is gone
             // (tools/grade_night_sky.py).
             //
-            // Day Sky is the v5 plate: v4 fixed the colour (v3 had desaturated
-            // the master to flat neutral grey) and v5 fixes the character, which
-            // was a perfectly smooth ramp with no light direction and visible
-            // 8-bit banding. It composites real photographic cumulus low in the
-            // frame and dithers the whole plate (tools/compose_day_sky.py).
-            'assets/art/bg-air-${night ? 'dark-v3' : 'light-v5'}.webp',
+            // Day Sky v6 is the approved editorial atmosphere: pale blue
+            // dissolving into parchment mist, with a calm text-safe centre.
+            night
+                ? 'assets/art/bg-air-dark-v3.webp'
+                : 'assets/art/bg-air-day-v6.webp',
             fit: BoxFit.cover,
             filterQuality: FilterQuality.high,
           ),
@@ -296,9 +293,9 @@ class _SkyBackgroundState extends State<SkyBackground>
   }
 }
 
-/// Oversamples a background plate and pans it on a very long cycle, so the sky
-/// is never completely still. The drift is a triangle wave — out and back —
-/// because a sawtooth would snap at the loop point.
+/// Oversamples the night plate and pans it on a very long cycle. The drift is
+/// a triangle wave — out and back — because a sawtooth would snap at the loop
+/// point. Day never supplies a controller.
 class _DriftingPlate extends StatelessWidget {
   const _DriftingPlate({
     required this.drift,

@@ -166,6 +166,7 @@ class _DisclosureLine extends StatelessWidget {
       expanded: false,
       label: 'The Body',
       hint: 'expands health details',
+      excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
@@ -175,10 +176,19 @@ class _DisclosureLine extends StatelessWidget {
             children: [
               Text('THE BODY',
                   style: text.labelSmall?.copyWith(color: ink.label)),
-              const Spacer(),
-              if (fact != null)
-                Text(fact!,
-                    style: text.bodySmall?.copyWith(color: ink.labelMuted)),
+              if (fact != null) ...[
+                const SizedBox(width: EterSpace.s8),
+                Expanded(
+                  child: Text(
+                    fact!,
+                    maxLines: 2,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: text.bodySmall?.copyWith(color: ink.labelMuted),
+                  ),
+                ),
+              ] else
+                const Spacer(),
               const SizedBox(width: EterSpace.s8),
               Icon(Icons.chevron_right, size: 18, color: ink.labelMuted),
             ],

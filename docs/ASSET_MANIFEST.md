@@ -13,9 +13,11 @@ elements out of them or ship them as application backgrounds.
 
 #### 1. Refined day environment
 
-**Status:** commission. The existing `bg-air-light-v5.webp` is usable as a
-fallback, but it is more saturated and visually emptier than the approved day
-concept.
+**Status:** two options generated. Option A passed the complete responsive and
+dynamic-type capture gate and is integrated as
+`app/assets/art/bg-air-day-v6.webp`; option B is retained under
+`assets/review/` for product-owner comparison. The existing
+`bg-air-light-v5.webp` is superseded.
 
 **Deliverables:**
 
@@ -48,8 +50,9 @@ concept.
 
 #### 2. ETER celestial header engraving
 
-**Status:** design/commission as vector or implement with `CustomPainter`; do
-not commission as a flattened screen-width bitmap.
+**Status:** two concept families generated under `assets/review/`. The quieter
+colophon family (option B) is provisionally implemented with `CustomPainter`;
+the concept bitmaps are not runtime assets.
 
 **Deliverable:** one shallow, symmetrical path composition around the wordmark,
 approximately 300×56 logical units, authored as SVG paths or reproducible

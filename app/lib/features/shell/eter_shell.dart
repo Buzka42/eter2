@@ -45,15 +45,11 @@ class _EterShellState extends State<EterShell> {
   }
 
   void _goTo(int page) {
-    if (MediaQuery.disableAnimationsOf(context)) {
-      _controller.jumpToPage(page);
-    } else {
-      _controller.animateToPage(
-        page,
-        duration: EterMotion.durStandard,
-        curve: EterMotion.easeAir,
-      );
-    }
+    if (page == _active || !_controller.hasClients) return;
+    // The explicit words are deterministic navigation; the optional swipe is
+    // where the continuous horizontal motion lives. This also gives keyboard
+    // and assistive-technology users an immediate, reliable destination.
+    _controller.jumpToPage(page);
   }
 
   @override

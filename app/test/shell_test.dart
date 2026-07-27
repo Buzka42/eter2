@@ -135,6 +135,9 @@ void main() {
         'I slept badly, but the morning walk helped me feel clearer.');
     expect(rows.single.source, 'typed');
     expect(rows.single.excludedFromAi, isFalse);
+    // The database future completes before the frame carrying the cleared
+    // composer is painted.
+    await tester.pump();
 
     // It renders on the page, composer cleared.
     expect(
@@ -149,25 +152,16 @@ void main() {
     await closeShell(tester);
   });
 
-  testWidgets('the marginal switch excludes the next entry from Aether',
+  testWidgets('the journal composer stays to writing and dictation',
       (tester) async {
     await pumpShell(tester);
     await tester.tap(find.text('JOURNAL'));
     await tester.pump(const Duration(milliseconds: 400));
 
-    await tester.tap(find.text('Included in Aether guidance'));
-    await tester.pump();
-    expect(find.text('Kept from Aether'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextField), 'Not for the model.');
-    await tester.pump(const Duration(milliseconds: 1100));
-    await tester.pump();
-
-    final rows = await db.loadJournalForRange(
-      DateTime(2026, 7, 27),
-      DateTime(2026, 7, 28),
-    );
-    expect(rows.single.excludedFromAi, isTrue);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(find.text('DICTATE'), findsOneWidget);
+    expect(find.text('DONE'), findsNothing);
+    expect(find.textContaining('Aether guidance'), findsNothing);
     await closeShell(tester);
   });
 

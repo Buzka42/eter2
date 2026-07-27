@@ -192,9 +192,11 @@ An open, date-led personal journal page. `SurfaceIntent.plain`.
   writing field, subtle grain and margin rhythm, open prose, date as heading and
   time in the margin. No complete border around the editor and no card per
   entry.
-- Keyboard input starts by tapping the open page. Dictation and Done are
-  compact, borderless actions with 48×48 dp semantic hit regions. Prefer
-  autosave so Save does not remain as permanent visual chrome.
+- Keyboard input starts by tapping the open page. Dictation is the only
+  persistent visible action, rendered as a compact borderless word with a
+  48×48 dp semantic hit region. Saving is automatic and invisible; there is
+  no Done, Save, checkmark, privacy toggle or completion state in the writing
+  surface.
 - Today's entries in reverse-chronological order; older days behind a date
   affordance.
 - **Capture is the whole game.** The path from intent to recording should be as

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:eter/core/clock.dart';
 import 'package:eter/core/db/app_database.dart';
@@ -19,6 +20,10 @@ final DateTime eterPinnedNow = DateTime(2026, 7, 27, 10, 8);
 
 /// An in-memory store carrying the prototype fixtures.
 Future<AppDatabase> eterTestDatabase({DateTime? now}) async {
+  // Widget tests intentionally create a fresh in-memory store per case and
+  // leave it open to avoid Drift's FakeAsync close deadlock. They never share
+  // an executor, so the global duplicate-class warning is noise here.
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   final db = AppDatabase(NativeDatabase.memory());
   await PrototypeFixtures.seedIfEmpty(db, now ?? eterPinnedNow);
   return db;
@@ -71,9 +76,8 @@ Widget eterPrototypeApp({
       debugShowCheckedModeBanner: false,
       theme: EterTheme.day(),
       darkTheme: EterTheme.night(),
-      themeMode: register == EterRegister.night
-          ? ThemeMode.dark
-          : ThemeMode.light,
+      themeMode:
+          register == EterRegister.night ? ThemeMode.dark : ThemeMode.light,
       home: Builder(
         builder: (context) {
           // Merge into the real MediaQuery — replacing it wholesale would

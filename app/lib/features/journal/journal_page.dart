@@ -40,7 +40,6 @@ class _JournalPageState extends ConsumerState<JournalPage> {
 
   Timer? _autosave;
   bool _saving = false;
-  bool _excluded = false;
   bool _spokenUsed = false;
   bool _listening = false;
   String? _dictationNote;
@@ -48,13 +47,11 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   Stream<List<JournalEntryRow>>? _entriesStream;
   String? _streamedDay;
 
-  static final _dateHeading = DateFormat('EEEE d MMMM');
   static final _marginalTime = DateFormat('HH:mm');
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() => setState(() {}));
   }
 
   @override
@@ -66,7 +63,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   }
 
   void _onChanged(String _) {
-    setState(() {}); // Done visibility follows the text.
+    setState(() {}); // Dictation and autosave feedback follow the draft.
     _autosave?.cancel();
     _autosave = Timer(const Duration(milliseconds: 900), _save);
   }
@@ -84,25 +81,20 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           entryText: text,
           createdAt: now,
           source: Value(_spokenUsed ? 'spoken' : 'typed'),
-          excludedFromAi: Value(_excluded),
         ),
       );
-      await EterHaptics.light();
       if (!mounted) return;
       setState(() {
         _arrivingIds.add(id);
         _composer.clear();
         _spokenUsed = false;
-        _excluded = false;
       });
+      // Haptics confirm the save but must never hold the page in its composing
+      // state when a platform channel is slow or unavailable.
+      unawaited(EterHaptics.light());
     } finally {
       _saving = false;
     }
-  }
-
-  Future<void> _done() async {
-    await _save();
-    _focusNode.unfocus();
   }
 
   Future<void> _toggleDictation() async {
@@ -129,8 +121,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       );
       if (!available) {
         if (mounted) {
-          setState(
-              () => _dictationNote = 'Dictation is unavailable on this device.');
+          setState(() =>
+              _dictationNote = 'Dictation is unavailable on this device.');
         }
         return;
       }
@@ -152,9 +144,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           _composer.value = TextEditingValue(
             text: _dictationBase + (needsSpace ? ' ' : '') + words,
             selection: TextSelection.collapsed(
-              offset: _dictationBase.length +
-                  (needsSpace ? 1 : 0) +
-                  words.length,
+              offset:
+                  _dictationBase.length + (needsSpace ? 1 : 0) + words.length,
             ),
           );
           _spokenUsed = true;
@@ -174,8 +165,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
 
   /// Cached so rebuilds (every keystroke) never resubscribe the
   /// StreamBuilder.
-  Stream<List<JournalEntryRow>> _entriesFor(
-      AppDatabase db, DateTime now) {
+  Stream<List<JournalEntryRow>> _entriesFor(AppDatabase db, DateTime now) {
     final today = eterIsoDate(now);
     if (_entriesStream == null || _streamedDay != today) {
       _streamedDay = today;
@@ -197,7 +187,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       height: 1.5,
       fontWeight: FontWeight.w400,
     );
-    final composing = _composer.text.isNotEmpty || _focusNode.hasFocus;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final writingLineHeight = 28.5 * textScale;
 
     return SurfaceIntentScope(
       intent: SurfaceIntent.plain,
@@ -216,68 +207,63 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: EterSpace.s24),
-                  Text(_dateHeading.format(now), style: text.headlineSmall),
-                  const SizedBox(height: EterSpace.s16),
-                  TextField(
-                    controller: _composer,
-                    focusNode: _focusNode,
-                    onChanged: _onChanged,
-                    style: proseStyle,
-                    cursorColor: ink.lineStrong,
-                    cursorWidth: 1,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration.collapsed(
-                      hintText: 'What is asking for your attention?',
-                      hintStyle: proseStyle?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: ink.labelMuted.withValues(alpha: 0.75),
-                      ),
-                    ),
+                  Text(
+                    DateFormat('EEEE').format(now).toUpperCase(),
+                    style: text.labelSmall,
                   ),
-                  const SizedBox(height: EterSpace.s8),
-                  // Privacy inclusion is a marginal note beneath the entry,
-                  // not a toggle row interrupting the writing.
-                  Row(
+                  const SizedBox(height: EterSpace.s4),
+                  Text(
+                    DateFormat('d MMMM').format(now),
+                    style: text.headlineSmall,
+                  ),
+                  const SizedBox(height: EterSpace.s16),
+                  Stack(
                     children: [
-                      _SquareSwitch(
-                        value: !_excluded,
-                        semanticLabel: 'Include this entry in Aether guidance',
-                        onChanged: (include) =>
-                            setState(() => _excluded = !include),
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            painter: _WritingLinesPainter(
+                              color: ink.line.withValues(alpha: 0.3),
+                              spacing: writingLineHeight,
+                            ),
+                          ),
+                        ),
                       ),
-                      Expanded(
-                        child: Text(
-                          _excluded
-                              ? 'Kept from Aether'
-                              : 'Included in Aether guidance',
-                          style: text.bodySmall,
+                      TextField(
+                        controller: _composer,
+                        focusNode: _focusNode,
+                        onChanged: _onChanged,
+                        style: proseStyle,
+                        cursorColor: ink.lineStrong,
+                        cursorWidth: 1,
+                        minLines: 6,
+                        maxLines: null,
+                        keyboardType: TextInputType.multiline,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration.collapsed(
+                          hintText: 'What is asking for your attention?',
+                          hintStyle: proseStyle?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: ink.labelMuted.withValues(alpha: 0.75),
+                          ),
                         ),
                       ),
                     ],
                   ),
+                  const SizedBox(height: EterSpace.s4),
                   Row(
                     children: [
                       _GlyphAction(
-                        icon: _listening ? Icons.mic : Icons.mic_none,
+                        label: _listening ? 'Stop dictation' : 'Dictate',
                         semanticLabel:
                             _listening ? 'Stop dictation' : 'Dictate',
                         color: _listening ? ink.lineStrong : ink.labelMuted,
                         onTap: _toggleDictation,
                       ),
-                      if (_listening)
-                        Text('Listening…', style: text.bodySmall),
+                      if (_listening) Text('Listening…', style: text.bodySmall),
                       if (_dictationNote != null)
                         Expanded(
                           child: Text(_dictationNote!, style: text.bodySmall),
-                        ),
-                      const Spacer(),
-                      if (composing)
-                        EterAction(
-                          label: 'Done',
-                          emphasis: EterActionEmphasis.quiet,
-                          onPressed: _done,
                         ),
                     ],
                   ),
@@ -351,7 +337,7 @@ class _ParchmentField extends StatelessWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                stops: const [0, 0.06, 1],
+                stops: const [0, 0.12, 1],
                 colors: [
                   paper.withValues(alpha: 0),
                   paper,
@@ -378,13 +364,13 @@ class _ParchmentField extends StatelessWidget {
 /// action form for dictation. The visible label lives in semantics.
 class _GlyphAction extends StatelessWidget {
   const _GlyphAction({
-    required this.icon,
+    required this.label,
     required this.semanticLabel,
     required this.color,
     required this.onTap,
   });
 
-  final IconData icon;
+  final String label;
   final String semanticLabel;
   final Color color;
   final VoidCallback onTap;
@@ -394,72 +380,45 @@ class _GlyphAction extends StatelessWidget {
     return Semantics(
       button: true,
       label: semanticLabel,
+      excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
         child: SizedBox(
-          width: 48,
+          width: 112,
           height: 48,
-          child: Center(child: Icon(icon, size: 22, color: color)),
-        ),
-      ),
-    );
-  }
-}
-
-/// A square, mechanical instrument switch — the house toggle form from
-/// `docs/UI_DIRECTION.md`. Hairline square, a set square inside when on, and
-/// an invisible 48 dp target.
-class _SquareSwitch extends StatelessWidget {
-  const _SquareSwitch({
-    required this.value,
-    required this.onChanged,
-    required this.semanticLabel,
-  });
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-  final String semanticLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = EterInk.of(context);
-    return Semantics(
-      button: true,
-      toggled: value,
-      label: semanticLabel,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onChanged(!value),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Center(
-            child: AnimatedContainer(
-              duration: EterMotion.durMicro,
-              curve: EterMotion.easeAir,
-              width: 18,
-              height: 18,
-              decoration: BoxDecoration(
-                color: value ? ink.wash : Colors.transparent,
-                border: Border.all(
-                  color: value ? ink.lineStrong : ink.line,
-                  width: 1.2,
-                ),
-              ),
-              child: value
-                  ? Center(
-                      child: Container(
-                        width: 8,
-                        height: 8,
-                        color: ink.lineStrong,
-                      ),
-                    )
-                  : null,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              label.toUpperCase(),
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: color,
+                  ),
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class _WritingLinesPainter extends CustomPainter {
+  const _WritingLinesPainter({required this.color, required this.spacing});
+
+  final Color color;
+  final double spacing;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final line = Paint()
+      ..color = color
+      ..strokeWidth = 0.7;
+    for (var y = spacing - 2; y < size.height; y += spacing) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), line);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WritingLinesPainter old) =>
+      old.color != color || old.spacing != spacing;
 }

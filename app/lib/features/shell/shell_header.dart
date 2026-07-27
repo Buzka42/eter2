@@ -19,8 +19,8 @@ import '../../core/tokens.dart';
 class EterShellHeader extends StatelessWidget {
   const EterShellHeader({super.key});
 
-  /// The commissioned composition area: 300×56 logical units, stroke ~1 dp.
-  static const Size compositionSize = Size(300, 56);
+  /// A shallow mobile bookplate: live type inside code-native line work.
+  static const Size compositionSize = Size(300, 72);
 
   @override
   Widget build(BuildContext context) {
@@ -41,14 +41,18 @@ class EterShellHeader extends StatelessWidget {
             ),
             // The wordmark is live typography; it is not part of the asset.
             Positioned(
-              top: 0,
-              child: Text(
-                'ETER',
-                style: text.displaySmall?.copyWith(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 9,
-                  color: night ? EterColors.nightText : EterColors.ink900,
+              top: 22,
+              // This is a decorative wordmark inside fixed engraving, not
+              // reading content. Keep the lockup intact when body text grows.
+              child: MediaQuery.withNoTextScaling(
+                child: Text(
+                  'ETER',
+                  style: text.displaySmall?.copyWith(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 8,
+                    color: night ? EterColors.nightText : EterColors.ink900,
+                  ),
                 ),
               ),
             ),
@@ -73,43 +77,41 @@ class _HeaderEngravingPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     final w = size.width; // 300
-    // The orbital arc: one shallow curve dipping below the wordmark, joining
-    // the solar mark (left) to the lunar mark (right).
-    final arcStart = Offset(w * 0.16, 30);
-    final arcEnd = Offset(w * 0.84, 30);
+    // A fragment of an old star chart rises over the wordmark. The previous
+    // downward arc looked like a smile and made the name feel incidental.
+    final arcStart = Offset(w * 0.16, 18);
+    final arcEnd = Offset(w * 0.84, 18);
     final arc = Path()
       ..moveTo(arcStart.dx, arcStart.dy)
-      ..quadraticBezierTo(w / 2, 54, arcEnd.dx, arcEnd.dy);
+      ..quadraticBezierTo(w / 2, -2, arcEnd.dx, arcEnd.dy);
     canvas.drawPath(arc, line);
 
-    // Solar mark: a small ring with eight short rays, resting on the arc's
-    // left end.
-    final sun = Offset(w * 0.12, 30);
-    canvas.drawCircle(sun, 4.5, line);
+    final sun = Offset(w * 0.12, 18);
+    canvas.drawCircle(sun, 3.8, line);
     for (var i = 0; i < 8; i++) {
       final angle = i * math.pi / 4;
       canvas.drawLine(
-        sun + Offset(math.cos(angle), math.sin(angle)) * 6.5,
-        sun + Offset(math.cos(angle), math.sin(angle)) * 9.5,
+        sun + Offset(math.cos(angle), math.sin(angle)) * 5.5,
+        sun + Offset(math.cos(angle), math.sin(angle)) * 8,
         line,
       );
     }
 
-    // Lunar mark: a fine crescent on the right end, horns turned toward the
-    // arc.
-    final moon = Offset(w * 0.88, 30);
-    final outer = Rect.fromCircle(center: moon, radius: 5);
-    final inner = Rect.fromCircle(center: moon + const Offset(2.2, -0.8), radius: 4);
+    final moon = Offset(w * 0.88, 18);
+    final outer = Rect.fromCircle(center: moon, radius: 4.5);
+    final inner =
+        Rect.fromCircle(center: moon + const Offset(2, -0.7), radius: 3.7);
     final crescent = Path()
       ..addArc(outer, math.pi * 0.62, math.pi * 0.76)
       ..arcTo(inner, math.pi * 1.38, -math.pi * 0.76, false)
       ..close();
     canvas.drawPath(crescent, line);
 
-    // One eight-point star at the arc's centre — two overlaid squares and a
-    // seed point, the same mark as StarOrnament.
-    final star = Offset(w / 2, 42);
-    const r = 3.6;
+    // A short plumb line and restrained compass star turn the composition into
+    // an instrument/bookplate rather than a decorative banner.
+    canvas.drawLine(Offset(w / 2, 54), Offset(w / 2, 63), line);
+    final star = Offset(w / 2, 66);
+    const r = 3.2;
     for (final rotation in [0.0, math.pi / 4]) {
       final path = Path();
       for (var i = 0; i < 4; i++) {
@@ -197,9 +199,8 @@ class DestinationSwitch extends StatelessWidget {
                 child: Stack(
                   children: [
                     AnimatedPositioned(
-                      duration: reduceMotion
-                          ? Duration.zero
-                          : EterMotion.durStandard,
+                      duration:
+                          reduceMotion ? Duration.zero : EterMotion.durStandard,
                       curve: EterMotion.easeAir,
                       left: targetLeft,
                       top: 1,
@@ -243,6 +244,7 @@ class _SwitchLabel extends StatelessWidget {
       button: true,
       selected: active,
       label: label.toLowerCase(),
+      excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,

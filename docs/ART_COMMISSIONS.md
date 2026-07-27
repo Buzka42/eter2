@@ -122,4 +122,18 @@ the exact negative space it must occupy.
 
 | File | Dimensions | Generator/model | Prompt | Source/job | Status |
 |---|---|---|---|---|---|
-| `bg-air-day-v6-master.png` | 2160×3840 | ChatGPT (TBD) | Commission 1 above | — | requested |
+| `assets/masters/bg-air-day-v6-master.png` | 2160×3840 | ChatGPT built-in image generation | Commission 1 above | `call_XkgiCKmNuX8kHHd4D41zlQpS` | **accepted and integrated as option A**; passed 320/390/600 dp × 1×/2× text gate |
+| `assets/review/bg-air-day-option-b-master.png` | 2160×3840 | ChatGPT built-in image generation | Warm parchment-dominant watercolor alternative | `call_xTh5s5BjEIZprlpTlXsnIaMc` | review option B |
+| `assets/review/eter-header-option-a-astrolabe.png` | 2048×819 concept | ChatGPT built-in image generation | Detailed astronomical-instrument lockup | `call_Kn0xNG8XGEauKAa0ypA0VL7y` | review option A; do not ship bitmap |
+| `assets/review/eter-header-option-b-colophon.png` | 1776×887 concept | ChatGPT built-in image generation | Sparse celestial editorial seal | `call_TVNaGkbBnXX9I8cOlZcs5F06` | **provisional code-native direction** |
+
+The two header images are design studies. The runtime implementation remains
+live Cormorant type and `CustomPainter` paths. Option B is provisionally
+implemented because it preserves the product's minimalism; the owner can select
+either family without replacing a raster asset.
+
+No motion asset is commissioned for this gate. The signature text arrival,
+section expansion and night drift are code-native, accessibility-aware motion.
+If a later Sanctum or Arcana state needs authored animation, add a Higgsfield
+brief here only after the exact still composition and reduced-motion fallback
+exist; commission at least two variants from that locked frame.
