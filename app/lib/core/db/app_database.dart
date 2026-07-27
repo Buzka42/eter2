@@ -107,6 +107,27 @@ class AppDatabase extends _$AppDatabase {
         profile.copyWith(id: const Value(1), syncedAt: const Value(null)),
       );
 
+  /// Updates only shell-level preferences. Keeping this separate from
+  /// [saveProfile] prevents a settings tap from rewriting birth or consent
+  /// data that the Sanctum did not display.
+  Future<int> updateProfilePreferences({
+    String? guidanceMode,
+    String? startSurface,
+    bool? hapticsEnabled,
+  }) =>
+      (update(profiles)..where((row) => row.id.equals(1))).write(
+        ProfilesCompanion(
+          guidanceMode:
+              guidanceMode == null ? const Value.absent() : Value(guidanceMode),
+          startSurface:
+              startSurface == null ? const Value.absent() : Value(startSurface),
+          hapticsEnabled: hapticsEnabled == null
+              ? const Value.absent()
+              : Value(hapticsEnabled),
+          syncedAt: const Value(null),
+        ),
+      );
+
   // -------------------------------------------------------------------------
   // Health ingest. Raw in, deduplicated winners out, day total recomputed.
   // -------------------------------------------------------------------------
@@ -428,10 +449,10 @@ class AppDatabase extends _$AppDatabase {
   }) =>
       (select(journalEntries)
             ..where((row) {
-              var predicate = row.createdAt
-                      .isBiggerOrEqualValue(startUtc.toUtc()) &
-                  row.createdAt.isSmallerThanValue(endUtc.toUtc()) &
-                  row.status.equals('discarded').not();
+              var predicate =
+                  row.createdAt.isBiggerOrEqualValue(startUtc.toUtc()) &
+                      row.createdAt.isSmallerThanValue(endUtc.toUtc()) &
+                      row.status.equals('discarded').not();
               if (aiEligibleOnly) {
                 predicate = predicate & row.excludedFromAi.equals(false);
               }
@@ -730,8 +751,7 @@ Map<String, Object?> _decodeMetadata(String raw) {
   }
 }
 
-String _isoDate(DateTime value) =>
-    '${value.year.toString().padLeft(4, '0')}-'
+String _isoDate(DateTime value) => '${value.year.toString().padLeft(4, '0')}-'
     '${value.month.toString().padLeft(2, '0')}-'
     '${value.day.toString().padLeft(2, '0')}';
 

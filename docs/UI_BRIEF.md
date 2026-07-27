@@ -172,8 +172,9 @@ Three destinations. Not five, not a tab bar.
   and not a dot indicator.
 - Centre the small `ETER` mark in a shallow, shared solar/lunar or astrolabe
   engraving. This approved astrological flavor is the shell's main ornamental
-  signature; keep it identical on Journal and Dashboard and exclude it from
-  semantics.
+  signature and the visible Sanctum threshold. Keep it identical on Journal
+  and Dashboard; exclude the engraving from semantics while exposing the
+  complete 300×72 mark as the `Open Sanctum` button.
 - The Sanctum is an overlay with `PopScope` to intercept system back, not a
   route push.
 - State is preserved across page changes. Scroll position, expansion state, a

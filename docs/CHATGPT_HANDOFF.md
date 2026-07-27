@@ -20,6 +20,7 @@ Flutter against the real Drift contracts with fixture content
 | Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Guidance from `GuidanceHistory` (synthesis), one borderless `Body` disclosure, in-place `AnimatedSize` expansion: conclusion in words first, then one fixture-backed `EngravedBalance`, explicit close. Absences stated, never zeroed. |
 | Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Entries read as continuous timed prose and arrive via the shared reveal. |
 | Register wiring | `app/lib/main.dart` | `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), one scheduled rebuild at the next phase change, no polling. |
+| Sanctum | `app/lib/features/sanctum/sanctum_overlay.dart` | Tapping the complete ETER signature opens a plain overlay without unmounting either page. Opening page and guidance register persist through narrow profile updates; system back and explicit Close dismiss it. |
 | Tokens | `app/lib/core/tokens.dart` | One additive token: `EterColors.parchment`. Nothing else touched. |
 
 ## Verified
@@ -46,9 +47,9 @@ The previously open shell and capture work is complete:
    still. Option B and two header-direction studies remain in `assets/review/`
    for product-owner comparison.
 
-The next implementation phase may now expand the complete product one section
-at a time in the order defined by `UI_BRIEF.md`. Do not reintroduce prototype
-chrome while doing so.
+The shell phase now includes its third destination. The next implementation
+phase may expand the complete product one section at a time in the order
+defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
 
 ## Test-environment lessons (hard-won, do not rediscover)
 

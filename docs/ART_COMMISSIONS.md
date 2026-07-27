@@ -85,8 +85,8 @@ the exact negative space it must occupy.
 
 ## Later (not yet, states do not exist)
 
-- **Sanctum threshold engraving** — after the Sanctum overlay composition is
-  approved.
+- **Sanctum threshold engraving** — no longer needed. The code-native ETER
+  header is the visible threshold and the plain overlay needs no ornament.
 - **Onboarding hero** — only if `onboarding-hero.webp` cannot be cropped into
   the refined day register.
 - **The remaining 11 Arcana cards** — these belong to the Higgsfield

@@ -106,4 +106,33 @@ void main() {
     );
     await disposePrototype(tester);
   });
+
+  for (final register in EterRegister.values) {
+    final registerName = register.name;
+    for (final configuration in const [
+      (390, 844, 1.0),
+      (320, 568, 2.0),
+    ]) {
+      final scaleName = configuration.$3.toStringAsFixed(0);
+      final captureName =
+          'sanctum-$registerName-${configuration.$1}x${configuration.$2}'
+          '-text-$scaleName.png';
+      testWidgets(captureName, (tester) async {
+        await pumpPrototype(
+          tester,
+          register: register,
+          width: configuration.$1.toDouble(),
+          height: configuration.$2.toDouble(),
+          textScale: configuration.$3,
+        );
+        await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+        await tester.pump(const Duration(milliseconds: 400));
+        await expectLater(
+          find.byType(ProviderScope),
+          matchesGoldenFile(captureName),
+        );
+        await disposePrototype(tester);
+      });
+    }
+  }
 }

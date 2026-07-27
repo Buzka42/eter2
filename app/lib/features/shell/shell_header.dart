@@ -17,7 +17,9 @@ import '../../core/tokens.dart';
 /// the plain Journal. Day draws it in ink, night in gold — never both, never
 /// brighter than this.
 class EterShellHeader extends StatelessWidget {
-  const EterShellHeader({super.key});
+  const EterShellHeader({super.key, this.onOpenSanctum});
+
+  final VoidCallback? onOpenSanctum;
 
   /// A shallow mobile bookplate: live type inside code-native line work.
   static const Size compositionSize = Size(300, 72);
@@ -29,34 +31,41 @@ class EterShellHeader extends StatelessWidget {
         ? EterColors.aura500.withValues(alpha: 0.6)
         : EterColors.ink600.withValues(alpha: 0.8);
     final text = Theme.of(context).textTheme;
-    return ExcludeSemantics(
-      child: SizedBox(
-        width: compositionSize.width,
-        height: compositionSize.height,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned.fill(
-              child: CustomPaint(painter: _HeaderEngravingPainter(tint)),
-            ),
-            // The wordmark is live typography; it is not part of the asset.
-            Positioned(
-              top: 22,
-              // This is a decorative wordmark inside fixed engraving, not
-              // reading content. Keep the lockup intact when body text grows.
-              child: MediaQuery.withNoTextScaling(
-                child: Text(
-                  'ETER',
-                  style: text.displaySmall?.copyWith(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 8,
-                    color: night ? EterColors.nightText : EterColors.ink900,
+    return Semantics(
+      button: onOpenSanctum != null,
+      label: onOpenSanctum == null ? null : 'Open Sanctum',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onOpenSanctum,
+        child: SizedBox(
+          width: compositionSize.width,
+          height: compositionSize.height,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned.fill(
+                child: CustomPaint(painter: _HeaderEngravingPainter(tint)),
+              ),
+              // The wordmark is live typography; it is not part of the asset.
+              Positioned(
+                top: 22,
+                // This is a decorative wordmark inside fixed engraving, not
+                // reading content. Keep the lockup intact when body text grows.
+                child: MediaQuery.withNoTextScaling(
+                  child: Text(
+                    'ETER',
+                    style: text.displaySmall?.copyWith(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 8,
+                      color: night ? EterColors.nightText : EterColors.ink900,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
 import 'package:eter/features/journal/journal_page.dart';
+import 'package:eter/features/sanctum/sanctum_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
@@ -178,6 +179,67 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('the Eter signature opens the Sanctum and close restores state',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.text('JOURNAL'));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.enterText(find.byType(TextField), 'Still here beneath');
+    await tester.pump();
+
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(SanctumOverlay), findsOneWidget);
+    expect(find.text('How Eter meets you'), findsOneWidget);
+
+    await tester.tap(find.text('CLOSE'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byType(SanctumOverlay), findsNothing);
+    expect(find.text('Still here beneath'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 1100));
+    await closeShell(tester);
+  });
+
+  testWidgets('Sanctum preferences persist without rewriting the profile',
+      (tester) async {
+    await pumpShell(tester);
+    final before = await db.loadProfile();
+
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+    await tester.tap(find.text('Journal'));
+    await tester.pump();
+    await tester.tap(find.text('Grounded'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    final after = await db.loadProfile();
+    expect(after?.startSurface, 'journal');
+    expect(after?.guidanceMode, 'grounded');
+    expect(after?.dob, before?.dob);
+    expect(after?.birthPlace, before?.birthPlace);
+    expect(after?.weightKg, before?.weightKg);
+    await closeShell(tester);
+  });
+
+  testWidgets('system back closes the Sanctum before leaving the shell',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+    expect(find.byType(SanctumOverlay), findsOneWidget);
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(find.byType(SanctumOverlay), findsNothing);
+    expect(find.byType(DashboardPage), findsOneWidget);
+    await closeShell(tester);
+  });
+
   testWidgets('reduced motion: no video, no ambient ticker, text simply there',
       (tester) async {
     await pumpShell(tester, register: EterRegister.night, reduceMotion: true);
@@ -198,7 +260,12 @@ void main() {
     await pumpShell(tester);
     // The semantics nodes sit on the hit regions themselves, so their rects
     // are the target sizes — and their existence doubles as an a11y check.
-    for (final label in ['journal', 'dashboard', 'The Body']) {
+    for (final label in [
+      'journal',
+      'dashboard',
+      'Open Sanctum',
+      'The Body',
+    ]) {
       final node = tester.getSemantics(find.bySemanticsLabel(label));
       expect(node.rect.height, greaterThanOrEqualTo(48), reason: label);
     }

@@ -104,6 +104,8 @@ Every primary surface should be assembled in this order:
 1. **Place** — `SkyBackground` establishes one continuous environment.
 2. **Signature** — Eter mark with one shared solar/lunar or astrolabe
    engraving. Keep it fine, shallow and identical across primary surfaces.
+   The complete mark is the visible threshold into the Sanctum; its decorative
+   paths remain excluded while the hit region announces `Open Sanctum`.
 3. **Orientation** — Journal/Dashboard labels and travelling hairline.
 4. **Voice** — the dominant guidance or journal writing field.
 5. **Threshold** — one quiet text affordance announcing deeper content.

@@ -104,8 +104,8 @@ versions will blur, fail theming and break accessibility.
 
 - A single Journal empty-state folio ornament, only if the empty page still
   needs orientation after its real layout and prompt are working.
-- A Sanctum threshold engraving, only after the overlay composition is
-  approved.
+- No separate Sanctum threshold engraving. The approved code-native ETER
+  header is the threshold; the overlay itself is deliberately unornamented.
 - New onboarding art, only if the existing onboarding hero cannot be cropped
   into the refined day register.
 

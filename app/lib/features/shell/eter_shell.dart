@@ -4,6 +4,7 @@ import '../../core/theme.dart';
 import '../../core/tokens.dart';
 import '../dashboard/dashboard_page.dart';
 import '../journal/journal_page.dart';
+import '../sanctum/sanctum_overlay.dart';
 import 'shell_header.dart';
 
 /// The shell: one continuous space with two front doors.
@@ -30,6 +31,7 @@ class EterShell extends StatefulWidget {
 class _EterShellState extends State<EterShell> {
   late final PageController _controller;
   late int _active;
+  bool _sanctumOpen = false;
 
   @override
   void initState() {
@@ -52,33 +54,54 @@ class _EterShellState extends State<EterShell> {
     _controller.jumpToPage(page);
   }
 
+  void _openSanctum() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _sanctumOpen = true);
+  }
+
+  void _closeSanctum() => setState(() => _sanctumOpen = false);
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: SkyBackground(
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: EterSpace.s8),
-              const EterShellHeader(),
-              DestinationSwitch(activeIndex: _active, onSelect: _goTo),
-              Expanded(
-                child: PageView(
-                  controller: _controller,
-                  onPageChanged: (page) => setState(() => _active = page),
-                  // One continuous space: the adjacent page is always built,
-                  // so the first crossing is instant and both surfaces stay
-                  // live.
-                  allowImplicitScrolling: true,
-                  children: const [
-                    _KeepAlivePage(child: JournalPage()),
-                    _KeepAlivePage(child: DashboardPage()),
+    return PopScope(
+      canPop: !_sanctumOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _sanctumOpen) _closeSanctum();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: true,
+        body: Stack(
+          children: [
+            SkyBackground(
+              child: SafeArea(
+                child: Column(
+                  children: [
+                    const SizedBox(height: EterSpace.s8),
+                    EterShellHeader(onOpenSanctum: _openSanctum),
+                    DestinationSwitch(activeIndex: _active, onSelect: _goTo),
+                    Expanded(
+                      child: PageView(
+                        controller: _controller,
+                        onPageChanged: (page) => setState(() => _active = page),
+                        // One continuous space: the adjacent page is always
+                        // built, so the first crossing is instant and both
+                        // surfaces stay live.
+                        allowImplicitScrolling: true,
+                        children: const [
+                          _KeepAlivePage(child: JournalPage()),
+                          _KeepAlivePage(child: DashboardPage()),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+            if (_sanctumOpen)
+              Positioned.fill(
+                child: SanctumOverlay(onClose: _closeSanctum),
+              ),
+          ],
         ),
       ),
     );
