@@ -10,6 +10,10 @@ Generated typography, icons, chart values and spacing are illustrative. The
 Flutter tokens, accessibility requirements, real data contracts and existing
 art remain authoritative.
 
+Asset commissioning and reuse decisions live in
+[`ASSET_MANIFEST.md`](ASSET_MANIFEST.md). Read its V2 UI commissioning plan
+before generating or importing visual material.
+
 ## Product-owner refinement — 27 July 2026
 
 The concept plates established the correct atmosphere, but they contain too
@@ -269,7 +273,8 @@ Read in this order:
 1. `STEERING_BRIEF.md`
 2. `UI_BRIEF.md`
 3. this document and its three concept plates
-4. `core/register.dart`, `core/tokens.dart`, `core/theme.dart`,
+4. `ASSET_MANIFEST.md`, especially the V2 UI commissioning plan
+5. `core/register.dart`, `core/tokens.dart`, `core/theme.dart`,
    `core/controls.dart`, `core/widgets.dart` and `core/instruments.dart`
 
 Implement the prototype approval gate only. Use fixture data against the real

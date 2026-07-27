@@ -1,5 +1,130 @@
 # Eter · Asset Manifest
 
+## V2 UI commissioning plan
+
+This section is the asset authority for the Kimi K3 UI handoff. The historical
+generation record below documents the earlier art set; it is not a requirement
+to regenerate that set.
+
+The concept plates in `docs/concepts/` are reference images only. Never crop UI
+elements out of them or ship them as application backgrounds.
+
+### Priority 0 — needed for the defining prototype
+
+#### 1. Refined day environment
+
+**Status:** commission. The existing `bg-air-light-v5.webp` is usable as a
+fallback, but it is more saturated and visually emptier than the approved day
+concept.
+
+**Deliverables:**
+
+- `bg-air-day-v6-master.png` — 2160×3840 master, 9:16.
+- `bg-air-day-v6.webp` — production derivative, target 500–900 KB.
+- Optional tablet crop only after the phone composition is approved; do not
+  generate several speculative aspect ratios.
+
+**Art direction:**
+
+> A quiet vertical atmospheric background for a minimalist editorial wellbeing
+> app. Pale powder-blue sky dissolving into warm ivory and parchment mist;
+> layered soft clouds with natural tonal variation and very faint paper-like
+> texture; contemplative, intelligent and timeless; diffused daylight; almost
+> abstract. Keep the centre 65% calm and low-contrast for dark editorial text.
+> Slightly more cloud structure near the lower edge and extreme corners, never
+> forming a landscape subject. No mountains, horizon, figures, architecture,
+> text, symbols, stars, astrology, gold decoration, interface elements, frames,
+> borders, gradients that look synthetic, watermark or vignette.
+
+**Composition constraints:**
+
+- Text-safe centre from roughly 15–80% of image height.
+- No important feature within device-notch or home-indicator regions.
+- Worst-case text area must support `ink900`; the UI may add its existing ivory
+  legibility lift, but the art must not force a large opaque panel.
+- Still image only. Day has no ambient motion.
+- Test with `BoxFit.cover` at 320×568, 390×844, 430×932 and 600×960 dp before
+  approval. The crop must not turn a cloud edge into a visual divider.
+
+#### 2. ETER celestial header engraving
+
+**Status:** design/commission as vector or implement with `CustomPainter`; do
+not commission as a flattened screen-width bitmap.
+
+**Deliverable:** one shallow, symmetrical path composition around the wordmark,
+approximately 300×56 logical units, authored as SVG paths or reproducible
+Flutter paths. The `ETER` text itself remains live typography and is not part of
+the asset.
+
+**Motif:** a restrained solar mark on one side, lunar mark on the other, joined
+by one fine orbital arc with at most one eight-point star at its centre. It
+should feel like an astronomical instrument engraving, not a horoscope banner.
+
+**Rules:**
+
+- One-color paths; tint from `EterInk`/register in code.
+- 1–1.25 dp apparent stroke at normal phone width.
+- No zodiac glyph row, constellation field, labels, fill, glow or animation.
+- Decorative semantics only.
+- Identical geometry on Journal and Dashboard.
+
+This is the one approved astrological flavor at the top of the resting surface.
+Do not add more header decoration to compensate for empty space.
+
+### Reuse — no new commission
+
+#### Journal paper character
+
+Reuse `grain-subtle.webp` as a low-opacity repeat/cover texture over a
+code-defined warm parchment field. The existing file is sufficiently neutral.
+Page margin, date heading, baselines, folio marks and page transitions are UI,
+not raster art.
+
+Do not generate a photographed notebook, page with baked-in lines, page curl,
+spiral binding, leather cover, handwriting or fixed shadows. Those would fight
+dynamic type, localization and the continuous sky.
+
+#### Night environment and Arcana
+
+Reuse `bg-air-dark-v3.webp`, the existing optional night loop, and the shipped
+light/dark Arcana set. The night concept does not authorize a replacement tarot
+deck or a busier celestial background.
+
+#### Controls, rules and instruments
+
+The following must remain code-native: Journal/Dashboard hairline, disclosure
+chevrons, microphone and calendar icons, evidence marks, section rules, sleep
+and vital charts, `EngravedBalance`, toggles, focus states and all text. Raster
+versions will blur, fail theming and break accessibility.
+
+### Priority 1 — commission only when the implementing state exists
+
+- A single Journal empty-state folio ornament, only if the empty page still
+  needs orientation after its real layout and prompt are working.
+- A Sanctum threshold engraving, only after the overlay composition is
+  approved.
+- New onboarding art, only if the existing onboarding hero cannot be cropped
+  into the refined day register.
+
+These are not prototype blockers. Kimi should first attempt the surface with
+existing assets and request them with a screenshot showing the exact negative
+space they must occupy.
+
+### Asset acceptance gate
+
+Before bundling commissioned art:
+
+1. Show it underneath real day/night text at text scales 1.0 and 2.0.
+2. Show all required phone crops and one 600 dp layout.
+3. Verify the screen still reads correctly with the decoration removed.
+4. Verify no essential information is baked into pixels.
+5. Compress a derivative; retain the master outside the runtime bundle.
+6. Record filename, dimensions, generator/model, prompt and source/job ID here.
+
+If an asset does not survive these checks, it is not ready for the application.
+
+---
+
 Generated with Higgsfield (`nano_banana_pro` / nano_banana_2, 2K). All assets share one style string — reuse it verbatim for every new asset so the set stays coherent:
 
 > **Eter style string:** "ethereal light-and-airy aesthetic, pale powder-blue and warm-white palette, delicate gold celestial line art, soft volumetric clouds, dreamy diffused light, premium minimal tarot engraving flavor, high detail"
