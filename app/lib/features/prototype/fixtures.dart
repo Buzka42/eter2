@@ -69,6 +69,33 @@ abstract final class PrototypeFixtures {
         source: 'local',
       ),
     );
+    const dimensions = {
+      'health':
+          'Your recovery signals favour steadiness today. Choose movement that leaves some energy behind.',
+      'mind':
+          'Attention may come more easily in one protected stretch than through repeated small demands.',
+      'spirit':
+          'Let restraint be an active choice rather than an absence. A quieter pace can still be deliberate.',
+    };
+    for (final entry in dimensions.entries) {
+      await db.recordGuidance(
+        GuidanceHistoryCompanion.insert(
+          date: today,
+          dimension: entry.key,
+          generatedAt: now,
+          contentJson: jsonEncode({'passage': entry.value}),
+          evidenceJson: entry.key == 'health'
+              ? const Value(
+                  '{"n":14,"window":"14 days","coefficient":0.42,'
+                  '"note":"Resting heart rate and reported energy moved '
+                  'together in this window."}',
+                )
+              : const Value.absent(),
+          contextFingerprint: 'prototype-fixture-${entry.key}',
+          source: 'local',
+        ),
+      );
+    }
   }
 
   static Future<void> _seedBody(AppDatabase db, DateTime now) async {

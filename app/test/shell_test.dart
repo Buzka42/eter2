@@ -41,6 +41,17 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
   }
 
+  Future<void> expandBody(WidgetTester tester) async {
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('THE BODY'));
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+  }
+
   testWidgets('the resting Dashboard shows guidance and one quiet disclosure',
       (tester) async {
     await pumpShell(tester);
@@ -52,8 +63,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('THE BODY'), findsOneWidget);
-    expect(find.text('58 bpm resting'), findsOneWidget);
+    expect(find.text('LOOK DEEPER'), findsOneWidget);
     // No chart intrudes on the resting state.
     expect(find.text('CLOSE'), findsNothing);
     await closeShell(tester);
@@ -62,8 +72,7 @@ void main() {
   testWidgets('the disclosure expands in place and closes back to guidance',
       (tester) async {
     await pumpShell(tester);
-    await tester.tap(find.text('THE BODY'));
-    await tester.pump(const Duration(milliseconds: 700));
+    await expandBody(tester);
 
     // Conclusion first, instrument beneath, explicit close.
     expect(
@@ -72,10 +81,13 @@ void main() {
     );
     expect(find.text('CLOSE'), findsOneWidget);
 
-    await tester.tap(find.text('CLOSE'));
+    final close = find.text('CLOSE');
+    await tester.ensureVisible(close);
+    await tester.pump();
+    await tester.tap(close);
     await tester.pump(const Duration(milliseconds: 700));
     expect(find.text('CLOSE'), findsNothing);
-    expect(find.text('58 bpm resting'), findsOneWidget);
+    expect(find.text('LOOK DEEPER'), findsOneWidget);
     // The guidance is still there, untouched.
     expect(
       find.text(
@@ -90,8 +102,7 @@ void main() {
   testWidgets('expansion and a half-written entry survive the page crossing',
       (tester) async {
     await pumpShell(tester);
-    await tester.tap(find.text('THE BODY'));
-    await tester.pump(const Duration(milliseconds: 700));
+    await expandBody(tester);
     expect(find.text('CLOSE'), findsOneWidget);
 
     // Cross to the Journal and write half an entry.
@@ -192,12 +203,52 @@ void main() {
     expect(find.byType(SanctumOverlay), findsOneWidget);
     expect(find.text('How Eter meets you'), findsOneWidget);
 
-    await tester.tap(find.text('CLOSE'));
+    final guidanceClose = find.text('CLOSE');
+    await tester.ensureVisible(guidanceClose);
+    await tester.pump();
+    await tester.tap(guidanceClose);
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byType(SanctumOverlay), findsNothing);
     expect(find.text('Still here beneath'), findsOneWidget);
 
     await tester.pump(const Duration(milliseconds: 1100));
+    await closeShell(tester);
+  });
+
+  testWidgets('expanded Guidance shows three dimensions and evidence receipt',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('GUIDANCE'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    for (final label in ['HEALTH', 'MIND', 'SPIRIT']) {
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(
+      find.textContaining('Your recovery signals favour steadiness'),
+      findsOneWidget,
+    );
+
+    final evidence = find.bySemanticsLabel('Evidence for health');
+    await tester.ensureVisible(evidence);
+    await tester.pump();
+    await tester.tap(evidence);
+    await tester.pump();
+    expect(
+        find.textContaining('association, not proof of cause'), findsOneWidget);
+
+    final guidanceClose = find.text('CLOSE');
+    await tester.ensureVisible(guidanceClose);
+    await tester.pump();
+    await tester.tap(guidanceClose);
+    await tester.pump();
+    expect(find.text('LOOK DEEPER'), findsOneWidget);
     await closeShell(tester);
   });
 
@@ -264,7 +315,7 @@ void main() {
       'journal',
       'dashboard',
       'Open Sanctum',
-      'The Body',
+      'Look deeper',
     ]) {
       final node = tester.getSemantics(find.bySemanticsLabel(label));
       expect(node.rect.height, greaterThanOrEqualTo(48), reason: label);

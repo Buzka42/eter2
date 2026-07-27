@@ -94,6 +94,27 @@ void main() {
     });
   }
 
+  for (final register in EterRegister.values) {
+    final registerName = register.name;
+    final captureName = 'guidance-expanded-$registerName-390x844.png';
+    testWidgets(captureName, (tester) async {
+      await pumpPrototype(tester, register: register);
+      await tester.tap(find.text('LOOK DEEPER'));
+      await tester.pump();
+      await tester.tap(find.text('GUIDANCE'));
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 120)),
+      );
+      await tester.pump();
+      await expectLater(
+        find.byType(ProviderScope),
+        matchesGoldenFile(captureName),
+      );
+      await disposePrototype(tester);
+    });
+  }
+
   testWidgets('dashboard day mid-arrival review capture', (tester) async {
     await pumpPrototype(
       tester,
