@@ -1,4 +1,5 @@
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/instruments.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/controls.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
@@ -303,6 +304,36 @@ void main() {
     );
     expect(intake, 1870);
     expect(find.textContaining('NOT COUNTED'), findsNothing);
+    await closeShell(tester);
+  });
+
+  testWidgets('Body renders historical signals with semantic equivalents',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpShell(tester);
+    await expandBody(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 120)),
+    );
+    await tester.pump();
+
+    expect(find.byType(EngravedTrend), findsNWidgets(3));
+    expect(find.byType(EngravedSleepStages), findsOneWidget);
+    expect(
+      find.textContaining('Activity by time of day is unavailable'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'Resting heart rate trend, 14 readings'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(r'Sleep stages\.')),
+      findsOneWidget,
+    );
+    semantics.dispose();
     await closeShell(tester);
   });
 

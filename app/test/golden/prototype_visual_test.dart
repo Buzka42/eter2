@@ -175,6 +175,32 @@ void main() {
     await disposePrototype(tester);
   });
 
+  testWidgets('body historical signals day review capture', (tester) async {
+    await pumpPrototype(tester, register: EterRegister.day);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('THE BODY'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 120)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    final verticalScroll = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
+        .hitTestable();
+    tester.state<ScrollableState>(verticalScroll).position.jumpTo(650);
+    await tester.pump();
+    await expectLater(
+      find.byType(ProviderScope),
+      matchesGoldenFile('body-historical-signals-day-390x844.png'),
+    );
+    await disposePrototype(tester);
+  });
+
   testWidgets('dashboard day mid-arrival review capture', (tester) async {
     await pumpPrototype(
       tester,

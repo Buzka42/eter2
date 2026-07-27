@@ -238,3 +238,187 @@ class _PanLabels extends StatelessWidget {
     );
   }
 }
+
+/// A restrained historical line instrument. The graphic is decorative; the
+/// complete first/latest/range summary is exposed as one semantic sentence.
+class EngravedTrend extends StatelessWidget {
+  const EngravedTrend({
+    super.key,
+    required this.values,
+    required this.label,
+    required this.unit,
+    this.height = 120,
+  });
+
+  final List<double> values;
+  final String label;
+  final String unit;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty) return const SizedBox.shrink();
+    final ink = EterInk.of(context);
+    final text = Theme.of(context).textTheme;
+    final low = values.reduce(math.min);
+    final high = values.reduce(math.max);
+    final latest = values.last;
+    return Semantics(
+      container: true,
+      label: '$label, ${values.length} readings. Latest '
+          '${_figure(latest)} $unit. Range ${_figure(low)} to '
+          '${_figure(high)} $unit.',
+      child: ExcludeSemantics(
+        child: SizedBox(
+          height: height,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _TrendPainter(
+                    values: values,
+                    line: ink.line,
+                    lineStrong: ink.lineStrong,
+                  ),
+                ),
+              ),
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Text(
+                  '${_figure(latest)} $unit',
+                  style: text.labelSmall,
+                ),
+              ),
+              Positioned(
+                left: 0,
+                bottom: 0,
+                child: Text(
+                  '${values.length} DAYS',
+                  style: text.labelSmall?.copyWith(color: ink.labelMuted),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _figure(double value) =>
+      value % 1 == 0 ? value.round().toString() : value.toStringAsFixed(1);
+}
+
+class _TrendPainter extends CustomPainter {
+  const _TrendPainter({
+    required this.values,
+    required this.line,
+    required this.lineStrong,
+  });
+
+  final List<double> values;
+  final Color line;
+  final Color lineStrong;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final low = values.reduce(math.min);
+    final high = values.reduce(math.max);
+    final span = math.max(1.0, high - low);
+    const top = 25.0;
+    final bottom = size.height - 25;
+    final plotHeight = bottom - top;
+    final faint = Paint()
+      ..color = line
+      ..strokeWidth = 1;
+    final strong = Paint()
+      ..color = lineStrong
+      ..strokeWidth = 1.25
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawLine(Offset(0, bottom), Offset(size.width, bottom), faint);
+    for (var i = 0; i < 5; i++) {
+      final x = size.width * i / 4;
+      canvas.drawLine(Offset(x, bottom - 3), Offset(x, bottom + 3), faint);
+    }
+
+    final path = Path();
+    for (var i = 0; i < values.length; i++) {
+      final x = values.length == 1 ? 0.0 : size.width * i / (values.length - 1);
+      final y = bottom - ((values[i] - low) / span) * plotHeight;
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    canvas.drawPath(path, strong);
+    final lastY = bottom - ((values.last - low) / span) * plotHeight;
+    canvas.drawCircle(
+      Offset(size.width, lastY),
+      2.5,
+      Paint()..color = lineStrong,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TrendPainter old) =>
+      old.values != values || old.line != line || old.lineStrong != lineStrong;
+}
+
+/// A single night's stage proportions, drawn as one measured rail rather than
+/// a colourful stacked dashboard bar.
+class EngravedSleepStages extends StatelessWidget {
+  const EngravedSleepStages({super.key, required this.minutesByStage});
+
+  final Map<String, int> minutesByStage;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = minutesByStage.values.fold<int>(0, (a, b) => a + b);
+    if (total <= 0) return const SizedBox.shrink();
+    final ink = EterInk.of(context);
+    final text = Theme.of(context).textTheme;
+    final summary = minutesByStage.entries
+        .map((entry) => '${entry.key} ${entry.value} minutes')
+        .join(', ');
+    return Semantics(
+      container: true,
+      label: 'Sleep stages. $summary.',
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 30,
+              child: Row(
+                children: [
+                  for (final entry in minutesByStage.entries)
+                    Expanded(
+                      flex: entry.value,
+                      child: Container(
+                        height: entry.key == 'awake' ? 6 : 1.5,
+                        color: entry.key == 'deep' ? ink.lineStrong : ink.line,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Wrap(
+              spacing: EterSpace.s16,
+              children: [
+                for (final entry in minutesByStage.entries)
+                  Text(
+                    '${entry.key.toUpperCase()} ${entry.value}m',
+                    style: text.labelSmall,
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

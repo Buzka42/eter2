@@ -391,10 +391,14 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(row) => OrderingTerm.asc(row.recordedAt)]))
           .watch();
 
-  Future<int> addWeightEntry({required double kg, String source = 'manual'}) =>
+  Future<int> addWeightEntry({
+    required double kg,
+    String source = 'manual',
+    DateTime? recordedAt,
+  }) =>
       into(weightEntries).insert(
         WeightEntriesCompanion.insert(
-          recordedAt: DateTime.now().toUtc(),
+          recordedAt: (recordedAt ?? DateTime.now()).toUtc(),
           kg: kg,
           source: Value(source),
         ),

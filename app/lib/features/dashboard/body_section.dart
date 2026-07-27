@@ -100,6 +100,8 @@ class _BodySectionState extends ConsumerState<BodySection> {
                       child: widget.expanded
                           ? _ExpandedBody(
                               db: db,
+                              now: now,
+                              today: today,
                               conclusion:
                                   _conclusion(intake: intake, burn: burn),
                               vitals: vitals,
@@ -227,6 +229,8 @@ class _ExpandedHeader extends StatelessWidget {
 class _ExpandedBody extends StatelessWidget {
   const _ExpandedBody({
     required this.db,
+    required this.now,
+    required this.today,
     required this.conclusion,
     required this.vitals,
     required this.meals,
@@ -235,6 +239,8 @@ class _ExpandedBody extends StatelessWidget {
   });
 
   final AppDatabase db;
+  final DateTime now;
+  final String today;
   final String conclusion;
   final DailyVitalsRow? vitals;
   final List<NutritionEntryRow> meals;
@@ -273,6 +279,8 @@ class _ExpandedBody extends StatelessWidget {
             tilt: ((intake! - burn!) / burn! * 12).clamp(-9.0, 9.0),
           ),
         ],
+        const SizedBox(height: EterSpace.s24),
+        _HistoricalSignals(db: db, now: now, today: today),
         if (meals.isNotEmpty) ...[
           const SizedBox(height: EterSpace.s24),
           Text('FOOD NOTES', style: text.labelSmall),
@@ -285,6 +293,160 @@ class _ExpandedBody extends StatelessWidget {
             ),
         ],
         const SizedBox(height: EterSpace.s24),
+      ],
+    );
+  }
+}
+
+class _HistoricalSignals extends StatefulWidget {
+  const _HistoricalSignals({
+    required this.db,
+    required this.now,
+    required this.today,
+  });
+
+  final AppDatabase db;
+  final DateTime now;
+  final String today;
+
+  @override
+  State<_HistoricalSignals> createState() => _HistoricalSignalsState();
+}
+
+class _HistoricalSignalsState extends State<_HistoricalSignals> {
+  late Future<List<DailyVitalsRow>> _vitals;
+  late Stream<List<SleepSegmentRow>> _sleep;
+  late Stream<List<WeightEntryRow>> _weight;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(_HistoricalSignals oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.db != widget.db || oldWidget.today != widget.today) _load();
+  }
+
+  void _load() {
+    _vitals = widget.db.loadVitalsRange(
+      eterIsoDate(widget.now.subtract(const Duration(days: 29))),
+      widget.today,
+    );
+    _sleep = widget.db.watchSleepForNight(widget.today);
+    _weight = widget.db.watchWeightEntries(limit: 30);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        FutureBuilder<List<DailyVitalsRow>>(
+          future: _vitals,
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <DailyVitalsRow>[];
+            final heartRate = [
+              for (final row in rows)
+                if (row.restingHr != null) row.restingHr!,
+            ];
+            final hrv = [
+              for (final row in rows)
+                if (row.hrvMs != null) row.hrvMs!,
+            ];
+            if (heartRate.length < 2 && hrv.length < 2) {
+              return Text(
+                'A historical recovery trend is not available yet.',
+                style: text.bodyMedium,
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (heartRate.length >= 2) ...[
+                  Text('RESTING HEART RATE', style: text.labelSmall),
+                  EngravedTrend(
+                    values: heartRate,
+                    label: 'Resting heart rate trend',
+                    unit: 'bpm',
+                  ),
+                  const SizedBox(height: EterSpace.s16),
+                ],
+                if (hrv.length >= 2) ...[
+                  Text('HEART RATE VARIABILITY', style: text.labelSmall),
+                  EngravedTrend(
+                    values: hrv,
+                    label: 'Heart rate variability trend',
+                    unit: 'ms',
+                  ),
+                ],
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: EterSpace.s24),
+        StreamBuilder<List<SleepSegmentRow>>(
+          stream: _sleep,
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <SleepSegmentRow>[];
+            if (rows.isEmpty) {
+              return Text(
+                'Sleep stages were not provided for last night.',
+                style: text.bodyMedium,
+              );
+            }
+            final minutes = <String, int>{};
+            for (final row in rows) {
+              final duration = row.endUtc.difference(row.startUtc).inMinutes;
+              minutes.update(
+                row.stage,
+                (value) => value + duration,
+                ifAbsent: () => duration,
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('LAST NIGHT', style: text.labelSmall),
+                const SizedBox(height: EterSpace.s8),
+                EngravedSleepStages(minutesByStage: minutes),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: EterSpace.s24),
+        StreamBuilder<List<WeightEntryRow>>(
+          stream: _weight,
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <WeightEntryRow>[];
+            if (rows.length < 2) {
+              return Text(
+                'A weight trend needs at least two entries.',
+                style: text.bodyMedium,
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('WEIGHT', style: text.labelSmall),
+                EngravedTrend(
+                  values: rows.reversed.map((row) => row.kg).toList(),
+                  label: 'Weight trend',
+                  unit: 'kg',
+                ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: EterSpace.s16),
+        Text(
+          'Activity by time of day is unavailable until minute-level movement '
+          'data is connected.',
+          style: text.bodySmall,
+        ),
       ],
     );
   }

@@ -121,6 +121,68 @@ abstract final class PrototypeFixtures {
       ),
     );
 
+    final historyStart = now.subtract(const Duration(days: 13));
+    final existingVitals = await db.loadVitalsRange(
+      eterIsoDate(historyStart),
+      today,
+    );
+    if (existingVitals.length <= 1) {
+      for (var offset = 13; offset >= 1; offset--) {
+        final day = now.subtract(Duration(days: offset));
+        final wave = (offset % 5) - 2;
+        await db.recordDailyVitals(
+          DailyVitalsCompanion.insert(
+            date: eterIsoDate(day),
+            source: 'fixture',
+            restingHr: Value(59 + wave * 0.8),
+            hrvMs: Value(58 - wave * 2.1),
+          ),
+        );
+      }
+    }
+
+    if ((await db.watchSleepForNight(today).first).isEmpty) {
+      final sleepStart = DateTime.utc(2026, 7, 26, 22, 40);
+      var cursor = sleepStart;
+      final stages = <SleepSegmentsCompanion>[];
+      for (final (stage, minutes) in const [
+        ('light', 95),
+        ('deep', 78),
+        ('rem', 64),
+        ('light', 142),
+        ('awake', 18),
+        ('rem', 51),
+      ]) {
+        final end = cursor.add(Duration(minutes: minutes));
+        stages.add(
+          SleepSegmentsCompanion.insert(
+            startUtc: cursor,
+            endUtc: end,
+            stage: stage,
+            source: 'fixture',
+            priority: 1,
+            nightOf: today,
+          ),
+        );
+        cursor = end;
+      }
+      await db.replaceSleepForNight(
+        nightOf: today,
+        source: 'fixture',
+        segments: stages,
+      );
+    }
+
+    if ((await db.watchWeightEntries(limit: 30).first).isEmpty) {
+      for (var offset = 28; offset >= 0; offset -= 4) {
+        await db.addWeightEntry(
+          kg: 71.8 - (28 - offset) * 0.018,
+          source: 'fixture',
+          recordedAt: now.subtract(Duration(days: offset)),
+        );
+      }
+    }
+
     final existing = await db.watchNutritionForRange(dayStart, dayEnd).first;
     if (existing.isEmpty) {
       await db.addNutritionEntry(
