@@ -1,0 +1,29 @@
+# Release binaries and superseded builds — rebuildable from source.
+/archive/
+/artifacts/
+
+# Unshipped PNG art masters. The app ships the derived .webp/.png in
+# app/assets/art; the lossless originals stay in the v1 tree at
+# ../Eter/app/assets/art/masters/ and are not copied into history.
+/app/assets/art/masters/
+
+# Golden-diff output. The v1 repo committed 132 of these by accident and the
+# suite was left failing; do not repeat that.
+/app/test/**/failures/
+
+# Runtime identifiers are supplied through dart-defines. The .example file is
+# committed; the real one is not.
+/app/tool/run-configured.ps1
+
+# Scratch: logs, working screenshots, one-off analysis notes.
+/tmp/
+/.tmp/
+/app/tmp/
+/app/.tmp/
+
+# Local agent/editor state.
+/.claude/settings.local.json
+
+# OS noise
+.DS_Store
+Thumbs.db

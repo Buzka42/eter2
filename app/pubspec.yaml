@@ -1,0 +1,123 @@
+name: eter
+description: "Eter — a quiet environment containing an intelligence."
+publish_to: "none"
+version: 0.3.0+1
+
+# Dart 3.6+ / Flutter 3.27+ required (Color.withValues, record patterns).
+environment:
+  sdk: ">=3.6.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Symbolic. Deterministic natal chart, transits, and the sunrise/sunset the
+  # automatic register switches on. Never the language model's job.
+  astronomia: ^1.0.0
+
+  # Local store. Drift is canonical; Firestore mirrors what should survive a
+  # phone swap.
+  drift: ^2.34.1
+  sqlite3_flutter_libs: ^0.6.0+eol
+  path: ^1.9.1
+  path_provider: ^2.1.6
+
+  # Firebase. firebase_ai is deliberately temporary: it is the Phase 1-5
+  # client-direct transport and is removed in Phase 6 when the `aether`
+  # callable takes over. The steering brief is explicit that Gemini
+  # credentials must not ship in the mobile client.
+  firebase_core: ^4.12.1
+  firebase_auth: ^6.5.6
+  firebase_app_check: ^0.4.5+2
+  cloud_firestore: ^6.7.1
+  cloud_functions: ^6.3.5
+  firebase_ai: ^3.14.1
+  firebase_messaging: ^16.0.4
+  google_sign_in: ^7.2.0
+
+  # Health hubs and sensors.
+  health: ^13.3.1
+  universal_ble: ^2.1.0
+  permission_handler: ^12.0.1
+  workmanager: ^0.9.0+3
+
+  # Journal capture.
+  speech_to_text: ^7.3.0
+
+  # Shell and presentation.
+  flutter_riverpod: ^2.5.1
+  go_router: ^14.2.0
+  video_player: ^2.9.5
+  intl: ^0.19.0
+
+  # Birthplace geocoding; vendor OAuth hands off to a custom tab.
+  geocoding: ^4.0.0
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  drift_dev: ^2.34.3
+  build_runner: ^2.15.1
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    # Cormorant Garamond carries display and editorial prose; Inter carries
+    # text and numerals, with tabular figures forced on every style. Marcellus
+    # and Manrope were the original pairing and are gone -- Manrope survived
+    # only in a comment, Marcellus only in the boot splash, where Cormorant
+    # serves.
+    - family: Cormorant Garamond
+      fonts:
+        - asset: assets/fonts/CormorantGaramond-Light.ttf
+          weight: 300
+        - asset: assets/fonts/CormorantGaramond-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/CormorantGaramond-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/CormorantGaramond-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/CormorantGaramond-MediumItalic.ttf
+          weight: 500
+          style: italic
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter-ExtraBold.ttf
+          weight: 800
+
+  assets:
+    # Day is still. Night moves. There are 25 night loops and no day loops,
+    # and under the automatic register that is a design rule, not a gap.
+    - assets/art/bg-air-light-v5.webp
+    - assets/art/bg-air-dark-v3.webp
+    - assets/art/onboarding-hero.webp
+    - assets/art/grain-subtle.webp
+    - assets/art/app-icon-air.webp
+    - assets/art/cloud-hero-cutout.png
+    - assets/art/elem-air.png
+    - assets/art/elem-fire.png
+    - assets/art/elem-water.png
+    - assets/art/elem-earth.png
+    - assets/art/empty-ledger.png
+    - assets/art/empty-timeline.png
+    - assets/art/empty-balance.png
+    - assets/art/card-back-v2-light.webp
+    - assets/art/card-back-v2-dark.webp
+    - assets/art/vessel/
+    - assets/art/cards/
+    - assets/art/animations/
+    # Static symbolic attributes only. Long-form interpretations are composed
+    # per user against their actual chart and cached, never shipped generic.
+    - assets/content/
