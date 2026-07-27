@@ -112,7 +112,7 @@ void main() {
 
     test('every card ships production art in both themes', () {
       for (final card in MajorArcana.values) {
-        expect(card.hasProductionArt, isTrue, reason: '${card.title}');
+        expect(card.hasProductionArt, isTrue, reason: card.title);
         expect(card.assetFor(Brightness.light), endsWith('-light.webp'));
         expect(card.assetFor(Brightness.dark), endsWith('-dark.webp'));
       }

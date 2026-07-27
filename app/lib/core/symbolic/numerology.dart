@@ -1,3 +1,5 @@
+library;
+
 /// Deterministic numerology.
 ///
 /// Lives here rather than in `aether/` because the steering brief is explicit:

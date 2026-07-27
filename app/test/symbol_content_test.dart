@@ -42,7 +42,7 @@ void main() {
 
     test('every zodiac sign has attributes', () {
       for (final sign in Zodiac.values) {
-        expect(content.sign(sign), isNotNull, reason: '${sign.label}');
+        expect(content.sign(sign), isNotNull, reason: sign.label);
       }
       expect(content.signs, hasLength(12));
     });
