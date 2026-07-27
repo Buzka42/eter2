@@ -9,21 +9,20 @@ import 'core/db/app_database.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
 import 'core/theme.dart';
-import 'features/prototype/fixtures.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'features/shell/eter_shell.dart';
 
 /// Bootstrap.
 ///
-/// Opens the canonical local store, seeds prototype fixtures where tables are
-/// empty (the pipelines that will replace them are unbuilt), and hands off to
-/// the shell. Firebase initialisation, the auth gate and the health
-/// resume-sync wrapper all belong in the chain here and are added as those
-/// layers land.
+/// Opens the canonical local store and hands off to onboarding or the shell.
+///
+/// Prototype data is test-harness-only. A real fresh install must never wake
+/// up as somebody else's profile or imply that health signals were measured.
+/// Firebase initialisation, the auth gate and the health resume-sync wrapper
+/// belong in this chain as those layers land.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = AppDatabase();
-  await PrototypeFixtures.seedIfEmpty(database, DateTime.now());
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(database)],
@@ -119,27 +118,23 @@ class _EterAppState extends ConsumerState<EterApp> {
           themeMode: night ? ThemeMode.dark : ThemeMode.light,
           home: EterRegisterScope(
             register: register,
-            child: profile == null
-                ? const SizedBox.shrink()
-                : FutureBuilder<Map<String, IntakeAnswerRow>>(
-                    future: intakeFuture,
-                    builder: (context, intake) {
-                      if (!intake.hasData) return const SizedBox.shrink();
-                      final complete = _onboardingCompletedNow ||
-                          intake.data?['onboarding_complete']?.value == 'true';
-                      if (!complete) {
-                        return OnboardingFlow(
-                          database: db,
-                          profile: profile,
-                          onComplete: () =>
-                              setState(() => _onboardingCompletedNow = true),
-                        );
-                      }
-                      return EterShell(
-                        startSurface: profile.startSurface,
-                      );
-                    },
-                  ),
+            child: FutureBuilder<Map<String, IntakeAnswerRow>>(
+              future: intakeFuture,
+              builder: (context, intake) {
+                if (!intake.hasData) return const SizedBox.shrink();
+                final complete = _onboardingCompletedNow ||
+                    intake.data?['onboarding_complete']?.value == 'true';
+                if (profile == null || !complete) {
+                  return OnboardingFlow(
+                    database: db,
+                    profile: profile,
+                    onComplete: () =>
+                        setState(() => _onboardingCompletedNow = true),
+                  );
+                }
+                return EterShell(startSurface: profile.startSurface);
+              },
+            ),
           ),
         );
       },

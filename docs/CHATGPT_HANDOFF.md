@@ -10,8 +10,9 @@ gate). Art commissioning has its own track in
 ## What exists now
 
 The defining prototype from the UI direction's approval gate, implemented in
-Flutter against the real Drift contracts with fixture content
-(`app/lib/features/prototype/fixtures.dart`). `flutter analyze` is clean.
+Flutter against the real Drift contracts. Fixture content lives only in the
+test harness (`app/lib/features/prototype/fixtures.dart`); production startup
+never seeds a fictional profile or health history. `flutter analyze` is clean.
 
 | Piece | File | Notes |
 |---|---|---|
@@ -19,7 +20,8 @@ Flutter against the real Drift contracts with fixture content
 | Shell | `app/lib/features/shell/eter_shell.dart`, `shell_header.dart` | Horizontal pager Journal↔Dashboard, `allowImplicitScrolling` + keep-alive for state preservation, persistent two-word switch with travelling gold hairline, ETER celestial header as `CustomPainter` (commissioned as code in the asset manifest). |
 | Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Synthesis owns the resting view above one `LOOK DEEPER` threshold. Its in-place chooser opens expanded Guidance or Body, never simultaneous rows. Guidance renders Health/Mind/Spirit prose and marginal evidence receipts. Body begins with a conclusion, states missing signals, then recovery prose, `EngravedBalance`, engraved RHR/HRV/weight trends, a measured sleep-stage rail, and editable food lines; estimates are visibly not counted until corrected/confirmed. Every instrument has a complete semantic summary. |
 | Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Entries read as continuous timed prose and arrive via the shared reveal. |
-| Register wiring | `app/lib/main.dart` | `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), one scheduled rebuild at the next phase change, no polling. |
+| Register wiring | `app/lib/main.dart` | A genuinely empty database enters onboarding. After profile creation, `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), with one scheduled rebuild at the next phase change and no polling. |
+| Onboarding | `app/lib/features/onboarding/onboarding_flow.dart` | Creates the required local profile (birth date, weight and body context), enforces the documented 16+ gate, records the primary intention and keeps AI, journal-prose and cloud consent independent and off by default. Existing users can resume an incomplete intake without losing their profile. |
 | Sanctum | `app/lib/features/sanctum/sanctum_overlay.dart` | Tapping the complete ETER signature opens a plain overlay without unmounting either page. Opening page and guidance register persist through narrow profile updates; system back and explicit Close dismiss it. |
 | Vessel | `app/lib/features/vessel/vessel_section.dart` | Third option inside `LOOK DEEPER`. Natal positions and Life Path calculate locally; shipped `SymbolContent` provides offline keywords. The deterministic daily card appears first with its stored selection reason. `READ DEEPER` shows cached per-chart readings and explicit normal “not composed yet” states. Unknown birth time/place is stated and never presented as a reliable Ascendant. |
 | Tokens | `app/lib/core/tokens.dart` | One additive token: `EterColors.parchment`. Nothing else touched. |

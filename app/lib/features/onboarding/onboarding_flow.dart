@@ -17,7 +17,7 @@ class OnboardingFlow extends StatefulWidget {
   });
 
   final AppDatabase database;
-  final ProfileRow profile;
+  final ProfileRow? profile;
   final VoidCallback onComplete;
 
   @override
@@ -28,17 +28,29 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _name = TextEditingController();
   final _intention = TextEditingController();
   final _birthPlace = TextEditingController();
+  final _dob = TextEditingController();
+  final _weight = TextEditingController();
   var _step = 0;
+  var _sex = 'other';
   var _ai = false;
   var _journalAi = false;
   var _cloud = false;
   var _saving = false;
+  String? _birthError;
 
   @override
   void initState() {
     super.initState();
-    _name.text = widget.profile.firstName ?? '';
-    _birthPlace.text = widget.profile.birthPlace ?? '';
+    final profile = widget.profile;
+    _name.text = profile?.firstName ?? '';
+    _birthPlace.text = profile?.birthPlace ?? '';
+    _sex = profile?.sex ?? 'other';
+    if (profile != null) {
+      _dob.text = '${profile.dob.year.toString().padLeft(4, '0')}-'
+          '${profile.dob.month.toString().padLeft(2, '0')}-'
+          '${profile.dob.day.toString().padLeft(2, '0')}';
+      _weight.text = profile.weightKg.toStringAsFixed(1);
+    }
   }
 
   @override
@@ -46,14 +58,23 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _name.dispose();
     _intention.dispose();
     _birthPlace.dispose();
+    _dob.dispose();
+    _weight.dispose();
     super.dispose();
   }
 
   Future<void> _finish() async {
     setState(() => _saving = true);
     final now = DateTime.now().toUtc();
-    await widget.database.saveProfile(
-      widget.profile.toCompanion(true).copyWith(
+    final dob = DateTime.parse(_dob.text.trim());
+    final weight = double.parse(_weight.text.trim());
+    final existing = widget.profile;
+    final profile = existing == null
+        ? ProfilesCompanion.insert(
+            dob: dob,
+            sex: _sex,
+            weightKg: weight,
+            units: 'metric',
             firstName:
                 Value(_name.text.trim().isEmpty ? null : _name.text.trim()),
             birthPlace: Value(_birthPlace.text.trim().isEmpty
@@ -62,8 +83,21 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             aiConsentAt: Value(_ai ? now : null),
             journalAiConsentAt: Value(_ai && _journalAi ? now : null),
             cloudSyncConsentAt: Value(_cloud ? now : null),
-          ),
-    );
+          )
+        : existing.toCompanion(true).copyWith(
+              dob: Value(dob),
+              sex: Value(_sex),
+              weightKg: Value(weight),
+              firstName:
+                  Value(_name.text.trim().isEmpty ? null : _name.text.trim()),
+              birthPlace: Value(_birthPlace.text.trim().isEmpty
+                  ? null
+                  : _birthPlace.text.trim()),
+              aiConsentAt: Value(_ai ? now : null),
+              journalAiConsentAt: Value(_ai && _journalAi ? now : null),
+              cloudSyncConsentAt: Value(_cloud ? now : null),
+            );
+    await widget.database.saveProfile(profile);
     await widget.database.saveIntakeAnswer(
       key: 'primary_intention',
       value: _intention.text.trim(),
@@ -75,6 +109,30 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       tier: 'essential',
     );
     if (mounted) widget.onComplete();
+  }
+
+  bool _validateBirth() {
+    final dob = DateTime.tryParse(_dob.text.trim());
+    final weight = double.tryParse(_weight.text.trim());
+    String? error;
+    if (dob == null || dob.isAfter(DateTime.now())) {
+      error = 'Enter a valid birth date as YYYY-MM-DD.';
+    } else {
+      final today = DateTime.now();
+      var age = today.year - dob.year;
+      if (today.month < dob.month ||
+          (today.month == dob.month && today.day < dob.day)) {
+        age--;
+      }
+      if (age < 16) {
+        error = 'Eter is currently available to people aged 16 and over.';
+      }
+    }
+    if (error == null && (weight == null || weight < 20 || weight > 500)) {
+      error = 'Enter your current weight between 20 and 500 kg.';
+    }
+    setState(() => _birthError = error);
+    return error == null;
   }
 
   @override
@@ -114,8 +172,12 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                             ),
                           1 => _BirthStep(
                               key: const ValueKey(1),
-                              profile: widget.profile,
+                              dob: _dob,
+                              weight: _weight,
+                              sex: _sex,
+                              onSex: (value) => setState(() => _sex = value),
                               place: _birthPlace,
+                              error: _birthError,
                             ),
                           _ => _ConsentStep(
                               key: const ValueKey(2),
@@ -156,6 +218,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                                 : () {
                                     FocusScope.of(context).unfocus();
                                     if (_step < 2) {
+                                      if (_step == 1 && !_validateBirth()) {
+                                        return;
+                                      }
                                       setState(() => _step++);
                                     } else {
                                       _finish();
@@ -226,11 +291,19 @@ class _WelcomeStep extends StatelessWidget {
 class _BirthStep extends StatelessWidget {
   const _BirthStep({
     super.key,
-    required this.profile,
+    required this.dob,
+    required this.weight,
+    required this.sex,
+    required this.onSex,
     required this.place,
+    required this.error,
   });
-  final ProfileRow profile;
+  final TextEditingController dob;
+  final TextEditingController weight;
+  final String sex;
+  final ValueChanged<String> onSex;
   final TextEditingController place;
+  final String? error;
 
   @override
   Widget build(BuildContext context) => _StepBody(
@@ -238,13 +311,37 @@ class _BirthStep extends StatelessWidget {
         intro:
             'Date supports health context and symbolic calculations. Place and exact time are optional; without them, Eter labels the chart provisional.',
         children: [
-          Text(
-            '${profile.dob.day.toString().padLeft(2, '0')} · '
-            '${profile.dob.month.toString().padLeft(2, '0')} · '
-            '${profile.dob.year}',
-            style: Theme.of(context).textTheme.headlineSmall,
+          _LineField(
+            controller: dob,
+            label: 'Birth date',
+            hint: 'YYYY-MM-DD',
+            keyboardType: TextInputType.datetime,
           ),
           const SizedBox(height: EterSpace.s24),
+          _LineField(
+            controller: weight,
+            label: 'Current weight in kilograms',
+            hint: '70',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: EterSpace.s24),
+          Text('BODY CONTEXT', style: Theme.of(context).textTheme.labelSmall),
+          Wrap(
+            spacing: EterSpace.s16,
+            children: [
+              for (final option in const {
+                'female': 'Female',
+                'male': 'Male',
+                'other': 'Another / prefer not to say',
+              }.entries)
+                _TextChoice(
+                  label: option.value,
+                  selected: sex == option.key,
+                  onTap: () => onSex(option.key),
+                ),
+            ],
+          ),
+          const SizedBox(height: EterSpace.s16),
           _LineField(
             controller: place,
             label: 'Birth place — optional',
@@ -255,6 +352,18 @@ class _BirthStep extends StatelessWidget {
             'Exact birth time can be added later in the Sanctum.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (error != null) ...[
+            const SizedBox(height: EterSpace.s16),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                error!,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: EterInk.of(context).lineStrong,
+                    ),
+              ),
+            ),
+          ],
         ],
       );
 }
@@ -335,11 +444,13 @@ class _LineField extends StatelessWidget {
     required this.label,
     this.hint,
     this.lines = 1,
+    this.keyboardType,
   });
   final TextEditingController controller;
   final String label;
   final String? hint;
   final int lines;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
@@ -348,6 +459,7 @@ class _LineField extends StatelessWidget {
       controller: controller,
       minLines: lines,
       maxLines: lines,
+      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -357,6 +469,44 @@ class _LineField extends StatelessWidget {
             UnderlineInputBorder(borderSide: BorderSide(color: ink.line)),
         focusedBorder:
             UnderlineInputBorder(borderSide: BorderSide(color: ink.lineStrong)),
+      ),
+    );
+  }
+}
+
+class _TextChoice extends StatelessWidget {
+  const _TextChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = EterInk.of(context);
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Center(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: selected ? ink.label : ink.labelMuted,
+                    decoration: selected
+                        ? TextDecoration.underline
+                        : TextDecoration.none,
+                  ),
+            ),
+          ),
+        ),
       ),
     );
   }
