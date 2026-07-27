@@ -17,7 +17,7 @@ Flutter against the real Drift contracts with fixture content
 |---|---|---|
 | Signature arrival | `app/lib/core/arrival.dart` | One widget serves guidance and Journal. Word groups resolve from blur in ≤ `durSentence` per sentence, pauses between sentences, ≤4 dp displacement on `easeAir`, tap completes, reduced motion renders settled on frame one. |
 | Shell | `app/lib/features/shell/eter_shell.dart`, `shell_header.dart` | Horizontal pager Journal↔Dashboard, `allowImplicitScrolling` + keep-alive for state preservation, persistent two-word switch with travelling gold hairline, ETER celestial header as `CustomPainter` (commissioned as code in the asset manifest). |
-| Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Synthesis owns the resting view above one `LOOK DEEPER` threshold. Its in-place chooser opens expanded Guidance or Body, never simultaneous rows. Guidance renders Health/Mind/Spirit prose and marginal evidence receipts; Body begins with a conclusion, then one fixture-backed `EngravedBalance`. |
+| Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Synthesis owns the resting view above one `LOOK DEEPER` threshold. Its in-place chooser opens expanded Guidance or Body, never simultaneous rows. Guidance renders Health/Mind/Spirit prose and marginal evidence receipts. Body begins with a conclusion, states missing signals, then recovery prose, `EngravedBalance`, and editable food lines; estimates are visibly not counted until corrected/confirmed. |
 | Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Entries read as continuous timed prose and arrive via the shared reveal. |
 | Register wiring | `app/lib/main.dart` | `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), one scheduled rebuild at the next phase change, no polling. |
 | Sanctum | `app/lib/features/sanctum/sanctum_overlay.dart` | Tapping the complete ETER signature opens a plain overlay without unmounting either page. Opening page and guidance register persist through narrow profile updates; system back and explicit Close dismiss it. |
@@ -75,9 +75,10 @@ defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
 
 ## Guardrails (from the Kimi handoff, still binding)
 
-- Build one Dashboard expansion at a time. Guidance and the first Body
-  instrument are complete; Vessel and the remaining Body instruments are the
-  next expansion work, not additions to the resting viewport.
+- Build one Dashboard expansion at a time. Guidance, the intake/burn
+  instrument, recovery summary and per-item nutrition correction are complete.
+  Sleep/HR/HRV/activity/weight instruments and Vessel remain next expansion
+  work, not additions to the resting viewport.
 - Do not redesign tokens, add a component library, or add a chart package.
   Charts are `CustomPainter` in the `EngravedBalance` idiom.
 - Non-negotiables in `UI_BRIEF.md` §2 are defects if violated: no capsules,

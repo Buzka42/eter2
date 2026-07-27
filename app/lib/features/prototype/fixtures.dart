@@ -133,6 +133,16 @@ abstract final class PrototypeFixtures {
           fatG: const Value(61),
         ),
       );
+      await db.addNutritionEntry(
+        NutritionEntriesCompanion.insert(
+          recordedAt: dayStart.add(const Duration(hours: 15, minutes: 20)),
+          kcal: 320,
+          meal: 'Afternoon snack estimate',
+          source: const Value('aether-estimate'),
+          metadataJson: const Value('{"confidence":0.61}'),
+          confirmed: const Value(false),
+        ),
+      );
     }
   }
 }

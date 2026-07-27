@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -72,7 +73,6 @@ class _BodySectionState extends ConsumerState<BodySection> {
                 final vitals = vitalsSnap.data;
                 final meals = nutritionSnap.data ?? const <NutritionEntryRow>[];
                 final confirmed = meals.where((m) => m.confirmed).toList();
-                final hasUnconfirmed = meals.any((m) => !m.confirmed);
                 final intake = confirmed.isEmpty
                     ? null
                     : confirmed.fold<double>(0, (sum, m) => sum + m.kcal);
@@ -99,9 +99,11 @@ class _BodySectionState extends ConsumerState<BodySection> {
                       alignment: Alignment.topCenter,
                       child: widget.expanded
                           ? _ExpandedBody(
+                              db: db,
                               conclusion:
                                   _conclusion(intake: intake, burn: burn),
-                              hasUnconfirmed: hasUnconfirmed,
+                              vitals: vitals,
+                              meals: meals,
                               intake: intake,
                               burn: burn,
                             )
@@ -224,14 +226,18 @@ class _ExpandedHeader extends StatelessWidget {
 
 class _ExpandedBody extends StatelessWidget {
   const _ExpandedBody({
+    required this.db,
     required this.conclusion,
-    required this.hasUnconfirmed,
+    required this.vitals,
+    required this.meals,
     required this.intake,
     required this.burn,
   });
 
+  final AppDatabase db;
   final String conclusion;
-  final bool hasUnconfirmed;
+  final DailyVitalsRow? vitals;
+  final List<NutritionEntryRow> meals;
   final double? intake;
   final double? burn;
 
@@ -249,13 +255,16 @@ class _ExpandedBody extends StatelessWidget {
       children: [
         const SizedBox(height: EterSpace.s4),
         Text(conclusion, style: proseStyle),
-        if (hasUnconfirmed) ...[
+        if (meals.any((meal) => !meal.confirmed)) ...[
           const SizedBox(height: EterSpace.s8),
           Text(
-            'An estimate is waiting for your confirmation.',
+            'One food estimate is waiting below. It is not included in the '
+            'balance until you confirm or correct it.',
             style: text.bodySmall,
           ),
         ],
+        const SizedBox(height: EterSpace.s24),
+        _SignalSummary(vitals: vitals),
         if (showBalance) ...[
           const SizedBox(height: EterSpace.s16),
           EngravedBalance(
@@ -264,8 +273,189 @@ class _ExpandedBody extends StatelessWidget {
             tilt: ((intake! - burn!) / burn! * 12).clamp(-9.0, 9.0),
           ),
         ],
+        if (meals.isNotEmpty) ...[
+          const SizedBox(height: EterSpace.s24),
+          Text('FOOD NOTES', style: text.labelSmall),
+          const SizedBox(height: EterSpace.s8),
+          for (final meal in meals)
+            _NutritionLine(
+              key: ValueKey('nutrition-${meal.id}'),
+              db: db,
+              meal: meal,
+            ),
+        ],
         const SizedBox(height: EterSpace.s24),
       ],
+    );
+  }
+}
+
+class _SignalSummary extends StatelessWidget {
+  const _SignalSummary({required this.vitals});
+
+  final DailyVitalsRow? vitals;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    if (vitals == null ||
+        (vitals!.restingHr == null &&
+            vitals!.hrvMs == null &&
+            vitals!.respiratoryRate == null)) {
+      return Text(
+        'No wearable recovery signals are available today.',
+        style: text.bodyMedium,
+      );
+    }
+    final parts = <String>[
+      if (vitals!.restingHr != null)
+        '${vitals!.restingHr!.round()} bpm resting heart rate',
+      if (vitals!.hrvMs != null) '${vitals!.hrvMs!.round()} ms HRV',
+      if (vitals!.respiratoryRate != null)
+        '${vitals!.respiratoryRate!.toStringAsFixed(1)} breaths per minute',
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('RECOVERY SIGNALS', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(parts.join(' · '), style: text.bodyMedium),
+      ],
+    );
+  }
+}
+
+class _NutritionLine extends StatefulWidget {
+  const _NutritionLine({
+    super.key,
+    required this.db,
+    required this.meal,
+  });
+
+  final AppDatabase db;
+  final NutritionEntryRow meal;
+
+  @override
+  State<_NutritionLine> createState() => _NutritionLineState();
+}
+
+class _NutritionLineState extends State<_NutritionLine> {
+  late final TextEditingController _kcal;
+  bool _editing = false;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _kcal = TextEditingController(text: widget.meal.kcal.round().toString());
+  }
+
+  @override
+  void didUpdateWidget(_NutritionLine oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing && oldWidget.meal.kcal != widget.meal.kcal) {
+      _kcal.text = widget.meal.kcal.round().toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _kcal.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final value = double.tryParse(_kcal.text.trim());
+    if (value == null || value <= 0 || _saving) return;
+    setState(() => _saving = true);
+    await widget.db.updateNutritionEntry(
+      widget.meal.id,
+      NutritionEntriesCompanion(
+        kcal: Value(value),
+        confirmed: const Value(true),
+      ),
+    );
+    if (mounted) {
+      setState(() {
+        _saving = false;
+        _editing = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = EterInk.of(context);
+    final text = Theme.of(context).textTheme;
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: ink.line, width: 1)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: EterSpace.s12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.meal.meal, style: text.bodyMedium),
+                    const SizedBox(height: EterSpace.s4),
+                    Text(
+                      widget.meal.confirmed
+                          ? '${widget.meal.kcal.round()} kcal'
+                          : 'ESTIMATE · ${widget.meal.kcal.round()} KCAL · '
+                              'NOT COUNTED',
+                      style: text.labelSmall?.copyWith(
+                        color: widget.meal.confirmed
+                            ? ink.labelMuted
+                            : ink.lineStrong,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              EterAction(
+                label: _editing
+                    ? (_saving ? 'Saving' : 'Confirm')
+                    : (widget.meal.confirmed ? 'Edit' : 'Review'),
+                emphasis: EterActionEmphasis.quiet,
+                busy: _saving,
+                onPressed:
+                    _editing ? _save : () => setState(() => _editing = true),
+              ),
+            ],
+          ),
+          if (_editing) ...[
+            const SizedBox(height: EterSpace.s8),
+            Row(
+              children: [
+                SizedBox(
+                  width: 88,
+                  child: TextField(
+                    key: ValueKey('nutrition-kcal-${widget.meal.id}'),
+                    controller: _kcal,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'kcal',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: EterSpace.s12),
+                Expanded(
+                  child: Text(
+                    'Correct the estimate before it enters today’s total.',
+                    style: text.bodySmall,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

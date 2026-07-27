@@ -1,5 +1,6 @@
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/register.dart';
+import 'package:eter/core/controls.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
 import 'package:eter/features/journal/journal_page.dart';
 import 'package:eter/features/sanctum/sanctum_overlay.dart';
@@ -249,6 +250,59 @@ void main() {
     await tester.tap(guidanceClose);
     await tester.pump();
     expect(find.text('LOOK DEEPER'), findsOneWidget);
+    await closeShell(tester);
+  });
+
+  testWidgets('an estimated meal is corrected before it enters the balance',
+      (tester) async {
+    await pumpShell(tester);
+    await expandBody(tester);
+
+    final review = find.text('REVIEW');
+    final verticalScroll = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
+        .hitTestable();
+    tester.state<ScrollableState>(verticalScroll).position.jumpTo(800);
+    await tester.pump();
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: review, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    final estimate = find.byKey(const ValueKey('nutrition-kcal-2'));
+    await tester.enterText(estimate, '260');
+    tester
+        .widget<EterAction>(
+          find.ancestor(
+            of: find.text('CONFIRM'),
+            matching: find.byType(EterAction),
+          ),
+        )
+        .onPressed!
+        .call();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    final rows = await db.loadJournalForRange(
+      DateTime(2026, 7, 27),
+      DateTime(2026, 7, 28),
+    );
+    expect(rows, isEmpty);
+    final intake = await db.intakeKcalForRange(
+      DateTime(2026, 7, 27),
+      DateTime(2026, 7, 28),
+    );
+    expect(intake, 1870);
+    expect(find.textContaining('NOT COUNTED'), findsNothing);
     await closeShell(tester);
   });
 

@@ -1,4 +1,5 @@
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/controls.dart';
 import 'package:eter/core/register.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ void main() {
     double width = 390,
     double height = 844,
     double textScale = 1,
+    bool reduceMotion = true,
     Duration arrivalTime = const Duration(seconds: 4),
   }) async {
     eterSurfaceSize(tester, width, height);
@@ -26,6 +28,7 @@ void main() {
         db: db,
         register: register,
         textScale: textScale,
+        reduceMotion: reduceMotion,
       ),
     );
     await tester.pump();
@@ -115,10 +118,68 @@ void main() {
     });
   }
 
+  for (final register in EterRegister.values) {
+    final registerName = register.name;
+    final captureName = 'body-expanded-$registerName-390x844.png';
+    testWidgets(captureName, (tester) async {
+      await pumpPrototype(tester, register: register);
+      await tester.tap(find.text('LOOK DEEPER'));
+      await tester.pump();
+      await tester.tap(find.text('THE BODY'));
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 120)),
+      );
+      await tester.pump(const Duration(milliseconds: 700));
+      await expectLater(
+        find.byType(ProviderScope),
+        matchesGoldenFile(captureName),
+      );
+      await disposePrototype(tester);
+    });
+  }
+
+  testWidgets('body estimate correction day review capture', (tester) async {
+    await pumpPrototype(tester, register: EterRegister.day);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('THE BODY'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 120)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+
+    final review = find.text('REVIEW');
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: review, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+    final verticalScroll = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
+        .hitTestable();
+    final position = tester.state<ScrollableState>(verticalScroll).position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pump();
+    await expectLater(
+      find.byType(ProviderScope),
+      matchesGoldenFile('body-estimate-correction-day-390x844.png'),
+    );
+    await disposePrototype(tester);
+  });
+
   testWidgets('dashboard day mid-arrival review capture', (tester) async {
     await pumpPrototype(
       tester,
       register: EterRegister.day,
+      reduceMotion: false,
       arrivalTime: const Duration(milliseconds: 360),
     );
     await expectLater(
