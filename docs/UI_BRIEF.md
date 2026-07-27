@@ -9,6 +9,10 @@ authority and it overrides this document wherever they disagree. This brief
 tells you what to build and what you have to build it with; that one tells you
 what the product *is*.
 
+Then read [`UI_DIRECTION.md`](UI_DIRECTION.md). It translates both briefs into
+a compositional system, interaction-state checklist and three concept plates.
+The plates are mood and hierarchy studies, not screenshots to trace.
+
 ---
 
 ## 1. The one-paragraph version
@@ -50,6 +54,12 @@ These are not preferences. Violating one is a defect.
 8. **Never present symbolic content as medical fact**, and never let it override
    a health number. `safety_policy.dart` enforces this on generated text; you
    enforce it in layout and copy.
+9. **The resting surface shows less than the concept plates.** No metrics,
+   charts or three-section menu below the initial guidance. Present one quiet
+   disclosure at a time.
+10. **Ordinary actions are borderless.** Keep their visible form compact while
+    preserving an invisible minimum 48×48 dp target. Four-sided button borders
+    are not part of the house language.
 
 ---
 
@@ -160,6 +170,10 @@ Three destinations. Not five, not a tab bar.
   non-negotiable 7. Solve it in the house idiom: two letterspaced caps labels
   with a travelling gold hairline beneath the active one, not a Material tab bar
   and not a dot indicator.
+- Centre the small `ETER` mark in a shallow, shared solar/lunar or astrolabe
+  engraving. This approved astrological flavor is the shell's main ornamental
+  signature; keep it identical on Journal and Dashboard and exclude it from
+  semantics.
 - The Sanctum is an overlay with `PopScope` to intercept system back, not a
   route push.
 - State is preserved across page changes. Scroll position, expansion state, a
@@ -169,11 +183,18 @@ Three destinations. Not five, not a tab bar.
 
 ## 6. The Journal
 
-Full-bleed writing surface. `SurfaceIntent.plain`.
+An open, date-led personal journal page. `SurfaceIntent.plain`.
 
 - Two inputs: keyboard and dictation. Dictation is on-device
   (`speech_to_text`), so it carries transcription error the user may want to
   fix — make correction easy, not buried.
+- It must look like a journal, not a form or chat composer: a warm paper-like
+  writing field, subtle grain and margin rhythm, open prose, date as heading and
+  time in the margin. No complete border around the editor and no card per
+  entry.
+- Keyboard input starts by tapping the open page. Dictation and Done are
+  compact, borderless actions with 48×48 dp semantic hit regions. Prefer
+  autosave so Save does not remain as permanent visual chrome.
 - Today's entries in reverse-chronological order; older days behind a date
   affordance.
 - **Capture is the whole game.** The path from intent to recording should be as
@@ -209,9 +230,11 @@ get it right, then continue.
 
 ## 7. The Dashboard
 
-Three stacked sections, **collapsed by default, expanded in place**
-(`AnimatedSize`) — never a route push. Closing a section restores the guidance,
-per the brief's continuous-interface rule.
+Three content sections exist, but they are **not three persistent rows on the
+resting screen**. The resting Dashboard shows guidance and one compact,
+contextual disclosure. Choosing Body, Vessel or expanded Guidance opens that
+section in place (`AnimatedSize`)—never a route push. Only one may be expanded.
+Closing it restores the guidance and its scroll state.
 
 ### 7.1 Guidance — top
 - **Collapsed:** the day's reading, two or three sentences, one clear direction.
@@ -226,7 +249,9 @@ per the brief's continuous-interface rule.
 - `SurfaceIntent.ritual`.
 
 ### 7.2 The Body — health, middle
-- **Collapsed:** today's numbers, sleep, resting heart rate, one sparkline.
+- **Collapsed:** no permanent metric strip. When Body is the contextual
+  disclosure, it may show one short textual fact beside the word `Body`, never
+  a multi-metric row or sparkline competing with guidance.
 - **Expanded:** full charts, manual activity entry, food editing **including
   per-item correction** (changing one line of an extracted meal from 320 kcal to
   260). This was specced in v1 and never shipped; it is required now.
