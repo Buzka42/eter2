@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../../core/db/app_database.dart';
+import '../../core/arcana/major_arcana.dart';
+import '../../core/symbolic/numerology.dart';
 
 /// The local `yyyy-MM-dd` day key the database contracts use.
 String eterIsoDate(DateTime local) =>
@@ -30,6 +32,7 @@ abstract final class PrototypeFixtures {
     await _seedProfile(db);
     await _seedGuidance(db, now);
     await _seedBody(db, now);
+    await _seedVessel(db, now);
   }
 
   static Future<void> _seedProfile(AppDatabase db) async {
@@ -203,6 +206,60 @@ abstract final class PrototypeFixtures {
           source: const Value('aether-estimate'),
           metadataJson: const Value('{"confidence":0.61}'),
           confirmed: const Value(false),
+        ),
+      );
+    }
+  }
+
+  static Future<void> _seedVessel(AppDatabase db, DateTime now) async {
+    final profile = await db.loadProfile();
+    if (profile == null) return;
+    final today = eterIsoDate(now);
+    if (await db.loadDailyCard(today) == null) {
+      final personalYear = calculatePersonalYear(profile.dob, now);
+      final card = MajorArcana.forLifePath(personalYear);
+      await db.recordDailyCard(
+        DailyCardsCompanion.insert(
+          date: today,
+          arcanaSlug: card.assetSlug,
+          reason: '${card.title} corresponds to personal year $personalYear, '
+              'the deterministic cycle active for this date.',
+          sourceJson: Value(
+            jsonEncode({
+              'selector': 'personalYear',
+              'personalYear': personalYear,
+              'dob': profile.dob.toIso8601String(),
+              'date': today,
+            }),
+          ),
+        ),
+      );
+    }
+
+    final inputHash = [
+      profile.dob.toIso8601String(),
+      profile.birthTimeMinutes ?? 'unknown-time',
+      profile.birthUtcOffsetMinutes ?? 'unknown-offset',
+      profile.birthLatitude ?? 'unknown-latitude',
+      profile.birthLongitude ?? 'unknown-longitude',
+    ].join('|');
+    if (await db.loadVesselReading(
+          inputHash: inputHash,
+          positionKey: 'lifePath',
+        ) ==
+        null) {
+      final lifePath = calculateLifePath(profile.dob);
+      await db.saveVesselReading(
+        VesselReadingsCompanion.insert(
+          inputHash: inputHash,
+          positionKey: 'lifePath',
+          createdAt: now,
+          contentJson: jsonEncode({
+            'passage': 'Life Path $lifePath describes the way persistence and '
+                'adaptation may become a recurring personal theme. It is '
+                'a reflective lens, not a prediction or instruction.',
+          }),
+          model: 'fixture',
         ),
       );
     }

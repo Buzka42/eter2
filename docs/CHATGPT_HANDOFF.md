@@ -21,6 +21,7 @@ Flutter against the real Drift contracts with fixture content
 | Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Entries read as continuous timed prose and arrive via the shared reveal. |
 | Register wiring | `app/lib/main.dart` | `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), one scheduled rebuild at the next phase change, no polling. |
 | Sanctum | `app/lib/features/sanctum/sanctum_overlay.dart` | Tapping the complete ETER signature opens a plain overlay without unmounting either page. Opening page and guidance register persist through narrow profile updates; system back and explicit Close dismiss it. |
+| Vessel | `app/lib/features/vessel/vessel_section.dart` | Third option inside `LOOK DEEPER`. Natal positions and Life Path calculate locally; shipped `SymbolContent` provides offline keywords. The deterministic daily card appears first with its stored selection reason. `READ DEEPER` shows cached per-chart readings and explicit normal “not composed yet” states. Unknown birth time/place is stated and never presented as a reliable Ascendant. |
 | Tokens | `app/lib/core/tokens.dart` | One additive token: `EterColors.parchment`. Nothing else touched. |
 
 ## Verified
@@ -76,11 +77,10 @@ defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
 ## Guardrails (from the Kimi handoff, still binding)
 
 - Build one Dashboard expansion at a time. Guidance, intake/burn, RHR, HRV,
-  single-night sleep stages, weight, recovery summary and per-item nutrition
-  correction are complete. The 7/30-day sleep view and activity-by-time
-  instrument still need connected-series handling; the fixture deliberately
-  shows activity as unavailable rather than zero. Vessel remains the next
-  major expansion, never an addition to the resting viewport.
+  single-night sleep stages, weight, recovery summary, per-item nutrition
+  correction and the offline/cached Vessel are complete. The 7/30-day sleep
+  view and activity-by-time instrument still need connected-series handling;
+  the fixture deliberately shows activity as unavailable rather than zero.
 - Do not redesign tokens, add a component library, or add a chart package.
   Charts are `CustomPainter` in the `EngravedBalance` idiom.
 - Non-negotiables in `UI_BRIEF.md` §2 are defects if violated: no capsules,

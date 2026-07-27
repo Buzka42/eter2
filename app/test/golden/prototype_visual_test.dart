@@ -35,7 +35,7 @@ void main() {
     // Asset decoding runs on the real async queue; give the first frame a
     // brief warm-up before advancing product animations in FakeAsync.
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 120)),
+      () => Future<void>.delayed(const Duration(milliseconds: 400)),
     );
     await tester.pump();
     await tester.pump(arrivalTime);
@@ -197,6 +197,50 @@ void main() {
     await expectLater(
       find.byType(ProviderScope),
       matchesGoldenFile('body-historical-signals-day-390x844.png'),
+    );
+    await disposePrototype(tester);
+  });
+
+  for (final register in EterRegister.values) {
+    final registerName = register.name;
+    final captureName = 'vessel-$registerName-390x844.png';
+    testWidgets(captureName, (tester) async {
+      await pumpPrototype(tester, register: register);
+      await tester.tap(find.text('LOOK DEEPER'));
+      await tester.pump();
+      await tester.tap(find.text('VESSEL'));
+      await tester.pump();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 300)),
+      );
+      await tester.pump();
+      await expectLater(
+        find.byType(ProviderScope),
+        matchesGoldenFile(captureName),
+      );
+      await disposePrototype(tester);
+    });
+  }
+
+  testWidgets('vessel day 320x568 text 2 review capture', (tester) async {
+    await pumpPrototype(
+      tester,
+      register: EterRegister.day,
+      width: 320,
+      height: 568,
+      textScale: 2,
+    );
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('VESSEL'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump();
+    await expectLater(
+      find.byType(ProviderScope),
+      matchesGoldenFile('vessel-day-320x568-text-2.png'),
     );
     await disposePrototype(tester);
   });

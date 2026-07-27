@@ -5,6 +5,7 @@ import 'package:eter/core/controls.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
 import 'package:eter/features/journal/journal_page.dart';
 import 'package:eter/features/sanctum/sanctum_overlay.dart';
+import 'package:eter/features/vessel/vessel_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:video_player/video_player.dart';
@@ -251,6 +252,48 @@ void main() {
     await tester.tap(guidanceClose);
     await tester.pump();
     expect(find.text('LOOK DEEPER'), findsOneWidget);
+    await closeShell(tester);
+  });
+
+  testWidgets('Vessel renders deterministic offline positions and cached depth',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('VESSEL'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump();
+
+    expect(find.byType(VesselSection), findsOneWidget);
+    expect(find.text('TODAY’S CARD'), findsOneWidget);
+    expect(find.text('Strength'), findsWidgets);
+    expect(find.text('LIFE PATH 8'), findsOneWidget);
+    expect(find.text('SUN'), findsOneWidget);
+    expect(find.text('MOON'), findsOneWidget);
+    expect(find.text('ASCENDANT'), findsOneWidget);
+    expect(find.textContaining('Birth time is unknown'), findsOneWidget);
+
+    tester
+        .widget<EterAction>(
+          find.ancestor(
+            of: find.text('READ DEEPER'),
+            matching: find.byType(EterAction),
+          ),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+    expect(
+      find.textContaining('Life Path 8 describes'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('has not been composed yet'),
+      findsNWidgets(3),
+    );
     await closeShell(tester);
   });
 

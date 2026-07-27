@@ -11,6 +11,7 @@ import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
 import '../prototype/fixtures.dart';
+import '../vessel/vessel_section.dart';
 import 'body_section.dart';
 
 /// The Dashboard, collapsed: the day's guidance and one quiet disclosure.
@@ -118,6 +119,12 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   onToggle: (_) => setState(() => _expandedSection = null),
                 ),
               )
+            else if (_expandedSection == 'vessel')
+              VesselSection(
+                db: db,
+                now: now,
+                onClose: () => setState(() => _expandedSection = null),
+              )
             else
               _SectionThreshold(
                 choosing: _choosingSection,
@@ -186,6 +193,10 @@ class _SectionThreshold extends StatelessWidget {
               _ThresholdChoice(
                 label: 'THE BODY',
                 onTap: () => onChoose('body'),
+              ),
+              _ThresholdChoice(
+                label: 'VESSEL',
+                onTap: () => onChoose('vessel'),
               ),
             ],
           ),
