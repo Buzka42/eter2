@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/aether/guidance_mode.dart';
 import '../../core/arcana/animated_arcana_card.dart';
 import '../../core/arcana/major_arcana.dart';
+import '../../core/arcana/matrix.dart';
 import '../../core/arcana/symbol_content.dart';
 import '../../core/arcana/zodiac.dart';
 import '../../core/ai/transport.dart';
@@ -121,7 +122,13 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       birthLongitude: profile.birthLongitude,
     );
     final readings = <String, VesselReadingRow?>{
-      for (final key in const ['lifePath', 'sun', 'moon', 'ascendant'])
+      for (final key in [
+        'lifePath',
+        'sun',
+        'moon',
+        'ascendant',
+        for (final position in MatrixPosition.values) position.key,
+      ])
         key: await widget.db.loadVesselReading(
           inputHash: hash,
           positionKey: key,
@@ -132,6 +139,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       chart: chart,
       lifePath: lifePath,
       readings: readings,
+      dob: profile.dob,
       inputHash: hash,
       mode: switch (profile.guidanceMode) {
         'grounded' => GuidanceMode.grounded,
@@ -748,6 +756,7 @@ class _VesselData {
     required this.chart,
     required this.lifePath,
     required this.readings,
+    required this.dob,
     required this.inputHash,
     required this.mode,
     required this.usedApproximateTime,
@@ -758,6 +767,7 @@ class _VesselData {
   final NatalChart chart;
   final int lifePath;
   final Map<String, VesselReadingRow?> readings;
+  final DateTime dob;
   final String inputHash;
   final GuidanceMode mode;
   final bool usedApproximateTime;
@@ -794,6 +804,20 @@ class _VesselData {
       signPosition('sun', 'Sun', chart.sun),
       signPosition('moon', 'Moon', chart.moon),
       signPosition('ascendant', 'Ascendant', chart.ascendant),
+      // The figure reads after the chart, because it explains where the Life
+      // Path card at the top came from.
+      for (final entry in buildArcanaMatrix(dob).inReadingOrder)
+        _VesselPosition(
+          key: entry.position.key,
+          label: entry.position.label,
+          card: entry.card,
+          keywords: content.card(entry.card)?.keywords ?? const [],
+          // The row carries a short mark, as the sign positions do. The
+          // position's sentence is context for the model, not a caption —
+          // putting it here overflowed the line by 246 pixels, which is the
+          // layout saying the same thing.
+          detail: entry.card.numeral,
+        ),
     ];
   }
 }

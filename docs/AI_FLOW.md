@@ -207,11 +207,10 @@ with no transport at all.
 3. **Rate and cost policy.** Nothing today limits how often `COMPOSE NOW` may
    be pressed. The fingerprint cache makes a repeat free when context is
    unchanged, which covers the common case and not a determined one.
-4. **The input rule's other half.** With capture removed from the Dashboard,
-   interpretation is the only route into the record — and it covers food and
-   lifestyle only. Weight, activity and strength need bounded shapes in
-   `classification_contract.dart` and a commit path through the services that
-   already exist. See `ROADMAP.md` §1a.
+4. ~~**The input rule's other half.**~~ Done. Weight, activity and strength
+   have bounded shapes in `classification_contract.dart` and commit through
+   the services that already existed, so a run written in the Journal lands
+   where a run entered by hand lands.
 5. **Prompt evaluation.** The prompts are asserted structurally (voice by mode,
    safety present, schema matching the parser) but never evaluated against real
    output, because there is no provider to produce any. A small fixture set of

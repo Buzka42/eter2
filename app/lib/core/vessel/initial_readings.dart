@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../aether/guidance_mode.dart';
 import '../arcana/major_arcana.dart';
+import '../arcana/matrix.dart';
 import '../arcana/symbol_content.dart';
 import '../arcana/zodiac.dart';
 import '../profile/birth_time.dart';
@@ -114,6 +115,17 @@ class InitialVesselReadings {
             // flags travel with the request and the prose is required to say
             // so. What it must never do is arrive silently certain.
             forSign('ascendant', 'Ascendant', chart.ascendant),
+            // The figure. Its positions are ordinary reading positions, so
+            // they compose, cache and retire exactly as the others do — the
+            // matrix needed no machinery of its own.
+            for (final entry in buildArcanaMatrix(profile.dob).inReadingOrder)
+              VesselReadingPosition(
+                key: entry.position.key,
+                label: entry.position.label,
+                card: entry.card.title,
+                keywords: content.card(entry.card)?.keywords ?? const [],
+                detail: entry.position.detail,
+              ),
           ],
           approximateTime: approximateTime,
           approximatePlace: approximatePlace,

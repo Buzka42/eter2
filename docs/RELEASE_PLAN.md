@@ -2,11 +2,14 @@
 
 28 July 2026. Ordered so nothing waits on something below it.
 
-The honest position: **the local product is finished and the intelligence is
-inert.** Every surface works, 270 tests pass, `flutter analyze` is clean, and
-the release bundle is 81 MB against Play's 150 MB ceiling. What is missing is
-not polish. It is the five model calls the product is shaped around, and a
-handful of things that only became gaps *because* the shape changed.
+The honest position: **the product is feature-complete and the intelligence
+works.** All five model calls compose and parse against a live provider, 400
+tests pass, `flutter analyze` is clean, and the release APK is 83 MB against
+Play's 150 MB ceiling. Accounts, the cloud mirror, the arcana figure, Placidus
+houses and crash reporting have all landed since this file was written.
+
+What remains is one server the owner must deploy, a handful of store accounts,
+and one art commission.
 
 ---
 
@@ -60,22 +63,40 @@ means losing the ability to update the listing.
 
 ---
 
-## 1. Should ship in 1.0, but the product works without them
+## 1. Should ship in 1.0
 
-1. **Read deeper for every position.** Currently four positions (Life Path,
-   Sun, Moon, Ascendant). The intent is all twelve houses and the 22-arcana
-   destiny matrix. This is the largest unbuilt feature and it needs its own
-   research pass before any code: the matrix is a numerological construction
-   with several competing traditions, and picking one and documenting it is
-   most of the work.
-2. **New card backs.** `ART_COMMISSIONS.md` Commission 4. The current pair was
-   authored at the wrong proportion and cropped into shape.
-3. **A first-run integration test.** Every test starts from a seeded fixture.
-   The one path every real user takes — empty database, onboarding, tutorial,
-   first day — is covered only in pieces.
-4. **Crash reporting, or a recorded decision not to have it.** Shipping with no
-   crash signal is flying blind; adding it needs consent and a privacy-policy
-   line. Either answer is defensible, silence is not.
+1. ~~**Read deeper for every position.**~~ Done, in two halves.
+
+   *Houses.* Placidus, computed properly and verified against the properties a
+   quadrant system must have — angles on cusps one, four, seven and ten,
+   opposites exactly opposed, spans summing to a turn, unequal at latitude and
+   nearly even at the equator. Inside the polar circles the system genuinely
+   has no answer, so the chart falls back to equal houses and says which one it
+   used in `houseSystem`.
+
+   *The figure.* `core/arcana/matrix.dart` reads a birth date as seven arcana:
+   the given, the inherited, the era, the turning, the meeting, the long thread
+   and the centre. **The construction is Eter's own and is written down in that
+   file** — it is arithmetic over the twenty-two cards, arranged the way this
+   product already thinks, and it reproduces no published system's diagram or
+   position meanings. The centre resolves to the same card the Life Path
+   arrives at, so the figure explains the card the Vessel already shows rather
+   than repeating it.
+
+   Its positions are ordinary `VesselReadingPosition`s, so they compose, cache
+   and retire through the machinery that already existed. The matrix needed no
+   machinery of its own.
+
+2. ~~**A first-run integration test.**~~ Done: `test/first_run_test.dart` walks
+   an empty database through intake, tutorial, the first day and the first
+   entry, plus the two states either side of it.
+3. ~~**Crash reporting, or a recorded decision not to have it.**~~ Decided:
+   Eter reports crashes, and only with permission. Off on install, off after a
+   restore, revocable, and structurally unable to carry a journal page or a
+   measurement. See `core/diagnostics/crash_reporter.dart`.
+4. **New card backs.** `ART_COMMISSIONS.md` Commission 4. The current pair was
+   authored at the wrong proportion and cropped into shape. The only item here
+   that is art rather than code.
 
 ## 2. Test coverage — the four that mattered are done
 
@@ -97,8 +118,10 @@ parsers are tested against real model output rather than hand-written JSON.
 
 Not gaps; decisions. Recorded so they are not rediscovered as bugs.
 
-- **Cloud continuity.** Rules and indexes are committed; nothing reads them.
-  Local-only is a legitimate 1.0.
+- ~~**Cloud continuity.**~~ Built. Accounts are optional on top of local-first:
+  `core/sync/` mirrors the measured record, journal prose only under its own
+  separate consent, and a restore refuses on a device that already has
+  history. Local-only remains a legitimate configuration and the default.
 - **Live BLE sessions and vendor OAuth.** The phone hub covers the same ground
   less precisely.
 - **Background health refresh.** Health Connect has no push and the Flutter

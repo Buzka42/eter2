@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/instruments.dart';
@@ -541,9 +542,12 @@ void main() {
       find.textContaining('Life Path 8 describes'),
       findsOneWidget,
     );
+    // Everything except the Life Path, which the fixture seeds: the three
+    // chart positions plus each place in the arcana figure. Derived rather
+    // than counted, so adding a position does not silently break this.
     expect(
       find.textContaining('has not been composed yet'),
-      findsNWidgets(3),
+      findsNWidgets(3 + MatrixPosition.values.length),
     );
     await closeShell(tester);
   });

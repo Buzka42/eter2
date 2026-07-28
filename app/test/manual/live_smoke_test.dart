@@ -19,6 +19,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
+import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
 import 'package:eter/core/aether/request_contract.dart';
@@ -249,6 +250,9 @@ Future<String> _vesselThroughComposer(EterAiTransport transport) async {
     'sun',
     'moon',
     'ascendant',
+    // The figure composes through the same path, which is the point of having
+    // built it as ordinary reading positions.
+    for (final position in MatrixPosition.values) position.key,
   });
   return 'wrote readings';
 }
