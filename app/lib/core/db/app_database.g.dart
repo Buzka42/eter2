@@ -87,6 +87,14 @@ class $ProfilesTable extends Profiles
   late final GeneratedColumn<int> birthTimeMinutes = GeneratedColumn<int>(
       'birth_time_minutes', aliasedName, true,
       type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _birthTimePrecisionMeta =
+      const VerificationMeta('birthTimePrecision');
+  @override
+  late final GeneratedColumn<String> birthTimePrecision =
+      GeneratedColumn<String>('birth_time_precision', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant('unknown'));
   static const VerificationMeta _birthUtcOffsetMinutesMeta =
       const VerificationMeta('birthUtcOffsetMinutes');
   @override
@@ -170,6 +178,7 @@ class $ProfilesTable extends Profiles
         guidanceMode,
         startSurface,
         birthTimeMinutes,
+        birthTimePrecision,
         birthUtcOffsetMinutes,
         birthPlace,
         birthLatitude,
@@ -256,6 +265,12 @@ class $ProfilesTable extends Profiles
           _birthTimeMinutesMeta,
           birthTimeMinutes.isAcceptableOrUnknown(
               data['birth_time_minutes']!, _birthTimeMinutesMeta));
+    }
+    if (data.containsKey('birth_time_precision')) {
+      context.handle(
+          _birthTimePrecisionMeta,
+          birthTimePrecision.isAcceptableOrUnknown(
+              data['birth_time_precision']!, _birthTimePrecisionMeta));
     }
     if (data.containsKey('birth_utc_offset_minutes')) {
       context.handle(
@@ -355,6 +370,8 @@ class $ProfilesTable extends Profiles
           .read(DriftSqlType.string, data['${effectivePrefix}start_surface'])!,
       birthTimeMinutes: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}birth_time_minutes']),
+      birthTimePrecision: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}birth_time_precision'])!,
       birthUtcOffsetMinutes: attachedDatabase.typeMapping.read(
           DriftSqlType.int, data['${effectivePrefix}birth_utc_offset_minutes']),
       birthPlace: attachedDatabase.typeMapping
@@ -425,6 +442,13 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   /// Birth data. Nullable because only the date is required; the chart
   /// degrades gracefully without a time or place.
   final int? birthTimeMinutes;
+
+  /// `exact` | `approximate` | `unknown`. See `core/profile/birth_time.dart`.
+  ///
+  /// Distinguishes a time read off a record from a period someone remembers.
+  /// Both produce an ascendant; only the first earns one stated without a
+  /// hedge, because the ascendant crosses a sign roughly every two hours.
+  final String birthTimePrecision;
   final int? birthUtcOffsetMinutes;
   final String? birthPlace;
   final double? birthLatitude;
@@ -476,6 +500,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       required this.guidanceMode,
       required this.startSurface,
       this.birthTimeMinutes,
+      required this.birthTimePrecision,
       this.birthUtcOffsetMinutes,
       this.birthPlace,
       this.birthLatitude,
@@ -510,6 +535,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     if (!nullToAbsent || birthTimeMinutes != null) {
       map['birth_time_minutes'] = Variable<int>(birthTimeMinutes);
     }
+    map['birth_time_precision'] = Variable<String>(birthTimePrecision);
     if (!nullToAbsent || birthUtcOffsetMinutes != null) {
       map['birth_utc_offset_minutes'] = Variable<int>(birthUtcOffsetMinutes);
     }
@@ -567,6 +593,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       birthTimeMinutes: birthTimeMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(birthTimeMinutes),
+      birthTimePrecision: Value(birthTimePrecision),
       birthUtcOffsetMinutes: birthUtcOffsetMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(birthUtcOffsetMinutes),
@@ -618,6 +645,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       guidanceMode: serializer.fromJson<String>(json['guidanceMode']),
       startSurface: serializer.fromJson<String>(json['startSurface']),
       birthTimeMinutes: serializer.fromJson<int?>(json['birthTimeMinutes']),
+      birthTimePrecision:
+          serializer.fromJson<String>(json['birthTimePrecision']),
       birthUtcOffsetMinutes:
           serializer.fromJson<int?>(json['birthUtcOffsetMinutes']),
       birthPlace: serializer.fromJson<String?>(json['birthPlace']),
@@ -653,6 +682,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'guidanceMode': serializer.toJson<String>(guidanceMode),
       'startSurface': serializer.toJson<String>(startSurface),
       'birthTimeMinutes': serializer.toJson<int?>(birthTimeMinutes),
+      'birthTimePrecision': serializer.toJson<String>(birthTimePrecision),
       'birthUtcOffsetMinutes': serializer.toJson<int?>(birthUtcOffsetMinutes),
       'birthPlace': serializer.toJson<String?>(birthPlace),
       'birthLatitude': serializer.toJson<double?>(birthLatitude),
@@ -682,6 +712,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           String? guidanceMode,
           String? startSurface,
           Value<int?> birthTimeMinutes = const Value.absent(),
+          String? birthTimePrecision,
           Value<int?> birthUtcOffsetMinutes = const Value.absent(),
           Value<String?> birthPlace = const Value.absent(),
           Value<double?> birthLatitude = const Value.absent(),
@@ -709,6 +740,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         birthTimeMinutes: birthTimeMinutes.present
             ? birthTimeMinutes.value
             : this.birthTimeMinutes,
+        birthTimePrecision: birthTimePrecision ?? this.birthTimePrecision,
         birthUtcOffsetMinutes: birthUtcOffsetMinutes.present
             ? birthUtcOffsetMinutes.value
             : this.birthUtcOffsetMinutes,
@@ -757,6 +789,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       birthTimeMinutes: data.birthTimeMinutes.present
           ? data.birthTimeMinutes.value
           : this.birthTimeMinutes,
+      birthTimePrecision: data.birthTimePrecision.present
+          ? data.birthTimePrecision.value
+          : this.birthTimePrecision,
       birthUtcOffsetMinutes: data.birthUtcOffsetMinutes.present
           ? data.birthUtcOffsetMinutes.value
           : this.birthUtcOffsetMinutes,
@@ -804,6 +839,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('guidanceMode: $guidanceMode, ')
           ..write('startSurface: $startSurface, ')
           ..write('birthTimeMinutes: $birthTimeMinutes, ')
+          ..write('birthTimePrecision: $birthTimePrecision, ')
           ..write('birthUtcOffsetMinutes: $birthUtcOffsetMinutes, ')
           ..write('birthPlace: $birthPlace, ')
           ..write('birthLatitude: $birthLatitude, ')
@@ -833,6 +869,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         guidanceMode,
         startSurface,
         birthTimeMinutes,
+        birthTimePrecision,
         birthUtcOffsetMinutes,
         birthPlace,
         birthLatitude,
@@ -861,6 +898,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.guidanceMode == this.guidanceMode &&
           other.startSurface == this.startSurface &&
           other.birthTimeMinutes == this.birthTimeMinutes &&
+          other.birthTimePrecision == this.birthTimePrecision &&
           other.birthUtcOffsetMinutes == this.birthUtcOffsetMinutes &&
           other.birthPlace == this.birthPlace &&
           other.birthLatitude == this.birthLatitude &&
@@ -887,6 +925,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<String> guidanceMode;
   final Value<String> startSurface;
   final Value<int?> birthTimeMinutes;
+  final Value<String> birthTimePrecision;
   final Value<int?> birthUtcOffsetMinutes;
   final Value<String?> birthPlace;
   final Value<double?> birthLatitude;
@@ -911,6 +950,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.guidanceMode = const Value.absent(),
     this.startSurface = const Value.absent(),
     this.birthTimeMinutes = const Value.absent(),
+    this.birthTimePrecision = const Value.absent(),
     this.birthUtcOffsetMinutes = const Value.absent(),
     this.birthPlace = const Value.absent(),
     this.birthLatitude = const Value.absent(),
@@ -936,6 +976,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.guidanceMode = const Value.absent(),
     this.startSurface = const Value.absent(),
     this.birthTimeMinutes = const Value.absent(),
+    this.birthTimePrecision = const Value.absent(),
     this.birthUtcOffsetMinutes = const Value.absent(),
     this.birthPlace = const Value.absent(),
     this.birthLatitude = const Value.absent(),
@@ -964,6 +1005,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<String>? guidanceMode,
     Expression<String>? startSurface,
     Expression<int>? birthTimeMinutes,
+    Expression<String>? birthTimePrecision,
     Expression<int>? birthUtcOffsetMinutes,
     Expression<String>? birthPlace,
     Expression<double>? birthLatitude,
@@ -989,6 +1031,8 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (guidanceMode != null) 'guidance_mode': guidanceMode,
       if (startSurface != null) 'start_surface': startSurface,
       if (birthTimeMinutes != null) 'birth_time_minutes': birthTimeMinutes,
+      if (birthTimePrecision != null)
+        'birth_time_precision': birthTimePrecision,
       if (birthUtcOffsetMinutes != null)
         'birth_utc_offset_minutes': birthUtcOffsetMinutes,
       if (birthPlace != null) 'birth_place': birthPlace,
@@ -1022,6 +1066,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       Value<String>? guidanceMode,
       Value<String>? startSurface,
       Value<int?>? birthTimeMinutes,
+      Value<String>? birthTimePrecision,
       Value<int?>? birthUtcOffsetMinutes,
       Value<String?>? birthPlace,
       Value<double?>? birthLatitude,
@@ -1046,6 +1091,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       guidanceMode: guidanceMode ?? this.guidanceMode,
       startSurface: startSurface ?? this.startSurface,
       birthTimeMinutes: birthTimeMinutes ?? this.birthTimeMinutes,
+      birthTimePrecision: birthTimePrecision ?? this.birthTimePrecision,
       birthUtcOffsetMinutes:
           birthUtcOffsetMinutes ?? this.birthUtcOffsetMinutes,
       birthPlace: birthPlace ?? this.birthPlace,
@@ -1100,6 +1146,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     }
     if (birthTimeMinutes.present) {
       map['birth_time_minutes'] = Variable<int>(birthTimeMinutes.value);
+    }
+    if (birthTimePrecision.present) {
+      map['birth_time_precision'] = Variable<String>(birthTimePrecision.value);
     }
     if (birthUtcOffsetMinutes.present) {
       map['birth_utc_offset_minutes'] =
@@ -1158,6 +1207,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('guidanceMode: $guidanceMode, ')
           ..write('startSurface: $startSurface, ')
           ..write('birthTimeMinutes: $birthTimeMinutes, ')
+          ..write('birthTimePrecision: $birthTimePrecision, ')
           ..write('birthUtcOffsetMinutes: $birthUtcOffsetMinutes, ')
           ..write('birthPlace: $birthPlace, ')
           ..write('birthLatitude: $birthLatitude, ')
@@ -10593,6 +10643,7 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   Value<String> guidanceMode,
   Value<String> startSurface,
   Value<int?> birthTimeMinutes,
+  Value<String> birthTimePrecision,
   Value<int?> birthUtcOffsetMinutes,
   Value<String?> birthPlace,
   Value<double?> birthLatitude,
@@ -10618,6 +10669,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<String> guidanceMode,
   Value<String> startSurface,
   Value<int?> birthTimeMinutes,
+  Value<String> birthTimePrecision,
   Value<int?> birthUtcOffsetMinutes,
   Value<String?> birthPlace,
   Value<double?> birthLatitude,
@@ -10677,6 +10729,10 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<int> get birthTimeMinutes => $composableBuilder(
       column: $table.birthTimeMinutes,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get birthTimePrecision => $composableBuilder(
+      column: $table.birthTimePrecision,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get birthUtcOffsetMinutes => $composableBuilder(
@@ -10770,6 +10826,10 @@ class $$ProfilesTableOrderingComposer
       column: $table.birthTimeMinutes,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get birthTimePrecision => $composableBuilder(
+      column: $table.birthTimePrecision,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get birthUtcOffsetMinutes => $composableBuilder(
       column: $table.birthUtcOffsetMinutes,
       builder: (column) => ColumnOrderings(column));
@@ -10857,6 +10917,9 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<int> get birthTimeMinutes => $composableBuilder(
       column: $table.birthTimeMinutes, builder: (column) => column);
 
+  GeneratedColumn<String> get birthTimePrecision => $composableBuilder(
+      column: $table.birthTimePrecision, builder: (column) => column);
+
   GeneratedColumn<int> get birthUtcOffsetMinutes => $composableBuilder(
       column: $table.birthUtcOffsetMinutes, builder: (column) => column);
 
@@ -10926,6 +10989,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<String> guidanceMode = const Value.absent(),
             Value<String> startSurface = const Value.absent(),
             Value<int?> birthTimeMinutes = const Value.absent(),
+            Value<String> birthTimePrecision = const Value.absent(),
             Value<int?> birthUtcOffsetMinutes = const Value.absent(),
             Value<String?> birthPlace = const Value.absent(),
             Value<double?> birthLatitude = const Value.absent(),
@@ -10951,6 +11015,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             guidanceMode: guidanceMode,
             startSurface: startSurface,
             birthTimeMinutes: birthTimeMinutes,
+            birthTimePrecision: birthTimePrecision,
             birthUtcOffsetMinutes: birthUtcOffsetMinutes,
             birthPlace: birthPlace,
             birthLatitude: birthLatitude,
@@ -10976,6 +11041,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<String> guidanceMode = const Value.absent(),
             Value<String> startSurface = const Value.absent(),
             Value<int?> birthTimeMinutes = const Value.absent(),
+            Value<String> birthTimePrecision = const Value.absent(),
             Value<int?> birthUtcOffsetMinutes = const Value.absent(),
             Value<String?> birthPlace = const Value.absent(),
             Value<double?> birthLatitude = const Value.absent(),
@@ -11001,6 +11067,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             guidanceMode: guidanceMode,
             startSurface: startSurface,
             birthTimeMinutes: birthTimeMinutes,
+            birthTimePrecision: birthTimePrecision,
             birthUtcOffsetMinutes: birthUtcOffsetMinutes,
             birthPlace: birthPlace,
             birthLatitude: birthLatitude,

@@ -39,6 +39,7 @@ const natalEngineVersion = 'astronomia-meeus-2';
 String natalInputHash({
   required DateTime dob,
   int? birthTimeMinutes,
+  String birthTimePrecision = 'unknown',
   int? birthUtcOffsetMinutes,
   double? birthLatitude,
   double? birthLongitude,
@@ -46,6 +47,7 @@ String natalInputHash({
     [
       dob.toIso8601String(),
       birthTimeMinutes ?? 'unknown-time',
+      birthTimePrecision,
       birthUtcOffsetMinutes ?? 'unknown-offset',
       birthLatitude ?? 'unknown-latitude',
       birthLongitude ?? 'unknown-longitude',

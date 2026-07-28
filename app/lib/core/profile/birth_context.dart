@@ -1,6 +1,7 @@
 import 'package:geocoding/geocoding.dart' as geocoding;
 
 import '../db/app_database.dart';
+import 'birth_time.dart';
 
 abstract interface class BirthplaceResolver {
   Future<BirthplaceCoordinates> resolve(String place);
@@ -46,16 +47,34 @@ class BirthContextService {
     required String time,
     required String utcOffset,
     required String place,
+    BirthTimePrecision precision = BirthTimePrecision.exact,
+    BirthTimePeriod? period,
   }) async {
     final profile = await database.loadProfile();
     if (profile == null) {
       throw const BirthContextException('The local profile is unavailable.');
     }
-    final timeMinutes = parseClockMinutes(time);
-    final offsetMinutes = parseUtcOffsetMinutes(utcOffset);
-    if ((timeMinutes == null) != (offsetMinutes == null)) {
+    // An approximate time is a chosen period, not a typed clock value: the
+    // representative minute comes from the period so the two can never
+    // disagree.
+    final timeMinutes = switch (precision) {
+      BirthTimePrecision.unknown => null,
+      BirthTimePrecision.approximate => period?.representativeMinutes,
+      BirthTimePrecision.exact => parseClockMinutes(time),
+    };
+    if (precision == BirthTimePrecision.approximate && period == null) {
       throw const BirthContextException(
-        'Add both birth time and its UTC offset, or leave both blank.',
+        'Choose which part of the day you were born in.',
+      );
+    }
+    final offsetMinutes = parseUtcOffsetMinutes(utcOffset);
+    // A time of any precision needs an offset to be placed in UTC at all.
+    // An offset without a time is simply unused — it used to be an error,
+    // which made "I do not know the time" impossible to answer once an offset
+    // had been typed.
+    if (timeMinutes != null && offsetMinutes == null) {
+      throw const BirthContextException(
+        'Add the UTC offset at birth, so the time can be placed.',
       );
     }
     final normalizedPlace = place.trim();
@@ -73,7 +92,8 @@ class BirthContextService {
     }
     await database.updateBirthContext(
       birthTimeMinutes: timeMinutes,
-      birthUtcOffsetMinutes: offsetMinutes,
+      birthTimePrecision: timeMinutes == null ? 'unknown' : precision.name,
+      birthUtcOffsetMinutes: timeMinutes == null ? null : offsetMinutes,
       birthPlace: normalizedPlace.isEmpty ? null : normalizedPlace,
       birthLatitude: coordinates?.latitude,
       birthLongitude: coordinates?.longitude,

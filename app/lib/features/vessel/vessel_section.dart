@@ -13,6 +13,7 @@ import '../../core/ai/transport.dart';
 import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/profile/birth_time.dart';
 import '../../core/symbolic/astro_glyphs.dart';
 import '../../core/symbolic/chart_wheel.dart';
 import '../../core/symbolic/transits.dart';
@@ -114,6 +115,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     final hash = natalInputHash(
       dob: profile.dob,
       birthTimeMinutes: profile.birthTimeMinutes,
+      birthTimePrecision: profile.birthTimePrecision,
       birthUtcOffsetMinutes: profile.birthUtcOffsetMinutes,
       birthLatitude: profile.birthLatitude,
       birthLongitude: profile.birthLongitude,
@@ -136,7 +138,12 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         'immersive' => GuidanceMode.immersive,
         _ => GuidanceMode.balanced,
       },
-      usedApproximateTime: profile.birthTimeMinutes == null ||
+      // A remembered period is approximate even though a minute is stored:
+      // the ascendant crosses a sign roughly every two hours, so a three-hour
+      // window is most of a sign and must be hedged like an unknown time.
+      usedApproximateTime: !BirthTimePrecision.fromName(
+            profile.birthTimePrecision,
+          ).supportsPreciseAngles ||
           profile.birthUtcOffsetMinutes == null,
       usedApproximatePlace:
           profile.birthLatitude == null || profile.birthLongitude == null,

@@ -54,6 +54,14 @@ class Profiles extends Table {
   /// Birth data. Nullable because only the date is required; the chart
   /// degrades gracefully without a time or place.
   IntColumn get birthTimeMinutes => integer().nullable()();
+
+  /// `exact` | `approximate` | `unknown`. See `core/profile/birth_time.dart`.
+  ///
+  /// Distinguishes a time read off a record from a period someone remembers.
+  /// Both produce an ascendant; only the first earns one stated without a
+  /// hedge, because the ascendant crosses a sign roughly every two hours.
+  TextColumn get birthTimePrecision =>
+      text().withDefault(const Constant('unknown'))();
   IntColumn get birthUtcOffsetMinutes => integer().nullable()();
   TextColumn get birthPlace => text().nullable()();
   RealColumn get birthLatitude => real().nullable()();

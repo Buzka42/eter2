@@ -4,6 +4,7 @@ import '../aether/guidance_mode.dart';
 import '../arcana/major_arcana.dart';
 import '../arcana/symbol_content.dart';
 import '../arcana/zodiac.dart';
+import '../profile/birth_time.dart';
 import '../db/app_database.dart';
 import '../symbolic/natal_chart.dart';
 import '../symbolic/numerology.dart';
@@ -74,7 +75,10 @@ class InitialVesselReadings {
         );
       }
 
-      final approximateTime = profile.birthTimeMinutes == null ||
+      final approximateTime = !BirthTimePrecision.fromName(
+                profile.birthTimePrecision,
+              ).supportsPreciseAngles ||
+          profile.birthTimeMinutes == null ||
           profile.birthUtcOffsetMinutes == null;
       final approximatePlace =
           profile.birthLatitude == null || profile.birthLongitude == null;
@@ -86,6 +90,7 @@ class InitialVesselReadings {
         inputHash: natalInputHash(
           dob: profile.dob,
           birthTimeMinutes: profile.birthTimeMinutes,
+          birthTimePrecision: profile.birthTimePrecision,
           birthUtcOffsetMinutes: profile.birthUtcOffsetMinutes,
           birthLatitude: profile.birthLatitude,
           birthLongitude: profile.birthLongitude,

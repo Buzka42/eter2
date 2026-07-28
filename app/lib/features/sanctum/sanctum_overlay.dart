@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
@@ -282,6 +283,8 @@ class _BirthContextState extends State<_BirthContext> {
   final _offset = TextEditingController();
   final _place = TextEditingController();
   bool _editing = false;
+  BirthTimePrecision _precision = BirthTimePrecision.unknown;
+  BirthTimePeriod? _period;
   bool _busy = false;
   String? _message;
 
@@ -307,6 +310,8 @@ class _BirthContextState extends State<_BirthContext> {
 
   void _syncFields() {
     final profile = widget.profile;
+    _precision = BirthTimePrecision.fromName(profile?.birthTimePrecision);
+    _period = BirthTimePeriod.forMinutes(profile?.birthTimeMinutes);
     final minutes = profile?.birthTimeMinutes;
     _time.text = minutes == null
         ? ''
@@ -338,6 +343,8 @@ class _BirthContextState extends State<_BirthContext> {
         time: _time.text,
         utcOffset: _offset.text,
         place: _place.text,
+        precision: _precision,
+        period: _period,
       );
       if (!mounted) return;
       setState(() {
@@ -381,15 +388,62 @@ class _BirthContextState extends State<_BirthContext> {
         ),
         if (_editing) ...[
           const SizedBox(height: EterSpace.s12),
-          TextField(
-            key: const ValueKey('birth-context-time'),
-            controller: _time,
-            enabled: !_busy,
-            keyboardType: TextInputType.datetime,
-            decoration: const InputDecoration(
-              labelText: 'Local birth time · HH:MM',
-            ),
+          // Almost nobody knows the minute, and almost everybody knows the
+          // part of the day. Offering only "exact or nothing" turned real
+          // knowledge into either a false certainty or a shrug.
+          _ChoiceGroup(
+            heading: 'HOW WELL IS THE TIME KNOWN',
+            value: _precision.name,
+            choices: const {
+              'exact': 'To the minute',
+              'approximate': 'Roughly',
+              'unknown': 'Not at all',
+            },
+            descriptions: const {
+              'exact': 'From a record. The ascendant is stated plainly.',
+              'approximate': 'A remembered part of the day. The chart is '
+                  'drawn, and every angle says it is provisional.',
+              'unknown': 'The chart is drawn for noon and says so.',
+            },
+            onChanged: _busy
+                ? null
+                : (value) => setState(
+                      () => _precision = BirthTimePrecision.fromName(value),
+                    ),
           ),
+          if (_precision == BirthTimePrecision.exact) ...[
+            const SizedBox(height: EterSpace.s12),
+            TextField(
+              key: const ValueKey('birth-context-time'),
+              controller: _time,
+              enabled: !_busy,
+              keyboardType: TextInputType.datetime,
+              decoration: const InputDecoration(
+                labelText: 'Local birth time · HH:MM',
+              ),
+            ),
+          ],
+          if (_precision == BirthTimePrecision.approximate) ...[
+            const SizedBox(height: EterSpace.s12),
+            _ChoiceGroup(
+              heading: 'WHICH PART OF THE DAY',
+              value: (_period ?? BirthTimePeriod.morning).name,
+              choices: {
+                for (final period in BirthTimePeriod.values)
+                  period.name: period.label,
+              },
+              descriptions: {
+                for (final period in BirthTimePeriod.values)
+                  period.name: period.detail,
+              },
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(
+                        () => _period = BirthTimePeriod.values
+                            .firstWhere((item) => item.name == value),
+                      ),
+            ),
+          ],
           const SizedBox(height: EterSpace.s12),
           TextField(
             key: const ValueKey('birth-context-offset'),

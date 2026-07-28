@@ -48,9 +48,10 @@ class AppDatabase extends _$AppDatabase {
   /// there are no external users and the fitness-era shape is not what this
   /// product stores. v2 added optional body fat, the journal's daily story and
   /// digest, and the cached transit reading. v3 added the separate consent for
-  /// mirroring journal prose; v4 adds the crash-report consent.
+  /// mirroring journal prose; v4 added the crash-report consent; v5 adds how
+  /// precisely the birth time is known.
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -82,6 +83,17 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.addColumn(profiles, profiles.crashReportConsentAt);
+          }
+          if (from < 5) {
+            await m.addColumn(profiles, profiles.birthTimePrecision);
+            // An install that already holds a time stated it to the minute;
+            // one that does not never knew. Neither acquires a claim it did
+            // not make.
+            await customStatement(
+              'UPDATE profiles SET birth_time_precision = CASE '
+              'WHEN birth_time_minutes IS NULL THEN "unknown" '
+              'ELSE "exact" END',
+            );
           }
           await _createIndexes();
         },
@@ -129,6 +141,7 @@ class AppDatabase extends _$AppDatabase {
   /// new chart. Stale alternatives never accumulate.
   Future<void> updateBirthContext({
     required int? birthTimeMinutes,
+    required String birthTimePrecision,
     required int? birthUtcOffsetMinutes,
     required String? birthPlace,
     required double? birthLatitude,
@@ -140,6 +153,7 @@ class AppDatabase extends _$AppDatabase {
       await (update(profiles)..where((row) => row.id.equals(1))).write(
         ProfilesCompanion(
           birthTimeMinutes: Value(birthTimeMinutes),
+          birthTimePrecision: Value(birthTimePrecision),
           birthUtcOffsetMinutes: Value(birthUtcOffsetMinutes),
           birthPlace: Value(birthPlace),
           birthLatitude: Value(birthLatitude),
@@ -150,6 +164,7 @@ class AppDatabase extends _$AppDatabase {
       final inputHash = natalInputHash(
         dob: profile.dob,
         birthTimeMinutes: birthTimeMinutes,
+        birthTimePrecision: birthTimePrecision,
         birthUtcOffsetMinutes: birthUtcOffsetMinutes,
         birthLatitude: birthLatitude,
         birthLongitude: birthLongitude,

@@ -602,6 +602,7 @@ void main() {
 
     await db.updateBirthContext(
       birthTimeMinutes: 405,
+      birthTimePrecision: 'exact',
       birthUtcOffsetMinutes: 60,
       birthPlace: 'Warsaw, Poland',
       birthLatitude: 52.2297,
@@ -805,6 +806,12 @@ void main() {
     final action = find.byKey(const ValueKey('birth-context-primary-action'));
     await tester.ensureVisible(action);
     tester.widget<EterAction>(action).onPressed!.call();
+    await tester.pump();
+
+    // The time field only exists once the person says the time is known to
+    // the minute — a remembered part of the day is a different answer.
+    await tester.ensureVisible(find.text('To the minute'));
+    await tester.tap(find.text('To the minute'));
     await tester.pump();
     await tester.enterText(
       find.byKey(const ValueKey('birth-context-time')),
