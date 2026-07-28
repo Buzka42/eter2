@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
+import 'package:eter/core/clock.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
@@ -171,6 +172,54 @@ void main() {
       DateTime(2026, 7, 28),
     );
     expect(sessions.any((session) => session.sport == 'Evening walk'), isTrue);
+    await closeShell(tester);
+  });
+
+  testWidgets('manual meal enters confirmed nutrition and the Body balance',
+      (tester) async {
+    final (dayStart, dayEnd) = eterDayBounds(eterPinnedNow);
+    final before = await db.intakeKcalForRange(dayStart, dayEnd);
+    await pumpShell(tester);
+    await expandBody(tester);
+
+    final addMeal = find.text('ADD MEAL');
+    await tester.ensureVisible(addMeal);
+    await tester.pump();
+    await tester.tap(addMeal);
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-meal-name')),
+      'Rice and vegetables',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-meal-energy')),
+      '430',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-meal-protein')),
+      '18',
+    );
+    final add = find.text('ADD');
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Rice and vegetables added as a confirmed food record.'),
+      findsOneWidget,
+    );
+    expect(find.text('Rice and vegetables'), findsOneWidget);
+    expect(
+      await db.intakeKcalForRange(dayStart, dayEnd),
+      closeTo(before + 430, .001),
+    );
+    expect(
+      (await db.loadDaySummary('2026-07-27'))?.intakeKcal,
+      closeTo(before + 430, .001),
+    );
     await closeShell(tester);
   });
 

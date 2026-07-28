@@ -8,7 +8,9 @@ import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/icons.dart';
 import '../../core/health/manual_activity.dart';
+import '../../core/health/manual_weight.dart';
 import '../../core/instruments.dart';
+import '../../core/nutrition/manual_meal.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
 
@@ -284,7 +286,11 @@ class _ExpandedBody extends StatelessWidget {
         const SizedBox(height: EterSpace.s24),
         _ManualActivityEntry(db: db, now: now),
         const SizedBox(height: EterSpace.s24),
+        _ManualMealEntry(db: db, now: now),
+        const SizedBox(height: EterSpace.s24),
         _HistoricalSignals(db: db, now: now, today: today),
+        const SizedBox(height: EterSpace.s24),
+        _ManualWeightEntry(db: db, now: now),
         if (meals.isNotEmpty) ...[
           const SizedBox(height: EterSpace.s24),
           Text('FOOD NOTES', style: text.labelSmall),
@@ -297,6 +303,285 @@ class _ExpandedBody extends StatelessWidget {
             ),
         ],
         const SizedBox(height: EterSpace.s24),
+      ],
+    );
+  }
+}
+
+class _ManualWeightEntry extends StatefulWidget {
+  const _ManualWeightEntry({required this.db, required this.now});
+
+  final AppDatabase db;
+  final DateTime now;
+
+  @override
+  State<_ManualWeightEntry> createState() => _ManualWeightEntryState();
+}
+
+class _ManualWeightEntryState extends State<_ManualWeightEntry> {
+  final _weight = TextEditingController();
+  bool _open = false;
+  bool _saving = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _weight.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final kg = double.tryParse(_weight.text.trim());
+    if (kg == null) {
+      setState(() => _message = 'Enter weight in kilograms.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    try {
+      await ManualWeightService(widget.db).record(
+        kg: kg,
+        recordedAt: widget.now,
+      );
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _open = false;
+        _message = '${kg.toStringAsFixed(1)} kg recorded.';
+        _weight.clear();
+      });
+    } on FormatException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _message = error.message.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('WEIGHT', style: text.labelSmall),
+            const Spacer(),
+            EterAction(
+              label: _open ? 'Cancel' : 'Record',
+              emphasis: EterActionEmphasis.quiet,
+              onPressed: _saving
+                  ? null
+                  : () => setState(() {
+                        _open = !_open;
+                        _message = null;
+                      }),
+            ),
+          ],
+        ),
+        if (_open) ...[
+          const SizedBox(height: EterSpace.s8),
+          TextField(
+            key: const Key('manual-weight-kg'),
+            controller: _weight,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _save(),
+            decoration: const InputDecoration(
+              labelText: 'Weight in kilograms',
+              hintText: '70.0',
+            ),
+          ),
+          const SizedBox(height: EterSpace.s8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: EterAction(
+              label: _saving ? 'Recording' : 'Record',
+              emphasis: EterActionEmphasis.primary,
+              busy: _saving,
+              onPressed: _save,
+            ),
+          ),
+        ],
+        if (_message != null) ...[
+          const SizedBox(height: EterSpace.s8),
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ManualMealEntry extends StatefulWidget {
+  const _ManualMealEntry({required this.db, required this.now});
+
+  final AppDatabase db;
+  final DateTime now;
+
+  @override
+  State<_ManualMealEntry> createState() => _ManualMealEntryState();
+}
+
+class _ManualMealEntryState extends State<_ManualMealEntry> {
+  final _meal = TextEditingController();
+  final _energy = TextEditingController();
+  final _protein = TextEditingController();
+  final _carbs = TextEditingController();
+  final _fat = TextEditingController();
+  bool _open = false;
+  bool _saving = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _meal.dispose();
+    _energy.dispose();
+    _protein.dispose();
+    _carbs.dispose();
+    _fat.dispose();
+    super.dispose();
+  }
+
+  double? _optionalNumber(TextEditingController controller) {
+    final value = controller.text.trim();
+    return value.isEmpty ? null : double.tryParse(value);
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final kcal = double.tryParse(_energy.text.trim());
+    final optional = [_protein, _carbs, _fat];
+    if (kcal == null ||
+        optional.any(
+          (controller) =>
+              controller.text.trim().isNotEmpty &&
+              double.tryParse(controller.text.trim()) == null,
+        )) {
+      setState(() => _message = 'Enter energy and optional macros as numbers.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    final name = _meal.text.trim();
+    try {
+      await ManualMealService(widget.db).record(
+        meal: name,
+        kcal: kcal,
+        proteinG: _optionalNumber(_protein),
+        carbsG: _optionalNumber(_carbs),
+        fatG: _optionalNumber(_fat),
+        recordedAt: widget.now,
+      );
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _open = false;
+        _message = '$name added as a confirmed food record.';
+        _meal.clear();
+        _energy.clear();
+        _protein.clear();
+        _carbs.clear();
+        _fat.clear();
+      });
+    } on ManualMealException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _message = error.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('FOOD', style: text.labelSmall)),
+            EterAction(
+              label: _open ? 'Cancel' : 'Add meal',
+              emphasis: EterActionEmphasis.quiet,
+              onPressed: _saving
+                  ? null
+                  : () => setState(() {
+                        _open = !_open;
+                        _message = null;
+                      }),
+            ),
+          ],
+        ),
+        if (_open) ...[
+          const SizedBox(height: EterSpace.s8),
+          TextField(
+            key: const ValueKey('manual-meal-name'),
+            controller: _meal,
+            textCapitalization: TextCapitalization.sentences,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(labelText: 'Meal or food'),
+          ),
+          const SizedBox(height: EterSpace.s8),
+          TextField(
+            key: const ValueKey('manual-meal-energy'),
+            controller: _energy,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(labelText: 'Energy · kcal'),
+          ),
+          const SizedBox(height: EterSpace.s8),
+          Text(
+            'OPTIONAL MACROS · GRAMS',
+            style: text.labelSmall,
+          ),
+          const SizedBox(height: EterSpace.s4),
+          for (final field in [
+            (_protein, 'manual-meal-protein', 'Protein'),
+            (_carbs, 'manual-meal-carbs', 'Carbohydrate'),
+            (_fat, 'manual-meal-fat', 'Fat'),
+          ]) ...[
+            TextField(
+              key: ValueKey(field.$2),
+              controller: field.$1,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: field.$2 == 'manual-meal-fat'
+                  ? TextInputAction.done
+                  : TextInputAction.next,
+              onSubmitted:
+                  field.$2 == 'manual-meal-fat' ? (_) => _save() : null,
+              decoration: InputDecoration(labelText: field.$3),
+            ),
+            const SizedBox(height: EterSpace.s8),
+          ],
+          Align(
+            alignment: Alignment.centerRight,
+            child: EterAction(
+              label: _saving ? 'Adding' : 'Add',
+              emphasis: EterActionEmphasis.primary,
+              busy: _saving,
+              onPressed: _save,
+            ),
+          ),
+        ],
+        if (_message != null) ...[
+          const SizedBox(height: EterSpace.s8),
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+        ],
       ],
     );
   }

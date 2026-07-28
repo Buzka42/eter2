@@ -267,6 +267,14 @@ Closing it restores the guidance and its scroll state.
 - **Unconfirmed food estimates must be visibly unconfirmed** and must not read
   as fact. The database already excludes them from totals; the UI must not imply
   otherwise.
+- Expanded Body also exposes a collapsed `ADD MEAL` path so local nutrition
+  does not depend on an AI transport. A named meal and factual kcal value are
+  required; protein, carbohydrate and fat are optional. These rows are
+  explicitly manual and confirmed, and insertion/correction/deletion refresh
+  an existing day-summary intake mirror in the same transaction.
+- A matching collapsed `RECORD` path accepts a factual weight in kilograms.
+  It appends to history and updates the profile weight used by later energy
+  calculations in one local transaction.
 - **Say what you cannot see.** A user with no wearable has steps and nothing
   else. State the absence rather than rendering an empty chart that implies
   zero. This is the v1 lesson that mattered most: the old build showed

@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../clock.dart';
 import '../energy/energy.dart' as energy;
 import '../journal/classification_contract.dart';
 import 'tables.dart';
@@ -446,15 +447,60 @@ class AppDatabase extends _$AppDatabase {
   Future<int> addNutritionEntry(NutritionEntriesCompanion entry) =>
       into(nutritionEntries).insert(entry);
 
+  Future<int> addConfirmedNutritionEntry(
+    NutritionEntriesCompanion entry,
+  ) =>
+      transaction(() async {
+        final id = await into(nutritionEntries).insert(entry);
+        await _refreshDayIntake(entry.recordedAt.value);
+        return id;
+      });
+
   Future<void> updateNutritionEntry(
     int id,
     NutritionEntriesCompanion changes,
-  ) =>
-      (update(nutritionEntries)..where((row) => row.id.equals(id)))
+  ) async {
+    await transaction(() async {
+      final existing = await (select(nutritionEntries)
+            ..where((row) => row.id.equals(id)))
+          .getSingleOrNull();
+      if (existing == null) return;
+      await (update(nutritionEntries)..where((row) => row.id.equals(id)))
           .write(changes.copyWith(syncedAt: const Value(null)));
+      await _refreshDayIntake(existing.recordedAt);
+    });
+  }
 
-  Future<void> deleteNutritionEntry(int id) =>
-      (delete(nutritionEntries)..where((row) => row.id.equals(id))).go();
+  Future<void> deleteNutritionEntry(int id) async {
+    await transaction(() async {
+      final existing = await (select(nutritionEntries)
+            ..where((row) => row.id.equals(id)))
+          .getSingleOrNull();
+      if (existing == null) return;
+      await (delete(nutritionEntries)..where((row) => row.id.equals(id))).go();
+      await _refreshDayIntake(existing.recordedAt);
+    });
+  }
+
+  Future<void> _refreshDayIntake(DateTime recordedAt) async {
+    final local = recordedAt.toLocal();
+    final (start, end) = eterDayBounds(local);
+    final rows = await (select(nutritionEntries)
+          ..where((row) =>
+              row.recordedAt.isBiggerOrEqualValue(start.toUtc()) &
+              row.recordedAt.isSmallerThanValue(end.toUtc()) &
+              row.confirmed.equals(true)))
+        .get();
+    final total = rows.fold<double>(0, (sum, row) => sum + row.kcal);
+    await (update(daySummaries)
+          ..where((row) => row.date.equals(eterIsoDate(local))))
+        .write(
+      DaySummariesCompanion(
+        intakeKcal: Value(rows.isEmpty ? null : total),
+        syncedAt: const Value(null),
+      ),
+    );
+  }
 
   Stream<List<NutritionEntryRow>> watchNutritionForRange(
     DateTime startUtc,
@@ -479,6 +525,26 @@ class AppDatabase extends _$AppDatabase {
           source: Value(source),
         ),
       );
+
+  /// Records a user-entered weight and makes it the current calculation input.
+  Future<int> addManualWeight({
+    required double kg,
+    DateTime? recordedAt,
+  }) =>
+      transaction(() async {
+        final id = await addWeightEntry(
+          kg: kg,
+          source: 'manual',
+          recordedAt: recordedAt,
+        );
+        await (update(profiles)..where((row) => row.id.equals(1))).write(
+          ProfilesCompanion(
+            weightKg: Value(kg),
+            syncedAt: const Value(null),
+          ),
+        );
+        return id;
+      });
 
   Stream<List<WeightEntryRow>> watchWeightEntries({int limit = 365}) =>
       (select(weightEntries)

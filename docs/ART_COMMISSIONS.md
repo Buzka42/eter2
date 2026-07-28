@@ -184,3 +184,9 @@ The collapsed Birth Context editor is ordinary Sanctum typography and line
 fields. It needs accuracy and clear failure copy, not a map, globe, or zodiac
 asset; those would add density without helping users enter time, offset, and
 place. No generated asset exists, so no two-option review is required.
+
+Manual meal capture uses the same hidden-until-requested typographic passage
+as manual activity. Food photography, ingredient icons, or a scan animation
+would make expanded Body busier and falsely imply capabilities not present in
+the factual entry path. No generated asset exists, so no two-option review is
+required.
