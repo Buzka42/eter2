@@ -8,6 +8,7 @@ import '../../core/aether/composer.dart';
 import '../../core/aether/context_assembler.dart';
 import '../../core/aether/guidance_contract.dart';
 import '../../core/aether/request_contract.dart';
+import '../../core/ai/transport.dart';
 import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
@@ -102,6 +103,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         _composing = false;
         _compositionMessage =
             'The response could not be accepted safely. Nothing changed.';
+      });
+    } on EterTransportException catch (error) {
+      // Named separately because "unavailable right now" is useless when the
+      // real answer is that the endpoint is unreachable, and the person can
+      // do something about that.
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage = error.reason;
       });
     } catch (_) {
       if (!mounted) return;

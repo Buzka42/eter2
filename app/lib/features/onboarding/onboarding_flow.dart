@@ -1,8 +1,12 @@
+import 'dart:io' show Platform;
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/health/health_hub.dart';
+import '../../core/health/platform_health_gateway.dart';
 import '../../core/profile/body_fat.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
@@ -38,6 +42,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   var _ai = false;
   var _journalAi = false;
   var _cloud = false;
+  var _register = 'balanced';
   var _saving = false;
   String? _birthError;
 
@@ -48,6 +53,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _name.text = profile?.firstName ?? '';
     _birthPlace.text = profile?.birthPlace ?? '';
     _sex = profile?.sex ?? 'other';
+    _register = profile?.guidanceMode ?? 'balanced';
     _bodyFat = EterBodyFat.normalize(profile?.bodyFatPercent);
     if (profile != null) {
       _dob.text = '${profile.dob.year.toString().padLeft(4, '0')}-'
@@ -94,6 +100,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             aiConsentAt: Value(_ai ? now : null),
             journalAiConsentAt: Value(_ai && _journalAi ? now : null),
             cloudSyncConsentAt: Value(_cloud ? now : null),
+            guidanceMode: Value(_register),
           )
         : existing.toCompanion(true).copyWith(
               dob: Value(dob),
@@ -109,6 +116,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               aiConsentAt: Value(_ai ? now : null),
               journalAiConsentAt: Value(_ai && _journalAi ? now : null),
               cloudSyncConsentAt: Value(_cloud ? now : null),
+              guidanceMode: Value(_register),
             );
     await widget.database.saveProfile(profile);
     await widget.database.saveIntakeAnswer(
@@ -172,9 +180,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                       const EterMotto(),
                       const SizedBox(height: EterSpace.s32),
                       Semantics(
-                        label: 'Onboarding step ${_step + 1} of 3',
+                        label: 'Onboarding step ${_step + 1} of 4',
                         child: Text(
-                          '${_step + 1} / 3',
+                          '${_step + 1} / 4',
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ),
@@ -202,8 +210,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                               place: _birthPlace,
                               error: _birthError,
                             ),
-                          _ => _ConsentStep(
+                          2 => _RegisterStep(
                               key: const ValueKey(2),
+                              value: _register,
+                              onChanged: (value) =>
+                                  setState(() => _register = value),
+                            ),
+                          _ => _ConsentStep(
+                              key: const ValueKey(3),
+                              database: widget.database,
                               ai: _ai,
                               journalAi: _journalAi,
                               cloud: _cloud,
@@ -233,14 +248,14 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                           else
                             const SizedBox(width: 64),
                           EterAction(
-                            label: _step == 2 ? 'Enter Eter' : 'Continue',
+                            label: _step == 3 ? 'Enter Eter' : 'Continue',
                             emphasis: EterActionEmphasis.primary,
                             busy: _saving,
                             onPressed: _saving
                                 ? null
                                 : () {
                                     FocusScope.of(context).unfocus();
-                                    if (_step < 2) {
+                                    if (_step < 3) {
                                       if (_step == 1 && !_validateBirth()) {
                                         return;
                                       }
@@ -451,6 +466,7 @@ class _ConsentStep extends StatelessWidget {
     required this.onAi,
     required this.onJournalAi,
     required this.onCloud,
+    required this.database,
   });
   final bool ai;
   final bool journalAi;
@@ -458,13 +474,16 @@ class _ConsentStep extends StatelessWidget {
   final ValueChanged<bool> onAi;
   final ValueChanged<bool> onJournalAi;
   final ValueChanged<bool> onCloud;
+  final AppDatabase database;
 
   @override
   Widget build(BuildContext context) => _StepBody(
         title: 'Choose what may leave this device',
         intro:
-            'All three choices are optional. Core journaling and local calculations still work if you decline.',
+            'All of these are optional. Core journaling and local calculations still work if you decline.',
         children: [
+          _HealthConnectStep(database: database),
+          const SizedBox(height: EterSpace.s24),
           _PlainChoice(
             title: 'AI guidance',
             detail: 'Send selected health context to compose guidance.',
@@ -486,6 +505,172 @@ class _ConsentStep extends StatelessWidget {
           ),
         ],
       );
+}
+
+/// Choosing the register at the start, rather than discovering it later.
+///
+/// It defaulted to `balanced` and lived only in the Sanctum, which meant the
+/// one choice that most changes how Eter sounds was the one thing nobody was
+/// asked. It is a preference, not a permission, so it sits before the consents
+/// rather than among them.
+class _RegisterStep extends StatelessWidget {
+  const _RegisterStep({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  static const _choices = {
+    'grounded': (
+      'Grounded',
+      'Daylight clarity at every hour. Plain, practical, unadorned.',
+    ),
+    'balanced': (
+      'Balanced',
+      'Changes with sunrise and sunset, as the day does.',
+    ),
+    'immersive': (
+      'Immersive',
+      'The deeper night register, symbolic and unhurried.',
+    ),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return _StepBody(
+      title: 'How Eter should speak',
+      intro: 'This sets the voice, not the facts. You can change it any time '
+          'in the Sanctum.',
+      children: [
+        for (final entry in _choices.entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: EterSpace.s12),
+            child: Semantics(
+              selected: value == entry.key,
+              button: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => onChanged(entry.key),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      // The selected register is marked, not boxed.
+                      child: StarOrnament(
+                        size: 12,
+                        color: value == entry.key
+                            ? EterColors.aura500
+                            : EterInk.of(context).labelMuted,
+                      ),
+                    ),
+                    const SizedBox(width: EterSpace.s12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            entry.value.$1,
+                            style: value == entry.key
+                                ? text.bodyLarge
+                                    ?.copyWith(fontWeight: FontWeight.w600)
+                                : text.bodyLarge,
+                          ),
+                          Text(entry.value.$2, style: text.bodySmall),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Connecting the phone's health store during onboarding.
+///
+/// It was only ever offered in the Sanctum, so a new person finished setup
+/// with an empty body log and no indication that Eter could fill it.
+class _HealthConnectStep extends StatefulWidget {
+  const _HealthConnectStep({required this.database});
+
+  final AppDatabase database;
+
+  @override
+  State<_HealthConnectStep> createState() => _HealthConnectStepState();
+}
+
+class _HealthConnectStepState extends State<_HealthConnectStep> {
+  bool _busy = false;
+  String? _message;
+
+  Future<void> _connect() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final now = DateTime.now();
+      final result = await HealthHubSyncService(
+        database: widget.database,
+        gateway: PlatformHealthGateway(),
+      ).sync(start: now.subtract(const Duration(days: 30)), end: now);
+      if (!mounted) return;
+      setState(() {
+        _message = result.authorized
+            ? '${result.records} records read. Eter kept one source per '
+                'minute.'
+            : 'Access was not granted. Nothing was imported, and you can '
+                'connect later in the Sanctum.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _message = 'Health data could not be read. You can try again later '
+            'in the Sanctum.';
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final supported = Platform.isAndroid || Platform.isIOS;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Health history', style: text.bodyLarge),
+        const SizedBox(height: EterSpace.s4),
+        Text(
+          supported
+              ? 'Read movement, sleep and recovery from your phone’s health '
+                  'store, so the Body has something to show from the start.'
+              : 'Health connection is available on iPhone and Android.',
+          style: text.bodySmall,
+        ),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: 'Connect',
+          busy: _busy,
+          onPressed: supported && !_busy ? _connect : null,
+        ),
+        if (_message != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+      ],
+    );
+  }
 }
 
 class _StepBody extends StatelessWidget {

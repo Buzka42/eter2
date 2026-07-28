@@ -63,8 +63,18 @@ void main() {
     await tester.ensureVisible(find.text('CONTINUE'));
     await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 500));
+    // The register is chosen here rather than discovered in the Sanctum later.
+    expect(find.text('How Eter should speak'), findsOneWidget);
+    await tester.tap(find.text('Immersive'));
+    await tester.pump();
+
+    await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.tap(find.text('CONTINUE'));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Choose what may leave this device'), findsOneWidget);
     expect(find.text('OFF'), findsNWidgets(3));
+    // Health is offered during setup, not only afterwards.
+    expect(find.text('Health history'), findsOneWidget);
 
     await tester.tap(find.text('AI guidance'));
     await tester.pump();
@@ -82,6 +92,9 @@ void main() {
     expect(saved.aiConsentAt, isNotNull);
     expect(saved.journalAiConsentAt, isNotNull);
     expect(saved.cloudSyncConsentAt, isNull);
+    expect(saved.guidanceMode, 'immersive');
+    // The mirror is never consented to on the person's behalf.
+    expect(saved.journalCloudSyncConsentAt, isNull);
     final answers = await db.loadIntakeAnswers();
     expect(answers['primary_intention']?.value, 'Steadier energy');
     expect(answers['onboarding_complete']?.value, 'true');
@@ -160,6 +173,12 @@ void main() {
     await tester.ensureVisible(find.text('CONTINUE'));
     await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 500));
+    expect(find.text('How Eter should speak'), findsOneWidget);
+
+    // Left untouched: the default has to survive someone walking past it.
+    await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.tap(find.text('CONTINUE'));
+    await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Choose what may leave this device'), findsOneWidget);
 
     await tester.ensureVisible(find.text('ENTER ETER'));
@@ -177,6 +196,8 @@ void main() {
     expect(saved?.sex, 'female');
     expect(saved?.aiConsentAt, isNull);
     expect(saved?.cloudSyncConsentAt, isNull);
+    // Balanced is the default, and walking past the step keeps it.
+    expect(saved?.guidanceMode, 'balanced');
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   }, timeout: const Timeout(Duration(seconds: 12)));

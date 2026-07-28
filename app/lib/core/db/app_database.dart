@@ -43,12 +43,13 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
-  /// Schema 2. The v1 tree reached 18; there is no migration path because
+  /// Schema 3. The v1 tree reached 18; there is no migration path because
   /// there are no external users and the fitness-era shape is not what this
-  /// product stores. v2 adds optional body fat, the journal's daily story and
-  /// digest, and the cached transit reading.
+  /// product stores. v2 added optional body fat, the journal's daily story and
+  /// digest, and the cached transit reading. v3 adds the separate consent for
+  /// mirroring journal prose.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -70,6 +71,14 @@ class AppDatabase extends _$AppDatabase {
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
+          await _createIndexes();
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 3) {
+            // Null, so an existing install does not silently acquire consent
+            // to mirror its journal. Consent is given, never inherited.
+            await m.addColumn(profiles, profiles.journalCloudSyncConsentAt);
+          }
           await _createIndexes();
         },
         beforeOpen: (details) async {
@@ -181,6 +190,7 @@ class AppDatabase extends _$AppDatabase {
     bool? aiAllowed,
     bool? journalAiAllowed,
     bool? cloudSyncAllowed,
+    bool? journalCloudSyncAllowed,
   }) async {
     final current = await loadProfile();
     if (current == null) return;
@@ -188,6 +198,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? aiAt = current.aiConsentAt;
     DateTime? journalAt = current.journalAiConsentAt;
     DateTime? cloudAt = current.cloudSyncConsentAt;
+    DateTime? journalCloudAt = current.journalCloudSyncConsentAt;
 
     if (aiAllowed != null) {
       aiAt = aiAllowed ? now : null;
@@ -199,6 +210,13 @@ class AppDatabase extends _$AppDatabase {
     }
     if (cloudSyncAllowed != null) {
       cloudAt = cloudSyncAllowed ? now : null;
+      // Journal prose cannot mirror on its own: withdrawing the mirror
+      // entirely must withdraw the pages with it.
+      if (!cloudSyncAllowed) journalCloudAt = null;
+    }
+    if (journalCloudSyncAllowed != null) {
+      journalCloudAt = journalCloudSyncAllowed ? now : null;
+      if (journalCloudSyncAllowed) cloudAt ??= now;
     }
 
     await (update(profiles)..where((row) => row.id.equals(1))).write(
@@ -206,6 +224,7 @@ class AppDatabase extends _$AppDatabase {
         aiConsentAt: Value(aiAt),
         journalAiConsentAt: Value(journalAt),
         cloudSyncConsentAt: Value(cloudAt),
+        journalCloudSyncConsentAt: Value(journalCloudAt),
         syncedAt: const Value(null),
       ),
     );

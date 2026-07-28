@@ -67,7 +67,20 @@ class Profiles extends Table {
   DateTimeColumn get journalAiConsentAt => dateTime().nullable()();
 
   /// When the user consented to cloud sync. Null means local-only.
+  ///
+  /// This covers the measured record: weights, meals, sessions, sleep, day
+  /// totals. It deliberately does not cover journal prose.
   DateTimeColumn get cloudSyncConsentAt => dateTime().nullable()();
+
+  /// When the user consented to their journal prose leaving the device for
+  /// the mirror specifically.
+  ///
+  /// Separate for the same reason [journalAiConsentAt] is separate from
+  /// [aiConsentAt]: the pages are the most personal thing in the database and
+  /// agreeing to keep a copy of your weights is not agreeing to keep a copy of
+  /// what you wrote at 2am. A person can have full recovery of their body log
+  /// and no copy of their journal anywhere but this phone.
+  DateTimeColumn get journalCloudSyncConsentAt => dateTime().nullable()();
 
   TextColumn get connectedSourcesJson =>
       text().withDefault(const Constant('[]'))();

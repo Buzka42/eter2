@@ -150,9 +150,15 @@ Future<String> defaultEterPost(
     }
     return text;
   } on SocketException {
-    throw const EterTransportException('The guidance endpoint is unreachable');
+    // These reach a surface, so they are sentences rather than diagnostics.
+    throw const EterTransportException(
+      'Eter could not reach guidance. Check your connection — everything '
+      'else works offline, and nothing was changed.',
+    );
   } on HttpException {
-    throw const EterTransportException('The guidance endpoint failed');
+    throw const EterTransportException(
+      'Guidance could not be reached. Nothing was changed.',
+    );
   } finally {
     client.close(force: true);
   }
@@ -209,8 +215,9 @@ class EterAiTransport {
       body,
     ).timeout(
       timeout,
-      onTimeout: () =>
-          throw const EterTransportException('The endpoint did not answer'),
+      onTimeout: () => throw const EterTransportException(
+        'Guidance took too long to answer. Nothing was changed.',
+      ),
     );
 
     return _unwrap(response);
