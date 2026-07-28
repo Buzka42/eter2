@@ -133,7 +133,25 @@ Future<void> main(List<String> args) async {
             _defaultMinuteCap,
   )..load();
 
-  final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+  final HttpServer server;
+  try {
+    server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+  } on SocketException catch (error) {
+    // Almost always an endpoint from an earlier session still running, which
+    // deserves a sentence rather than a stack trace.
+    stderr.writeln(
+      'Port $port is already in use — most likely an endpoint that is still '
+      'running.\n'
+      'Find and stop it:\n'
+      '  Get-NetTCPConnection -LocalPort $port -State Listen | '
+      'Select-Object OwningProcess\n'
+      '  Stop-Process -Id <that id> -Force\n'
+      'Or run this one elsewhere:  \$env:ETER_DEV_PORT="8788"\n'
+      '(${error.osError?.message ?? error.message})',
+    );
+    exitCode = 2;
+    return;
+  }
   stdout.writeln('Eter dev endpoint · $model · http://127.0.0.1:$port');
   stdout.writeln('Android emulator reaches it at http://10.0.2.2:$port');
   stdout.writeln(
