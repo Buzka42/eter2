@@ -5,7 +5,9 @@ canonical documents first — [`STEERING_BRIEF.md`](STEERING_BRIEF.md) (product
 authority), [`UI_BRIEF.md`](UI_BRIEF.md) (implementation contract),
 [`UI_DIRECTION.md`](UI_DIRECTION.md) (composition and the prototype approval
 gate). Art commissioning has its own track in
-[`ART_COMMISSIONS.md`](ART_COMMISSIONS.md).
+[`ART_COMMISSIONS.md`](ART_COMMISSIONS.md) — Commission 4, the Arcana card
+backs, is open and Priority 0. What stands between the current build and a
+release is ordered in [`RELEASE_PLAN.md`](RELEASE_PLAN.md).
 
 ## What exists now
 

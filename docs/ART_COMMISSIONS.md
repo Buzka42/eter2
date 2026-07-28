@@ -83,6 +83,74 @@ the exact negative space it must occupy.
 
 ---
 
+## Commission 4 — Arcana card backs, both registers (Priority 0)
+
+**Why:** the shipped backs (`card-back-v2-light/dark.webp`) are the only cards
+in the deck that were not authored at the deck's own proportion. They arrived
+at 1.70 and were centre-cropped to the canonical 620×920 on 28 July 2026, which
+tightened the composition until the gothic arches now run off the top and
+bottom edges. They also predate the interface they sit in: the shell's
+signature is a graduated arc, a plumb line and a four-point compass star, and
+the back's rose-window medallion belongs to a different vocabulary.
+
+They are also the most-seen card in the product. Every Vessel reading that has
+not been composed shows a back, and the animated card flips through one on
+every reveal.
+
+**Deliverables:**
+
+- `card-back-v3-dark-master.png` — 1240×1840 (exactly 2× the deck), full
+  quality.
+- `card-back-v3-light-master.png` — 1240×1840.
+- Derivatives at 620×920, WebP quality 82, to `app/assets/art/`, replacing the
+  v2 pair after the gate passes.
+
+**Prompt — dark register (paste as-is):**
+
+> A tarot card back for a quiet, editorial astrology application. Deep
+> midnight-navy ground, almost black at the corners. A single centred
+> symmetrical emblem in fine antique-gold line-work: an eight-pointed compass
+> star at the centre, held inside two concentric graduated rings struck with
+> fine degree ticks like an astronomical instrument, with a slender vertical
+> plumb line descending below the star and a shallow arc rising above it. A
+> restrained double hairline border inset from the edge on all four sides,
+> with generous empty ground between the border and the emblem. Engraved
+> hairline quality throughout, one gold tone, no shading, no gradient mesh, no
+> glow, no bloom, no metallic sheen, no gemstones, no filigree crowding. It
+> must read as an instrument plate rather than an ornate playing card. No
+> zodiac symbols, no planetary glyphs, no constellation map, no eye, no moon
+> phases, no sun face, no figures, no animals, no text, no numerals, no
+> watermark, no signature. Perfectly vertically and horizontally symmetrical.
+
+**Prompt — light register:** the same, with one substitution:
+
+> …warm parchment ground with a very faint paper grain instead of midnight
+> navy, and antique-gold line-work deep enough to hold against it (a darker,
+> browner gold rather than a pale one).
+
+**Composition constraints to check on review:**
+
+- **Author at 620×920 proportion (1.4839).** Do not deliver a taller card and
+  crop it; the crop is what broke the current pair.
+- The emblem occupies the central 55–65% of the height. Nothing important
+  within 6% of any edge — the app draws the card with a 12 dp corner radius,
+  which eats the corners.
+- The two registers must be the **same drawing**, not two designs. Placed side
+  by side they should differ only in ground and ink.
+- Symmetrical on both axes, so a flip animation has no preferred orientation.
+- Must hold at 92 dp (a position thumbnail) and at 340 dp (the Sun card's
+  width). Check both: an emblem that dissolves at 92 dp fails.
+- The dark back is composited under `animations/card-back-dark.mp4`; the loop's
+  motion sits on top of the still, so the still must be legible on its own and
+  the emblem must not sit where the loop's brightest movement is.
+- No text of any kind. The deck's faces carry their titles; the back does not.
+
+**Once accepted:** run `python tool/normalise_cards.py`, which will confirm both
+files are already 620×920 and leave them untouched if they are. Then re-record
+the golden and inventory captures.
+
+---
+
 ## Later (not yet, states do not exist)
 
 - **Sanctum threshold engraving** — no longer needed. The code-native ETER

@@ -25,6 +25,9 @@ product decision about size.
 | Tests | 201 passing, 31 golden captures, `flutter analyze` clean. |
 | Release build | `flutter build appbundle --release` produces an **81.2 MB** bundle, under Play's 150 MB ceiling. |
 
+**The ordered plan from here — including the AI transport, the recording gap it
+unblocks, and the tests still missing — is [`RELEASE_PLAN.md`](RELEASE_PLAN.md).**
+
 ## 2. Blocked on the product owner
 
 None of these can be done from this repo; each needs an account, a secret or a
