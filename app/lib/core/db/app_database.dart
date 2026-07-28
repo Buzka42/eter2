@@ -705,6 +705,15 @@ class AppDatabase extends _$AppDatabase {
   Future<void> saveVesselReading(VesselReadingsCompanion reading) =>
       into(vesselReadings).insertOnConflictUpdate(reading);
 
+  Future<void> saveVesselReadingSet(
+    List<VesselReadingsCompanion> readings,
+  ) =>
+      transaction(() async {
+        for (final reading in readings) {
+          await into(vesselReadings).insert(reading);
+        }
+      });
+
   /// Birth inputs changed, so every composed reading is now about a chart that
   /// is no longer theirs.
   Future<int> clearVesselReadingsExcept(String inputHash) =>

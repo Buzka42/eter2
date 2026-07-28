@@ -5,6 +5,7 @@ import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
+import 'package:eter/core/vessel/reading_composer.dart';
 import 'package:eter/core/controls.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
 import 'package:eter/features/journal/journal_page.dart';
@@ -36,6 +37,7 @@ void main() {
     bool reduceMotion = false,
     JournalClassificationProvider? journalProvider,
     AetherProvider? aetherProvider,
+    VesselReadingProvider? vesselProvider,
     double width = 390,
     double height = 844,
     double textScale = 1,
@@ -47,6 +49,7 @@ void main() {
       reduceMotion: reduceMotion,
       journalProvider: journalProvider,
       aetherProvider: aetherProvider,
+      vesselProvider: vesselProvider,
       textScale: textScale,
     );
     await tester.pumpWidget(
@@ -66,6 +69,21 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 20)),
     );
     await tester.pump();
+  }
+
+  Future<void> waitForWidget(
+    WidgetTester tester,
+    Finder finder, {
+    int attempts = 120,
+  }) async {
+    for (var i = 0; i < attempts; i++) {
+      if (finder.evaluate().isNotEmpty) return;
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pump();
+    }
+    expect(finder, findsWidgets);
   }
 
   testWidgets('the resting Dashboard shows guidance and one quiet disclosure',
@@ -490,10 +508,7 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
     await tester.pump();
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 300)),
-    );
-    await tester.pump();
+    await waitForWidget(tester, find.text('READ DEEPER'));
 
     expect(find.byType(VesselSection), findsOneWidget);
     expect(find.text('TODAY’S CARD'), findsOneWidget);
@@ -522,6 +537,82 @@ void main() {
       find.textContaining('has not been composed yet'),
       findsNWidgets(3),
     );
+    await closeShell(tester);
+  });
+
+  testWidgets(
+      'Vessel composes only missing readings and preserves cached depth',
+      (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    final provider = _VesselProvider();
+    await pumpShell(tester, vesselProvider: provider);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('VESSEL'));
+    await tester.pump();
+    await waitForWidget(tester, find.text('READ DEEPER'));
+    tester
+        .widget<EterAction>(
+          find.ancestor(
+            of: find.text('READ DEEPER'),
+            matching: find.byType(EterAction),
+          ),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    final compose = find.text('COMPOSE READINGS');
+    await tester.ensureVisible(compose);
+    await tester.tap(compose);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+
+    expect(find.text('Composed reflection for sun.'), findsOneWidget);
+    expect(
+      find.textContaining('Life Path 8 describes'),
+      findsOneWidget,
+    );
+    expect(provider.calls, 1);
+    expect(provider.requestedKeys, isNot(contains('lifePath')));
+    expect(find.textContaining('missing personal readings'), findsOneWidget);
+    await closeShell(tester);
+  });
+
+  testWidgets('Vessel states unavailable composition without losing keywords',
+      (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    await pumpShell(tester);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('VESSEL'));
+    await tester.pump();
+    await waitForWidget(tester, find.text('READ DEEPER'));
+    tester
+        .widget<EterAction>(
+          find.ancestor(
+            of: find.text('READ DEEPER'),
+            matching: find.byType(EterAction),
+          ),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    final compose = find.text('COMPOSE READINGS');
+    await tester.ensureVisible(compose);
+    await tester.tap(compose);
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Personal reading composition is not connected on this build yet.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('LIFE PATH 8'), findsWidgets);
     await closeShell(tester);
   });
 
@@ -869,6 +960,33 @@ class _DashboardAetherProvider implements AetherProvider {
           'sentences': ['A quiet observation.'],
           'primaryAction': 'Pause and notice.',
         },
+    });
+  }
+}
+
+class _VesselProvider implements VesselReadingProvider {
+  int calls = 0;
+  final requestedKeys = <String>[];
+
+  @override
+  Future<String> compose(VesselReadingProviderRequest request) async {
+    calls += 1;
+    final positions = request.context['positions'] as List<Object?>;
+    requestedKeys
+      ..clear()
+      ..addAll(
+        positions.map(
+          (raw) => (raw as Map<String, Object>)['key']! as String,
+        ),
+      );
+    return jsonEncode({
+      'readings': [
+        for (final key in requestedKeys)
+          {
+            'key': key,
+            'passage': 'Composed reflection for $key.',
+          },
+      ],
     });
   }
 }

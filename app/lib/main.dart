@@ -10,6 +10,7 @@ import 'core/db/app_database.dart';
 import 'core/journal/classification_contract.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
+import 'core/vessel/reading_composer.dart';
 import 'core/theme.dart';
 import 'features/onboarding/onboarding_flow.dart';
 import 'features/shell/eter_shell.dart';
@@ -50,6 +51,9 @@ final journalClassificationProvider =
 /// Optional live Aether transport. The local trust boundary and UI remain
 /// functional without it, but never imply that composition occurred.
 final aetherTransportProvider = Provider<AetherProvider?>((ref) => null);
+
+final vesselReadingTransportProvider =
+    Provider<VesselReadingProvider?>((ref) => null);
 
 class EterApp extends ConsumerStatefulWidget {
   const EterApp({super.key});

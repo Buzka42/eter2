@@ -157,3 +157,9 @@ typographic action system and the signature text arrival. No loading oracle,
 AI emblem or ambient animation was commissioned: known guidance stays visible
 during refresh, and a live text status carries the state. No asset was
 generated, so the two-option gate does not apply.
+
+The Vessel `COMPOSE READINGS` state added on 28 July 2026 reuses the shipped
+Arcana imagery, offline keywords and typographic actions. Composition is a
+content transition, not a new visual event; cached material remains visible
+and a live text status carries progress or failure. No animation or generated
+asset was added, so no two-option review is triggered.

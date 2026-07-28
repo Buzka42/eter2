@@ -17,6 +17,10 @@ This is the v2 tree. The v1 fitness application lives at `../Eter` and is supers
 - [Privacy and compliance](docs/16-privacy-compliance.md)
 - [Asset manifest](docs/ASSET_MANIFEST.md) — the reusable generation style string.
 - [Icon system plan](docs/ICON_SYSTEM_PLAN.md) — a specified 24-glyph set, uncommissioned.
+- [Art commissions](docs/ART_COMMISSIONS.md) — open raster commissions, briefs
+  ready to paste into the image generator of record.
+- [ChatGPT handoff](docs/CHATGPT_HANDOFF.md) — current state of the defining
+  prototype, known-open items, and test-environment lessons.
 
 ## Working rules
 

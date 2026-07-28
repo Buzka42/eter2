@@ -307,6 +307,13 @@ complete and test-enforced.
 the real chart and stored in `VesselReadings`, keyed by `(inputHash,
 positionKey)`. Composed once, ever.
 
+The explicit `COMPOSE READINGS` bridge is implemented. It sends only derived
+position labels, cards, keywords and reliability flags; raw birth inputs,
+identity, location and the local chart hash stay on device. It requests only
+missing positions, validates an exact safe response, commits the set
+atomically, and never replaces known keywords or cached prose with a spinner.
+The deployed live reading transport remains unconfigured.
+
 **What this means for you:** an uncomposed reading is a normal state, not an
 error. Show the keywords and say the reading has not been composed yet. Never
 show a spinner where a keyword would do, and never show an error for something

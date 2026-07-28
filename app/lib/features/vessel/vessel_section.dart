@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/aether/guidance_mode.dart';
 import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/symbol_content.dart';
 import '../../core/arcana/zodiac.dart';
@@ -10,8 +12,10 @@ import '../../core/db/app_database.dart';
 import '../../core/symbolic/natal_chart.dart';
 import '../../core/symbolic/numerology.dart';
 import '../../core/tokens.dart';
+import '../../core/vessel/reading_composer.dart';
+import '../../main.dart';
 
-class VesselSection extends StatefulWidget {
+class VesselSection extends ConsumerStatefulWidget {
   const VesselSection({
     super.key,
     required this.db,
@@ -24,12 +28,14 @@ class VesselSection extends StatefulWidget {
   final VoidCallback onClose;
 
   @override
-  State<VesselSection> createState() => _VesselSectionState();
+  ConsumerState<VesselSection> createState() => _VesselSectionState();
 }
 
-class _VesselSectionState extends State<VesselSection> {
+class _VesselSectionState extends ConsumerState<VesselSection> {
   late Future<_VesselData?> _data;
   bool _readingOpen = false;
+  bool _composing = false;
+  String? _compositionMessage;
 
   @override
   void initState() {
@@ -80,10 +86,79 @@ class _VesselSectionState extends State<VesselSection> {
       lifePath: lifePath,
       daily: daily,
       readings: readings,
+      inputHash: hash,
+      mode: switch (profile.guidanceMode) {
+        'grounded' => GuidanceMode.grounded,
+        'immersive' => GuidanceMode.immersive,
+        _ => GuidanceMode.balanced,
+      },
       usedApproximateTime: profile.birthTimeMinutes == null,
       usedApproximatePlace:
           profile.birthLatitude == null || profile.birthLongitude == null,
     );
+  }
+
+  Future<void> _compose(_VesselData data) async {
+    if (_composing) return;
+    final provider = ref.read(vesselReadingTransportProvider);
+    if (provider == null) {
+      setState(() {
+        _compositionMessage =
+            'Personal reading composition is not connected on this build yet.';
+      });
+      return;
+    }
+    setState(() {
+      _composing = true;
+      _compositionMessage = null;
+    });
+    try {
+      final result = await VesselReadingComposer(
+        database: widget.db,
+        provider: provider,
+      ).compose(
+        inputHash: data.inputHash,
+        request: VesselReadingRequest(
+          mode: data.mode,
+          positions: [
+            for (final position in data.positions)
+              VesselReadingPosition(
+                key: position.key,
+                label: position.label,
+                card: position.card.title,
+                keywords: position.keywords,
+                detail: position.detail,
+              ),
+          ],
+          approximateTime: data.usedApproximateTime,
+          approximatePlace: data.usedApproximatePlace,
+        ),
+        now: widget.now,
+      );
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        data.readings.addAll(result.rows);
+        _compositionMessage = result.fromCache
+            ? 'Every personal reading is already composed for this chart.'
+            : 'The missing personal readings have been composed.';
+      });
+    } on VesselReadingException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage = error.reason == 'AI processing is not permitted'
+            ? 'Enable AI guidance in the Sanctum before composing.'
+            : 'The response could not be accepted safely. Nothing changed.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage =
+            'Composition is unavailable right now. Cached readings remain.';
+      });
+    }
   }
 
   @override
@@ -144,6 +219,23 @@ class _VesselSectionState extends State<VesselSection> {
                     position: position,
                     reading: data.readings[position.key],
                   ),
+                if (data.readings.values.any((reading) => reading == null))
+                  EterAction(
+                    label: _composing ? 'Composing' : 'Compose readings',
+                    emphasis: EterActionEmphasis.quiet,
+                    busy: _composing,
+                    onPressed: () => _compose(data),
+                  ),
+                if (_compositionMessage != null) ...[
+                  const SizedBox(height: EterSpace.s8),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _compositionMessage!,
+                      style: text.bodySmall,
+                    ),
+                  ),
+                ],
               ],
             ],
             const SizedBox(height: EterSpace.s32),
@@ -301,6 +393,8 @@ class _VesselData {
     required this.lifePath,
     required this.daily,
     required this.readings,
+    required this.inputHash,
+    required this.mode,
     required this.usedApproximateTime,
     required this.usedApproximatePlace,
   });
@@ -310,6 +404,8 @@ class _VesselData {
   final int lifePath;
   final DailyCardRow? daily;
   final Map<String, VesselReadingRow?> readings;
+  final String inputHash;
+  final GuidanceMode mode;
   final bool usedApproximateTime;
   final bool usedApproximatePlace;
 

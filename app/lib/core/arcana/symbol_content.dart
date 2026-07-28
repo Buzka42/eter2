@@ -43,10 +43,13 @@ class SymbolContent {
   PointAttributes? point(String name) => points[name];
 
   static const _schemaVersion = 1;
+  static SymbolContent? _rootBundleContent;
 
   static Future<SymbolContent> load({AssetBundle? bundle}) async {
+    if (bundle == null && _rootBundleContent != null) {
+      return _rootBundleContent!;
+    }
     final b = bundle ?? rootBundle;
-
     Future<Map<String, Object?>> read(String name) async {
       final raw = await b.loadString('assets/content/$name.json');
       final json = jsonDecode(raw);
@@ -76,7 +79,7 @@ class SymbolContent {
     final houseJson = await read('houses');
     final pointJson = await read('points');
 
-    return SymbolContent(
+    final content = SymbolContent(
       cards: {
         for (final row in rows(arcanaJson, 'cards'))
           _string(row, 'slug'): ArcanaAttributes.fromJson(row),
@@ -98,6 +101,8 @@ class SymbolContent {
           _string(row, 'name'): PointAttributes.fromJson(row),
       },
     );
+    if (bundle == null) _rootBundleContent = content;
+    return content;
   }
 }
 

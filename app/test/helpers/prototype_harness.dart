@@ -8,6 +8,7 @@ import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/theme.dart';
+import 'package:eter/core/vessel/reading_composer.dart';
 import 'package:eter/features/prototype/fixtures.dart';
 import 'package:eter/features/shell/eter_shell.dart';
 import 'package:eter/main.dart';
@@ -69,6 +70,7 @@ Widget eterPrototypeApp({
   double textScale = 1.0,
   JournalClassificationProvider? journalProvider,
   AetherProvider? aetherProvider,
+  VesselReadingProvider? vesselProvider,
 }) {
   final pinned = now ?? eterPinnedNow;
   return ProviderScope(
@@ -79,6 +81,8 @@ Widget eterPrototypeApp({
         journalClassificationProvider.overrideWithValue(journalProvider),
       if (aetherProvider != null)
         aetherTransportProvider.overrideWithValue(aetherProvider),
+      if (vesselProvider != null)
+        vesselReadingTransportProvider.overrideWithValue(vesselProvider),
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
