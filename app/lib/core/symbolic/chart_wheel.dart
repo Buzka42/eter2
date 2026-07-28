@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../controls.dart';
 import '../tokens.dart';
+import 'astro_glyphs.dart';
 import 'natal_chart.dart';
 
 /// The chart itself, drawn as an instrument.
@@ -17,11 +18,12 @@ import 'natal_chart.dart';
 /// both registers by construction and stays sharp at any size. Two deliberate
 /// refusals:
 ///
-/// * **No glyph font.** Planetary and zodiac glyphs are not in Cormorant or
-///   Inter, and importing a symbol face to render eleven characters would put
-///   an unrelated typographic voice on the most symbolic surface in the app.
-///   Bodies are beads with letterspaced caps labels, which is what an engraved
-///   chart does anyway.
+/// * **No glyph font.** The real symbols are drawn as paths
+///   (`astro_glyphs.dart`) rather than set in a symbol face, because the
+///   Unicode astrological block is in neither Cormorant nor Inter and
+///   importing a third face would put an unrelated typographic voice on the
+///   most symbolic surface in the app. Paths also hold a 1 px hairline at
+///   11 px, which no text face will do.
 /// * **No fill, no colour coding.** Aspect type is carried by line weight —
 ///   the hard aspects struck firmly, the soft ones faint — rather than by a
 ///   red/blue convention the rest of the product has no vocabulary for.
@@ -79,7 +81,6 @@ class NatalChartWheel extends StatelessWidget {
                 ? EterColors.night900.withValues(alpha: 0.55)
                 : null,
             drawHouses: ascendantReliable,
-            textDirection: Directionality.of(context),
           ),
         ),
       ),
@@ -94,7 +95,6 @@ class _ChartWheelPainter extends CustomPainter {
     required this.lineStrong,
     required this.label,
     required this.drawHouses,
-    required this.textDirection,
     this.ground,
   });
 
@@ -107,25 +107,6 @@ class _ChartWheelPainter extends CustomPainter {
   /// line-work. Null in day, where the plate is already calm.
   final Color? ground;
   final bool drawHouses;
-  final TextDirection textDirection;
-
-  /// Two letters each, because the ring has room for two letters.
-  static const _abbreviations = {
-    'Sun': 'SU',
-    'Moon': 'MO',
-    'Mercury': 'ME',
-    'Venus': 'VE',
-    'Mars': 'MA',
-    'Jupiter': 'JU',
-    'Saturn': 'SA',
-    'Uranus': 'UR',
-    'Neptune': 'NE',
-  };
-
-  static const _signInitials = [
-    'AR', 'TA', 'GE', 'CN', 'LE', 'VI',
-    'LI', 'SC', 'SG', 'CP', 'AQ', 'PI',
-  ];
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -175,14 +156,14 @@ class _ChartWheelPainter extends CustomPainter {
     for (var i = 0; i < 12; i++) {
       final start = i * 30.0;
       _spoke(canvas, centre, start, ringInner, outer, anchor, thin);
-      _label(
+      _glyph(
         canvas,
         centre,
         start + 15,
         (outer + ringInner) / 2,
         anchor,
-        _signInitials[i],
-        10,
+        AstroGlyph.values[AstroGlyph.aries.index + i],
+        (outer - ringInner) * 0.62,
       );
       for (var tick = 10; tick < 30; tick += 10) {
         _spoke(
@@ -240,8 +221,11 @@ class _ChartWheelPainter extends CustomPainter {
     // pointing at the degree it belongs to.
     final placed = <({double longitude, double radius})>[];
     for (final position in chart.positions) {
-      final abbreviation = _abbreviations[position.name];
-      if (abbreviation == null) continue;
+      final glyph = AstroGlyph.forBody(position.name);
+      if (glyph == null || position.name == 'Ascendant' ||
+          position.name == 'Midheaven') {
+        continue;
+      }
       var radius = ringInner * 0.87;
       var guard = 0;
       while (guard < 4 &&
@@ -260,14 +244,14 @@ class _ChartWheelPainter extends CustomPainter {
         faint,
       );
       canvas.drawCircle(bead, 2.4, strong);
-      _label(
+      _glyph(
         canvas,
         centre,
         position.longitude,
         radius,
         anchor,
-        abbreviation,
-        9,
+        glyph,
+        outer * 0.115,
       );
     }
 
@@ -276,14 +260,16 @@ class _ChartWheelPainter extends CustomPainter {
       for (final point in ['Ascendant', 'Midheaven']) {
         final position = _positionOf(point);
         if (position == null) continue;
-        _label(
+        _glyph(
           canvas,
           centre,
           position.longitude,
           outer * 0.995,
           anchor,
-          point == 'Ascendant' ? 'ASC' : 'MC',
-          9,
+          point == 'Ascendant'
+              ? AstroGlyph.ascendant
+              : AstroGlyph.midheaven,
+          outer * 0.10,
         );
       }
     }
@@ -328,33 +314,25 @@ class _ChartWheelPainter extends CustomPainter {
     );
   }
 
-  void _label(
+  /// Paints one glyph centred on a chart longitude.
+  void _glyph(
     Canvas canvas,
     Offset centre,
     double longitude,
     double radius,
     double anchor,
-    String text,
-    double fontSize,
+    AstroGlyph glyph,
+    double size,
   ) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: fontSize,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.8,
-          color: label,
-        ),
-      ),
-      textDirection: textDirection,
-    )..layout();
     final at = _point(centre, longitude, radius, anchor);
-    painter.paint(
-      canvas,
-      at - Offset(painter.width / 2, painter.height / 2),
-    );
+    canvas.save();
+    canvas.translate(at.dx - size / 2, at.dy - size / 2);
+    AstroGlyphPainter(
+      glyph: glyph,
+      color: label,
+      strokeWidth: 0.9,
+    ).paint(canvas, Size.square(size));
+    canvas.restore();
   }
 
   @override

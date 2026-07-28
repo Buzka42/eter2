@@ -12,6 +12,7 @@ import '../../core/arcana/zodiac.dart';
 import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/symbolic/astro_glyphs.dart';
 import '../../core/symbolic/chart_wheel.dart';
 import '../../core/symbolic/transits.dart';
 import '../../core/vessel/positions_composer.dart';
@@ -608,7 +609,20 @@ class _PositionLine extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(position.label.toUpperCase(), style: text.labelSmall),
+          Row(
+            children: [
+              if (AstroGlyph.forBody(position.label) case final glyph?) ...[
+                AstroGlyphMark(
+                  glyph: glyph,
+                  color: ink.labelMuted,
+                  size: 13,
+                  strokeWidth: 1.1,
+                ),
+                const SizedBox(width: EterSpace.s8),
+              ],
+              Text(position.label.toUpperCase(), style: text.labelSmall),
+            ],
+          ),
           const SizedBox(height: EterSpace.s4),
           Text(
             '${position.card.title} · ${position.keywords.join(', ')}',
@@ -616,7 +630,21 @@ class _PositionLine extends StatelessWidget {
           ),
           if (position.detail != null) ...[
             const SizedBox(height: EterSpace.s4),
-            Text(position.detail!, style: text.bodySmall),
+            Row(
+              children: [
+                if (AstroGlyph.forSign(position.detail!.split(' ').first)
+                    case final sign?) ...[
+                  AstroGlyphMark(
+                    glyph: sign,
+                    color: ink.labelMuted,
+                    size: 11,
+                    strokeWidth: 1,
+                  ),
+                  const SizedBox(width: EterSpace.s4),
+                ],
+                Text(position.detail!, style: text.bodySmall),
+              ],
+            ),
           ],
         ],
       ),
