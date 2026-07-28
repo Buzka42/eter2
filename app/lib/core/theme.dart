@@ -187,10 +187,13 @@ class _SkyBackgroundState extends State<SkyBackground>
     final previous = _controller;
     _controller = null;
     await previous?.dispose();
-    final suffix = brightness == Brightness.dark ? 'dark' : 'light';
-    final controller = VideoPlayerController.asset(
-      'assets/art/animations/air-field-$suffix.mp4',
-    );
+    // Night's loop is v2: generated from the shipped night plate itself, then
+    // mirrored forward-and-back so the loop point is frame-exact rather than a
+    // cut. Day keeps its original field.
+    final source = brightness == Brightness.dark
+        ? 'assets/art/animations/air-field-dark-v2.mp4'
+        : 'assets/art/animations/air-field-light.mp4';
+    final controller = VideoPlayerController.asset(source);
     _controller = controller;
     try {
       await controller.initialize();
@@ -225,18 +228,16 @@ class _SkyBackgroundState extends State<SkyBackground>
           drift: reduceMotion || !night ? null : _drift,
           oversample: _driftOversample,
           child: Image.asset(
-            // Night Sky is the v3 astrophotography plate: the delivered master
-            // is a real long exposure, but it shipped crushed to near-black, so
-            // the galactic band was invisible and a procedural StarField painted
-            // symbolic four-armed sparkles on top to compensate. v3 applies the
-            // astro stretch and reframes to phone aspect so the band survives the
-            // cover crop, and the symbolic overlay is gone
-            // (tools/grade_night_sky.py).
+            // Night Sky v1 is the night register's own editorial plate, at the
+            // quality bar Day v6 set: a wide-field exposure whose galactic band
+            // sits in the upper third and whose centre stays calm and dark
+            // enough for pale text without a panel. It replaces the v3 graded
+            // astrophotograph, which is retained under assets/review/.
             //
             // Day Sky v6 is the approved editorial atmosphere: pale blue
             // dissolving into parchment mist, with a calm text-safe centre.
             night
-                ? 'assets/art/bg-air-dark-v3.webp'
+                ? 'assets/art/bg-air-night-v1.webp'
                 : 'assets/art/bg-air-day-v6.webp',
             fit: BoxFit.cover,
             filterQuality: FilterQuality.high,

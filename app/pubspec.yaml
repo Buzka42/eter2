@@ -101,7 +101,7 @@ flutter:
     # Day is still. Night moves. There are 25 night loops and no day loops,
     # and under the automatic register that is a design rule, not a gap.
     - assets/art/bg-air-day-v6.webp
-    - assets/art/bg-air-dark-v3.webp
+    - assets/art/bg-air-night-v1.webp
     - assets/art/onboarding-hero.webp
     - assets/art/grain-subtle.webp
     - assets/art/app-icon-air.webp

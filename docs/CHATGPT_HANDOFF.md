@@ -157,6 +157,12 @@ The product owner closed four open questions. They are binding.
    nothing else. Night is where the elaborate astrolabe concept lives, and
    night may animate. The astrolabe is not a day/night shared asset; it is a
    night register.
+Night art followed, in the same pass: `bg-air-night-v1.webp` and
+`animations/air-field-dark-v2.mp4` are integrated and their predecessors
+retired to `assets/review/`. Generated engraved fields for the Sanctum and the
+Vessel were built, reviewed against the real surfaces and **rejected**; those
+two surfaces keep no backdrop. Static night assets are the open art track.
+
 4. **Expanded Body density → accepted as is.** `FOOD / ADD MEAL` and
    `WEIGHT / RECORD` stand. Do not re-open that line rhythm; new Body matter
    (strength) must reuse it rather than invent another.

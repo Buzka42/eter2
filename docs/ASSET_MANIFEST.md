@@ -97,9 +97,27 @@ dynamic type, localization and the continuous sky.
 
 #### Night environment and Arcana
 
-Reuse `bg-air-dark-v3.webp`, the existing optional night loop, and the shipped
-light/dark Arcana set. The night concept does not authorize a replacement tarot
-deck or a busier celestial background.
+**Refreshed 28 July 2026.** The night register now has its own plate and loop
+at the quality bar Day v6 set:
+
+- `bg-air-night-v1.webp` — 2160×3840, replaces the graded v3 astrophotograph.
+  Same constraints as the day entry above: calm text-safe centre, the band held
+  in the upper third, no synthetic nebula palette, still image.
+- `animations/air-field-dark-v2.mp4` — the optional night loop, generated from
+  the plate itself so its motion belongs to that sky, then mirrored
+  forward-and-back so the loop point is frame-exact. 1080×1920, 12 s, silent,
+  ~1.2 MB. Night only; day has no loop and must not gain one.
+
+Both retired predecessors are kept under `assets/review/` (`*-retired`).
+
+Reuse the shipped light/dark Arcana set. The night concept does not authorize a
+replacement tarot deck or a busier celestial background.
+
+**Rejected 28 July 2026:** generated engraved fields behind the Sanctum and the
+Vessel (armillary threshold plate, chart wheel). They were built, reviewed
+against the real surfaces and turned down — the Sanctum stays plain in both
+registers as originally specified, and the Vessel carries no backdrop. Do not
+regenerate this idea without a fresh decision.
 
 #### Controls, rules and instruments
 
