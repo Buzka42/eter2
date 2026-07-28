@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/arrival.dart';
+import '../../core/aether/composer.dart';
+import '../../core/aether/context_assembler.dart';
+import '../../core/aether/guidance_contract.dart';
+import '../../core/aether/request_contract.dart';
 import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
@@ -33,6 +37,8 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   final _scrollController = ScrollController();
   Stream<List<GuidanceHistoryRow>>? _guidanceStream;
   String? _streamedDay;
+  bool _composing = false;
+  String? _compositionMessage;
 
   @override
   void dispose() {
@@ -48,6 +54,58 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       _guidanceStream = db.watchGuidanceForDate(today);
     }
     return _guidanceStream!;
+  }
+
+  Future<void> _compose(AppDatabase db, DateTime now) async {
+    if (_composing) return;
+    final provider = ref.read(aetherTransportProvider);
+    if (provider == null) {
+      setState(() {
+        _compositionMessage =
+            'Aether composition is not connected on this build yet.';
+      });
+      return;
+    }
+    setState(() {
+      _composing = true;
+      _compositionMessage = null;
+    });
+    try {
+      final request =
+          await AetherContextAssembler(database: db).assemble(now: now);
+      final result = await AetherComposer(
+        database: db,
+        provider: provider,
+      ).compose(request, now: now);
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage = result.fromCache
+            ? 'Guidance is already current for the available context.'
+            : 'Today’s guidance has been composed.';
+      });
+    } on AetherConsentException {
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage =
+            'Enable AI guidance in the Sanctum before composing.';
+      });
+    } on AetherContractException {
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage =
+            'The response could not be accepted safely. Nothing changed.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage =
+            'Composition is unavailable right now. Existing guidance remains.';
+      });
+    }
   }
 
   @override
@@ -88,9 +146,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox.shrink();
                   }
-                  return Text(
-                    'Today’s guidance has not been composed yet.',
+                  return _UncomposedGuidance(
                     style: supportingStyle,
+                    composing: _composing,
+                    message: _compositionMessage,
+                    onCompose: () => _compose(db, now),
                   );
                 }
                 final content = _GuidanceContent.parse(synthesis.contentJson);
@@ -109,6 +169,9 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             if (_expandedSection == 'guidance')
               _ExpandedGuidance(
                 rows: db.loadGuidanceForDate(today),
+                composing: _composing,
+                message: _compositionMessage,
+                onRefresh: () => _compose(db, now),
                 onClose: () => setState(() => _expandedSection = null),
               )
             else if (_expandedSection == 'body')
@@ -142,6 +205,45 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   }
 }
 
+class _UncomposedGuidance extends StatelessWidget {
+  const _UncomposedGuidance({
+    required this.style,
+    required this.composing,
+    required this.message,
+    required this.onCompose,
+  });
+
+  final TextStyle? style;
+  final bool composing;
+  final String? message;
+  final VoidCallback onCompose;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Today’s guidance has not been composed yet.', style: style),
+          const SizedBox(height: EterSpace.s12),
+          EterAction(
+            label: composing ? 'Composing' : 'Compose guidance',
+            busy: composing,
+            emphasis: EterActionEmphasis.quiet,
+            onPressed: onCompose,
+          ),
+          if (message != null) ...[
+            const SizedBox(height: EterSpace.s8),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                message!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
+        ],
+      );
+}
+
 class _SectionThreshold extends StatelessWidget {
   const _SectionThreshold({
     required this.choosing,
@@ -173,8 +275,10 @@ class _SectionThreshold extends StatelessWidget {
                 constraints: const BoxConstraints(minHeight: 48),
                 child: Row(
                   children: [
-                    Text('LOOK DEEPER', style: text.labelSmall),
-                    const Spacer(),
+                    Expanded(
+                      child: Text('LOOK DEEPER', style: text.labelSmall),
+                    ),
+                    const SizedBox(width: EterSpace.s8),
                     const EterDisclosureMark(),
                   ],
                 ),
@@ -233,10 +337,16 @@ class _ThresholdChoice extends StatelessWidget {
 class _ExpandedGuidance extends StatelessWidget {
   const _ExpandedGuidance({
     required this.rows,
+    required this.composing,
+    required this.message,
+    required this.onRefresh,
     required this.onClose,
   });
 
   final Future<List<GuidanceHistoryRow>> rows;
+  final bool composing;
+  final String? message;
+  final VoidCallback onRefresh;
   final VoidCallback onClose;
 
   @override
@@ -246,6 +356,7 @@ class _ExpandedGuidance extends StatelessWidget {
     return FutureBuilder<List<GuidanceHistoryRow>>(
       future: rows,
       builder: (context, snapshot) {
+        final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
         final byDimension = {
           for (final row in snapshot.data ?? const <GuidanceHistoryRow>[])
             row.dimension: row,
@@ -254,17 +365,36 @@ class _ExpandedGuidance extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(height: 1, color: ink.line),
-            Row(
-              children: [
-                Text('GUIDANCE', style: text.labelSmall),
-                const Spacer(),
-                EterAction(
-                  label: 'Close',
-                  emphasis: EterActionEmphasis.quiet,
-                  onPressed: onClose,
+            if (largeText) ...[
+              Text('GUIDANCE', style: text.labelSmall),
+              _GuidanceHeaderActions(
+                composing: composing,
+                onRefresh: onRefresh,
+                onClose: onClose,
+              ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('GUIDANCE', style: text.labelSmall),
+                  const SizedBox(width: EterSpace.s12),
+                  Expanded(
+                    child: _GuidanceHeaderActions(
+                      composing: composing,
+                      onRefresh: onRefresh,
+                      onClose: onClose,
+                    ),
+                  ),
+                ],
+              ),
+            if (message != null)
+              Semantics(
+                liveRegion: true,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: EterSpace.s12),
+                  child: Text(message!, style: text.bodySmall),
                 ),
-              ],
-            ),
+              ),
             for (final dimension in const ['health', 'mind', 'spirit'])
               if (byDimension[dimension] case final row?)
                 _GuidanceDimension(
@@ -276,6 +406,38 @@ class _ExpandedGuidance extends StatelessWidget {
       },
     );
   }
+}
+
+class _GuidanceHeaderActions extends StatelessWidget {
+  const _GuidanceHeaderActions({
+    required this.composing,
+    required this.onRefresh,
+    required this.onClose,
+  });
+
+  final bool composing;
+  final VoidCallback onRefresh;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) => Wrap(
+        alignment: WrapAlignment.end,
+        spacing: EterSpace.s8,
+        runSpacing: EterSpace.s4,
+        children: [
+          EterAction(
+            label: composing ? 'Composing' : 'Refresh',
+            emphasis: EterActionEmphasis.quiet,
+            busy: composing,
+            onPressed: onRefresh,
+          ),
+          EterAction(
+            label: 'Close',
+            emphasis: EterActionEmphasis.quiet,
+            onPressed: onClose,
+          ),
+        ],
+      );
 }
 
 class _GuidanceDimension extends StatelessWidget {
@@ -407,6 +569,25 @@ class _GuidanceContent {
                 ? supporting
                 : null,
           );
+        }
+        final sentences = decoded['sentences'];
+        final primaryAction = decoded['primaryAction'];
+        if (sentences is List &&
+            sentences.isNotEmpty &&
+            sentences.every((item) => item is String)) {
+          final prose = sentences
+              .cast<String>()
+              .map((item) => item.trim())
+              .where((item) => item.isNotEmpty)
+              .join(' ');
+          if (prose.isNotEmpty) {
+            return _GuidanceContent(
+              prose,
+              primaryAction is String && primaryAction.trim().isNotEmpty
+                  ? primaryAction.trim()
+                  : null,
+            );
+          }
         }
       }
     } on FormatException {

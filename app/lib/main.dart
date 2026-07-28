@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/aether/guidance_mode.dart';
+import 'core/aether/guidance_contract.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
 import 'core/journal/classification_contract.dart';
@@ -45,6 +46,10 @@ final databaseProvider = Provider<AppDatabase>(
 /// still exposes the explicit workflow and explains that state honestly.
 final journalClassificationProvider =
     Provider<JournalClassificationProvider?>((ref) => null);
+
+/// Optional live Aether transport. The local trust boundary and UI remain
+/// functional without it, but never imply that composition occurred.
+final aetherTransportProvider = Provider<AetherProvider?>((ref) => null);
 
 class EterApp extends ConsumerStatefulWidget {
   const EterApp({super.key});

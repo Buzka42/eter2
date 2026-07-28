@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
@@ -34,13 +35,19 @@ void main() {
     EterRegister register = EterRegister.day,
     bool reduceMotion = false,
     JournalClassificationProvider? journalProvider,
+    AetherProvider? aetherProvider,
+    double width = 390,
+    double height = 844,
+    double textScale = 1,
   }) async {
-    eterSurfaceSize(tester, 390, 844);
+    eterSurfaceSize(tester, width, height);
     final app = eterPrototypeApp(
       db: db,
       register: register,
       reduceMotion: reduceMotion,
       journalProvider: journalProvider,
+      aetherProvider: aetherProvider,
+      textScale: textScale,
     );
     await tester.pumpWidget(
       app,
@@ -392,6 +399,87 @@ void main() {
     await tester.tap(guidanceClose);
     await tester.pump();
     expect(find.text('LOOK DEEPER'), findsOneWidget);
+    await closeShell(tester);
+  });
+
+  testWidgets('Guidance actions reflow at 320dp and 200 percent text',
+      (tester) async {
+    await pumpShell(
+      tester,
+      width: 320,
+      height: 568,
+      textScale: 2,
+      reduceMotion: true,
+    );
+    final lookDeeper = find.text('LOOK DEEPER');
+    await tester.ensureVisible(lookDeeper);
+    await tester.pump();
+    await tester.tap(lookDeeper);
+    await tester.pump();
+    await tester.tap(find.text('GUIDANCE'));
+    await tester.pump();
+
+    expect(find.text('REFRESH'), findsOneWidget);
+    expect(find.text('CLOSE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await closeShell(tester);
+  });
+
+  testWidgets(
+      'uncomposed guidance composes once and unchanged refresh is cached',
+      (tester) async {
+    await db.resetPersonalization();
+    await db.updateProfileConsents(aiAllowed: true);
+    final provider = _DashboardAetherProvider();
+    await pumpShell(tester, aetherProvider: provider);
+
+    expect(
+      find.text('Today’s guidance has not been composed yet.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('COMPOSE GUIDANCE'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump(const Duration(seconds: 4));
+    expect(await db.loadGuidanceForDate('2026-07-27'), hasLength(4));
+    expect(
+      find.text('A quiet observation.', findRichText: true),
+      findsWidgets,
+    );
+    expect(provider.calls, 1);
+
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('GUIDANCE'));
+    await tester.pump();
+    await tester.tap(find.text('REFRESH'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+    expect(
+      find.text('Guidance is already current for the available context.'),
+      findsOneWidget,
+    );
+    expect(provider.calls, 1);
+    await closeShell(tester);
+  });
+
+  testWidgets('unavailable Aether transport leaves guidance uncomposed',
+      (tester) async {
+    await db.resetPersonalization();
+    await db.updateProfileConsents(aiAllowed: true);
+    await pumpShell(tester);
+
+    await tester.tap(find.text('COMPOSE GUIDANCE'));
+    await tester.pump();
+
+    expect(
+      find.text('Aether composition is not connected on this build yet.'),
+      findsOneWidget,
+    );
+    expect(await db.loadGuidanceForDate('2026-07-27'), isEmpty);
     await closeShell(tester);
   });
 
@@ -767,4 +855,20 @@ class _FailingJournalProvider implements JournalClassificationProvider {
   @override
   Future<String> classify(JournalClassificationRequest request) =>
       Future.error(StateError('offline'));
+}
+
+class _DashboardAetherProvider implements AetherProvider {
+  int calls = 0;
+
+  @override
+  Future<String> compose(AetherProviderRequest request) async {
+    calls += 1;
+    return jsonEncode({
+      for (final key in const ['synthesis', 'health', 'mind', 'spirit'])
+        key: {
+          'sentences': ['A quiet observation.'],
+          'primaryAction': 'Pause and notice.',
+        },
+    });
+  }
 }

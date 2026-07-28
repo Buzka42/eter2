@@ -158,6 +158,27 @@ void main() {
       );
       expect(await database.loadGuidanceForDate('2026-07-28'), isEmpty);
     });
+
+    test('an empty-health composition uses the caller day', () async {
+      final emptyHealth = const AetherRequestBuilder().build(
+        aiConsented: true,
+        journalConsented: false,
+        ageYears: 35,
+        mode: GuidanceMode.balanced,
+        health: const [],
+      );
+      final composer = AetherComposer(
+        database: database,
+        provider: _FakeProvider(_validResponse()),
+      );
+
+      await composer.compose(
+        emptyHealth,
+        now: DateTime(2026, 7, 28, 10),
+      );
+
+      expect(await database.loadGuidanceForDate('2026-07-28'), hasLength(4));
+    });
   });
 }
 

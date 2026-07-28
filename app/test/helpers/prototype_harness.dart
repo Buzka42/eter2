@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:eter/core/clock.dart';
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/theme.dart';
@@ -67,6 +68,7 @@ Widget eterPrototypeApp({
   bool reduceMotion = false,
   double textScale = 1.0,
   JournalClassificationProvider? journalProvider,
+  AetherProvider? aetherProvider,
 }) {
   final pinned = now ?? eterPinnedNow;
   return ProviderScope(
@@ -75,6 +77,8 @@ Widget eterPrototypeApp({
       nowProvider.overrideWithValue(() => pinned),
       if (journalProvider != null)
         journalClassificationProvider.overrideWithValue(journalProvider),
+      if (aetherProvider != null)
+        aetherTransportProvider.overrideWithValue(aetherProvider),
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,

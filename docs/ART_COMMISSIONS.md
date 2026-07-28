@@ -151,3 +151,9 @@ The Journal interpretation, clarification and undo passage added on 28 July
 typographic actions and one ordinary answer line; adding an AI badge, sparkle
 or animated oracle would overstate model authority and violate the journal
 direction. No generated asset exists, so no two-option review is required.
+
+The Dashboard compose/refresh bridge added on 28 July 2026 uses the existing
+typographic action system and the signature text arrival. No loading oracle,
+AI emblem or ambient animation was commissioned: known guidance stays visible
+during refresh, and a live text status carries the state. No asset was
+generated, so the two-option gate does not apply.

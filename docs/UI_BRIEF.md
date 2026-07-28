@@ -332,11 +332,13 @@ names.
 - `core/energy/energy.dart` — RMR, HR→kcal, the deduplication ladder.
 
 **Not built yet.** Build against the database and use fixtures; do not block:
-- The live Aether provider transport and app-level composition trigger.
-  Production context assembly, provider-independent request/response
-  boundaries, consent gates, PII omission, seven-day health/journal bounds,
-  safety validation, atomic persistence, and unchanged-context caching are
-  implemented.
+- The live Aether provider transport.
+  The explicit Dashboard compose/refresh trigger, production context assembly,
+  provider-independent request/response boundaries, consent gates, PII
+  omission, seven-day health/journal bounds, safety validation, atomic
+  persistence, correct local-day assignment, production response rendering,
+  and unchanged-context caching are implemented. Only the deployed live
+  transport remains.
 - Vendor-direct integrations and background/differential sync. The phone health
   hub is implemented for an explicit 30-day Apple Health / Health Connect
   read from Sanctum, including native permissions, canonical minute

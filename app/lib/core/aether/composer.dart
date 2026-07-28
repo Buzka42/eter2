@@ -33,7 +33,10 @@ class AetherComposer {
   final AetherGuidanceParser parser;
   final String source;
 
-  Future<AetherComposition> compose(AetherRequest request) async {
+  Future<AetherComposition> compose(
+    AetherRequest request, {
+    DateTime? now,
+  }) async {
     final existing = await database.loadGuidanceByFingerprint(
       request.contextFingerprint,
     );
@@ -46,10 +49,15 @@ class AetherComposer {
       responseSchema: aetherResponseSchema,
     ));
     final guidance = parser.parse(raw, mode: request.mode);
-    final generatedAt = DateTime.now().toUtc();
-    final date = request.health.isEmpty
-        ? generatedAt.toIso8601String().substring(0, 10)
-        : request.health.first.localDate;
+    final instant = now ?? DateTime.now();
+    final generatedAt = instant.toUtc();
+    // The seven-day context is ordered oldest→newest; it must never choose the
+    // first evidence day as the destination for today's composition.
+    final date = now != null
+        ? _localDate(instant)
+        : request.health.isEmpty
+            ? _localDate(instant)
+            : request.health.last.localDate;
 
     await database.recordGuidanceSet([
       for (final dimension in guidance.dimensions)
@@ -78,4 +86,11 @@ class AetherComposer {
       rows.map((row) => row.dimension).toSet().containsAll(
             AetherGuidanceParser.dimensionKeys,
           );
+
+  String _localDate(DateTime value) {
+    final local = value.toLocal();
+    return '${local.year.toString().padLeft(4, '0')}-'
+        '${local.month.toString().padLeft(2, '0')}-'
+        '${local.day.toString().padLeft(2, '0')}';
+  }
 }
