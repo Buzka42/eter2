@@ -612,6 +612,30 @@ void main() {
       // Raw is a staging area; the winners are the history.
       expect(winners, hasLength(1));
     });
+
+    test('old live HR series is cleared without deleting its session',
+        () async {
+      final ended = DateTime.now().toUtc().subtract(const Duration(days: 181));
+      await db.into(db.liveSessions).insert(
+            LiveSessionsCompanion.insert(
+              id: 'old-session',
+              startedAt: ended.subtract(const Duration(hours: 1)),
+              endedAt: ended,
+              sourceId: 'polar',
+              hrSeriesJson: '[120,124,128]',
+              finalKcal: 240,
+            ),
+          );
+
+      final changed = await db.pruneLiveHeartRateSeries();
+      expect(changed, 1);
+      final row = await (db.select(db.liveSessions)
+            ..where((session) => session.id.equals('old-session')))
+          .getSingle();
+      expect(row.hrSeriesJson, '[]');
+      expect(row.finalKcal, 240);
+      expect(row.sourceId, 'polar');
+    });
   });
 
   group('intake answers', () {

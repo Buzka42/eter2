@@ -766,6 +766,43 @@ class AppDatabase extends _$AppDatabase {
         .go();
   }
 
+  /// Removes raw heart-rate series after 180 days while preserving the
+  /// session aggregate the user expects to keep.
+  Future<int> pruneLiveHeartRateSeries({int retainDays = 180}) {
+    final cutoff = DateTime.now().toUtc().subtract(Duration(days: retainDays));
+    return (update(liveSessions)
+          ..where((row) =>
+              row.endedAt.isSmallerThanValue(cutoff) &
+              row.hrSeriesJson.equals('[]').not()))
+        .write(const LiveSessionsCompanion(hrSeriesJson: Value('[]')));
+  }
+
+  Future<({int rawBuckets, int heartRateSeries})> runLocalRetention() async {
+    final raw = await pruneRawBuckets();
+    final heartRate = await pruneLiveHeartRateSeries();
+    return (rawBuckets: raw, heartRateSeries: heartRate);
+  }
+
+  /// Complete, inspectable local snapshot for the Art. 15 export surface.
+  ///
+  /// `actualTableName` comes from generated Drift metadata, never user input.
+  /// Dates are already stored as ISO text by [options], so every value remains
+  /// JSON-safe and round-trippable.
+  Future<Map<String, List<Map<String, Object?>>>> exportLocalSnapshot() async {
+    final result = <String, List<Map<String, Object?>>>{};
+    for (final table in allTables) {
+      final name = table.actualTableName;
+      final rows = await customSelect(
+        'SELECT * FROM "$name"',
+        readsFrom: {table},
+      ).get();
+      result[name] = [
+        for (final row in rows) Map<String, Object?>.from(row.data),
+      ];
+    }
+    return result;
+  }
+
   /// Local delete-everything. Distinct from account deletion, which also has
   /// to clear the Firestore mirror -- the Sanctum must present them as two
   /// separately confirmed actions with two different consequences.

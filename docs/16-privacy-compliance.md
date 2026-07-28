@@ -32,7 +32,11 @@ Function-side enforcement remain part of the cloud pipeline milestone.
 
 - **Art. 15 Export**: Settings → Privacy → "Export my data": Function bundles Firestore tree → JSON file to the user; local raw data exports as CSV on-device.
 - **Art. 17 Delete**: type-to-confirm → Function `gdpr/delete`: Firestore tree, Auth account, vendor token revocation (call each vendor's revoke endpoint), FCM token cleanup; client wipes Drift + secure storage. Completion email via Auth.
-- Lawful basis: consent (explicit, per above). Privacy policy URL required by both stores — keep a `PRIVACY_POLICY.md` draft in repo covering: what's collected, where it lives (Firebase region — pin `europe-west` if primary market is EU), retention (14), processors (Google/Firebase, chosen AI provider), user rights, contact.
+- Lawful basis: consent (explicit, per above). A pre-release
+  [`PRIVACY_POLICY.md`](../PRIVACY_POLICY.md) draft now covers collection,
+  local/cloud boundaries, retention, processors, user rights and age. It is
+  deliberately marked non-publishable until the legal entity/contact,
+  confirmed Firebase region and selected AI provider are supplied.
 - Age gate: 16+ (DOB already collected — if under 16, block with a kind message; avoids parental-consent machinery in v1).
 
 ## Store health-app requirements checklist

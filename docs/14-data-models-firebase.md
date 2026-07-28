@@ -72,7 +72,12 @@ Plus App Check enforced on Firestore + Functions.
 
 ## Retention
 
-- `raw_buckets` 90 d, `hr_samples` 180 d (local pruning job, nightly). Firestore aggregates: indefinite until deletion. Export: Function `gdpr/export` bundles Firestore tree as JSON + tells user local raw data exports from Settings → Export (CSV of buckets/sessions).
+- `raw_buckets` 90 d; live-session heart-rate series 180 d (local pruning at
+  startup, without deleting session aggregates). Firestore aggregates:
+  indefinite until deletion. The client prepares a complete local JSON
+  snapshot plus CSVs for raw/winning buckets and sessions. Function
+  `gdpr/export` separately bundles the authenticated Firestore tree once the
+  cloud account layer exists.
 
 ## Acceptance criteria
 

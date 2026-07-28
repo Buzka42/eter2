@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/privacy/local_data_export.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -158,6 +160,8 @@ class SanctumOverlay extends ConsumerWidget {
                                 cloudSyncAllowed: value == 'allowed',
                               ),
                     ),
+                    const SizedBox(height: EterSpace.s32),
+                    _LocalExport(database: db),
                     const SizedBox(height: EterSpace.s64),
                   ],
                 ),
@@ -166,6 +170,87 @@ class SanctumOverlay extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LocalExport extends StatefulWidget {
+  const _LocalExport({required this.database});
+
+  final AppDatabase database;
+
+  @override
+  State<_LocalExport> createState() => _LocalExportState();
+}
+
+class _LocalExportState extends State<_LocalExport> {
+  bool _busy = false;
+  String? _message;
+  String? _path;
+
+  Future<void> _prepare() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final bundle = await LocalDataExporter(widget.database).export();
+      if (!mounted) return;
+      setState(() {
+        _path = bundle.directory.path;
+        _message = 'Local JSON and CSV files are ready on this device. '
+            'Cloud account data is not included.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _message = 'The local export could not be prepared right now.';
+      });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _copyPath() async {
+    final path = _path;
+    if (path == null) return;
+    await Clipboard.setData(ClipboardData(text: path));
+    if (mounted) {
+      setState(() => _message = 'Export folder location copied.');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('LOCAL EXPORT', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          'Prepare a complete JSON snapshot and spreadsheet-friendly movement '
+          'and session files. Nothing is uploaded.',
+          style: text.bodyMedium,
+        ),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: 'Export',
+          busy: _busy,
+          onPressed: _busy ? null : _prepare,
+        ),
+        if (_path != null)
+          EterAction(
+            label: 'Copy path',
+            emphasis: EterActionEmphasis.quiet,
+            onPressed: _copyPath,
+          ),
+        if (_message != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+      ],
     );
   }
 }

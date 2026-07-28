@@ -23,6 +23,7 @@ import 'features/shell/eter_shell.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = AppDatabase();
+  await database.runLocalRetention();
   runApp(
     ProviderScope(
       overrides: [databaseProvider.overrideWithValue(database)],
