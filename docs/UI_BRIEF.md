@@ -324,7 +324,9 @@ names.
 - `core/energy/energy.dart` — RMR, HR→kcal, the deduplication ladder.
 
 **Not built yet.** Build against the database and use fixtures; do not block:
-- The Aether client and guidance pipeline.
+- The live Aether provider transport and production context assembly. The
+  provider-independent request/response boundary, consent gates, safety
+  validation, atomic persistence, and unchanged-context cache are implemented.
 - The health hub and ingest service.
 - The journal classification service.
 - Profile providers, auth, Firebase wiring, onboarding.

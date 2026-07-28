@@ -588,6 +588,24 @@ class AppDatabase extends _$AppDatabase {
   Future<int> recordGuidance(GuidanceHistoryCompanion guidance) =>
       into(guidanceHistory).insert(guidance);
 
+  Future<List<GuidanceHistoryRow>> loadGuidanceByFingerprint(
+    String fingerprint,
+  ) =>
+      (select(guidanceHistory)
+            ..where((row) => row.contextFingerprint.equals(fingerprint))
+            ..orderBy([(row) => OrderingTerm.asc(row.id)]))
+          .get();
+
+  /// A composition is useful only as a complete four-dimension set.
+  Future<void> recordGuidanceSet(
+    List<GuidanceHistoryCompanion> guidance,
+  ) =>
+      transaction(() async {
+        for (final item in guidance) {
+          await into(guidanceHistory).insert(item);
+        }
+      });
+
   Future<List<GuidanceHistoryRow>> loadGuidanceForDate(String date) =>
       (select(guidanceHistory)
             ..where((row) => row.date.equals(date))
