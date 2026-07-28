@@ -123,6 +123,12 @@ class $ProfilesTable extends Profiles
   late final GeneratedColumn<DateTime> journalAiConsentAt =
       GeneratedColumn<DateTime>('journal_ai_consent_at', aliasedName, true,
           type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _crashReportConsentAtMeta =
+      const VerificationMeta('crashReportConsentAt');
+  @override
+  late final GeneratedColumn<DateTime> crashReportConsentAt =
+      GeneratedColumn<DateTime>('crash_report_consent_at', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
   static const VerificationMeta _cloudSyncConsentAtMeta =
       const VerificationMeta('cloudSyncConsentAt');
   @override
@@ -170,6 +176,7 @@ class $ProfilesTable extends Profiles
         birthLongitude,
         aiConsentAt,
         journalAiConsentAt,
+        crashReportConsentAt,
         cloudSyncConsentAt,
         journalCloudSyncConsentAt,
         connectedSourcesJson,
@@ -286,6 +293,12 @@ class $ProfilesTable extends Profiles
           journalAiConsentAt.isAcceptableOrUnknown(
               data['journal_ai_consent_at']!, _journalAiConsentAtMeta));
     }
+    if (data.containsKey('crash_report_consent_at')) {
+      context.handle(
+          _crashReportConsentAtMeta,
+          crashReportConsentAt.isAcceptableOrUnknown(
+              data['crash_report_consent_at']!, _crashReportConsentAtMeta));
+    }
     if (data.containsKey('cloud_sync_consent_at')) {
       context.handle(
           _cloudSyncConsentAtMeta,
@@ -355,6 +368,9 @@ class $ProfilesTable extends Profiles
       journalAiConsentAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime,
           data['${effectivePrefix}journal_ai_consent_at']),
+      crashReportConsentAt: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}crash_report_consent_at']),
       cloudSyncConsentAt: attachedDatabase.typeMapping.read(
           DriftSqlType.dateTime,
           data['${effectivePrefix}cloud_sync_consent_at']),
@@ -421,6 +437,15 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final DateTime? aiConsentAt;
   final DateTime? journalAiConsentAt;
 
+  /// When the user agreed to send crash reports. Null means never, which is
+  /// the default and the shipped state until someone chooses otherwise.
+  ///
+  /// A crash report carries a stack trace, a device model and an OS version.
+  /// It never carries a journal page, a measurement or an identifier Eter
+  /// chose — see `core/diagnostics/crash_reporter.dart`, which is where that
+  /// promise is kept rather than merely stated.
+  final DateTime? crashReportConsentAt;
+
   /// When the user consented to cloud sync. Null means local-only.
   ///
   /// This covers the measured record: weights, meals, sessions, sleep, day
@@ -457,6 +482,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       this.birthLongitude,
       this.aiConsentAt,
       this.journalAiConsentAt,
+      this.crashReportConsentAt,
       this.cloudSyncConsentAt,
       this.journalCloudSyncConsentAt,
       required this.connectedSourcesJson,
@@ -501,6 +527,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     }
     if (!nullToAbsent || journalAiConsentAt != null) {
       map['journal_ai_consent_at'] = Variable<DateTime>(journalAiConsentAt);
+    }
+    if (!nullToAbsent || crashReportConsentAt != null) {
+      map['crash_report_consent_at'] = Variable<DateTime>(crashReportConsentAt);
     }
     if (!nullToAbsent || cloudSyncConsentAt != null) {
       map['cloud_sync_consent_at'] = Variable<DateTime>(cloudSyncConsentAt);
@@ -556,6 +585,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       journalAiConsentAt: journalAiConsentAt == null && nullToAbsent
           ? const Value.absent()
           : Value(journalAiConsentAt),
+      crashReportConsentAt: crashReportConsentAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(crashReportConsentAt),
       cloudSyncConsentAt: cloudSyncConsentAt == null && nullToAbsent
           ? const Value.absent()
           : Value(cloudSyncConsentAt),
@@ -594,6 +626,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       aiConsentAt: serializer.fromJson<DateTime?>(json['aiConsentAt']),
       journalAiConsentAt:
           serializer.fromJson<DateTime?>(json['journalAiConsentAt']),
+      crashReportConsentAt:
+          serializer.fromJson<DateTime?>(json['crashReportConsentAt']),
       cloudSyncConsentAt:
           serializer.fromJson<DateTime?>(json['cloudSyncConsentAt']),
       journalCloudSyncConsentAt:
@@ -625,6 +659,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'birthLongitude': serializer.toJson<double?>(birthLongitude),
       'aiConsentAt': serializer.toJson<DateTime?>(aiConsentAt),
       'journalAiConsentAt': serializer.toJson<DateTime?>(journalAiConsentAt),
+      'crashReportConsentAt':
+          serializer.toJson<DateTime?>(crashReportConsentAt),
       'cloudSyncConsentAt': serializer.toJson<DateTime?>(cloudSyncConsentAt),
       'journalCloudSyncConsentAt':
           serializer.toJson<DateTime?>(journalCloudSyncConsentAt),
@@ -652,6 +688,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           Value<double?> birthLongitude = const Value.absent(),
           Value<DateTime?> aiConsentAt = const Value.absent(),
           Value<DateTime?> journalAiConsentAt = const Value.absent(),
+          Value<DateTime?> crashReportConsentAt = const Value.absent(),
           Value<DateTime?> cloudSyncConsentAt = const Value.absent(),
           Value<DateTime?> journalCloudSyncConsentAt = const Value.absent(),
           String? connectedSourcesJson,
@@ -684,6 +721,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         journalAiConsentAt: journalAiConsentAt.present
             ? journalAiConsentAt.value
             : this.journalAiConsentAt,
+        crashReportConsentAt: crashReportConsentAt.present
+            ? crashReportConsentAt.value
+            : this.crashReportConsentAt,
         cloudSyncConsentAt: cloudSyncConsentAt.present
             ? cloudSyncConsentAt.value
             : this.cloudSyncConsentAt,
@@ -733,6 +773,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       journalAiConsentAt: data.journalAiConsentAt.present
           ? data.journalAiConsentAt.value
           : this.journalAiConsentAt,
+      crashReportConsentAt: data.crashReportConsentAt.present
+          ? data.crashReportConsentAt.value
+          : this.crashReportConsentAt,
       cloudSyncConsentAt: data.cloudSyncConsentAt.present
           ? data.cloudSyncConsentAt.value
           : this.cloudSyncConsentAt,
@@ -767,6 +810,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('birthLongitude: $birthLongitude, ')
           ..write('aiConsentAt: $aiConsentAt, ')
           ..write('journalAiConsentAt: $journalAiConsentAt, ')
+          ..write('crashReportConsentAt: $crashReportConsentAt, ')
           ..write('cloudSyncConsentAt: $cloudSyncConsentAt, ')
           ..write('journalCloudSyncConsentAt: $journalCloudSyncConsentAt, ')
           ..write('connectedSourcesJson: $connectedSourcesJson, ')
@@ -795,6 +839,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         birthLongitude,
         aiConsentAt,
         journalAiConsentAt,
+        crashReportConsentAt,
         cloudSyncConsentAt,
         journalCloudSyncConsentAt,
         connectedSourcesJson,
@@ -822,6 +867,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.birthLongitude == this.birthLongitude &&
           other.aiConsentAt == this.aiConsentAt &&
           other.journalAiConsentAt == this.journalAiConsentAt &&
+          other.crashReportConsentAt == this.crashReportConsentAt &&
           other.cloudSyncConsentAt == this.cloudSyncConsentAt &&
           other.journalCloudSyncConsentAt == this.journalCloudSyncConsentAt &&
           other.connectedSourcesJson == this.connectedSourcesJson &&
@@ -847,6 +893,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<double?> birthLongitude;
   final Value<DateTime?> aiConsentAt;
   final Value<DateTime?> journalAiConsentAt;
+  final Value<DateTime?> crashReportConsentAt;
   final Value<DateTime?> cloudSyncConsentAt;
   final Value<DateTime?> journalCloudSyncConsentAt;
   final Value<String> connectedSourcesJson;
@@ -870,6 +917,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.birthLongitude = const Value.absent(),
     this.aiConsentAt = const Value.absent(),
     this.journalAiConsentAt = const Value.absent(),
+    this.crashReportConsentAt = const Value.absent(),
     this.cloudSyncConsentAt = const Value.absent(),
     this.journalCloudSyncConsentAt = const Value.absent(),
     this.connectedSourcesJson = const Value.absent(),
@@ -894,6 +942,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.birthLongitude = const Value.absent(),
     this.aiConsentAt = const Value.absent(),
     this.journalAiConsentAt = const Value.absent(),
+    this.crashReportConsentAt = const Value.absent(),
     this.cloudSyncConsentAt = const Value.absent(),
     this.journalCloudSyncConsentAt = const Value.absent(),
     this.connectedSourcesJson = const Value.absent(),
@@ -921,6 +970,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<double>? birthLongitude,
     Expression<DateTime>? aiConsentAt,
     Expression<DateTime>? journalAiConsentAt,
+    Expression<DateTime>? crashReportConsentAt,
     Expression<DateTime>? cloudSyncConsentAt,
     Expression<DateTime>? journalCloudSyncConsentAt,
     Expression<String>? connectedSourcesJson,
@@ -947,6 +997,8 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (aiConsentAt != null) 'ai_consent_at': aiConsentAt,
       if (journalAiConsentAt != null)
         'journal_ai_consent_at': journalAiConsentAt,
+      if (crashReportConsentAt != null)
+        'crash_report_consent_at': crashReportConsentAt,
       if (cloudSyncConsentAt != null)
         'cloud_sync_consent_at': cloudSyncConsentAt,
       if (journalCloudSyncConsentAt != null)
@@ -976,6 +1028,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       Value<double?>? birthLongitude,
       Value<DateTime?>? aiConsentAt,
       Value<DateTime?>? journalAiConsentAt,
+      Value<DateTime?>? crashReportConsentAt,
       Value<DateTime?>? cloudSyncConsentAt,
       Value<DateTime?>? journalCloudSyncConsentAt,
       Value<String>? connectedSourcesJson,
@@ -1000,6 +1053,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       birthLongitude: birthLongitude ?? this.birthLongitude,
       aiConsentAt: aiConsentAt ?? this.aiConsentAt,
       journalAiConsentAt: journalAiConsentAt ?? this.journalAiConsentAt,
+      crashReportConsentAt: crashReportConsentAt ?? this.crashReportConsentAt,
       cloudSyncConsentAt: cloudSyncConsentAt ?? this.cloudSyncConsentAt,
       journalCloudSyncConsentAt:
           journalCloudSyncConsentAt ?? this.journalCloudSyncConsentAt,
@@ -1067,6 +1121,10 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       map['journal_ai_consent_at'] =
           Variable<DateTime>(journalAiConsentAt.value);
     }
+    if (crashReportConsentAt.present) {
+      map['crash_report_consent_at'] =
+          Variable<DateTime>(crashReportConsentAt.value);
+    }
     if (cloudSyncConsentAt.present) {
       map['cloud_sync_consent_at'] =
           Variable<DateTime>(cloudSyncConsentAt.value);
@@ -1106,6 +1164,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('birthLongitude: $birthLongitude, ')
           ..write('aiConsentAt: $aiConsentAt, ')
           ..write('journalAiConsentAt: $journalAiConsentAt, ')
+          ..write('crashReportConsentAt: $crashReportConsentAt, ')
           ..write('cloudSyncConsentAt: $cloudSyncConsentAt, ')
           ..write('journalCloudSyncConsentAt: $journalCloudSyncConsentAt, ')
           ..write('connectedSourcesJson: $connectedSourcesJson, ')
@@ -10540,6 +10599,7 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   Value<double?> birthLongitude,
   Value<DateTime?> aiConsentAt,
   Value<DateTime?> journalAiConsentAt,
+  Value<DateTime?> crashReportConsentAt,
   Value<DateTime?> cloudSyncConsentAt,
   Value<DateTime?> journalCloudSyncConsentAt,
   Value<String> connectedSourcesJson,
@@ -10564,6 +10624,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<double?> birthLongitude,
   Value<DateTime?> aiConsentAt,
   Value<DateTime?> journalAiConsentAt,
+  Value<DateTime?> crashReportConsentAt,
   Value<DateTime?> cloudSyncConsentAt,
   Value<DateTime?> journalCloudSyncConsentAt,
   Value<String> connectedSourcesJson,
@@ -10637,6 +10698,10 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<DateTime> get journalAiConsentAt => $composableBuilder(
       column: $table.journalAiConsentAt,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get crashReportConsentAt => $composableBuilder(
+      column: $table.crashReportConsentAt,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get cloudSyncConsentAt => $composableBuilder(
@@ -10727,6 +10792,10 @@ class $$ProfilesTableOrderingComposer
       column: $table.journalAiConsentAt,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<DateTime> get crashReportConsentAt => $composableBuilder(
+      column: $table.crashReportConsentAt,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get cloudSyncConsentAt => $composableBuilder(
       column: $table.cloudSyncConsentAt,
       builder: (column) => ColumnOrderings(column));
@@ -10806,6 +10875,9 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<DateTime> get journalAiConsentAt => $composableBuilder(
       column: $table.journalAiConsentAt, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get crashReportConsentAt => $composableBuilder(
+      column: $table.crashReportConsentAt, builder: (column) => column);
+
   GeneratedColumn<DateTime> get cloudSyncConsentAt => $composableBuilder(
       column: $table.cloudSyncConsentAt, builder: (column) => column);
 
@@ -10860,6 +10932,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<double?> birthLongitude = const Value.absent(),
             Value<DateTime?> aiConsentAt = const Value.absent(),
             Value<DateTime?> journalAiConsentAt = const Value.absent(),
+            Value<DateTime?> crashReportConsentAt = const Value.absent(),
             Value<DateTime?> cloudSyncConsentAt = const Value.absent(),
             Value<DateTime?> journalCloudSyncConsentAt = const Value.absent(),
             Value<String> connectedSourcesJson = const Value.absent(),
@@ -10884,6 +10957,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             birthLongitude: birthLongitude,
             aiConsentAt: aiConsentAt,
             journalAiConsentAt: journalAiConsentAt,
+            crashReportConsentAt: crashReportConsentAt,
             cloudSyncConsentAt: cloudSyncConsentAt,
             journalCloudSyncConsentAt: journalCloudSyncConsentAt,
             connectedSourcesJson: connectedSourcesJson,
@@ -10908,6 +10982,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<double?> birthLongitude = const Value.absent(),
             Value<DateTime?> aiConsentAt = const Value.absent(),
             Value<DateTime?> journalAiConsentAt = const Value.absent(),
+            Value<DateTime?> crashReportConsentAt = const Value.absent(),
             Value<DateTime?> cloudSyncConsentAt = const Value.absent(),
             Value<DateTime?> journalCloudSyncConsentAt = const Value.absent(),
             Value<String> connectedSourcesJson = const Value.absent(),
@@ -10932,6 +11007,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             birthLongitude: birthLongitude,
             aiConsentAt: aiConsentAt,
             journalAiConsentAt: journalAiConsentAt,
+            crashReportConsentAt: crashReportConsentAt,
             cloudSyncConsentAt: cloudSyncConsentAt,
             journalCloudSyncConsentAt: journalCloudSyncConsentAt,
             connectedSourcesJson: connectedSourcesJson,

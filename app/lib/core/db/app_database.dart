@@ -46,10 +46,10 @@ class AppDatabase extends _$AppDatabase {
   /// Schema 3. The v1 tree reached 18; there is no migration path because
   /// there are no external users and the fitness-era shape is not what this
   /// product stores. v2 added optional body fat, the journal's daily story and
-  /// digest, and the cached transit reading. v3 adds the separate consent for
-  /// mirroring journal prose.
+  /// digest, and the cached transit reading. v3 added the separate consent for
+  /// mirroring journal prose; v4 adds the crash-report consent.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -78,6 +78,9 @@ class AppDatabase extends _$AppDatabase {
             // Null, so an existing install does not silently acquire consent
             // to mirror its journal. Consent is given, never inherited.
             await m.addColumn(profiles, profiles.journalCloudSyncConsentAt);
+          }
+          if (from < 4) {
+            await m.addColumn(profiles, profiles.crashReportConsentAt);
           }
           await _createIndexes();
         },
@@ -191,6 +194,7 @@ class AppDatabase extends _$AppDatabase {
     bool? journalAiAllowed,
     bool? cloudSyncAllowed,
     bool? journalCloudSyncAllowed,
+    bool? crashReportsAllowed,
   }) async {
     final current = await loadProfile();
     if (current == null) return;
@@ -199,6 +203,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? journalAt = current.journalAiConsentAt;
     DateTime? cloudAt = current.cloudSyncConsentAt;
     DateTime? journalCloudAt = current.journalCloudSyncConsentAt;
+    DateTime? crashAt = current.crashReportConsentAt;
 
     if (aiAllowed != null) {
       aiAt = aiAllowed ? now : null;
@@ -214,6 +219,9 @@ class AppDatabase extends _$AppDatabase {
       // entirely must withdraw the pages with it.
       if (!cloudSyncAllowed) journalCloudAt = null;
     }
+    if (crashReportsAllowed != null) {
+      crashAt = crashReportsAllowed ? now : null;
+    }
     if (journalCloudSyncAllowed != null) {
       journalCloudAt = journalCloudSyncAllowed ? now : null;
       if (journalCloudSyncAllowed) cloudAt ??= now;
@@ -225,6 +233,7 @@ class AppDatabase extends _$AppDatabase {
         journalAiConsentAt: Value(journalAt),
         cloudSyncConsentAt: Value(cloudAt),
         journalCloudSyncConsentAt: Value(journalCloudAt),
+        crashReportConsentAt: Value(crashAt),
         syncedAt: const Value(null),
       ),
     );

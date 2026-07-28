@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/diagnostics/crash_reporter.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
 import '../../core/privacy/local_data_export.dart';
@@ -200,6 +201,37 @@ class SanctumOverlay extends ConsumerWidget {
                           : (value) => db.updateProfileConsents(
                                 journalCloudSyncAllowed: value == 'allowed',
                               ),
+                    ),
+                    const SizedBox(height: EterSpace.s24),
+                    _ChoiceGroup(
+                      heading: 'CRASH REPORTS',
+                      value: profile?.crashReportConsentAt == null
+                          ? 'off'
+                          : 'allowed',
+                      choices: const {
+                        'off': 'Off',
+                        'allowed': 'Allowed',
+                      },
+                      descriptions: const {
+                        'off': 'Nothing is sent when Eter fails.',
+                        'allowed': 'Send the error and your device model when '
+                            'Eter fails. Never your records.',
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) async {
+                              await db.updateProfileConsents(
+                                crashReportsAllowed: value == 'allowed',
+                              );
+                              // Applied immediately rather than at next
+                              // launch: revoking should stop collection now.
+                              await CrashConsent(ref.read(crashReporterProvider))
+                                  .apply(
+                                consentedAt: value == 'allowed'
+                                    ? DateTime.now().toUtc()
+                                    : null,
+                              );
+                            },
                     ),
                     const SizedBox(height: EterSpace.s32),
                     AccountSection(

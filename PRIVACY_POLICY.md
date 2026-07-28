@@ -16,6 +16,19 @@ continuity is both available and explicitly allowed, eligible aggregates and
 documents may be mirrored to the user's account. The application must describe
 the exact cloud scope before that feature is enabled.
 
+## Crash reports
+
+Crash reporting is optional and disabled by default, including on a device
+restored from an account backup. When it is enabled in the Sanctum, a report
+sent after a failure contains the error, its stack trace, the device model and
+the operating-system version.
+
+A crash report never contains journal prose, health measurements, birth data,
+an email address, or any identifier Eter assigns. The client's reporting
+interface accepts an error and a stack trace and nothing else, so no such
+content can be attached to a report by any part of the app. Revoking the
+permission stops collection immediately and deletes any report not yet sent.
+
 ## AI processing
 
 AI guidance is optional and disabled by default. General AI processing and
@@ -40,8 +53,8 @@ context. Application-provided processing must not log health payloads.
 
 Users can use the local Journal, deterministic symbolic calculations and
 available local health features without AI or cloud continuity. The Sanctum
-shows the current AI, journal-prose and cloud permissions and allows
-revocation.
+shows the current AI, journal-prose, cloud, journal-mirror and crash-report
+permissions and allows revocation of each independently.
 
 Eter can prepare a complete JSON snapshot of the local database plus CSV files
 for movement and session records. The authenticated cloud export and complete

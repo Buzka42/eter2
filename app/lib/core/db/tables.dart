@@ -66,6 +66,15 @@ class Profiles extends Table {
   DateTimeColumn get aiConsentAt => dateTime().nullable()();
   DateTimeColumn get journalAiConsentAt => dateTime().nullable()();
 
+  /// When the user agreed to send crash reports. Null means never, which is
+  /// the default and the shipped state until someone chooses otherwise.
+  ///
+  /// A crash report carries a stack trace, a device model and an OS version.
+  /// It never carries a journal page, a measurement or an identifier Eter
+  /// chose — see `core/diagnostics/crash_reporter.dart`, which is where that
+  /// promise is kept rather than merely stated.
+  DateTimeColumn get crashReportConsentAt => dateTime().nullable()();
+
   /// When the user consented to cloud sync. Null means local-only.
   ///
   /// This covers the measured record: weights, meals, sessions, sleep, day

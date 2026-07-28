@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/account/account.dart';
@@ -11,6 +12,8 @@ import 'core/aether/guidance_contract.dart';
 import 'core/ai/transport.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
+import 'core/diagnostics/crash_reporter.dart';
+import 'core/diagnostics/firebase_crash_reporter.dart';
 import 'core/journal/classification_contract.dart';
 import 'core/journal/day_story.dart';
 import 'core/profile/birth_context.dart';
@@ -46,18 +49,41 @@ Future<void> main() async {
   // services — opens normally, keeps every record, and simply has no
   // "sign in to sync" to offer.
   AccountService? accounts;
+  CrashReporter reporter = const NoCrashReporter();
   try {
     await Firebase.initializeApp();
     accounts = FirebaseAccountService();
+    reporter = FirebaseCrashReporter();
   } catch (error) {
     debugPrint('Accounts unavailable, continuing local-only: $error');
   }
+
+  // Off until the profile says otherwise, and off again the moment it stops
+  // saying so. A fresh install, and a device restored from the mirror, both
+  // start with collection disabled — consent is given on a device, by a
+  // person, and is never inherited from a backup.
+  await CrashConsent(reporter).apply(
+    consentedAt: (await database.loadProfile())?.crashReportConsentAt,
+  );
+
+  // Uncaught framework and platform errors reach the reporter, which drops
+  // them unless collection is on. Both handlers still print in debug.
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (details) {
+    previousOnError?.call(details);
+    reporter.record(details.exception, details.stack, fatal: true);
+  };
+  PlatformDispatcher.instance.onError = (error, stack) {
+    reporter.record(error, stack, fatal: true);
+    return true;
+  };
 
   runApp(
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(database),
         accountServiceProvider.overrideWithValue(accounts),
+        crashReporterProvider.overrideWithValue(reporter),
       ],
       child: const EterApp(),
     ),
@@ -78,6 +104,11 @@ final databaseProvider = Provider<AppDatabase>(
 /// behave correctly when it is null, and tests read it null by default so that
 /// stays true.
 final accountServiceProvider = Provider<AccountService?>((ref) => null);
+
+/// Crash reporting. A build with nothing to report to gets the no-op, which
+/// is a shipped configuration rather than a degraded one.
+final crashReporterProvider =
+    Provider<CrashReporter>((ref) => const NoCrashReporter());
 
 /// Who is signed in, if anyone. Null covers both "no account system" and
 /// "signed out", because no surface needs to tell those apart.

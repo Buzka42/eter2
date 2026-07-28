@@ -25,6 +25,8 @@ plugins {
     // project it is talking to. The file carries no secret: the Android API
     // key in it is restricted to this package and its signing certificates.
     id("com.google.gms.google-services") version "4.4.2" apply false
+    // Uploads the symbol mapping so a minified release stack trace is readable.
+    id("com.google.firebase.crashlytics") version "3.0.2" apply false
 }
 
 include(":app")
