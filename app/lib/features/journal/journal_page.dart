@@ -67,6 +67,26 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   void _onChanged(String _) {
     setState(() {}); // Dictation and autosave feedback follow the draft.
     _autosave?.cancel();
+    // Not while dictating.
+    //
+    // Every recognised word came through here, so a 900 ms pause for breath
+    // was indistinguishable from a pause for thought: the page saved the
+    // half-spoken sentence and cleared itself, and the words appeared to
+    // vanish as they were spoken. They were never lost — they were filed
+    // mid-thought, which is worse than either.
+    //
+    // Speech has its own end, and `_finishDictation` is where it is handled.
+    if (_listening) return;
+    _autosave = Timer(const Duration(milliseconds: 900), _save);
+  }
+
+  /// Dictation has stopped. Now the page may keep what was said.
+  void _finishDictation() {
+    if (!mounted) return;
+    setState(() => _listening = false);
+    _dictationBase = '';
+    if (_composer.text.trim().isEmpty) return;
+    _autosave?.cancel();
     _autosave = Timer(const Duration(milliseconds: 900), _save);
   }
 
@@ -104,7 +124,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   Future<void> _toggleDictation() async {
     if (_listening) {
       await _speech.stop();
-      if (mounted) setState(() => _listening = false);
+      _finishDictation();
       return;
     }
     try {
@@ -115,7 +135,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
         onStatus: (status) {
           debugPrint('Eter dictation: status $status');
           if ((status == 'done' || status == 'notListening') && mounted) {
-            setState(() => _listening = false);
+            _finishDictation();
           }
         },
         onError: (error) {
@@ -141,6 +161,9 @@ class _JournalPageState extends ConsumerState<JournalPage> {
               _ => 'Dictation stopped. You can tap to try again, or type.',
             };
           });
+          // Words spoken before the failure are still words. Ending this way
+          // must keep them exactly as ending normally does.
+          _finishDictation();
         },
       );
       debugPrint('Eter dictation: initialize returned $available');

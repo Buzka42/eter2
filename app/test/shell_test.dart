@@ -295,6 +295,32 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('typing autosaves after a pause, and only what was typed',
+      (tester) async {
+    // The counterpart to the dictation rule below: an ordinary pause in
+    // typing still commits, because that is what makes the page keep itself.
+    await pumpShell(tester);
+    await tester.tap(find.text('JOURNAL'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    await tester.enterText(find.byType(TextField).first, 'A written thought.');
+    await tester.pump(const Duration(milliseconds: 1200));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 40)),
+    );
+    await tester.pump();
+
+    final entries = await db.loadJournalForRange(
+      DateTime.utc(2026, 7, 27),
+      DateTime.utc(2026, 7, 29),
+    );
+    expect(
+      entries.where((row) => row.entryText == 'A written thought.'),
+      hasLength(1),
+    );
+    await closeShell(tester);
+  });
+
   testWidgets('History opens the archive, saving today before it does',
       (tester) async {
     await db.addJournalEntry(

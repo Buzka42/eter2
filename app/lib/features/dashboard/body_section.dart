@@ -423,20 +423,19 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
           },
         ),
         const SizedBox(height: EterSpace.s24),
+        // Sleep, once.
+        //
+        // Last night's stages and the nights before it were two sections with
+        // two headings, two absence sentences and a rule between them —
+        // describing one subject, from one table, that a person reads as one
+        // thing. The window control belongs to both, and did not visibly
+        // belong to either.
+        Text('SLEEP', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
         StreamBuilder<List<SleepSegmentRow>>(
           stream: _sleep,
-          builder: (context, snapshot) {
-            final rows = snapshot.data ?? const <SleepSegmentRow>[];
-            if (rows.isEmpty) {
-              return Text(
-                'Sleep stages were not provided for last night.',
-                // Absence is the section speaking, not a label: it takes the
-                // same serif prose as the conclusion above it. Two sentences
-                // of the same kind in two different faces reads as a bug,
-                // because it is one.
-                style: EterProse.of(context),
-              );
-            }
+          builder: (context, lastNight) {
+            final rows = lastNight.data ?? const <SleepSegmentRow>[];
             final minutes = <String, int>{};
             for (final row in rows) {
               final duration = row.endUtc.difference(row.startUtc).inMinutes;
@@ -446,57 +445,74 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
                 ifAbsent: () => duration,
               );
             }
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('LAST NIGHT', style: text.labelSmall),
-                const SizedBox(height: EterSpace.s8),
-                EngravedSleepStages(minutesByStage: minutes),
-              ],
-            );
-          },
-        ),
-        const SizedBox(height: EterSpace.s24),
-        Text('SLEEP HISTORY', style: text.labelSmall),
-        Row(
-          children: [
-            _PeriodChoice(
-              label: '7 days',
-              selected: _sleepWindow == 7,
-              onTap: () => _selectSleepWindow(7),
-            ),
-            const SizedBox(width: EterSpace.s16),
-            _PeriodChoice(
-              label: '30 days',
-              selected: _sleepWindow == 30,
-              onTap: () => _selectSleepWindow(30),
-            ),
-          ],
-        ),
-        FutureBuilder<List<SleepSegmentRow>>(
-          future: _sleepHistory,
-          builder: (context, snapshot) {
-            final rows = snapshot.data ?? const <SleepSegmentRow>[];
-            final byNight = <String, Map<String, int>>{};
-            for (final row in rows) {
-              final night =
-                  byNight.putIfAbsent(row.nightOf, () => <String, int>{});
-              final minutes = row.endUtc.difference(row.startUtc).inMinutes;
-              night.update(
-                row.stage,
-                (value) => value + minutes,
-                ifAbsent: () => minutes,
-              );
-            }
-            if (byNight.length < 2) {
-              return Text(
-                'A sleep history needs at least two recorded nights.',
-                style: text.bodyMedium,
-              );
-            }
-            return EngravedSleepHistory(
-              nights: byNight.values.toList(),
-              windowDays: _sleepWindow,
+            return FutureBuilder<List<SleepSegmentRow>>(
+              future: _sleepHistory,
+              builder: (context, history) {
+                final byNight = <String, Map<String, int>>{};
+                for (final row in history.data ?? const <SleepSegmentRow>[]) {
+                  final night =
+                      byNight.putIfAbsent(row.nightOf, () => <String, int>{});
+                  final duration =
+                      row.endUtc.difference(row.startUtc).inMinutes;
+                  night.update(
+                    row.stage,
+                    (value) => value + duration,
+                    ifAbsent: () => duration,
+                  );
+                }
+
+                // One sentence when there is nothing at all, rather than the
+                // same absence said twice in two registers.
+                if (minutes.isEmpty && byNight.isEmpty) {
+                  return Text(
+                    'No sleep has been recorded yet.',
+                    style: EterProse.of(context),
+                  );
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (minutes.isEmpty)
+                      Text(
+                        'Last night was not staged.',
+                        style: EterProse.of(context),
+                      )
+                    else ...[
+                      Text('LAST NIGHT', style: text.labelSmall),
+                      const SizedBox(height: EterSpace.s8),
+                      EngravedSleepStages(minutesByStage: minutes),
+                    ],
+                    const SizedBox(height: EterSpace.s16),
+                    if (byNight.length < 2)
+                      Text(
+                        'A history needs at least two recorded nights.',
+                        style: text.bodySmall,
+                      )
+                    else ...[
+                      Row(
+                        children: [
+                          _PeriodChoice(
+                            label: '7 days',
+                            selected: _sleepWindow == 7,
+                            onTap: () => _selectSleepWindow(7),
+                          ),
+                          const SizedBox(width: EterSpace.s16),
+                          _PeriodChoice(
+                            label: '30 days',
+                            selected: _sleepWindow == 30,
+                            onTap: () => _selectSleepWindow(30),
+                          ),
+                        ],
+                      ),
+                      EngravedSleepHistory(
+                        nights: byNight.values.toList(),
+                        windowDays: _sleepWindow,
+                      ),
+                    ],
+                  ],
+                );
+              },
             );
           },
         ),
