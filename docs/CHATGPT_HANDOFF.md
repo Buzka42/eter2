@@ -107,3 +107,31 @@ defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
 2. The complete Flutter test suite and `flutter analyze` are green.
 3. Goldens contain no `failures/` output; v6 background and its retained
    master/review alternatives are recorded in the asset and commission logs.
+
+## Post-prototype product decisions
+
+The local-first prototype is complete and green. These are the remaining
+vertical slices, not hidden cleanup:
+
+1. **Lifestyle capture placement.** Mood, stress, recovery, meditation and
+   breathwork already have canonical local rows and feed weekly review, but a
+   new visible check-in on Body would add another control cluster. Decide
+   whether they belong as marginal Journal prompts, one quiet Dashboard
+   check-in, or a deeper Sanctum/history passage before adding UI.
+2. **Strength experience.** The schema and energy fallback exist, but exercise
+   selection, sets/reps/load editing, active-session behavior and history need
+   one coherent interaction. Do not infer a conventional gym tracker inside
+   the approved editorial shell.
+3. **Production intelligence.** Guidance, Journal classification and Vessel
+   reading contracts are implemented, consent-gated and provider-independent.
+   Shipping them needs a selected backend/provider, credentials and deployment
+   boundary; the client must not embed a model secret.
+4. **Identity and cloud mirror.** Local-only mode is complete. Auth, Firestore
+   mirroring, cloud deletion and conflict policy remain a separate
+   security-sensitive slice and require a real Firebase project.
+5. **Live health/session expansion.** HealthKit/Health Connect import works
+   through the platform gateway. Vendor OAuth, BLE sessions and background
+   refresh require hardware/vendor choices and platform entitlements.
+
+Until those choices are made, prefer improving verified local flows over
+adding placeholders to the resting screen.

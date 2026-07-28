@@ -190,3 +190,8 @@ as manual activity. Food photography, ingredient icons, or a scan animation
 would make expanded Body busier and falsely imply capabilities not present in
 the factual entry path. No generated asset exists, so no two-option review is
 required.
+
+Manual weight capture is likewise an ordinary factual line. A scale icon,
+body silhouette or progress animation would turn a neutral measurement into
+judgment and add density without information. It remains code-native, so no
+two-option review is required.
