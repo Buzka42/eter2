@@ -1,30 +1,115 @@
 rules_version = '2';
+
+// The mirror's server-side half.
+//
+// The client scopes every path to users/{uid}; these rules make that a
+// guarantee rather than a convention. Nobody reads or writes anything but
+// their own, and the shapes are bounded so a compromised client cannot turn
+// the mirror into arbitrary storage.
+//
+// Deliberately permissive about *values* and strict about *ownership and
+// size*. Validating that a weight is between 20 and 500 here would duplicate
+// a rule the app already enforces and would silently break the mirror the day
+// the app's own bounds change; refusing another person's document, or a
+// megabyte of prose, is the part only the server can do.
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    function validOptionalBirthTime(data) {
-      return data.birthTimeMinutes == null || (data.birthTimeMinutes is int && data.birthTimeMinutes >= 0 && data.birthTimeMinutes <= 1439);
+
+    // A document nobody could have meant: unbounded, or carrying a field
+    // count no shape in the app produces.
+    function isReasonable() {
+      return request.resource.data.keys().size() <= 40;
     }
-    function validOptionalUtcOffset(data) {
-      return data.birthUtcOffsetMinutes == null || (data.birthUtcOffsetMinutes is int && data.birthUtcOffsetMinutes >= -840 && data.birthUtcOffsetMinutes <= 840);
+
+    function isShortText(value) {
+      return value == null || (value is string && value.size() <= 20000);
     }
-    function validOptionalBirthPlace(data) {
-      return data.birthPlace == null || (data.birthPlace is string && data.birthPlace.size() <= 200);
-    }
-    function validOptionalCoordinates(data) {
-      return (data.birthLatitude == null || (data.birthLatitude is number && data.birthLatitude >= -90 && data.birthLatitude <= 90)) && (data.birthLongitude == null || (data.birthLongitude is number && data.birthLongitude >= -180 && data.birthLongitude <= 180));
-    }
-    function isValidProfile(data) {
-      return data.keys().hasAll(['profileSchemaVersion','updatedAt','firstName','dob','sex','weightKg','heightCm','units','guidanceMode','birthTimeMinutes','birthUtcOffsetMinutes','birthPlace','birthLatitude','birthLongitude']) && data.keys().hasOnly(['profileSchemaVersion','updatedAt','firstName','dob','sex','weightKg','heightCm','units','guidanceMode','birthTimeMinutes','birthUtcOffsetMinutes','birthPlace','birthLatitude','birthLongitude']) && data.profileSchemaVersion is int && data.profileSchemaVersion == 1 && data.updatedAt is timestamp && data.firstName is string && data.firstName.size() <= 80 && data.dob is string && data.dob.size() >= 10 && data.dob.size() <= 40 && data.sex in ['female','male','other'] && data.weightKg is number && data.weightKg >= 20 && data.weightKg <= 500 && data.heightCm is number && data.heightCm >= 80 && data.heightCm <= 260 && data.units in ['metric','imperial'] && data.guidanceMode in ['grounded','balanced','immersive'] && validOptionalBirthTime(data) && validOptionalUtcOffset(data) && validOptionalBirthPlace(data) && validOptionalCoordinates(data);
-    }
+
     match /users/{userId} {
       allow read: if isOwner(userId);
-      allow create: if isOwner(userId) && isValidProfile(request.resource.data);
-      allow update: if isOwner(userId) && isValidProfile(request.resource.data);
-      allow delete: if isOwner(userId);
+      // The parent document is not written by the client; everything lives in
+      // the subcollections below.
+      allow write: if false;
+
+      match /profile/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.dob is string
+          && request.resource.data.sex in ['female', 'male', 'other']
+          && request.resource.data.weightKg is number
+          && request.resource.data.units in ['metric', 'imperial'];
+      }
+
+      match /weights/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.kg is number
+          && request.resource.data.recordedAt is string;
+      }
+
+      match /nutrition/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.kcal is number
+          && request.resource.data.meal is string
+          && request.resource.data.meal.size() <= 500;
+      }
+
+      match /lifestyle/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.kind is string
+          && isShortText(request.resource.data.get('note', null));
+      }
+
+      match /sessions/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.startUtc is string
+          && request.resource.data.endUtc is string;
+      }
+
+      match /strength/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.startedAt is string
+          && isShortText(request.resource.data.exercisesJson);
+      }
+
+      match /days/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.date is string
+          && request.resource.data.date.size() == 10;
+      }
+
+      // The journal is the most personal thing here, and it only ever arrives
+      // under its own separate consent. The rule cannot see that consent, so
+      // it does what it can: your own pages, bounded.
+      match /journal/{document} {
+        allow read, delete: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && isReasonable()
+          && request.resource.data.createdAt is string
+          && isShortText(request.resource.data.text);
+      }
     }
-    match /{document=**} { allow read, write: if false; }
+
+    // Anything not named above is denied, including collections a future
+    // version might add and forget to write a rule for.
+    match /{document=**} {
+      allow read, write: if false;
+    }
   }
 }

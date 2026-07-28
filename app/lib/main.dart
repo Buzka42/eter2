@@ -16,6 +16,9 @@ import 'core/journal/day_story.dart';
 import 'core/profile/birth_context.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
+import 'core/sync/cloud_mirror.dart';
+import 'core/sync/firestore_mirror.dart';
+import 'core/sync/sync_service.dart';
 import 'core/health/foreground_refresh.dart';
 import 'core/vessel/initial_readings.dart';
 import 'core/vessel/positions_composer.dart';
@@ -81,6 +84,22 @@ final accountServiceProvider = Provider<AccountService?>((ref) => null);
 final accountProvider = StreamProvider<EterAccount?>((ref) {
   final service = ref.watch(accountServiceProvider);
   return service == null ? Stream.value(null) : service.changes();
+});
+
+/// The cloud mirror, or null when this build has no account system.
+final cloudMirrorProvider = Provider<CloudMirror?>((ref) {
+  return ref.watch(accountServiceProvider) == null
+      ? null
+      : FirestoreCloudMirror();
+});
+
+/// Pushing the record up and pulling it back. Null when there is nothing to
+/// push it to, which every caller must handle: local-only is a real build.
+final syncServiceProvider = Provider<SyncService?>((ref) {
+  final mirror = ref.watch(cloudMirrorProvider);
+  return mirror == null
+      ? null
+      : SyncService(database: ref.watch(databaseProvider), mirror: mirror);
 });
 
 /// The single network transport, or null when this build was compiled without

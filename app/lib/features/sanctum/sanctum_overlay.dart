@@ -175,10 +175,37 @@ class SanctumOverlay extends ConsumerWidget {
                                 cloudSyncAllowed: value == 'allowed',
                               ),
                     ),
+                    const SizedBox(height: EterSpace.s24),
+                    // Separate from the mirror above for the same reason
+                    // journal-aware guidance is separate from AI guidance:
+                    // agreeing to keep a copy of your weights is not agreeing
+                    // to keep a copy of what you wrote at 2am.
+                    _ChoiceGroup(
+                      heading: 'JOURNAL IN THE MIRROR',
+                      value: profile?.journalCloudSyncConsentAt == null
+                          ? 'off'
+                          : 'allowed',
+                      choices: const {
+                        'off': 'Stays here',
+                        'allowed': 'Allowed',
+                      },
+                      descriptions: const {
+                        'off': 'Your pages exist on this device only, and are '
+                            'lost with it.',
+                        'allowed': 'Pages are copied too, and come back on a '
+                            'new phone.',
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) => db.updateProfileConsents(
+                                journalCloudSyncAllowed: value == 'allowed',
+                              ),
+                    ),
                     const SizedBox(height: EterSpace.s32),
                     AccountSection(
                       service: ref.watch(accountServiceProvider),
                       account: ref.watch(accountProvider).value,
+                      sync: ref.watch(syncServiceProvider),
                     ),
                     const SizedBox(height: EterSpace.s32),
                     _HealthConnection(database: db),

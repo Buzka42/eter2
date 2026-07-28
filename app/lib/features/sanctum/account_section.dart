@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
+import '../../core/sync/sync_service.dart';
 import '../../core/controls.dart';
 import '../../core/tokens.dart';
 
@@ -16,12 +17,16 @@ class AccountSection extends StatefulWidget {
     super.key,
     required this.service,
     required this.account,
+    this.sync,
   });
 
   /// Null when this build has no account system at all, which is a supported
   /// configuration and not an error worth explaining at length.
   final AccountService? service;
   final EterAccount? account;
+
+  /// Null when this build has no mirror to push to.
+  final SyncService? sync;
 
   @override
   State<AccountSection> createState() => _AccountSectionState();
@@ -206,6 +211,32 @@ class _AccountSectionState extends State<AccountSection> {
     ];
   }
 
+  /// Sends whatever has not been sent, and says exactly what happened —
+  /// including what deliberately stayed behind.
+  Future<void> _sync(EterAccount account) => _run(() async {
+        final sync = widget.sync;
+        if (sync == null) return 'Sync is not available on this build.';
+        final outcome = await sync.push(account);
+        if (outcome.failure != null) return outcome.failure;
+        final held = outcome.skipped['journalEntries'];
+        final sent = outcome.uploaded == 0
+            ? 'Everything was already copied.'
+            : 'Copied ${outcome.uploaded} '
+                '${outcome.uploaded == 1 ? 'record' : 'records'}.';
+        return held == null ? sent : '$sent Your journal stayed on this device.';
+      });
+
+  Future<void> _restore(EterAccount account) => _run(() async {
+        final sync = widget.sync;
+        if (sync == null) return 'Sync is not available on this build.';
+        final outcome = await sync.restore(account);
+        if (outcome.failure != null) return outcome.failure;
+        return outcome.restored == 0
+            ? 'There was nothing in your account to restore.'
+            : 'Restored ${outcome.restored} '
+                '${outcome.restored == 1 ? 'record' : 'records'}.';
+      });
+
   List<Widget> _signedIn(
     TextTheme text,
     EterInk ink,
@@ -254,6 +285,30 @@ class _AccountSectionState extends State<AccountSection> {
                         }),
               ),
             ],
+          ),
+          const SizedBox(height: EterSpace.s12),
+        ],
+        if (account.canSync && widget.sync != null) ...[
+          Row(
+            children: [
+              EterAction(
+                label: 'Sync now',
+                busy: _busy,
+                onPressed: _busy ? null : () => _sync(account),
+              ),
+              const SizedBox(width: EterSpace.s12),
+              EterAction(
+                label: 'Restore',
+                busy: _busy,
+                onPressed: _busy ? null : () => _restore(account),
+              ),
+            ],
+          ),
+          const SizedBox(height: EterSpace.s4),
+          Text(
+            'Restore only fills a device that has no history of its own — it '
+            'will never overwrite what is already here.',
+            style: text.bodySmall?.copyWith(color: ink.labelMuted),
           ),
           const SizedBox(height: EterSpace.s12),
         ],
