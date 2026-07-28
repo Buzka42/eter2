@@ -8,11 +8,18 @@ Health data. Treat it accordingly — privacy is a feature of "precise".
 |---|---|---|
 | Health read | Onboarding step 5 / Integrations | HealthKit/HC scopes, per-type where OS allows |
 | Vendor account link | Per vendor connect | OAuth scopes listed in plain words before the browser opens |
-| Cloud sync | Onboarding (default on, clearly explained) | Firestore aggregates (14); off = fully local mode (app must work 100% local) |
+| Cloud sync | Onboarding (default **off**, clearly explained) | Firestore aggregates (14); off = fully local mode (app must work 100% local) |
 | AI estimation | First AI estimate | Exactly what's sent (12 payload shown verbatim in the sheet), which provider, that it leaves the device |
 | HR sparkline sync | Settings, default off | Downsampled session sparklines to Firestore |
 
 Every consent stored with timestamp + version; revocation takes effect immediately and is honored by Functions too.
+
+Current client status: AI, journal-prose and cloud grants are separately
+timestamped in `profiles`; all default off. The Sanctum exposes revocation, and
+revoking AI also clears journal-prose consent without changing cloud consent.
+Each journal entry can additionally be marked `excludedFromAi`; guidance
+queries omit it at the database boundary. Consent-policy versioning and
+Function-side enforcement remain part of the cloud pipeline milestone.
 
 ## Data handling rules
 

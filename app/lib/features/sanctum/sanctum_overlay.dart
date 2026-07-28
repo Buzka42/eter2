@@ -50,8 +50,11 @@ class SanctumOverlay extends ConsumerWidget {
                     ),
                     const SizedBox(height: EterSpace.s8),
                     Text(
-                      'These choices stay on this device until cloud sync is '
-                      'explicitly enabled.',
+                      profile?.cloudSyncConsentAt == null
+                          ? 'Your history stays on this device. Cloud sync is '
+                              'off.'
+                          : 'Cloud continuity is allowed. You can revoke it '
+                              'below.',
                       style: text.bodyMedium?.copyWith(color: ink.labelMuted),
                     ),
                     const SizedBox(height: EterSpace.s32),
@@ -90,10 +93,70 @@ class SanctumOverlay extends ConsumerWidget {
                     Text('YOUR DATA', style: text.labelSmall),
                     const SizedBox(height: EterSpace.s12),
                     Text(
-                      'Your journal and health history remain local. Account '
-                      'sync, export and account deletion will appear here when '
-                      'the cloud account layer is connected.',
+                      'Each permission is independent and can be revoked. '
+                      'Revoking AI also turns off journal-aware guidance.',
                       style: text.bodyMedium,
+                    ),
+                    const SizedBox(height: EterSpace.s16),
+                    _ChoiceGroup(
+                      heading: 'AI GUIDANCE',
+                      value: profile?.aiConsentAt == null ? 'off' : 'allowed',
+                      choices: const {
+                        'off': 'Off',
+                        'allowed': 'Allowed',
+                      },
+                      descriptions: const {
+                        'off': 'No health context leaves this device for AI.',
+                        'allowed':
+                            'Selected context may be sent to compose guidance.',
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) => db.updateProfileConsents(
+                                aiAllowed: value == 'allowed',
+                              ),
+                    ),
+                    const SizedBox(height: EterSpace.s24),
+                    _ChoiceGroup(
+                      heading: 'JOURNAL-AWARE GUIDANCE',
+                      value: profile?.journalAiConsentAt == null
+                          ? 'off'
+                          : 'allowed',
+                      choices: const {
+                        'off': 'Off',
+                        'allowed': 'Allowed',
+                      },
+                      descriptions: const {
+                        'off': 'Journal prose is never sent.',
+                        'allowed': 'Only entries not marked Keep local may be '
+                            'included.',
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) => db.updateProfileConsents(
+                                journalAiAllowed: value == 'allowed',
+                              ),
+                    ),
+                    const SizedBox(height: EterSpace.s24),
+                    _ChoiceGroup(
+                      heading: 'CLOUD CONTINUITY',
+                      value: profile?.cloudSyncConsentAt == null
+                          ? 'off'
+                          : 'allowed',
+                      choices: const {
+                        'off': 'Local only',
+                        'allowed': 'Allowed',
+                      },
+                      descriptions: const {
+                        'off': 'No account copy is created.',
+                        'allowed': 'Eligible documents may mirror to your '
+                            'account when sync is connected.',
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) => db.updateProfileConsents(
+                                cloudSyncAllowed: value == 'allowed',
+                              ),
                     ),
                     const SizedBox(height: EterSpace.s64),
                   ],
@@ -178,6 +241,7 @@ class _ChoiceGroup extends StatelessWidget {
             selected: choice.key == value,
             label: choice.value,
             child: GestureDetector(
+              key: ValueKey('$heading-${choice.key}'),
               behavior: HitTestBehavior.opaque,
               onTap: onChanged == null ? null : () => onChanged!(choice.key),
               child: ConstrainedBox(

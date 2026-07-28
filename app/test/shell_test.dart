@@ -164,6 +164,20 @@ void main() {
       tester.widget<TextField>(find.byType(TextField)).controller!.text,
       isEmpty,
     );
+    final keepLocal = find.text('KEEP LOCAL');
+    await tester.ensureVisible(keepLocal);
+    await tester.tap(keepLocal);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    final excluded = await db.loadJournalForRange(
+      DateTime(2026, 7, 27),
+      DateTime(2026, 7, 28),
+    );
+    expect(excluded.single.excludedFromAi, isTrue);
+    expect(find.textContaining('Kept from Aether'), findsOneWidget);
+    expect(find.text('ALLOW AETHER'), findsOneWidget);
     await closeShell(tester);
   });
 
@@ -429,6 +443,43 @@ void main() {
     expect(after?.dob, before?.dob);
     expect(after?.birthPlace, before?.birthPlace);
     expect(after?.weightKg, before?.weightKg);
+    await closeShell(tester);
+  });
+
+  testWidgets('Sanctum grants and revokes outbound permissions independently',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    final journalAllowed =
+        find.byKey(const ValueKey('JOURNAL-AWARE GUIDANCE-allowed'));
+    await tester.ensureVisible(journalAllowed);
+    tester.widget<GestureDetector>(journalAllowed).onTap!();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    var profile = await db.loadProfile();
+    expect(profile?.aiConsentAt, isNotNull);
+    expect(profile?.journalAiConsentAt, isNotNull);
+    expect(profile?.cloudSyncConsentAt, isNull);
+
+    final aiOff = find.byKey(const ValueKey('AI GUIDANCE-off'));
+    await tester.ensureVisible(aiOff);
+    tester.widget<GestureDetector>(aiOff).onTap!();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    profile = await db.loadProfile();
+    expect(profile?.aiConsentAt, isNull);
+    expect(profile?.journalAiConsentAt, isNull);
+    expect(profile?.cloudSyncConsentAt, isNull);
     await closeShell(tester);
   });
 

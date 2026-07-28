@@ -183,8 +183,10 @@ void main() {
         ),
       ]);
 
-      await db.recomputeMinuteWinners(monday, monday.add(const Duration(minutes: 1)));
-      await db.recomputeMinuteWinners(tuesday, tuesday.add(const Duration(minutes: 1)));
+      await db.recomputeMinuteWinners(
+          monday, monday.add(const Duration(minutes: 1)));
+      await db.recomputeMinuteWinners(
+          tuesday, tuesday.add(const Duration(minutes: 1)));
 
       final all = await db.loadMinuteBuckets(
         DateTime.utc(2026, 7, 27),
@@ -629,6 +631,34 @@ void main() {
       expect(answers, hasLength(1));
       expect(answers['lifeSeason']!.value, 'settled');
       expect(answers['lifeSeason']!.tier, 'valuable');
+    });
+  });
+
+  group('profile consent', () {
+    test('AI revocation also revokes journal prose but not cloud', () async {
+      await db.saveProfile(
+        ProfilesCompanion.insert(
+          dob: DateTime(1990, 1, 1),
+          sex: 'other',
+          weightKg: 70,
+          units: 'metric',
+        ),
+      );
+      await db.updateProfileConsents(
+        journalAiAllowed: true,
+        cloudSyncAllowed: true,
+      );
+      var profile = (await db.loadProfile())!;
+      expect(profile.aiConsentAt, isNotNull);
+      expect(profile.journalAiConsentAt, isNotNull);
+      expect(profile.cloudSyncConsentAt, isNotNull);
+
+      await db.updateProfileConsents(aiAllowed: false);
+      profile = (await db.loadProfile())!;
+      expect(profile.aiConsentAt, isNull);
+      expect(profile.journalAiConsentAt, isNull);
+      expect(profile.cloudSyncConsentAt, isNotNull);
+      expect(profile.syncedAt, isNull);
     });
   });
 }

@@ -298,6 +298,21 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                                     playArrival:
                                         _arrivingIds.contains(entry.id),
                                   ),
+                                  _GlyphAction(
+                                    label: entry.excludedFromAi
+                                        ? 'Allow Aether'
+                                        : 'Keep local',
+                                    semanticLabel: entry.excludedFromAi
+                                        ? 'Allow this journal entry in '
+                                            'Aether guidance'
+                                        : 'Keep this journal entry out of '
+                                            'Aether guidance',
+                                    color: ink.labelMuted,
+                                    onTap: () => db.setJournalExcludedFromAi(
+                                      entry.id,
+                                      !entry.excludedFromAi,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

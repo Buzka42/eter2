@@ -128,6 +128,46 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  /// Changes only explicit outbound-data permissions.
+  ///
+  /// Revoking general AI processing also revokes journal-prose processing.
+  /// Enabling journal-aware guidance implies general AI permission. Each
+  /// grant receives a fresh timestamp; revocation is represented by null and
+  /// therefore takes effect for the next pipeline read without a migration.
+  Future<void> updateProfileConsents({
+    bool? aiAllowed,
+    bool? journalAiAllowed,
+    bool? cloudSyncAllowed,
+  }) async {
+    final current = await loadProfile();
+    if (current == null) return;
+    final now = DateTime.now().toUtc();
+    DateTime? aiAt = current.aiConsentAt;
+    DateTime? journalAt = current.journalAiConsentAt;
+    DateTime? cloudAt = current.cloudSyncConsentAt;
+
+    if (aiAllowed != null) {
+      aiAt = aiAllowed ? now : null;
+      if (!aiAllowed) journalAt = null;
+    }
+    if (journalAiAllowed != null) {
+      journalAt = journalAiAllowed ? now : null;
+      if (journalAiAllowed) aiAt ??= now;
+    }
+    if (cloudSyncAllowed != null) {
+      cloudAt = cloudSyncAllowed ? now : null;
+    }
+
+    await (update(profiles)..where((row) => row.id.equals(1))).write(
+      ProfilesCompanion(
+        aiConsentAt: Value(aiAt),
+        journalAiConsentAt: Value(journalAt),
+        cloudSyncConsentAt: Value(cloudAt),
+        syncedAt: const Value(null),
+      ),
+    );
+  }
+
   // -------------------------------------------------------------------------
   // Health ingest. Raw in, deduplicated winners out, day total recomputed.
   // -------------------------------------------------------------------------
