@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../ai/prompts.dart';
 import '../db/app_database.dart';
 import 'guidance_contract.dart';
 import 'request_contract.dart';
@@ -44,8 +45,10 @@ class AetherComposer {
       return AetherComposition(rows: existing, fromCache: true);
     }
 
+    final prompt = EterPrompts.guidance(request);
     final raw = await provider.compose(AetherProviderRequest(
-      context: request.toJson(),
+      system: prompt.system,
+      context: prompt.user.cast<String, Object>(),
       responseSchema: aetherResponseSchema,
     ));
     final guidance = parser.parse(raw, mode: request.mode);

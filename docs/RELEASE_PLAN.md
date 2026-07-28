@@ -12,19 +12,23 @@ handful of things that only became gaps *because* the shape changed.
 
 ## 0. Blockers — a release cannot happen without these
 
-### 0.1 The AI transport, and the server behind it
+### 0.1 The server behind the AI transport
 
-Five calls exist as validated, consent-gated contracts with **no provider**:
-guidance, the Journal's day story, journal interpretation, Vessel readings, and
-Positions. Every one fails honestly today and writes nothing.
+**The client half is built.** `core/ai/transport.dart` posts the bounded
+`{system, user, responseSchema}` triple to one endpoint and returns the raw
+string; five thin adapters cover guidance, the Journal's day story, journal
+interpretation, Vessel readings and Positions; all five providers in
+`main.dart` resolve through it. Nothing parses in the transport and nothing
+falls back. A build compiled without `ETER_AI_ENDPOINT` has no transport, says
+so on every surface, and writes nothing — still a shippable configuration.
 
-`AI_FLOW.md` §6 is the wiring order. In short: an owner-controlled endpoint
-that authenticates the caller, holds the credential and forwards
-`{system, user, responseSchema}` unchanged; three thin client implementations
-that return the raw string without parsing; providers overridden in `main.dart`.
+**What is left is the endpoint itself**, which needs an account and a
+credential and therefore cannot come from this repo. Its exact wire contract —
+what arrives, what must come back, and the four things the server must not do —
+is [`AI_ENDPOINT.md`](AI_ENDPOINT.md).
 
 **The client must never hold a model key.** This is the one constraint the
-steering brief states twice.
+steering brief states twice, and it is why the endpoint exists at all.
 
 ### 0.2 Recording weight, activity and strength
 

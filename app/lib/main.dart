@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/aether/guidance_mode.dart';
 import 'core/aether/guidance_contract.dart';
+import 'core/ai/transport.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
 import 'core/journal/classification_contract.dart';
@@ -48,28 +49,54 @@ final databaseProvider = Provider<AppDatabase>(
   (ref) => throw StateError('databaseProvider must be overridden'),
 );
 
-/// Optional live interpretation transport. Production leaves this absent until
-/// a reviewed provider and deployment configuration are supplied; the Journal
+/// The single network transport, or null when this build was compiled without
+/// `ETER_AI_ENDPOINT`. Null is a supported, shipped configuration: the app is
+/// complete without a model and every surface says so rather than pretending.
+///
+/// See `docs/AI_FLOW.md` §6 and `core/ai/transport.dart` for why the endpoint
+/// belongs to the product owner and the model key never reaches this client.
+final aiTransportProvider = Provider<EterAiTransport?>((ref) {
+  final config = EterAiConfig.fromEnvironment();
+  return config == null ? null : EterAiTransport(config: config);
+});
+
+/// Live interpretation transport. Absent without an endpoint; the Journal then
 /// still exposes the explicit workflow and explains that state honestly.
 final journalClassificationProvider =
-    Provider<JournalClassificationProvider?>((ref) => null);
+    Provider<JournalClassificationProvider?>((ref) {
+  final transport = ref.watch(aiTransportProvider);
+  return transport == null
+      ? null
+      : TransportJournalClassificationProvider(transport);
+});
 
-/// Optional live Aether transport. The local trust boundary and UI remain
-/// functional without it, but never imply that composition occurred.
-final aetherTransportProvider = Provider<AetherProvider?>((ref) => null);
+/// Live Aether transport. The local trust boundary and UI remain functional
+/// without it, but never imply that composition occurred.
+final aetherTransportProvider = Provider<AetherProvider?>((ref) {
+  final transport = ref.watch(aiTransportProvider);
+  return transport == null ? null : TransportAetherProvider(transport);
+});
 
 final vesselReadingTransportProvider =
-    Provider<VesselReadingProvider?>((ref) => null);
+    Provider<VesselReadingProvider?>((ref) {
+  final transport = ref.watch(aiTransportProvider);
+  return transport == null ? null : TransportVesselReadingProvider(transport);
+});
 
-/// Optional transport for today's Positions — the moving half of the Vessel.
-/// The contacts are always computed locally; only their prose needs this.
-final positionsTransportProvider = Provider<PositionsProvider?>((ref) => null);
+/// Transport for today's Positions — the moving half of the Vessel. The
+/// contacts are always computed locally; only their prose needs this.
+final positionsTransportProvider = Provider<PositionsProvider?>((ref) {
+  final transport = ref.watch(aiTransportProvider);
+  return transport == null ? null : TransportPositionsProvider(transport);
+});
 
-/// Optional transport for the Journal's daily story and its digest. Absent
-/// until a provider is configured; the Journal then shows the day's pages
-/// without a story rather than pretending to have one.
-final journalDayStoryProvider =
-    Provider<JournalDayStoryProvider?>((ref) => null);
+/// Transport for the Journal's daily story and its digest. Absent without an
+/// endpoint; the Journal then shows the day's pages without a story rather
+/// than pretending to have one.
+final journalDayStoryProvider = Provider<JournalDayStoryProvider?>((ref) {
+  final transport = ref.watch(aiTransportProvider);
+  return transport == null ? null : TransportJournalDayStoryProvider(transport);
+});
 final birthplaceResolverProvider = Provider<BirthplaceResolver>(
   (ref) => PlatformBirthplaceResolver(),
 );

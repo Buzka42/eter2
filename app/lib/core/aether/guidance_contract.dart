@@ -102,9 +102,17 @@ abstract interface class AetherProvider {
 
 class AetherProviderRequest {
   const AetherProviderRequest({
+    required this.system,
     required this.context,
     required this.responseSchema,
   });
+
+  /// The instruction, built on the device by `EterPrompts.guidance`. It travels
+  /// with the request so that the endpoint forwards a complete prompt rather
+  /// than composing one of its own — the voice is the product, and it does not
+  /// live on a server.
+  final String system;
+
   final Map<String, Object> context;
   final Map<String, Object> responseSchema;
 }

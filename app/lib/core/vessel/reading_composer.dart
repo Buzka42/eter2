@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../aether/guidance_mode.dart';
 import '../aether/safety_policy.dart';
+import '../ai/prompts.dart';
 import '../db/app_database.dart';
 
 class VesselReadingException implements Exception {
@@ -63,9 +64,14 @@ abstract interface class VesselReadingProvider {
 
 class VesselReadingProviderRequest {
   const VesselReadingProviderRequest({
+    required this.system,
     required this.context,
     required this.responseSchema,
   });
+
+  /// Built on the device by `EterPrompts.vesselReading`, for the reason given
+  /// on [AetherProviderRequest.system].
+  final String system;
 
   final Map<String, Object> context;
   final Map<String, Object> responseSchema;
@@ -125,14 +131,16 @@ class VesselReadingComposer {
       return VesselReadingComposition(rows: existing, fromCache: true);
     }
 
+    final prompt = EterPrompts.vesselReading(VesselReadingRequest(
+      mode: request.mode,
+      positions: missing,
+      approximateTime: request.approximateTime,
+      approximatePlace: request.approximatePlace,
+    ));
     final raw = await provider.compose(
       VesselReadingProviderRequest(
-        context: VesselReadingRequest(
-          mode: request.mode,
-          positions: missing,
-          approximateTime: request.approximateTime,
-          approximatePlace: request.approximatePlace,
-        ).toJson(),
+        system: prompt.system,
+        context: prompt.user.cast<String, Object>(),
         responseSchema: vesselReadingResponseSchema,
       ),
     );

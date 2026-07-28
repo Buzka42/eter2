@@ -193,13 +193,17 @@ with no transport at all.
 
 ## 5. What is still missing
 
-1. **A transport.** All three providers are `null` in `main.dart`. The app
-   states this honestly on each surface and writes nothing. This is the
-   remaining blocker for the whole feature.
-2. **A server.** The client must never hold a model key — the steering brief is
-   explicit and so is `RELEASE.md`. The call belongs behind an
-   owner-controlled endpoint that authenticates the caller, holds the
-   credential, and forwards the already-bounded payload.
+1. ~~**A transport.**~~ Built: `core/ai/transport.dart` posts the bounded
+   `{system, user, responseSchema}` triple to one owner-controlled endpoint and
+   returns the raw string, with five thin adapters and no parsing. All five
+   providers in `main.dart` resolve through it. A build compiled without
+   `ETER_AI_ENDPOINT` still has no transport, states that honestly on each
+   surface, and writes nothing — which remains a shippable configuration.
+2. **A server.** *The remaining blocker.* The client must never hold a model
+   key — the steering brief is explicit and so is `RELEASE.md`. The call
+   belongs behind an owner-controlled endpoint that authenticates the caller,
+   holds the credential, and forwards the already-bounded payload. The exact
+   wire contract it has to satisfy is [`AI_ENDPOINT.md`](AI_ENDPOINT.md).
 3. **Rate and cost policy.** Nothing today limits how often `COMPOSE NOW` may
    be pressed. The fingerprint cache makes a repeat free when context is
    unchanged, which covers the common case and not a determined one.
@@ -218,17 +222,18 @@ with no transport at all.
 
 ## 6. If you are wiring the transport
 
-In order:
+Steps 2 and 3 are done. What is left:
 
-1. Build the endpoint. It authenticates, holds the key, and forwards
-   `{system, user, responseSchema}` unchanged. It must not add context of its
-   own — the payload's boundedness is the privacy guarantee.
-2. Implement `AetherProvider`, `JournalClassificationProvider` and
-   `VesselReadingProvider` as thin clients that call it and return the raw
-   response string. **Do not parse in the transport.** The parsers are the
-   contract; a transport that "helpfully" repairs JSON defeats them.
-3. Override the three providers in `main.dart`.
-4. Record the fixture set from §5.5 before shipping.
-5. Leave every failure path returning an error rather than a fallback string.
-   A day with no guidance is a correct outcome; a day with invented guidance
-   is not.
+1. Build the endpoint to the contract in [`AI_ENDPOINT.md`](AI_ENDPOINT.md). It
+   authenticates, holds the key, and forwards `{system, user, responseSchema}`
+   unchanged. It must not add context of its own — the payload's boundedness is
+   the privacy guarantee.
+2. ~~Implement the providers as thin clients.~~ Done: five adapters in
+   `core/ai/transport.dart`, each three lines, none of which parses. **The
+   parsers are the contract**; a transport that "helpfully" repaired JSON would
+   defeat them, so a malformed answer is forwarded malformed.
+3. ~~Override the providers in `main.dart`.~~ Done: all five resolve from
+   `aiTransportProvider`, which is null unless the build carries an endpoint.
+4. Build with the defines, and record the fixture set from §5.5 before shipping.
+5. Every failure path returns an error rather than a fallback string. A day
+   with no guidance is a correct outcome; a day with invented guidance is not.

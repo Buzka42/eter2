@@ -1,0 +1,285 @@
+/// The one way a model is reached, and the one place a network call is made.
+///
+/// Every one of the five contracts is already a bounded `{system, user,
+/// responseSchema}` triple built on the device. This file does exactly one
+/// thing with that triple: it posts it to an endpoint the product owner
+/// controls and returns the response body as a string.
+///
+/// Three rules, and they are the reason this file is so small.
+///
+/// **No credential lives here.** The client authenticates to *the owner's*
+/// endpoint, which holds the model key. A build of Eter that shipped a model
+/// key would be a build that gave it to everyone who downloaded it.
+///
+/// **No parsing happens here.** The parsers in each contract are the contract.
+/// A transport that repaired malformed JSON on the way past would defeat the
+/// validation that keeps invented content out of the record.
+///
+/// **No fallback is produced here.** Every failure path throws. A day with no
+/// guidance is a correct outcome; a day with guidance nobody composed is not.
+library;
+
+import 'dart:convert';
+import 'dart:io';
+
+import '../aether/guidance_contract.dart';
+import '../journal/classification_contract.dart';
+import '../journal/day_story.dart';
+import '../vessel/positions_composer.dart';
+import '../vessel/reading_composer.dart';
+import 'prompts.dart';
+
+/// Where the endpoint is and how to prove we may call it.
+///
+/// Read from `--dart-define` at build time, so a debug build with no defines
+/// behaves exactly as the app does today: no transport, and every surface says
+/// so.
+class EterAiConfig {
+  const EterAiConfig({required this.endpoint, required this.token});
+
+  /// The owner-controlled endpoint. Empty means no transport is configured.
+  final String endpoint;
+
+  /// The caller's credential for that endpoint — not for any model.
+  final String token;
+
+  static const _endpoint = String.fromEnvironment('ETER_AI_ENDPOINT');
+  static const _token = String.fromEnvironment('ETER_AI_TOKEN');
+
+  /// The configuration this build was compiled with, or null if it was
+  /// compiled without one.
+  static EterAiConfig? fromEnvironment() {
+    if (_endpoint.isEmpty) return null;
+    return const EterAiConfig(endpoint: _endpoint, token: _token);
+  }
+
+  bool get isHttps => Uri.tryParse(endpoint)?.scheme == 'https';
+}
+
+class EterTransportException implements Exception {
+  const EterTransportException(this.reason, {this.statusCode});
+
+  final String reason;
+
+  /// Present when the endpoint answered and the answer was not a success.
+  final int? statusCode;
+
+  @override
+  String toString() =>
+      statusCode == null ? reason : '$reason (HTTP $statusCode)';
+}
+
+/// The five calls, named on the wire so the endpoint can route, meter and log
+/// them separately without inspecting the payload.
+enum EterAiCall {
+  guidance,
+  journalDayStory,
+  journalInterpretation,
+  vesselReadings,
+  positions;
+
+  String get wireName => name;
+}
+
+/// Posts a JSON body and returns the response body, or throws.
+///
+/// Injected so the transport can be tested without a socket. The default is
+/// [defaultEterPost].
+typedef EterPost = Future<String> Function(
+  Uri url,
+  Map<String, String> headers,
+  String body,
+);
+
+/// `dart:io` rather than a package, because one POST does not justify a
+/// dependency and the thirteen that came out of this build were removed for a
+/// reason.
+Future<String> defaultEterPost(
+  Uri url,
+  Map<String, String> headers,
+  String body,
+) async {
+  final client = HttpClient()
+    ..connectionTimeout = const Duration(seconds: 20);
+  try {
+    final request = await client.postUrl(url);
+    headers.forEach(request.headers.set);
+    request.write(body);
+    final response = await request.close();
+    final text = await response.transform(utf8.decoder).join();
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw EterTransportException(
+        'The guidance endpoint refused the request',
+        statusCode: response.statusCode,
+      );
+    }
+    return text;
+  } on SocketException {
+    throw const EterTransportException('The guidance endpoint is unreachable');
+  } on HttpException {
+    throw const EterTransportException('The guidance endpoint failed');
+  } finally {
+    client.close(force: true);
+  }
+}
+
+/// One endpoint, five callers.
+class EterAiTransport {
+  EterAiTransport({
+    required this.config,
+    this.post = defaultEterPost,
+    this.timeout = const Duration(seconds: 45),
+  });
+
+  final EterAiConfig config;
+  final EterPost post;
+  final Duration timeout;
+
+  /// Forwards the triple unchanged and returns whatever came back.
+  ///
+  /// The endpoint is expected to answer with the model's raw text — the same
+  /// string a provider would have returned — either as the whole body or as a
+  /// `{"raw": "..."}` envelope. Anything else is a transport failure rather
+  /// than a parse failure, because the parsers are not this file's business.
+  Future<String> send({
+    required EterAiCall call,
+    required String system,
+    required Map<String, Object?> user,
+    required Map<String, Object?> responseSchema,
+  }) async {
+    final url = Uri.tryParse(config.endpoint);
+    if (url == null || !url.isAbsolute) {
+      throw const EterTransportException('The endpoint is not a valid URL');
+    }
+    if (!config.isHttps) {
+      // The payload is bounded but it is still a person's records.
+      throw const EterTransportException('The endpoint must be HTTPS');
+    }
+
+    final body = jsonEncode({
+      'call': call.wireName,
+      'promptVersion': EterPrompts.version,
+      'system': system,
+      'user': user,
+      'responseSchema': responseSchema,
+    });
+
+    final response = await post(
+      url,
+      {
+        'content-type': 'application/json; charset=utf-8',
+        if (config.token.isNotEmpty) 'authorization': 'Bearer ${config.token}',
+      },
+      body,
+    ).timeout(
+      timeout,
+      onTimeout: () =>
+          throw const EterTransportException('The endpoint did not answer'),
+    );
+
+    return _unwrap(response);
+  }
+
+  /// Accepts the model's text either bare or wrapped, and nothing else.
+  String _unwrap(String response) {
+    final trimmed = response.trim();
+    if (trimmed.isEmpty) {
+      throw const EterTransportException('The endpoint returned nothing');
+    }
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map<String, dynamic>) {
+        final raw = decoded['raw'];
+        if (raw is String && raw.trim().isNotEmpty) return raw;
+        if (decoded['error'] is String) {
+          throw EterTransportException(decoded['error'] as String);
+        }
+      }
+    } on FormatException {
+      // Not JSON at all: it is the model's text, which the parsers will judge.
+    }
+    return trimmed;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The five adapters. Each is the same three lines with a different call name,
+// which is the point: no adapter gets to be clever about its own contract.
+// ---------------------------------------------------------------------------
+
+class TransportAetherProvider implements AetherProvider {
+  const TransportAetherProvider(this.transport);
+  final EterAiTransport transport;
+
+  @override
+  Future<String> compose(AetherProviderRequest request) => transport.send(
+        call: EterAiCall.guidance,
+        system: request.system,
+        user: request.context,
+        responseSchema: request.responseSchema,
+      );
+}
+
+class TransportJournalDayStoryProvider implements JournalDayStoryProvider {
+  const TransportJournalDayStoryProvider(this.transport);
+  final EterAiTransport transport;
+
+  @override
+  Future<String> compose(JournalDayStoryProviderRequest request) =>
+      transport.send(
+        call: EterAiCall.journalDayStory,
+        system: request.system,
+        user: request.context,
+        responseSchema: request.responseSchema,
+      );
+}
+
+/// The one adapter that builds its own prompt, because the classification
+/// contract carries the page rather than a composed request. The prompt is
+/// still built here on the device, from `EterPrompts`.
+class TransportJournalClassificationProvider
+    implements JournalClassificationProvider {
+  const TransportJournalClassificationProvider(this.transport);
+  final EterAiTransport transport;
+
+  @override
+  Future<String> classify(JournalClassificationRequest request) {
+    final prompt = EterPrompts.journalInterpretation(
+      entryText: request.text,
+      clarification: request.clarification,
+    );
+    return transport.send(
+      call: EterAiCall.journalInterpretation,
+      system: prompt.system,
+      user: prompt.user,
+      responseSchema: request.responseSchema,
+    );
+  }
+}
+
+class TransportVesselReadingProvider implements VesselReadingProvider {
+  const TransportVesselReadingProvider(this.transport);
+  final EterAiTransport transport;
+
+  @override
+  Future<String> compose(VesselReadingProviderRequest request) =>
+      transport.send(
+        call: EterAiCall.vesselReadings,
+        system: request.system,
+        user: request.context,
+        responseSchema: request.responseSchema,
+      );
+}
+
+class TransportPositionsProvider implements PositionsProvider {
+  const TransportPositionsProvider(this.transport);
+  final EterAiTransport transport;
+
+  @override
+  Future<String> compose(PositionsProviderRequest request) => transport.send(
+        call: EterAiCall.positions,
+        system: request.system,
+        user: request.context,
+        responseSchema: request.responseSchema,
+      );
+}
