@@ -257,7 +257,9 @@ Closing it restores the guidance and its scroll state.
   a multi-metric row or sparkline competing with guidance.
 - **Expanded:** full charts, manual activity entry, food editing **including
   per-item correction** (changing one line of an extracted meal from 320 kcal to
-  260). This was specced in v1 and never shipped; it is required now.
+  260). Both workflows are now implemented. Manual activity accepts an explicit
+  name, duration and active-energy value, then passes through canonical
+  minute-level deduplication; it does not present an inferred estimate as fact.
 - **Unconfirmed food estimates must be visibly unconfirmed** and must not read
   as fact. The database already excludes them from totals; the UI must not imply
   otherwise.

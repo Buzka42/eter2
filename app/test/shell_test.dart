@@ -102,6 +102,44 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('manual activity enters the canonical Body record',
+      (tester) async {
+    await pumpShell(tester);
+    await expandBody(tester);
+
+    final addActivity = find.text('ADD ACTIVITY');
+    await tester.ensureVisible(addActivity);
+    await tester.tap(addActivity);
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-activity-name')),
+      'Evening walk',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-activity-duration')),
+      '30',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('manual-activity-energy')),
+      '120',
+    );
+    final add = find.text('ADD');
+    await tester.ensureVisible(add);
+    await tester.tap(add);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+
+    expect(find.text('Evening walk added to today.'), findsOneWidget);
+    final sessions = await db.loadSessions(
+      DateTime(2026, 7, 27),
+      DateTime(2026, 7, 28),
+    );
+    expect(sessions.any((session) => session.sport == 'Evening walk'), isTrue);
+    await closeShell(tester);
+  });
+
   testWidgets('expansion and a half-written entry survive the page crossing',
       (tester) async {
     await pumpShell(tester);

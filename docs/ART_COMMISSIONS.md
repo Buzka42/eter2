@@ -139,3 +139,9 @@ section expansion and night drift are code-native, accessibility-aware motion.
 If a later Sanctum or Arcana state needs authored animation, add a Higgsfield
 brief here only after the exact still composition and reduced-motion fallback
 exist; commission at least two variants from that locked frame.
+
+The manual Body activity entry added on 28 July 2026 intentionally requests no
+authored asset. It is a plain factual passage using the existing typographic
+actions and hairline fields; decoration would compete with the values being
+entered. Because no asset was generated, the two-option review gate is not
+triggered.

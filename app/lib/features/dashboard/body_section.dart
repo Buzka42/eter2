@@ -7,6 +7,7 @@ import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/icons.dart';
+import '../../core/health/manual_activity.dart';
 import '../../core/instruments.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -281,6 +282,8 @@ class _ExpandedBody extends StatelessWidget {
           ),
         ],
         const SizedBox(height: EterSpace.s24),
+        _ManualActivityEntry(db: db, now: now),
+        const SizedBox(height: EterSpace.s24),
         _HistoricalSignals(db: db, now: now, today: today),
         if (meals.isNotEmpty) ...[
           const SizedBox(height: EterSpace.s24),
@@ -294,6 +297,148 @@ class _ExpandedBody extends StatelessWidget {
             ),
         ],
         const SizedBox(height: EterSpace.s24),
+      ],
+    );
+  }
+}
+
+class _ManualActivityEntry extends StatefulWidget {
+  const _ManualActivityEntry({required this.db, required this.now});
+
+  final AppDatabase db;
+  final DateTime now;
+
+  @override
+  State<_ManualActivityEntry> createState() => _ManualActivityEntryState();
+}
+
+class _ManualActivityEntryState extends State<_ManualActivityEntry> {
+  final _activity = TextEditingController();
+  final _duration = TextEditingController();
+  final _energy = TextEditingController();
+  bool _open = false;
+  bool _saving = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _activity.dispose();
+    _duration.dispose();
+    _energy.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final duration = int.tryParse(_duration.text.trim());
+    final kcal = double.tryParse(_energy.text.trim());
+    if (duration == null || kcal == null) {
+      setState(() => _message = 'Enter duration and active energy as numbers.');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    try {
+      await ManualActivityService(widget.db).record(
+        activity: _activity.text,
+        durationMinutes: duration,
+        activeKcal: kcal,
+        endedAt: widget.now,
+      );
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _open = false;
+        _message = '${_activity.text.trim()} added to today.';
+        _activity.clear();
+        _duration.clear();
+        _energy.clear();
+      });
+    } on ManualActivityException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _message = error.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text('ACTIVITY', style: text.labelSmall)),
+            EterAction(
+              label: _open ? 'Cancel' : 'Add activity',
+              emphasis: EterActionEmphasis.quiet,
+              onPressed: _saving
+                  ? null
+                  : () => setState(() {
+                        _open = !_open;
+                        _message = null;
+                      }),
+            ),
+          ],
+        ),
+        if (_open) ...[
+          const SizedBox(height: EterSpace.s8),
+          TextField(
+            key: const ValueKey('manual-activity-name'),
+            controller: _activity,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(labelText: 'Activity'),
+          ),
+          const SizedBox(height: EterSpace.s8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('manual-activity-duration'),
+                  controller: _duration,
+                  keyboardType: TextInputType.number,
+                  textInputAction: TextInputAction.next,
+                  decoration:
+                      const InputDecoration(labelText: 'Duration · minutes'),
+                ),
+              ),
+              const SizedBox(width: EterSpace.s12),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('manual-activity-energy'),
+                  controller: _energy,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  onSubmitted: (_) => _save(),
+                  decoration:
+                      const InputDecoration(labelText: 'Active energy · kcal'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: EterSpace.s8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: EterAction(
+              label: _saving ? 'Adding' : 'Add',
+              emphasis: EterActionEmphasis.primary,
+              busy: _saving,
+              onPressed: _save,
+            ),
+          ),
+        ],
+        if (_message != null) ...[
+          const SizedBox(height: EterSpace.s8),
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+        ],
       ],
     );
   }

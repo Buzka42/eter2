@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
 import '../energy/energy.dart' as energy;
+import 'daily_activity_summary.dart';
 
 enum HubMetric {
   activeEnergy,
@@ -81,7 +82,8 @@ class HealthHubSyncService {
       final samples = await gateway.read(start.toUtc(), end.toUtc());
       await _writeMinuteBuckets(samples);
       await database.recomputeMinuteWinners(start.toUtc(), end.toUtc());
-      final summariesUpdated = await _refreshDaySummaries(start, end);
+      final summariesUpdated =
+          await DailyActivitySummaryService(database).refresh(start, end);
       await _writeSleep(samples);
       await _writeVitals(samples);
       await database.recordIntegrationSync(
@@ -103,73 +105,6 @@ class HealthHubSyncService {
       );
       rethrow;
     }
-  }
-
-  Future<int> _refreshDaySummaries(DateTime start, DateTime end) async {
-    final profile = await database.loadProfile();
-    final height = profile?.heightCm;
-    if (profile == null || height == null) return 0;
-
-    final minutes = await database.loadMinuteBuckets(
-      start.toUtc(),
-      end.toUtc(),
-    );
-    if (minutes.isEmpty) return 0;
-    final sessions = await database.loadSessions(start.toUtc(), end.toUtc());
-    final byDate = <String, List<MinuteBucketRow>>{};
-    for (final row in minutes) {
-      byDate
-          .putIfAbsent(eterIsoDate(row.minuteUtc.toLocal()), () => [])
-          .add(row);
-    }
-    final sessionCounts = <String, int>{};
-    for (final session in sessions) {
-      sessionCounts.update(
-        eterIsoDate(session.startUtc.toLocal()),
-        (count) => count + 1,
-        ifAbsent: () => 1,
-      );
-    }
-
-    final endLocal = end.toLocal();
-    final endDate = eterIsoDate(endLocal);
-    final restingPerMinute = energy.rmrPerMin(
-      energy.rmrKcalPerDay(
-        sex: switch (profile.sex) {
-          'female' => energy.Sex.female,
-          'male' => energy.Sex.male,
-          _ => energy.Sex.other,
-        },
-        weightKg: profile.weightKg,
-        heightCm: height,
-        age: _ageAt(profile.dob, endLocal),
-      ),
-    );
-
-    for (final entry in byDate.entries) {
-      final active =
-          entry.value.fold<double>(0, (sum, row) => sum + row.activeKcal);
-      final steps =
-          entry.value.fold<int>(0, (sum, row) => sum + (row.steps ?? 0));
-      final elapsedMinutes =
-          entry.key == endDate ? endLocal.hour * 60 + endLocal.minute : 1440;
-      await database.recordDayTotal(
-        date: entry.key,
-        activeKcal: active,
-        basalKcal: restingPerMinute * elapsedMinutes,
-        steps: steps,
-        sessionsCount: sessionCounts[entry.key] ?? 0,
-      );
-    }
-    return byDate.length;
-  }
-
-  int _ageAt(DateTime dob, DateTime on) {
-    var age = on.year - dob.year;
-    if (on.month < dob.month || (on.month == dob.month && on.day < dob.day)) {
-      age -= 1;
-    }
-    return age;
   }
 
   Future<void> _writeMinuteBuckets(List<HubSample> samples) async {
