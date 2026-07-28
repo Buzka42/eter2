@@ -737,6 +737,28 @@ class AppDatabase extends _$AppDatabase {
   Future<void> upsertPattern(PatternCandidatesCompanion pattern) =>
       into(patternCandidates).insertOnConflictUpdate(pattern);
 
+  /// Refreshes discovery evidence without reviving a pattern the user
+  /// dismissed. User agency wins over later recomputation.
+  Future<bool> saveDiscoveredPattern(
+    PatternCandidatesCompanion companion,
+  ) async {
+    return transaction(() async {
+      final key = companion.key.value;
+      final existing = await (select(patternCandidates)
+            ..where((row) => row.key.equals(key)))
+          .getSingleOrNull();
+      if (existing?.status == 'dismissed') return false;
+      await into(patternCandidates).insertOnConflictUpdate(companion);
+      return true;
+    });
+  }
+
+  Future<void> removeActivePattern(String key) => (delete(patternCandidates)
+        ..where(
+          (row) => row.key.equals(key) & row.status.equals('active'),
+        ))
+      .go();
+
   /// Dismissed patterns are excluded. A pattern the user rejected must not
   /// reach the model, or dismissing it means nothing.
   Future<List<PatternCandidateRow>> loadActivePatterns() =>

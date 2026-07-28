@@ -380,6 +380,13 @@ pattern evidence is spoken before its independent Dismiss action, and both
 memory reset and full local deletion require a consequence-revealing first
 action before the destructive second action appears.
 
+Pattern discovery itself is local and explicit. The Aether Memory `REVIEW`
+action may retain a
+correlation only when its minimum sample and effect thresholds are met. The
+receipt exposes the observation count, date window and coefficient, always says
+“correlation, not cause,” and a later review must never reactivate something
+the user dismissed.
+
 ---
 
 ## 11. Testing

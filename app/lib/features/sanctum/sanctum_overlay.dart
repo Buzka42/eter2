@@ -10,6 +10,7 @@ import '../../core/db/app_database.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
 import '../../core/privacy/local_data_export.dart';
+import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -205,6 +206,26 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
   bool _busy = false;
   String? _message;
 
+  Future<void> _review() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _message = 'Reviewing recent local signals…';
+    });
+    final result = await LocalPatternDiscovery(widget.database).review(
+      now: DateTime.now(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _patterns = widget.database.loadActivePatterns();
+      _message = result.activePatterns == 0
+          ? 'Not enough consistent local evidence yet.'
+          : '${result.activePatterns} local pattern refreshed from '
+              '${result.observations} observations.';
+    });
+  }
+
   Future<void> _dismiss(String key) async {
     await widget.database.dismissPattern(key);
     if (mounted) {
@@ -306,6 +327,12 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
         ),
         const SizedBox(height: EterSpace.s8),
         EterAction(
+          label: 'Review',
+          emphasis: EterActionEmphasis.quiet,
+          busy: _busy,
+          onPressed: _busy ? null : _review,
+        ),
+        EterAction(
           label: _confirmReset ? 'Clear now' : 'Reset',
           busy: _busy,
           onPressed: _busy ? null : _reset,
@@ -331,6 +358,10 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
         }
         if (evidence['window'] case final String window) {
           parts.add(window);
+        }
+        if (evidence['coefficient'] case final num coefficient) {
+          final sign = coefficient > 0 ? '+' : '';
+          parts.add('$sign${coefficient.round()} min difference');
         }
       }
     } on FormatException {

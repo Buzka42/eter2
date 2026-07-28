@@ -834,6 +834,35 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('Sanctum reviews local patterns without claiming weak evidence',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpShell(tester);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+
+    final review = find.text('REVIEW');
+    await tester.ensureVisible(review);
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: review, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Not enough consistent local evidence yet.'),
+      findsOneWidget,
+    );
+    expect(await db.loadActivePatterns(), isEmpty);
+    semantics.dispose();
+    await closeShell(tester);
+  });
+
   testWidgets('local deletion requires a second explicit action',
       (tester) async {
     await pumpShell(tester);

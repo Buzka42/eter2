@@ -163,3 +163,8 @@ Arcana imagery, offline keywords and typographic actions. Composition is a
 content transition, not a new visual event; cached material remains visible
 and a live text status carries progress or failure. No animation or generated
 asset was added, so no two-option review is triggered.
+
+The local pattern-review milestone also adds no raster commission. Evidence is
+deliberately typographic and inspectable; illustrating a correlation would
+give weak local statistics more authority than the product intends. No
+two-option asset decision is triggered by this slice.
