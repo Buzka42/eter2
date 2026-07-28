@@ -9,6 +9,7 @@ import '../../core/arcana/animated_arcana_card.dart';
 import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/symbol_content.dart';
 import '../../core/arcana/zodiac.dart';
+import '../../core/ai/transport.dart';
 import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
@@ -193,7 +194,17 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         _composing = false;
         _compositionMessage = error.reason == 'AI processing is not permitted'
             ? 'Enable AI guidance in the Sanctum before composing.'
-            : 'The response could not be accepted safely. Nothing changed.';
+            // Everything else here is the parser or the safety gate refusing
+            // what came back, and saying which is more use than a single
+            // sentence covering both.
+            : 'The reading could not be accepted: ${error.reason}. '
+                'Nothing changed.';
+      });
+    } on EterTransportException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _composing = false;
+        _compositionMessage = error.reason;
       });
     } catch (_) {
       if (!mounted) return;

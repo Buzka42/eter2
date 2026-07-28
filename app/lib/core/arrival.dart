@@ -277,8 +277,6 @@ class _PassageView extends StatelessWidget {
     // Displacement tracks the group currently resolving, so each sentence
     // begins fractionally low and settles — the block re-dips by at most
     // 4 dp, which is the "focus arriving" beat, not a jitter.
-    var displacement = 0.0;
-    var latestStarted = -1;
     for (var g = 0; g < timeline.groups.length; g++) {
       final group = timeline.groups[g];
       final raw = ((elapsedMs - group.startMs) / groupDurMs).clamp(0.0, 1.0);
@@ -288,7 +286,6 @@ class _PassageView extends StatelessWidget {
         spans.add(TextSpan(text: group.text, style: style));
       } else {
         final eased = EterMotion.easeAir.transform(raw);
-        if (elapsedMs >= group.startMs) latestStarted = g;
         final color = style.color ?? const Color(0xFF000000);
         spans.add(
           TextSpan(
@@ -310,11 +307,21 @@ class _PassageView extends StatelessWidget {
         );
       }
     }
-    if (latestStarted >= 0) {
-      final group = timeline.groups[latestStarted];
-      final raw = ((elapsedMs - group.startMs) / groupDurMs).clamp(0.0, 1.0);
-      displacement = (1 - EterMotion.easeAir.transform(raw)) * maxDisplacement;
-    }
+    // The block rises once, across the whole passage.
+    //
+    // This used to be driven by whichever group had most recently started,
+    // which meant the displacement reset to its maximum every time a new group
+    // began: the text jumped back down and rose again, once per group, and
+    // read as a shake rather than a settling. The passage is one object and
+    // moves once.
+    final first = timeline.groups.first.startMs;
+    final last = timeline.groups.last.startMs + groupDurMs;
+    final overall = last <= first
+        ? 1.0
+        : ((elapsedMs - first) / (last - first)).clamp(0.0, 1.0);
+    final displacement =
+        (1 - EterMotion.easeAir.transform(overall)) * maxDisplacement;
+
     return Transform.translate(
       offset: Offset(0, displacement),
       child: RichText(text: TextSpan(children: spans)),

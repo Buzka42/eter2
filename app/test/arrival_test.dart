@@ -148,4 +148,42 @@ void main() {
     expect(painted(rootOf(richTexts[0])), isFalse);
     expect(painted(rootOf(richTexts[1])), isTrue);
   });
+
+  testWidgets('the passage rises once and never jumps back', (tester) async {
+    // Displacement used to be driven by whichever group had most recently
+    // started, so it reset to its maximum every time a new group began: the
+    // block dropped and rose repeatedly, which reads as a shake. It must
+    // decrease monotonically to zero.
+    const passage =
+        'A long passage with enough words to fall into several groups, '
+        'because the fault only appeared when a second group began.';
+    await tester.pumpWidget(_wrap(EterArrival.single(passage)));
+    await tester.pump();
+
+    double displacement() {
+      var lowest = 0.0;
+      for (final transform
+          in tester.widgetList<Transform>(find.byType(Transform))) {
+        final dy = transform.transform.getTranslation().y;
+        if (dy.abs() > lowest.abs()) lowest = dy;
+      }
+      return lowest;
+    }
+
+    var previous = displacement();
+    expect(previous, greaterThan(0), reason: 'it should start displaced');
+
+    for (var elapsed = 0; elapsed < 1400; elapsed += 50) {
+      await tester.pump(const Duration(milliseconds: 50));
+      final current = displacement();
+      expect(
+        current,
+        lessThanOrEqualTo(previous + 0.001),
+        reason: 'displacement rose again at ${elapsed}ms — that is the shake',
+      );
+      previous = current;
+    }
+
+    expect(previous, closeTo(0, 0.001));
+  });
 }

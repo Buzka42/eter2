@@ -15,14 +15,19 @@
 // safety net working, not the transport breaking.
 
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:drift/drift.dart' show Value;
+import 'package:drift/native.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
 import 'package:eter/core/aether/request_contract.dart';
 import 'package:eter/core/ai/prompts.dart';
 import 'package:eter/core/ai/transport.dart';
 import 'package:eter/core/journal/classification_contract.dart';
+import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/journal/day_story.dart';
+import 'package:eter/core/vessel/initial_readings.dart';
 import 'package:eter/core/symbolic/natal_chart.dart';
 import 'package:eter/core/vessel/positions_composer.dart';
 import 'package:eter/core/symbolic/transits.dart';
@@ -37,6 +42,13 @@ const _endpoint = String.fromEnvironment(
 );
 
 void main() {
+  // SymbolContent reads an asset, so the composer path needs a binding. The
+  // binding also stubs every HttpClient to answer 400, which is right for an
+  // ordinary widget test and exactly wrong here: this suite exists to make
+  // real calls.
+  TestWidgetsFlutterBinding.ensureInitialized();
+  HttpOverrides.global = null;
+
   final transport = EterAiTransport(
     config: const EterAiConfig(endpoint: _endpoint, token: ''),
     timeout: const Duration(seconds: 90),
@@ -49,6 +61,8 @@ void main() {
     test('interpretation reads weight, a run and lifted work',
         () => _bodyInterpretation(transport));
     test('vessel readings compose and parse', () => _vesselReadings(transport));
+    test('the real composer writes the initial readings',
+        () => _vesselThroughComposer(transport));
     test('positions compose and parse', () => _positions(transport));
   },
       skip: _enabled
@@ -207,6 +221,36 @@ Future<String> _vesselReadings(EterAiTransport transport) async {
     throw const FormatException('No readings in the response');
   }
   return raw;
+}
+
+/// The composer as the app actually calls it, with its own parser and its own
+/// safety gate — not just a JSON shape check. The shape check passed while the
+/// real path was failing, which is exactly the gap this closes.
+Future<String> _vesselThroughComposer(EterAiTransport transport) async {
+  final database = AppDatabase(NativeDatabase.memory());
+  addTearDown(database.close);
+  await database.saveProfile(ProfilesCompanion.insert(
+    dob: DateTime(1990, 3, 14),
+    sex: 'other',
+    weightKg: 70,
+    units: 'metric',
+    aiConsentAt: Value(DateTime.utc(2026, 7, 28)),
+  ));
+
+  final written = await InitialVesselReadings(
+    database: database,
+    provider: TransportVesselReadingProvider(transport),
+  ).composeIfPossible(now: DateTime.utc(2026, 7, 28));
+
+  expect(written, isTrue, reason: 'composeIfPossible wrote nothing');
+  final rows = await database.select(database.vesselReadings).get();
+  expect(rows.map((row) => row.positionKey).toSet(), {
+    'lifePath',
+    'sun',
+    'moon',
+    'ascendant',
+  });
+  return 'wrote readings';
 }
 
 Future<String> _positions(EterAiTransport transport) async {

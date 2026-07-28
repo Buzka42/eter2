@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../aether/guidance_mode.dart';
 import '../arcana/major_arcana.dart';
 import '../arcana/symbol_content.dart';
@@ -114,8 +116,12 @@ class InitialVesselReadings {
         now: now,
       );
       return true;
-    } catch (_) {
-      // Intake is never blocked by the symbolic half failing.
+    } catch (error) {
+      // Intake is never blocked by the symbolic half failing — but silence
+      // here once cost an afternoon: the Vessel stayed empty and nothing
+      // anywhere said why. Best-effort is about not blocking the user, not
+      // about being untraceable.
+      debugPrint('Initial vessel readings did not compose: $error');
       return false;
     }
   }

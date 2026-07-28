@@ -158,6 +158,32 @@ class _EterAppState extends ConsumerState<EterApp> {
   bool _onboardingCompletedNow = false;
   bool _tutorialCompletedNow = false;
 
+  /// Once per run: the readings are written at intake, but intake is not the
+  /// only moment they can become possible.
+  bool _checkedInitialReadings = false;
+
+  /// Composes the chart's passages if they are missing and can be written.
+  ///
+  /// The natural place for this is the end of onboarding, and that is where it
+  /// first fires. But someone who declines AI during setup and allows it later
+  /// in the Sanctum would otherwise never get them: the intake moment has
+  /// passed and nothing would try again, leaving a Vessel that says "not
+  /// composed yet" forever. So it is also attempted when the shell opens.
+  ///
+  /// Cheap to repeat — the composer only ever requests positions it does not
+  /// already hold, so once the readings exist this writes nothing and calls
+  /// no provider.
+  void _ensureInitialReadings(AppDatabase db) {
+    if (_checkedInitialReadings) return;
+    _checkedInitialReadings = true;
+    unawaited(
+      InitialVesselReadings(
+        database: db,
+        provider: ref.read(vesselReadingTransportProvider),
+      ).composeIfPossible(now: ref.read(nowProvider)()),
+    );
+  }
+
   @override
   void dispose() {
     _phaseTimer?.cancel();
@@ -242,12 +268,7 @@ class _EterAppState extends ConsumerState<EterApp> {
                       // opened. Best-effort and unawaited: no consent, no
                       // transport or a provider failure all mean the same
                       // thing, and none of them may delay the first screen.
-                      unawaited(
-                        InitialVesselReadings(
-                          database: db,
-                          provider: ref.read(vesselReadingTransportProvider),
-                        ).composeIfPossible(now: ref.read(nowProvider)()),
-                      );
+                      _ensureInitialReadings(db);
                     },
                   );
                 }
@@ -263,6 +284,7 @@ class _EterAppState extends ConsumerState<EterApp> {
                         setState(() => _tutorialCompletedNow = true),
                   );
                 }
+                _ensureInitialReadings(db);
                 return HealthRefreshOnResume(
                   refresh: ref.watch(healthForegroundRefreshProvider),
                   child: EterShell(startSurface: profile.startSurface),
