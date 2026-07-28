@@ -266,9 +266,17 @@ class _OnboardingMark extends StatelessWidget {
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
+              // The shell's wordmark lockup, not a heading: `headlineMedium`
+              // is the one TextTheme slot EterTheme does not define, so this
+              // was silently rendering in the platform's default face instead
+              // of Cormorant. Onboarding is where the name is met first; it
+              // has to be the same name.
               child: Text(
                 'ETER',
-                style: Theme.of(context).textTheme.headlineMedium,
+                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 8,
+                    ),
               ),
             ),
           ),

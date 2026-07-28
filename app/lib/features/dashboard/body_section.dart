@@ -427,7 +427,17 @@ class _StrengthEntryState extends State<_StrengthEntry> {
       children: [
         Row(
           children: [
-            Text('STRENGTH', style: text.labelSmall),
+            // The longest label in the Body's line rhythm. At 320 dp and 200%
+            // type it and its action are 0.9 px wider than the gutter allows,
+            // so the eyebrow yields rather than the row overflowing.
+            Flexible(
+              child: Text(
+                'STRENGTH',
+                style: text.labelSmall,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: EterSpace.s8),
             const Spacer(),
             EterAction(
               label: _open ? 'Cancel' : 'Record',
