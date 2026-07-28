@@ -13,6 +13,8 @@ import 'core/profile/birth_context.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
 import 'core/health/foreground_refresh.dart';
+import 'core/vessel/initial_readings.dart';
+import 'core/vessel/positions_composer.dart';
 import 'core/vessel/reading_composer.dart';
 import 'core/theme.dart';
 import 'features/onboarding/onboarding_flow.dart';
@@ -58,6 +60,10 @@ final aetherTransportProvider = Provider<AetherProvider?>((ref) => null);
 
 final vesselReadingTransportProvider =
     Provider<VesselReadingProvider?>((ref) => null);
+
+/// Optional transport for today's Positions — the moving half of the Vessel.
+/// The contacts are always computed locally; only their prose needs this.
+final positionsTransportProvider = Provider<PositionsProvider?>((ref) => null);
 
 /// Optional transport for the Journal's daily story and its digest. Absent
 /// until a provider is configured; the Journal then shows the day's pages
@@ -167,8 +173,21 @@ class _EterAppState extends ConsumerState<EterApp> {
                   return OnboardingFlow(
                     database: db,
                     profile: profile,
-                    onComplete: () =>
-                        setState(() => _onboardingCompletedNow = true),
+                    onComplete: () {
+                      setState(() => _onboardingCompletedNow = true);
+                      // The chart is fixed for life, so its passages are
+                      // written once, here, rather than on demand — the
+                      // Vessel should already be whole the first time it is
+                      // opened. Best-effort and unawaited: no consent, no
+                      // transport or a provider failure all mean the same
+                      // thing, and none of them may delay the first screen.
+                      unawaited(
+                        InitialVesselReadings(
+                          database: db,
+                          provider: ref.read(vesselReadingTransportProvider),
+                        ).composeIfPossible(now: ref.read(nowProvider)()),
+                      );
+                    },
                   );
                 }
                 // The first minute, once. A sparse interface is the kind most

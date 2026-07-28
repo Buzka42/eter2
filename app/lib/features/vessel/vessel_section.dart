@@ -9,8 +9,12 @@ import '../../core/arcana/animated_arcana_card.dart';
 import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/symbol_content.dart';
 import '../../core/arcana/zodiac.dart';
+import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/symbolic/chart_wheel.dart';
+import '../../core/symbolic/transits.dart';
+import '../../core/vessel/positions_composer.dart';
 import '../../core/symbolic/natal_chart.dart';
 import '../../core/symbolic/numerology.dart';
 import '../../core/tokens.dart';
@@ -239,6 +243,21 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 style: text.bodyMedium,
               )
             else ...[
+              // The chart itself, above everything written about it. Every
+              // other symbolic surface here is prose about a chart nobody
+              // could see.
+              const SizedBox(height: EterSpace.s16),
+              Center(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => NatalChartWheel(
+                    chart: data.chart,
+                    size: constraints.maxWidth.clamp(240.0, 340.0),
+                    ascendantReliable: !data.usedApproximateTime &&
+                        !data.usedApproximatePlace,
+                  ),
+                ),
+              ),
+              const SizedBox(height: EterSpace.s24),
               if (data.daily != null) _DailyCard(data: data),
               if (data.usedApproximateTime || data.usedApproximatePlace) ...[
                 const SizedBox(height: EterSpace.s16),
@@ -281,6 +300,8 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                   ),
                 ],
               ],
+              const SizedBox(height: EterSpace.s24),
+              _Positions(data: data, now: widget.now),
             ],
             const SizedBox(height: EterSpace.s32),
           ],
@@ -380,6 +401,175 @@ class EterArcanaPlate extends StatelessWidget {
         lightOverlay: brightness == Brightness.light,
         width: width,
         height: width * 1.485,
+      ),
+    );
+  }
+}
+
+/// Today's Positions — the only part of the Vessel that changes daily.
+///
+/// The natal chart is fixed and its readings are written once. This is the sky
+/// moving against it: contacts computed on the device, always present and
+/// costing nothing, with a passage that is written once per day and cached.
+///
+/// The contacts are shown whether or not the prose exists, because they are
+/// the actual finding. The prose is an interpretation of them.
+class _Positions extends ConsumerStatefulWidget {
+  const _Positions({required this.data, required this.now});
+
+  final _VesselData data;
+  final DateTime now;
+
+  @override
+  ConsumerState<_Positions> createState() => _PositionsState();
+}
+
+class _PositionsState extends ConsumerState<_Positions> {
+  TransitReading? _reading;
+  PositionsPassage? _passage;
+  bool _busy = false;
+  String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load({bool compose = false}) async {
+    if (_busy) return;
+    setState(() {
+      _busy = compose;
+      if (compose) _message = null;
+    });
+    try {
+      final profile = await ref.read(databaseProvider).loadProfile();
+      if (profile == null) return;
+      final reading = _reading ??
+          TransitEngine().forDay(
+            natal: widget.data.chart,
+            at: widget.now,
+            latitude: profile.birthLatitude ?? 0,
+            longitude: profile.birthLongitude ?? 0,
+          );
+      final result = await PositionsComposer(
+        database: ref.read(databaseProvider),
+        provider: ref.read(positionsTransportProvider),
+      ).forDay(
+        reading: reading,
+        inputHash: widget.data.inputHash,
+        mode: widget.data.mode,
+        ascendantReliable: !widget.data.usedApproximateTime &&
+            !widget.data.usedApproximatePlace,
+        now: widget.now,
+        compose: compose,
+      );
+      if (!mounted) return;
+      setState(() {
+        _reading = result.reading;
+        _passage = result.passage;
+        _busy = false;
+      });
+    } on PositionsException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = error.reason == 'AI processing is not permitted'
+            ? 'Enable AI guidance in the Sanctum before reading today.'
+            : 'Today’s reading is not connected on this build yet. The '
+                'positions below are calculated on this device.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = 'Today’s reading could not be written. The positions '
+            'below are unchanged.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final reading = _reading;
+    if (reading == null) return const SizedBox.shrink();
+
+    final contacts = reading.contacts.take(4).toList();
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: ink.line)),
+      ),
+      padding: const EdgeInsets.only(top: EterSpace.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('POSITIONS TODAY', style: text.labelSmall),
+          const SizedBox(height: EterSpace.s8),
+          Text(
+            'A ${reading.moonPhaseLabel} moon in ${reading.toJson()['moonSign']}, '
+            'the sun in ${reading.toJson()['sunSign']}.',
+            style: text.bodyMedium,
+          ),
+          const SizedBox(height: EterSpace.s12),
+          if (contacts.isEmpty)
+            Text(
+              'Nothing in the sky stands close to your chart today.',
+              style: text.bodySmall,
+            )
+          else
+            for (final contact in contacts)
+              Padding(
+                padding: const EdgeInsets.only(bottom: EterSpace.s4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${contact.transiting} ${contact.type} '
+                        'natal ${contact.natal}',
+                        style: text.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(width: EterSpace.s8),
+                    Text(
+                      '${contact.orb.toStringAsFixed(1)}° '
+                      '${contact.applying ? 'applying' : 'separating'}',
+                      style: text.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+          if (_passage != null) ...[
+            const SizedBox(height: EterSpace.s16),
+            EterArrival.single(
+              _passage!.passage,
+              key: ValueKey('positions-${reading.forDate}'),
+              style: text.headlineSmall?.copyWith(
+                fontSize: 18,
+                height: 1.5,
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: EterSpace.s12),
+            EterAction(
+              label: _busy ? 'Reading' : 'Read today',
+              emphasis: EterActionEmphasis.secondary,
+              busy: _busy,
+              onPressed: () => _load(compose: true),
+            ),
+          ],
+          if (_message != null) ...[
+            const SizedBox(height: EterSpace.s8),
+            Semantics(
+              liveRegion: true,
+              child: Text(_message!, style: text.bodySmall),
+            ),
+          ],
+          const SizedBox(height: EterSpace.s16),
+        ],
       ),
     );
   }

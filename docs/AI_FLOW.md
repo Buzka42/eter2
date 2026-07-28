@@ -10,14 +10,16 @@ disagree, the code is wrong.
 
 ## 0. The shape of the whole thing
 
-Eter makes exactly **three** calls to a model. There are no others, there is no
+Eter makes exactly **five** calls to a model. There are no others, there is no
 chat, and nothing is sent in the background.
 
 | Call | Trigger | Consent required | Writes |
 |---|---|---|---|
 | **Guidance** | The day's first look at the Dashboard, or `COMPOSE NOW` | AI; journal prose additionally gated | 4 `GuidanceHistory` rows |
 | **Journal interpretation** | Explicit `INTERPRET` on one entry | AI | Unconfirmed `NutritionEntries` + `LifestyleEntries` |
-| **Vessel readings** | Explicit `COMPOSE READINGS` | AI | `VesselReadings` rows, one per position |
+| **Vessel readings** | Once at account creation, then `COMPOSE READINGS` | AI | `VesselReadings` rows, one per position |
+| **The day's story** | Journal opens, and after each entry saves | AI **and** journal prose | One `JournalDayStories` row: the story and its digest |
+| **Positions** | Explicit `READ TODAY` in the Vessel | AI | One `TransitReadings` row per day and chart |
 
 Every one of them is:
 
