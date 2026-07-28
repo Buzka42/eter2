@@ -44,6 +44,75 @@ const _calls = {
   'positions',
 };
 
+/// A second line of defence against a bill.
+///
+/// The first is that the Gemini project has no billing account attached, so
+/// the API answers 429 rather than charging — a free-tier key cannot generate
+/// a cost. These caps exist because that guarantee is one console click away
+/// from being lost, and because a runaway client should hit a wall here rather
+/// than eat a day's quota in a minute.
+///
+/// Override with ETER_DEV_DAILY_CAP and ETER_DEV_MINUTE_CAP.
+const _defaultDailyCap = 200;
+const _defaultMinuteCap = 10;
+
+/// Counts calls per day and per minute, across restarts.
+class _Budget {
+  _Budget({required this.dailyCap, required this.minuteCap});
+
+  final int dailyCap;
+  final int minuteCap;
+  final File _file = File('tool/.dev_endpoint_usage.json');
+
+  String _day = '';
+  int _today = 0;
+  final List<DateTime> _recent = [];
+
+  void load() {
+    if (!_file.existsSync()) return;
+    try {
+      final data = jsonDecode(_file.readAsStringSync()) as Map<String, Object?>;
+      _day = data['day'] as String? ?? '';
+      _today = (data['calls'] as num?)?.toInt() ?? 0;
+    } catch (_) {
+      // A corrupt counter must not stop the endpoint; it starts the day over.
+    }
+  }
+
+  /// Null when the call may proceed, otherwise why it may not.
+  String? refuse() {
+    final now = DateTime.now();
+    final today = '${now.year}-${now.month}-${now.day}';
+    if (today != _day) {
+      _day = today;
+      _today = 0;
+    }
+    _recent.removeWhere(
+      (at) => now.difference(at) > const Duration(minutes: 1),
+    );
+    if (_recent.length >= minuteCap) {
+      return 'Local rate cap: $minuteCap calls a minute. Try again shortly.';
+    }
+    if (_today >= dailyCap) {
+      return 'Local daily cap reached: $dailyCap calls. '
+          'Raise ETER_DEV_DAILY_CAP if this is deliberate.';
+    }
+    return null;
+  }
+
+  void record() {
+    _today += 1;
+    _recent.add(DateTime.now());
+    try {
+      _file.writeAsStringSync(jsonEncode({'day': _day, 'calls': _today}));
+    } catch (_) {
+      // Best effort. Losing the counter costs quota, never money.
+    }
+  }
+
+  int get remainingToday => dailyCap - _today;
+}
+
 Future<void> main(List<String> args) async {
   final key = _readKey();
   if (key == null) {
@@ -56,14 +125,25 @@ Future<void> main(List<String> args) async {
   }
   final model = Platform.environment['ETER_DEV_MODEL'] ?? _defaultModel;
   final port = int.tryParse(Platform.environment['ETER_DEV_PORT'] ?? '') ?? 8787;
+  final budget = _Budget(
+    dailyCap: int.tryParse(Platform.environment['ETER_DEV_DAILY_CAP'] ?? '') ??
+        _defaultDailyCap,
+    minuteCap:
+        int.tryParse(Platform.environment['ETER_DEV_MINUTE_CAP'] ?? '') ??
+            _defaultMinuteCap,
+  )..load();
 
   final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
   stdout.writeln('Eter dev endpoint · $model · http://127.0.0.1:$port');
   stdout.writeln('Android emulator reaches it at http://10.0.2.2:$port');
+  stdout.writeln(
+    'Caps: ${budget.dailyCap}/day, ${budget.minuteCap}/min · '
+    '${budget.remainingToday} left today',
+  );
 
   await for (final request in server) {
     try {
-      await _handle(request, key: key, model: model);
+      await _handle(request, key: key, model: model, budget: budget);
     } catch (error) {
       stderr.writeln('unhandled: $error');
       _fail(request, HttpStatus.internalServerError, '$error');
@@ -86,6 +166,7 @@ Future<void> _handle(
   HttpRequest request, {
   required String key,
   required String model,
+  required _Budget budget,
 }) async {
   if (request.method != 'POST') {
     return _fail(request, HttpStatus.methodNotAllowed, 'POST only');
@@ -108,6 +189,13 @@ Future<void> _handle(
   if (system is! String || system.isEmpty || user is! Map) {
     return _fail(request, HttpStatus.badRequest, 'Missing system or user');
   }
+
+  final refusal = budget.refuse();
+  if (refusal != null) {
+    stdout.writeln('→ $call · refused by the local cap');
+    return _fail(request, HttpStatus.tooManyRequests, refusal);
+  }
+  budget.record();
 
   final started = DateTime.now();
   // Logged: the call, not the payload. The payload is one person's records.
