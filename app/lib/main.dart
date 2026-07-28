@@ -48,32 +48,34 @@ Future<void> main() async {
   // Firebase configuration — or a device that cannot reach Google Play
   // services — opens normally, keeps every record, and simply has no
   // "sign in to sync" to offer.
+  // Nothing between here and `runApp` may be able to wait forever.
+  //
+  // It could, and it did: a fresh install disabled crash collection, which
+  // awaited a Crashlytics task that never completed, and the app sat on its
+  // splash screen. Optional infrastructure is not allowed to decide whether
+  // the product opens, so every step below is bounded and every failure is
+  // survivable — the app is fully usable with none of it.
   AccountService? accounts;
   CrashReporter reporter = const NoCrashReporter();
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp().timeout(const Duration(seconds: 10));
     accounts = FirebaseAccountService();
     reporter = FirebaseCrashReporter();
+    debugPrint('Eter: Firebase ready.');
   } catch (error) {
-    debugPrint('Accounts unavailable, continuing local-only: $error');
+    debugPrint('Eter: accounts unavailable, continuing local-only: $error');
   }
 
-  // Off until the profile says otherwise, and off again the moment it stops
-  // saying so. A fresh install, and a device restored from the mirror, both
-  // start with collection disabled — consent is given on a device, by a
-  // person, and is never inherited from a backup.
-  await CrashConsent(reporter).apply(
-    consentedAt: (await database.loadProfile())?.crashReportConsentAt,
-  );
-
   // Uncaught framework and platform errors reach the reporter, which drops
-  // them unless collection is on. Both handlers still print in debug.
+  // them unless collection is on. Both are also printed, because a swallowed
+  // startup error is a blank screen with no explanation anywhere.
   final previousOnError = FlutterError.onError;
   FlutterError.onError = (details) {
     previousOnError?.call(details);
     reporter.record(details.exception, details.stack, fatal: true);
   };
   PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Eter: uncaught $error\n$stack');
     reporter.record(error, stack, fatal: true);
     return true;
   };
@@ -87,6 +89,19 @@ Future<void> main() async {
       ],
       child: const EterApp(),
     ),
+  );
+
+  // After the first frame, never before it. Crash collection is off until this
+  // resolves, which is the safe direction to be wrong in.
+  unawaited(
+    CrashConsent(reporter)
+        .apply(
+          consentedAt: (await database.loadProfile())?.crashReportConsentAt,
+        )
+        .timeout(const Duration(seconds: 10))
+        .catchError((Object error) {
+      debugPrint('Eter: crash-report consent not applied: $error');
+    }),
   );
 }
 

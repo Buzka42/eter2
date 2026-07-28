@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import 'crash_reporter.dart';
@@ -19,8 +21,13 @@ class FirebaseCrashReporter implements CrashReporter {
   Future<void> setEnabled(bool enabled) async {
     await _crashlytics.setCrashlyticsCollectionEnabled(enabled);
     if (!enabled) {
-      // Anything captured before the switch was thrown must not survive it.
-      await _crashlytics.deleteUnsentReports();
+      // Anything captured before the switch was thrown must not survive it —
+      // but this is deliberately not awaited. `deleteUnsentReports()` returns
+      // a Task that Crashlytics does not reliably complete once collection is
+      // off, and awaiting it on a fresh install (where consent is null, so
+      // this is the very first thing that happens) hung the app on its splash
+      // screen indefinitely. The deletion still happens; nothing waits on it.
+      unawaited(_crashlytics.deleteUnsentReports());
     }
   }
 
