@@ -55,6 +55,10 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
   drift_dev: ^2.34.3
+  # Used by the migration tests to build a database in a deliberately broken
+  # state. Drift depends on it transitively; naming it here keeps the analyzer
+  # honest about what the tests actually reach for.
+  sqlite3: ^3.5.0
   build_runner: ^2.15.1
 
 flutter:

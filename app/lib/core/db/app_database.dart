@@ -75,24 +75,36 @@ class AppDatabase extends _$AppDatabase {
           await m.createAll();
           await _createIndexes();
         },
+        // Migrations describe the shape they want, not the steps they assume.
+        //
+        // Keyed on `from`, they assume the previous run finished. One did not:
+        // a column was added, something after it threw, and the stored version
+        // never advanced — so every launch afterwards replayed the same
+        // `ALTER TABLE` against a column that already existed and the app
+        // could not open at all. A migration that cannot be re-run is a
+        // migration that has to be perfect on the first attempt, on every
+        // device, forever.
+        //
+        // These are idempotent instead: each asks whether the column is there
+        // before adding it, so replaying costs nothing and a partial run
+        // repairs itself on the next launch.
         onUpgrade: (m, from, to) async {
-          if (from < 3) {
-            // Null, so an existing install does not silently acquire consent
-            // to mirror its journal. Consent is given, never inherited.
-            await m.addColumn(profiles, profiles.journalCloudSyncConsentAt);
-          }
-          if (from < 4) {
-            await m.addColumn(profiles, profiles.crashReportConsentAt);
-          }
-          if (from < 5) {
-            await m.addColumn(profiles, profiles.birthTimePrecision);
+          // Null, so an existing install does not silently acquire consent to
+          // mirror its journal. Consent is given, never inherited.
+          await _addColumnIfMissing(m, profiles, profiles.journalCloudSyncConsentAt);
+          await _addColumnIfMissing(m, profiles, profiles.crashReportConsentAt);
+
+          final addedPrecision =
+              await _addColumnIfMissing(m, profiles, profiles.birthTimePrecision);
+          if (addedPrecision) {
             // An install that already holds a time stated it to the minute;
             // one that does not never knew. Neither acquires a claim it did
-            // not make.
+            // not make. Only on the run that adds the column, so a later
+            // replay cannot overwrite a choice made since.
             await customStatement(
               'UPDATE profiles SET birth_time_precision = CASE '
-              'WHEN birth_time_minutes IS NULL THEN "unknown" '
-              'ELSE "exact" END',
+              r"WHEN birth_time_minutes IS NULL THEN 'unknown' "
+              r"ELSE 'exact' END",
             );
           }
           await _createIndexes();
@@ -101,6 +113,26 @@ class AppDatabase extends _$AppDatabase {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  /// Adds [column] only if the table does not already have it.
+  ///
+  /// Returns whether it was actually added, so a data backfill can run once
+  /// rather than on every replay.
+  Future<bool> _addColumnIfMissing(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+    GeneratedColumn<Object> column,
+  ) async {
+    final existing = await customSelect(
+      'PRAGMA table_info(${table.actualTableName})',
+    ).get();
+    final names = {
+      for (final row in existing) row.data['name'] as String,
+    };
+    if (names.contains(column.name)) return false;
+    await m.addColumn(table, column);
+    return true;
+  }
 
   Future<void> _createIndexes() async {
     // Every one of these backs a query the surfaces run on every build. Range
