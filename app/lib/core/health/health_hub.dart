@@ -1,0 +1,236 @@
+import 'package:drift/drift.dart';
+
+import '../clock.dart';
+import '../db/app_database.dart';
+import '../energy/energy.dart' as energy;
+
+enum HubMetric {
+  activeEnergy,
+  steps,
+  heartRate,
+  restingHeartRate,
+  hrv,
+  respiratoryRate,
+  sleepAwake,
+  sleepLight,
+  sleepDeep,
+  sleepRem,
+  sleepUnknown,
+}
+
+class HubSample {
+  const HubSample({
+    required this.id,
+    required this.metric,
+    required this.start,
+    required this.end,
+    required this.value,
+    required this.source,
+  });
+
+  final String id;
+  final HubMetric metric;
+  final DateTime start;
+  final DateTime end;
+  final double value;
+  final String source;
+}
+
+abstract interface class HealthHubGateway {
+  String get vendor;
+  Future<bool> requestReadAccess();
+  Future<List<HubSample>> read(DateTime start, DateTime end);
+}
+
+class HealthHubSyncResult {
+  const HealthHubSyncResult({
+    required this.authorized,
+    required this.records,
+  });
+  final bool authorized;
+  final int records;
+}
+
+/// Maps platform health records into Eter's canonical, replay-safe store.
+class HealthHubSyncService {
+  const HealthHubSyncService({
+    required this.database,
+    required this.gateway,
+  });
+
+  final AppDatabase database;
+  final HealthHubGateway gateway;
+
+  Future<HealthHubSyncResult> sync({
+    required DateTime start,
+    required DateTime end,
+  }) async {
+    final authorized = await gateway.requestReadAccess();
+    if (!authorized) {
+      await database.recordIntegrationFailure(
+        vendor: gateway.vendor,
+        status: 'disconnected',
+        error: 'Health permission was not granted',
+      );
+      return const HealthHubSyncResult(authorized: false, records: 0);
+    }
+
+    try {
+      final samples = await gateway.read(start.toUtc(), end.toUtc());
+      await _writeMinuteBuckets(samples);
+      await database.recomputeMinuteWinners(start.toUtc(), end.toUtc());
+      await _writeSleep(samples);
+      await _writeVitals(samples);
+      await database.recordIntegrationSync(
+        vendor: gateway.vendor,
+        status: 'connected',
+        recordsToday: samples.length,
+        diagnostics: {'windowStart': start.toUtc().toIso8601String()},
+      );
+      return HealthHubSyncResult(
+        authorized: true,
+        records: samples.length,
+      );
+    } catch (error) {
+      await database.recordIntegrationFailure(
+        vendor: gateway.vendor,
+        status: 'error',
+        error: error.toString(),
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> _writeMinuteBuckets(List<HubSample> samples) async {
+    final buckets = <(String, DateTime), _MinuteAccumulator>{};
+    for (final sample in samples.where((item) =>
+        item.metric == HubMetric.activeEnergy ||
+        item.metric == HubMetric.steps ||
+        item.metric == HubMetric.heartRate)) {
+      final minutes = _minutes(sample.start, sample.end);
+      if (minutes.isEmpty) continue;
+      for (final minute in minutes) {
+        final key = (sample.source, minute);
+        final bucket = buckets.putIfAbsent(key, _MinuteAccumulator.new);
+        switch (sample.metric) {
+          case HubMetric.activeEnergy:
+            bucket.activeKcal += sample.value / minutes.length;
+          case HubMetric.steps:
+            bucket.steps += sample.value / minutes.length;
+          case HubMetric.heartRate:
+            bucket.hrTotal += sample.value;
+            bucket.hrSamples += 1;
+          default:
+            break;
+        }
+      }
+    }
+    await database.ingestRawBuckets(buckets.entries.map((entry) {
+      final ((source, minute), value) = (entry.key, entry.value);
+      return energy.MinuteBucket(
+        minuteUtc: minute,
+        activeKcal: value.activeKcal,
+        sourceId: '${gateway.vendor}:$source',
+        priority: energy.SourcePriority.hub,
+        steps: value.steps.round(),
+        avgHr: value.hrSamples == 0 ? null : value.hrTotal / value.hrSamples,
+        hrSampleCount: value.hrSamples,
+      );
+    }));
+  }
+
+  Future<void> _writeSleep(List<HubSample> samples) async {
+    final sleep = samples.where((item) => _sleepStage(item.metric) != null);
+    final groups = <(String, String), List<HubSample>>{};
+    for (final sample in sleep) {
+      final night = eterIsoDate(sample.end.toLocal());
+      groups.putIfAbsent((night, sample.source), () => []).add(sample);
+    }
+    for (final entry in groups.entries) {
+      final (night, source) = entry.key;
+      await database.replaceSleepForNight(
+        nightOf: night,
+        source: '${gateway.vendor}:$source',
+        segments: entry.value.map(
+          (sample) => SleepSegmentsCompanion.insert(
+            startUtc: sample.start.toUtc(),
+            endUtc: sample.end.toUtc(),
+            stage: _sleepStage(sample.metric)!,
+            source: '${gateway.vendor}:$source',
+            priority: energy.SourcePriority.hub.index,
+            nightOf: night,
+            externalId: Value(sample.id),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _writeVitals(List<HubSample> samples) async {
+    final groups = <String, List<HubSample>>{};
+    for (final sample in samples.where((item) => {
+          HubMetric.restingHeartRate,
+          HubMetric.hrv,
+          HubMetric.respiratoryRate,
+        }.contains(item.metric))) {
+      groups
+          .putIfAbsent(eterIsoDate(sample.end.toLocal()), () => [])
+          .add(sample);
+    }
+    for (final entry in groups.entries) {
+      double? average(HubMetric metric) {
+        final values = entry.value
+            .where((item) => item.metric == metric)
+            .map((item) => item.value)
+            .toList();
+        return values.isEmpty
+            ? null
+            : values.reduce((a, b) => a + b) / values.length;
+      }
+
+      await database.recordDailyVitals(DailyVitalsCompanion.insert(
+        date: entry.key,
+        restingHr: Value(average(HubMetric.restingHeartRate)),
+        hrvMs: Value(average(HubMetric.hrv)),
+        respiratoryRate: Value(average(HubMetric.respiratoryRate)),
+        source: gateway.vendor,
+      ));
+    }
+  }
+
+  List<DateTime> _minutes(DateTime start, DateTime end) {
+    final first = start.toUtc();
+    final cursor = DateTime.utc(
+      first.year,
+      first.month,
+      first.day,
+      first.hour,
+      first.minute,
+    );
+    final limit = end.toUtc().isAfter(first)
+        ? end.toUtc()
+        : first.add(const Duration(minutes: 1));
+    return [
+      for (var value = cursor;
+          value.isBefore(limit);
+          value = value.add(const Duration(minutes: 1)))
+        value,
+    ];
+  }
+
+  String? _sleepStage(HubMetric metric) => switch (metric) {
+        HubMetric.sleepAwake => 'awake',
+        HubMetric.sleepLight => 'light',
+        HubMetric.sleepDeep => 'deep',
+        HubMetric.sleepRem => 'rem',
+        HubMetric.sleepUnknown => 'unknown',
+        _ => null,
+      };
+}
+
+class _MinuteAccumulator {
+  double activeKcal = 0;
+  double steps = 0;
+  double hrTotal = 0;
+  int hrSamples = 0;
+}

@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Eter reads selected activity, sleep, and recovery signals to show your history and compose guidance you allow.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Eter does not currently write health records.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

@@ -327,7 +327,11 @@ names.
 - The live Aether provider transport and production context assembly. The
   provider-independent request/response boundary, consent gates, safety
   validation, atomic persistence, and unchanged-context cache are implemented.
-- The health hub and ingest service.
+- Vendor-direct integrations and background/differential sync. The phone health
+  hub is implemented for an explicit 30-day Apple Health / Health Connect
+  read from Sanctum, including native permissions, canonical minute
+  deduplication, staged sleep, daily vitals, honest denial/error states, and
+  integration diagnostics.
 - The live journal-classification provider and explicit UI trigger. The strict
   food/lifestyle response contract, current-consent gate, atomic application,
   replay protection, clarification state, and unconfirmed-estimate behavior

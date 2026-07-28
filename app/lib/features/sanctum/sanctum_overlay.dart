@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/health/health_hub.dart';
+import '../../core/health/platform_health_gateway.dart';
 import '../../core/privacy/local_data_export.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
@@ -161,6 +165,8 @@ class SanctumOverlay extends ConsumerWidget {
                               ),
                     ),
                     const SizedBox(height: EterSpace.s32),
+                    _HealthConnection(database: db),
+                    const SizedBox(height: EterSpace.s32),
                     _LocalExport(database: db),
                     const SizedBox(height: EterSpace.s64),
                   ],
@@ -170,6 +176,98 @@ class SanctumOverlay extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HealthConnection extends StatefulWidget {
+  const _HealthConnection({required this.database});
+
+  final AppDatabase database;
+
+  @override
+  State<_HealthConnection> createState() => _HealthConnectionState();
+}
+
+class _HealthConnectionState extends State<_HealthConnection> {
+  late final Stream<List<IntegrationRow>> _integrations =
+      widget.database.watchIntegrations();
+  bool _busy = false;
+  String? _message;
+
+  Future<void> _connect() async {
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final now = DateTime.now();
+      final result = await HealthHubSyncService(
+        database: widget.database,
+        gateway: PlatformHealthGateway(),
+      ).sync(
+        start: now.subtract(const Duration(days: 30)),
+        end: now,
+      );
+      if (!mounted) return;
+      setState(() {
+        _message = result.authorized
+            ? '${result.records} health records read. Eter kept one source per minute.'
+            : 'Access was not granted. No health values were imported.';
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _message =
+              'Health data could not be read. Existing history is unchanged.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final supported = Platform.isAndroid || Platform.isIOS;
+    final text = Theme.of(context).textTheme;
+    return StreamBuilder<List<IntegrationRow>>(
+      stream: _integrations,
+      builder: (context, snapshot) {
+        final connected = snapshot.data?.any(
+              (row) =>
+                  (row.vendor == 'healthConnect' ||
+                      row.vendor == 'appleHealth') &&
+                  row.status == 'connected',
+            ) ??
+            false;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('HEALTH HISTORY', style: text.labelSmall),
+            const SizedBox(height: EterSpace.s8),
+            Text(
+              connected
+                  ? 'Connected. Reconnect to read the latest 30 days; source overlap is resolved per minute.'
+                  : supported
+                      ? 'Read selected movement, sleep, and recovery signals from your phone’s health store.'
+                      : 'Health connection is available on iPhone and Android.',
+              style: text.bodyMedium,
+            ),
+            const SizedBox(height: EterSpace.s8),
+            EterAction(
+              label: connected ? 'Refresh' : 'Connect',
+              busy: _busy,
+              onPressed: supported && !_busy ? _connect : null,
+            ),
+            if (_message != null)
+              Semantics(
+                liveRegion: true,
+                child: Text(_message!, style: text.bodySmall),
+              ),
+          ],
+        );
+      },
     );
   }
 }

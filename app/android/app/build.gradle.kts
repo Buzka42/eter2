@@ -19,7 +19,8 @@ android {
         applicationId = "com.eterhealth.eter"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // health 13.x uses Health Connect APIs whose supported floor is 26.
+        minSdk = 26
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
