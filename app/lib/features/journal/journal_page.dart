@@ -14,6 +14,7 @@ import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
 import '../../core/journal/classification_contract.dart';
 import '../../core/journal/classifier.dart';
+import '../../core/lifestyle/daily_check_in.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -324,6 +325,15 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                     ),
                   ],
                   const SizedBox(height: EterSpace.s24),
+                  // The day's self-report lives here, in the margin of the
+                  // writing, and nowhere else (steering decision, 28 July
+                  // 2026). Body reads these rows; it does not collect them.
+                  _MarginCheckIns(
+                    key: ValueKey('check-ins-${eterIsoDate(selectedDay)}'),
+                    day: selectedDay,
+                    editable: isToday,
+                  ),
+                  const SizedBox(height: EterSpace.s24),
                   StreamBuilder<List<JournalEntryRow>>(
                     stream: _entriesFor(db, selectedDay),
                     builder: (context, snapshot) {
@@ -362,6 +372,361 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       ),
     );
   }
+}
+
+/// The day's self-report, written in the Journal's margin.
+///
+/// Deliberately not a check-in card: no panel, no heading, no completion
+/// state, no streak. At rest it is one quiet line per prompt — the prompt word
+/// and either the day's answer or a single em dash. Tapping a prompt opens its
+/// rail in place; answering closes it again. A historical page shows the same
+/// line, read-only, and says nothing at all when the day holds no answers.
+class _MarginCheckIns extends ConsumerStatefulWidget {
+  const _MarginCheckIns({
+    super.key,
+    required this.day,
+    required this.editable,
+  });
+
+  final DateTime day;
+  final bool editable;
+
+  @override
+  ConsumerState<_MarginCheckIns> createState() => _MarginCheckInsState();
+}
+
+class _MarginCheckInsState extends ConsumerState<_MarginCheckIns> {
+  Stream<List<LifestyleEntryRow>>? _stream;
+  String? _streamedDay;
+  String? _openPrompt;
+  final _minutes = TextEditingController();
+  String? _message;
+
+  @override
+  void dispose() {
+    _minutes.dispose();
+    super.dispose();
+  }
+
+  /// Cached exactly like the entries stream: Drift hands back a fresh stream
+  /// per call, and this widget rebuilds on every keystroke of the page above.
+  Stream<List<LifestyleEntryRow>> _entries(AppDatabase db) {
+    final date = eterIsoDate(widget.day);
+    if (_stream == null || _streamedDay != date) {
+      _streamedDay = date;
+      final (start, end) = eterDayBounds(widget.day);
+      _stream = db.watchLifestyleForRange(start, end);
+    }
+    return _stream!;
+  }
+
+  LifestyleCheckInService _service() =>
+      LifestyleCheckInService(ref.read(databaseProvider));
+
+  Future<void> _answer(LifestyleReading reading, int mark) async {
+    final now = ref.read(nowProvider)();
+    await _service().recordReading(
+      reading: reading,
+      value: mark,
+      day: widget.day,
+      recordedAt: now,
+    );
+    if (!mounted) return;
+    setState(() {
+      _openPrompt = null;
+      _message = null;
+    });
+    unawaited(EterHaptics.light());
+  }
+
+  Future<void> _logPractice(LifestylePractice practice) async {
+    final minutes = double.tryParse(_minutes.text.trim().replaceAll(',', '.'));
+    if (minutes == null) {
+      setState(() => _message = 'Give the sitting a length in minutes.');
+      return;
+    }
+    try {
+      await _service().recordPractice(
+        practice: practice,
+        minutes: minutes,
+        recordedAt: ref.read(nowProvider)(),
+      );
+    } on LifestyleCheckInException catch (error) {
+      if (mounted) setState(() => _message = error.message);
+      return;
+    }
+    if (!mounted) return;
+    _minutes.clear();
+    setState(() {
+      _openPrompt = null;
+      _message = null;
+    });
+    unawaited(EterHaptics.light());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(databaseProvider);
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+
+    return StreamBuilder<List<LifestyleEntryRow>>(
+      stream: _entries(db),
+      builder: (context, snapshot) {
+        final rows = snapshot.data ?? const <LifestyleEntryRow>[];
+        LifestyleEntryRow? readingRow(LifestyleReading reading) {
+          for (final row in rows) {
+            if (row.kind == reading.kind && row.value != null) return row;
+          }
+          return null;
+        }
+
+        double practiceMinutes(LifestylePractice practice) {
+          var total = 0.0;
+          for (final row in rows) {
+            if (row.kind == practice.kind) total += row.durationMinutes ?? 0;
+          }
+          return total;
+        }
+
+        final answered = rows.isNotEmpty;
+        if (!widget.editable && !answered) return const SizedBox.shrink();
+
+        String? readingAnswer(LifestyleReading reading) {
+          final row = readingRow(reading);
+          if (row == null) return null;
+          return LifestyleReading.marks[row.value!.round() - 1];
+        }
+
+        String? practiceAnswer(LifestylePractice practice) {
+          final minutes = practiceMinutes(practice);
+          return minutes <= 0 ? null : '${minutes.round()} min';
+        }
+
+        // Marginal, not listed: the prompts flow across the page rather than
+        // stacking into a five-row questionnaire under the writing. Whatever
+        // is open unfolds beneath them, at full width, one at a time.
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              children: [
+                for (final reading in LifestyleReading.values)
+                  _MarginPrompt(
+                    label: reading.label,
+                    answer: readingAnswer(reading),
+                    open: _openPrompt == reading.kind,
+                    editable: widget.editable,
+                    onTap: () => setState(() {
+                      _message = null;
+                      _openPrompt =
+                          _openPrompt == reading.kind ? null : reading.kind;
+                    }),
+                  ),
+                for (final practice in LifestylePractice.values)
+                  _MarginPrompt(
+                    label: practice.label,
+                    answer: practiceAnswer(practice),
+                    open: _openPrompt == practice.kind,
+                    editable: widget.editable,
+                    onTap: () => setState(() {
+                      _message = null;
+                      _minutes.clear();
+                      _openPrompt =
+                          _openPrompt == practice.kind ? null : practice.kind;
+                    }),
+                  ),
+              ],
+            ),
+            for (final reading in LifestyleReading.values)
+              if (_openPrompt == reading.kind)
+                _MarkRail(
+                  selected: readingRow(reading)?.value?.round(),
+                  onSelect: (mark) => _answer(reading, mark),
+                  promptLabel: reading.label,
+                ),
+            for (final practice in LifestylePractice.values)
+              if (_openPrompt == practice.kind)
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 108,
+                      child: TextField(
+                        key: ValueKey('practice-minutes-${practice.kind}'),
+                        controller: _minutes,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _logPractice(practice),
+                        style: text.bodyMedium,
+                        decoration: InputDecoration(
+                          labelText: '${practice.label} minutes',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: EterSpace.s8),
+                    EterAction(
+                      label: 'Keep',
+                      emphasis: EterActionEmphasis.quiet,
+                      onPressed: () => _logPractice(practice),
+                    ),
+                  ],
+                ),
+            if (_message != null)
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  _message!,
+                  style: text.bodySmall?.copyWith(color: ink.labelMuted),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// One marginal annotation: the prompt word above its answer, or above a
+/// single em dash when the day has not answered it. On a historical page the
+/// same annotation is inert.
+class _MarginPrompt extends StatelessWidget {
+  const _MarginPrompt({
+    required this.label,
+    required this.answer,
+    required this.open,
+    required this.editable,
+    required this.onTap,
+  });
+
+  final String label;
+  final String? answer;
+  final bool open;
+  final bool editable;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final annotation = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: text.labelSmall?.copyWith(
+            color: open ? ink.label : null,
+          ),
+        ),
+        Text(
+          answer ?? '—',
+          style: text.bodySmall?.copyWith(
+            color: answer == null ? ink.labelMuted : ink.label,
+          ),
+        ),
+      ],
+    );
+    if (!editable) {
+      return SizedBox(
+        width: 116,
+        height: 48,
+        child: annotation,
+      );
+    }
+    return Semantics(
+      button: true,
+      expanded: open,
+      label: answer == null
+          ? '$label not recorded today'
+          : '$label today: $answer',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(width: 116, height: 48, child: annotation),
+      ),
+    );
+  }
+}
+
+/// Five engraved marks, low to high. Not a slider and not a row of chips: the
+/// measure device the instruments already use, at reading size.
+class _MarkRail extends StatelessWidget {
+  const _MarkRail({
+    required this.selected,
+    required this.onSelect,
+    required this.promptLabel,
+  });
+
+  final int? selected;
+  final ValueChanged<int> onSelect;
+  final String promptLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = EterInk.of(context);
+    return Row(
+      children: [
+        for (var mark = 1; mark <= LifestyleReading.marks.length; mark++)
+          Semantics(
+            button: true,
+            selected: mark == selected,
+            label: '$promptLabel ${LifestyleReading.marks[mark - 1]}',
+            excludeSemantics: true,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => onSelect(mark),
+              child: SizedBox(
+                width: 44,
+                height: 48,
+                child: CustomPaint(
+                  painter: _MarkPainter(
+                    filled: mark == selected,
+                    height: 8.0 + mark * 3,
+                    color: mark == selected ? ink.lineStrong : ink.line,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _MarkPainter extends CustomPainter {
+  const _MarkPainter({
+    required this.filled,
+    required this.height,
+    required this.color,
+  });
+
+  final bool filled;
+  final double height;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = filled ? 1.4 : 1
+      ..strokeCap = StrokeCap.round;
+    final x = size.width / 2;
+    final baseline = size.height / 2 + 8;
+    canvas.drawLine(Offset(x, baseline), Offset(x, baseline - height), paint);
+    if (filled) {
+      canvas.drawCircle(
+        Offset(x, baseline - height - 4),
+        2,
+        Paint()..color = color,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MarkPainter old) =>
+      old.filled != filled || old.height != height || old.color != color;
 }
 
 class _JournalPassage extends ConsumerStatefulWidget {

@@ -330,6 +330,9 @@ void main() {
       find.byKey(const ValueKey('journal-clarification-1')),
       'A medium bowl.',
     );
+    // The clarification field and the marginal check-ins above it both grow
+    // the page; the action has to be brought back into view before the tap.
+    await tester.ensureVisible(find.text('INTERPRET'));
     await tester.tap(find.text('INTERPRET'));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 20)),

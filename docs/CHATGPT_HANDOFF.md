@@ -17,9 +17,9 @@ never seeds a fictional profile or health history. `flutter analyze` is clean.
 | Piece | File | Notes |
 |---|---|---|
 | Signature arrival | `app/lib/core/arrival.dart` | One widget serves guidance and Journal. Word groups resolve from blur in ≤ `durSentence` per sentence, pauses between sentences, ≤4 dp displacement on `easeAir`, tap completes, reduced motion renders settled on frame one. |
-| Shell | `app/lib/features/shell/eter_shell.dart`, `shell_header.dart` | Horizontal pager Journal↔Dashboard, `allowImplicitScrolling` + keep-alive for state preservation, persistent two-word switch with travelling gold hairline, ETER celestial header as `CustomPainter` (commissioned as code in the asset manifest). |
-| Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Synthesis owns the resting view above one `LOOK DEEPER` threshold. Its in-place chooser opens expanded Guidance or Body, never simultaneous rows. The only disclosure glyph is the code-native bead-and-thread `EterDisclosureMark`; no Material icon remains on production surfaces. An uncomposed day exposes one quiet `COMPOSE GUIDANCE` action; expanded Guidance offers `REFRESH`, reuses unchanged context without another provider call, preserves existing content on failure, and announces status accessibly. Production `sentences + primaryAction` responses and legacy fixture caches both render as prose. Guidance renders Health/Mind/Spirit prose and marginal evidence receipts. Body begins with a conclusion, states missing signals, then recovery prose, `EngravedBalance`, engraved RHR/HRV/weight trends, a measured sleep-stage rail, compact manual activity, confirmed-meal and weight entry, and editable food lines; estimates are visibly not counted until corrected/confirmed. Manual activity uses the same canonical minute deduplication and reactive day-summary path as connected health data, so overlaps do not inflate burn. Manual meals accept factual energy plus optional macros, update an existing day-summary intake mirror transactionally, and make core nutrition usable without an AI transport. Manual weight atomically updates both history and the profile input used by later energy estimates. Every instrument has a complete semantic summary. |
-| Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Two code-native bead-and-thread page-turn marks expose earlier/later days with 48 dp semantic targets; future days are disabled, historical pages are read-only, and leaving today safely saves a non-empty draft and stops dictation first. Entries read as continuous timed prose and arrive via the shared reveal. Each saved passage has quiet `KEEP LOCAL` / `ALLOW AETHER` and explicit `INTERPRET` actions. Interpretation requires current AI consent, supports one bounded clarification, announces progress/failure accessibly, and offers `UNDO INTERPRETATION`, which removes the derived rows without deleting the prose. Excluded prose remains omitted from guidance context. |
+| Shell | `app/lib/features/shell/eter_shell.dart`, `shell_header.dart` | Horizontal pager Journal↔Dashboard, `allowImplicitScrolling` + keep-alive for state preservation, persistent two-word switch with travelling gold hairline, ETER header as `CustomPainter` in two registers — day draws the colophon alone, night draws the full astrolabe and drifts one revolution per six minutes; the drift ticker runs only in night with motion allowed, so day and every reduced-motion surface are genuinely still and the goldens stay deterministic. |
+| Dashboard | `app/lib/features/dashboard/dashboard_page.dart`, `body_section.dart` | Synthesis owns the resting view above one `LOOK DEEPER` threshold. Its in-place chooser opens expanded Guidance or Body, never simultaneous rows. The only disclosure glyph is the code-native bead-and-thread `EterDisclosureMark`; no Material icon remains on production surfaces. An uncomposed day exposes one quiet `COMPOSE GUIDANCE` action; expanded Guidance offers `REFRESH`, reuses unchanged context without another provider call, preserves existing content on failure, and announces status accessibly. Production `sentences + primaryAction` responses and legacy fixture caches both render as prose. Guidance renders Health/Mind/Spirit prose and marginal evidence receipts. Body begins with a conclusion, states missing signals, then recovery prose, `EngravedBalance`, engraved RHR/HRV/weight trends, a measured sleep-stage rail, compact manual activity, confirmed-meal and weight entry, and editable food lines; estimates are visibly not counted until corrected/confirmed. Manual activity uses the same canonical minute deduplication and reactive day-summary path as connected health data, so overlaps do not inflate burn. Manual meals accept factual energy plus optional macros, update an existing day-summary intake mirror transactionally, and make core nutrition usable without an AI transport. Manual weight atomically updates both history and the profile input used by later energy estimates. Strength sits at the same line rhythm and stays one line at rest: `Record` opens the complete tracker — exercises, sets, reps, load, technique and earlier work — and nothing of that apparatus exists on the resting screen. Its energy is derived from the spec-08 MET fallback over the real sets with EPOC applied once, never typed by the user, and it refuses to estimate at all without a recorded body weight. The session is written through `ManualActivityService`, so strength minutes deduplicate against watch and phone minutes instead of being added on top of them. Every instrument has a complete semantic summary. |
+| Journal | `app/lib/features/journal/journal_page.dart` | Date-led ruled parchment page (grain reused, no enclosing border), tap-page-to-write, invisible 900 ms autosave and one borderless `DICTATE` action (`speech_to_text`). No checkmarks, Done/Save action, toggle or composer chrome. Two code-native bead-and-thread page-turn marks expose earlier/later days with 48 dp semantic targets; future days are disabled, historical pages are read-only, and leaving today safely saves a non-empty draft and stops dictation first. Entries read as continuous timed prose and arrive via the shared reveal. The day's self-report lives here and only here: mood, stress and recovery as marginal annotations that open a five-mark engraved rail in place, meditation and breathwork as minute sittings. A reading is the day's answer and answering again corrects it transactionally; sittings accumulate; a historical page shows the same annotations inert and says nothing at all when the day holds none. Each saved passage has quiet `KEEP LOCAL` / `ALLOW AETHER` and explicit `INTERPRET` actions. Interpretation requires current AI consent, supports one bounded clarification, announces progress/failure accessibly, and offers `UNDO INTERPRETATION`, which removes the derived rows without deleting the prose. Excluded prose remains omitted from guidance context. |
 | Register wiring | `app/lib/main.dart` | A genuinely empty database enters onboarding. After profile creation, `GuidanceMode` → `EterRegister` via real sunrise/sunset (`core/symbolic/solar.dart`), with one scheduled rebuild at the next phase change and no polling. |
 | Onboarding | `app/lib/features/onboarding/onboarding_flow.dart` | Creates the required local profile (birth date, weight, height and body context), enforces the documented 16+ gate, records the primary intention and keeps AI, journal-prose and cloud consent independent and off by default. Height is required so resting burn can be estimated rather than invented. Existing users can resume an incomplete intake without losing their profile. |
 | Sanctum | `app/lib/features/sanctum/sanctum_overlay.dart` | Tapping the complete ETER signature opens a plain overlay without unmounting either page. Opening page and guidance register persist through narrow profile updates; system back and explicit Close dismiss it. A collapsed Birth Context editor fulfils onboarding’s promise that exact time can be added later: local time and historical UTC offset are validated as a pair, the place is resolved through the device geocoder, and only then are label/coordinates committed together. Chart-specific readings for old inputs are removed and an open Vessel refreshes immediately. AI, journal-prose and cloud permissions are visible and independently revocable; revoking AI also immediately revokes journal-prose permission while leaving cloud unchanged. A compact Week in View can be prepared entirely on-device from the last seven complete days; it describes only recorded movement, sleep, journal and self-report coverage, explicitly omits missing days rather than converting them to zero, and updates one stable weekly cache row. The Aether Memory `REVIEW` action runs a conservative local-only pattern pass over canonical signals. The first production rule compares sleep after late activity with other nights only when both groups contain at least three observations and differ by at least 30 minutes; its sample counts, window and coefficient remain inspectable, it is always labelled non-causal, and recomputation never revives a dismissed pattern. A two-step memory reset clears only derived Aether guidance/patterns/retrospectives; a separate two-step device deletion clears every local table and explicitly does not claim cloud deletion. |
@@ -32,9 +32,15 @@ never seeds a fictional profile or health history. `flutter analyze` is clean.
 
 ## Verified
 
+- The complete suite — 196 tests, 31 golden captures — passes.
 - `app/test/arrival_test.dart` — 7/7 passing. This is the contract for the
   reveal (cadence, per-sentence budget, tap-to-complete, reduced motion,
   settled rendering). Keep it green.
+- `app/test/lifestyle_check_in_test.dart` and
+  `app/test/strength_workout_test.dart` are the contracts for the two
+  decisions closed on 28 July 2026: reading replacement vs. sitting
+  accumulation, and strength energy reaching the day only through the
+  deduplicated path.
 - `flutter analyze` — no issues.
 
 ## Approval-gate status
@@ -113,15 +119,18 @@ defined by `UI_BRIEF.md`. Do not reintroduce prototype chrome while doing so.
 The local-first prototype is complete and green. These are the remaining
 vertical slices, not hidden cleanup:
 
-1. **Lifestyle capture placement.** Mood, stress, recovery, meditation and
-   breathwork already have canonical local rows and feed weekly review, but a
-   new visible check-in on Body would add another control cluster. Decide
-   whether they belong as marginal Journal prompts, one quiet Dashboard
-   check-in, or a deeper Sanctum/history passage before adding UI.
-2. **Strength experience.** The schema and energy fallback exist, but exercise
-   selection, sets/reps/load editing, active-session behavior and history need
-   one coherent interaction. Do not infer a conventional gym tracker inside
-   the approved editorial shell.
+1. **Lifestyle capture placement.** *Decided 28 July 2026: the Journal.*
+   Mood, stress, recovery, meditation and breathwork are marginal Journal
+   prompts, not a Dashboard control cluster. They sit in the Journal's margin
+   beside the day's writing, are recorded straight into `LifestyleEntries`,
+   and never add a card, a form or a completion state. Body stays a reading
+   surface for them; the weekly review keeps consuming the same canonical rows.
+2. **Strength experience.** *Decided 28 July 2026: full functionality behind
+   progressive disclosure.* Exercise selection, sets/reps/load editing and
+   history are complete — not a reduced "workout note" — but nothing of that
+   apparatus is visible at rest. Body shows one quiet line; the whole tracker
+   opens from it, inside the approved editorial shell (radius 0, borderless
+   actions, no capsules, no gym chrome).
 3. **Production intelligence.** Guidance, Journal classification and Vessel
    reading contracts are implemented, consent-gated and provider-independent.
    Shipping them needs a selected backend/provider, credentials and deployment
@@ -135,3 +144,19 @@ vertical slices, not hidden cleanup:
 
 Until those choices are made, prefer improving verified local flows over
 adding placeholders to the resting screen.
+
+## Steering answers — 28 July 2026
+
+The product owner closed four open questions. They are binding.
+
+1. **Lifestyle check-ins → Journal margin.** See decision 1 above.
+2. **Strength → complete tracker behind progressive disclosure.** See
+   decision 2 above.
+3. **ETER header → register-dependent.** Day goes *more* minimal than the
+   shipped colophon: the wordmark and the lower plumb-and-star graphic, and
+   nothing else. Night is where the elaborate astrolabe concept lives, and
+   night may animate. The astrolabe is not a day/night shared asset; it is a
+   night register.
+4. **Expanded Body density → accepted as is.** `FOOD / ADD MEAL` and
+   `WEIGHT / RECORD` stand. Do not re-open that line rhythm; new Body matter
+   (strength) must reuse it rather than invent another.

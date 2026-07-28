@@ -10,7 +10,9 @@ import '../../core/icons.dart';
 import '../../core/health/manual_activity.dart';
 import '../../core/health/manual_weight.dart';
 import '../../core/instruments.dart';
+import '../../core/energy/energy.dart' show SetTechnique;
 import '../../core/nutrition/manual_meal.dart';
+import '../../core/strength/strength_workout.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
 
@@ -286,6 +288,8 @@ class _ExpandedBody extends StatelessWidget {
         const SizedBox(height: EterSpace.s24),
         _ManualActivityEntry(db: db, now: now),
         const SizedBox(height: EterSpace.s24),
+        _StrengthEntry(db: db, now: now),
+        const SizedBox(height: EterSpace.s24),
         _ManualMealEntry(db: db, now: now),
         const SizedBox(height: EterSpace.s24),
         _HistoricalSignals(db: db, now: now, today: today),
@@ -306,6 +310,377 @@ class _ExpandedBody extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Strength, at the same line rhythm as `FOOD / ADD MEAL` and
+/// `WEIGHT / RECORD` — because the expanded Body's density is settled and new
+/// matter reuses it rather than inventing another.
+///
+/// At rest this is one line and one short fact about the last session. The
+/// complete tracker — exercises, sets, reps, load, technique and history —
+/// exists behind `Record` and nowhere else. That is the whole point of the
+/// decision: full functionality, zero resting cost.
+class _StrengthEntry extends StatefulWidget {
+  const _StrengthEntry({required this.db, required this.now});
+
+  final AppDatabase db;
+  final DateTime now;
+
+  @override
+  State<_StrengthEntry> createState() => _StrengthEntryState();
+}
+
+class _StrengthEntryState extends State<_StrengthEntry> {
+  final _exercises = <_ExerciseDraft>[];
+  bool _open = false;
+  bool _saving = false;
+  String? _message;
+  Stream<List<StrengthWorkoutRow>>? _history;
+
+  static final _historyDate = DateFormat('d MMM');
+
+  @override
+  void dispose() {
+    for (final exercise in _exercises) {
+      exercise.dispose();
+    }
+    super.dispose();
+  }
+
+  Stream<List<StrengthWorkoutRow>> _historyStream() =>
+      _history ??= widget.db.watchStrengthWorkouts(limit: 5);
+
+  void _toggle() {
+    setState(() {
+      _open = !_open;
+      _message = null;
+      if (_open && _exercises.isEmpty) {
+        _exercises.add(_ExerciseDraft()..sets.add(_SetDraft()));
+      }
+    });
+  }
+
+  void _discardDraft() {
+    for (final exercise in _exercises) {
+      exercise.dispose();
+    }
+    _exercises.clear();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+    final composed = <StrengthExercise>[];
+    for (final draft in _exercises) {
+      final name = draft.name.text.trim();
+      if (name.isEmpty) continue;
+      final sets = <StrengthSet>[];
+      for (final set in draft.sets) {
+        final reps = int.tryParse(set.reps.text.trim());
+        if (reps == null) continue;
+        sets.add(StrengthSet(
+          reps: reps,
+          loadKg: double.tryParse(set.load.text.trim().replaceAll(',', '.')),
+          technique: draft.technique,
+        ));
+      }
+      if (sets.isNotEmpty) {
+        composed.add(StrengthExercise(name: name, sets: sets));
+      }
+    }
+    setState(() {
+      _saving = true;
+      _message = null;
+    });
+    try {
+      final result = await StrengthWorkoutService(widget.db).record(
+        exercises: composed,
+        endedAt: widget.now,
+      );
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _open = false;
+        _discardDraft();
+        _message = '${result.durationMinutes} min, '
+            '${result.kcal.round()} kcal recorded.';
+      });
+    } on StrengthWorkoutException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _message = error.message;
+      });
+    } on ManualActivityException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _saving = false;
+        _message = error.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('STRENGTH', style: text.labelSmall),
+            const Spacer(),
+            EterAction(
+              label: _open ? 'Cancel' : 'Record',
+              emphasis: EterActionEmphasis.quiet,
+              onPressed: _saving ? null : _toggle,
+            ),
+          ],
+        ),
+        StreamBuilder<List<StrengthWorkoutRow>>(
+          stream: _historyStream(),
+          builder: (context, snapshot) {
+            final rows = snapshot.data ?? const <StrengthWorkoutRow>[];
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (rows.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: EterSpace.s4),
+                    child: Text(
+                      _restingFact(rows.first),
+                      style: text.bodySmall,
+                    ),
+                  ),
+                if (_open) ...[
+                  const SizedBox(height: EterSpace.s16),
+                  for (var index = 0; index < _exercises.length; index++)
+                    _ExerciseEditor(
+                      key: ObjectKey(_exercises[index]),
+                      draft: _exercises[index],
+                      onChanged: () => setState(() {}),
+                      onRemove: _exercises.length == 1
+                          ? null
+                          : () => setState(() {
+                                _exercises.removeAt(index).dispose();
+                              }),
+                    ),
+                  Row(
+                    children: [
+                      EterAction(
+                        label: 'Add exercise',
+                        emphasis: EterActionEmphasis.quiet,
+                        onPressed: () => setState(() {
+                          _exercises.add(_ExerciseDraft()..sets.add(_SetDraft()));
+                        }),
+                      ),
+                      const Spacer(),
+                      EterAction(
+                        label: _saving ? 'Keeping' : 'Keep workout',
+                        emphasis: EterActionEmphasis.primary,
+                        busy: _saving,
+                        onPressed: _save,
+                      ),
+                    ],
+                  ),
+                  if (rows.length > 1) ...[
+                    const SizedBox(height: EterSpace.s24),
+                    Text('EARLIER WORK', style: text.labelSmall),
+                    const SizedBox(height: EterSpace.s4),
+                    for (final row in rows.skip(1))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: EterSpace.s4),
+                        child: Text(
+                          '${_historyDate.format(row.endedAt.toLocal())}  ·  '
+                          '${_shape(row)}',
+                          style: text.bodySmall,
+                        ),
+                      ),
+                  ],
+                ],
+              ],
+            );
+          },
+        ),
+        if (_message != null) ...[
+          const SizedBox(height: EterSpace.s8),
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+        ],
+      ],
+    );
+  }
+
+  String _restingFact(StrengthWorkoutRow row) {
+    final local = row.endedAt.toLocal();
+    final when = eterIsoDate(local) == eterIsoDate(widget.now)
+        ? 'Today'
+        : _historyDate.format(local);
+    return '$when  ·  ${_shape(row)}';
+  }
+
+  /// One factual line — never a score, a grade or a streak.
+  String _shape(StrengthWorkoutRow row) {
+    final exercises = StrengthExercise.decode(row.exercisesJson);
+    var sets = 0;
+    var volume = 0.0;
+    for (final exercise in exercises) {
+      sets += exercise.sets.length;
+      volume += exercise.volumeKg;
+    }
+    final parts = <String>[
+      '${exercises.length} exercise${exercises.length == 1 ? '' : 's'}',
+      '$sets set${sets == 1 ? '' : 's'}',
+      if (volume > 0) '${volume.round()} kg lifted',
+    ];
+    return parts.join(', ');
+  }
+}
+
+class _SetDraft {
+  final reps = TextEditingController();
+  final load = TextEditingController();
+
+  void dispose() {
+    reps.dispose();
+    load.dispose();
+  }
+}
+
+class _ExerciseDraft {
+  final name = TextEditingController();
+  final sets = <_SetDraft>[];
+  SetTechnique technique = SetTechnique.normal;
+
+  void dispose() {
+    name.dispose();
+    for (final set in sets) {
+      set.dispose();
+    }
+  }
+}
+
+class _ExerciseEditor extends StatelessWidget {
+  const _ExerciseEditor({
+    super.key,
+    required this.draft,
+    required this.onChanged,
+    required this.onRemove,
+  });
+
+  final _ExerciseDraft draft;
+  final VoidCallback onChanged;
+  final VoidCallback? onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EterSpace.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: draft.name,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Exercise',
+                    hintText: 'Back squat',
+                  ),
+                ),
+              ),
+              if (onRemove != null)
+                EterAction(
+                  label: 'Remove',
+                  emphasis: EterActionEmphasis.quiet,
+                  onPressed: onRemove,
+                ),
+            ],
+          ),
+          for (var index = 0; index < draft.sets.length; index++)
+            Padding(
+              padding: const EdgeInsets.only(top: EterSpace.s8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    width: 28,
+                    // The set number is a margin annotation; sit it on the
+                    // field's own baseline rather than the row's floor.
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: EterSpace.s12),
+                      child: Text('${index + 1}', style: text.labelSmall),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: draft.sets[index].reps,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Reps'),
+                    ),
+                  ),
+                  const SizedBox(width: EterSpace.s8),
+                  Expanded(
+                    child: TextField(
+                      controller: draft.sets[index].load,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(labelText: 'Load kg'),
+                    ),
+                  ),
+                  if (draft.sets.length > 1)
+                    EterAction(
+                      label: 'Drop',
+                      emphasis: EterActionEmphasis.quiet,
+                      onPressed: () {
+                        draft.sets.removeAt(index).dispose();
+                        onChanged();
+                      },
+                    ),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              EterAction(
+                label: 'Add set',
+                emphasis: EterActionEmphasis.quiet,
+                onPressed: () {
+                  draft.sets.add(_SetDraft());
+                  onChanged();
+                },
+              ),
+              const Spacer(),
+              // Technique changes the energy estimate, so it is recorded — but
+              // it stays one quiet cycling word, not a control cluster.
+              EterAction(
+                label: _techniqueLabel(draft.technique),
+                emphasis: EterActionEmphasis.quiet,
+                onPressed: () {
+                  const values = SetTechnique.values;
+                  draft.technique = values[
+                      (values.indexOf(draft.technique) + 1) % values.length];
+                  onChanged();
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _techniqueLabel(SetTechnique technique) => switch (technique) {
+        SetTechnique.normal => 'Straight sets',
+        SetTechnique.superset => 'Supersets',
+        SetTechnique.dropSet => 'Drop sets',
+        SetTechnique.restPause => 'Rest-pause',
+        SetTechnique.eccentric => 'Eccentric',
+      };
 }
 
 class _ManualWeightEntry extends StatefulWidget {

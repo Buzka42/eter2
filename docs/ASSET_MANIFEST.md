@@ -50,26 +50,34 @@ dynamic-type capture gate and is integrated as
 
 #### 2. ETER celestial header engraving
 
-**Status:** two concept families generated under `assets/review/`. The quieter
-colophon family (option B) is provisionally implemented with `CustomPainter`;
-the concept bitmaps are not runtime assets.
+**Status:** closed as code, in two registers (steering decision, 28 July 2026).
+Day draws the colophon alone — plumb line and compass star under the wordmark,
+nothing above the name. Night draws the elaborate astrolabe and is the only
+place the graduated arc, solar/lunar marks and drift exist. Both live in
+`features/shell/shell_header.dart`; the concept bitmaps under `assets/review/`
+are retained for comparison and are not runtime assets.
 
 **Deliverable:** one shallow, symmetrical path composition around the wordmark,
 approximately 300×56 logical units, authored as SVG paths or reproducible
 Flutter paths. The `ETER` text itself remains live typography and is not part of
 the asset.
 
-**Motif:** a restrained solar mark on one side, lunar mark on the other, joined
-by one fine orbital arc with at most one eight-point star at its centre. It
-should feel like an astronomical instrument engraving, not a horoscope banner.
+**Motif:** night keeps a restrained solar mark on one side, lunar mark on the
+other, joined by one fine graduated arc, an inner declination arc and a ring of
+struck graduations. Day keeps only the plumb line and the four-point compass
+star. Both should feel like an astronomical instrument engraving, not a
+horoscope banner.
 
 **Rules:**
 
 - One-color paths; tint from `EterInk`/register in code.
 - 1–1.25 dp apparent stroke at normal phone width.
-- No zodiac glyph row, constellation field, labels, fill, glow or animation.
+- No zodiac glyph row, constellation field, labels, fill or glow.
+- Motion is night-only, one revolution per six minutes, and renders settled on
+  frame one under reduced motion. Day never animates.
 - Decorative semantics only.
-- Identical geometry on Journal and Dashboard.
+- Identical geometry, lockup and hit region on Journal and Dashboard, and
+  across registers — only the drawn matter changes.
 
 This is the one approved astrological flavor at the top of the resting surface.
 Do not add more header decoration to compensate for empty space.

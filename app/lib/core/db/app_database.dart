@@ -555,6 +555,48 @@ class AppDatabase extends _$AppDatabase {
   Future<int> addLifestyleEntry(LifestyleEntriesCompanion entry) =>
       into(lifestyleEntries).insert(entry);
 
+  Stream<List<LifestyleEntryRow>> watchLifestyleForRange(
+    DateTime startUtc,
+    DateTime endUtc,
+  ) =>
+      (select(lifestyleEntries)
+            ..where((row) =>
+                row.recordedAt.isBiggerOrEqualValue(startUtc.toUtc()) &
+                row.recordedAt.isSmallerThanValue(endUtc.toUtc()))
+            ..orderBy([(row) => OrderingTerm.asc(row.recordedAt)]))
+          .watch();
+
+  /// A self-reported reading is the day's answer, not a log line: recording
+  /// mood again replaces the day's mood instead of stacking a second opinion
+  /// beside it. Practice sessions ([addLifestyleEntry]) accumulate; readings
+  /// do not. Replacement is transactional so a day never holds two answers.
+  Future<int> recordLifestyleReading({
+    required String kind,
+    required double value,
+    required DateTime recordedAt,
+    required DateTime dayStartUtc,
+    required DateTime dayEndUtc,
+  }) =>
+      transaction(() async {
+        await (delete(lifestyleEntries)
+              ..where((row) =>
+                  row.kind.equals(kind) &
+                  row.source.equals('self-report') &
+                  row.recordedAt.isBiggerOrEqualValue(dayStartUtc.toUtc()) &
+                  row.recordedAt.isSmallerThanValue(dayEndUtc.toUtc())))
+            .go();
+        return into(lifestyleEntries).insert(
+          LifestyleEntriesCompanion.insert(
+            recordedAt: recordedAt.toUtc(),
+            kind: kind,
+            value: Value(value),
+          ),
+        );
+      });
+
+  Future<void> deleteLifestyleEntry(int id) =>
+      (delete(lifestyleEntries)..where((row) => row.id.equals(id))).go();
+
   Future<List<LifestyleEntryRow>> loadLifestyleRange(
     DateTime startUtc,
     DateTime endUtc,
@@ -568,6 +610,12 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> upsertStrengthWorkout(StrengthWorkoutsCompanion workout) =>
       into(strengthWorkouts).insertOnConflictUpdate(workout);
+
+  Stream<List<StrengthWorkoutRow>> watchStrengthWorkouts({int limit = 30}) =>
+      (select(strengthWorkouts)
+            ..orderBy([(row) => OrderingTerm.desc(row.endedAt)])
+            ..limit(limit))
+          .watch();
 
   // -------------------------------------------------------------------------
   // Journal
