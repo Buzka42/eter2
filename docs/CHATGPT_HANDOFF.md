@@ -131,7 +131,8 @@ vertical slices, not hidden cleanup:
    apparatus is visible at rest. Body shows one quiet line; the whole tracker
    opens from it, inside the approved editorial shell (radius 0, borderless
    actions, no capsules, no gym chrome).
-3. **Production intelligence.** Guidance, Journal classification and Vessel
+3. **Production intelligence.** Read [`AI_FLOW.md`](AI_FLOW.md) first — it is
+   the authority for the whole boundary, and §6 is the wiring order. Guidance, Journal classification and Vessel
    reading contracts are implemented, consent-gated and provider-independent.
    Shipping them needs a selected backend/provider, credentials and deployment
    boundary; the client must not embed a model secret.

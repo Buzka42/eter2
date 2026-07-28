@@ -135,10 +135,9 @@ What this needs, in order:
    any owner-controlled endpoint) that authenticates the caller, holds the
    credential and forwards a validated request.
 2. **A provider choice** and its cost model.
-3. **Prompt and context design** — which is Pass 3 of this review, and is where
-   the real product risk lives. The request contracts already bound what may
-   leave the device; what has never been written down is what the model is
-   actually asked, and how its answer is held to the register.
+3. ~~**Prompt and context design.**~~ Done — `docs/AI_FLOW.md` is the
+   authority, and `core/ai/prompts.dart` holds the instructions themselves,
+   versioned beside the contracts that validate the answers.
 4. **Rate, cost and failure policy.** What happens on the fifth refresh in a
    minute, on a 500, on a timeout mid-compose.
 
