@@ -863,6 +863,45 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('Sanctum prepares and speaks a factual weekly view',
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await pumpShell(tester);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+
+    final prepare = find.text('PREPARE');
+    await tester.ensureVisible(prepare);
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: prepare, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Seven-day view prepared on this device.'),
+      findsOneWidget,
+    );
+    final headline = find.textContaining('Your ');
+    await waitForWidget(tester, headline);
+    await tester.ensureVisible(headline.first);
+    await tester.pump();
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'Your (partial )?seven-day view'),
+      ),
+      findsOneWidget,
+    );
+    expect(await db.loadRetrospectives(), hasLength(1));
+    semantics.dispose();
+    await closeShell(tester);
+  });
+
   testWidgets('local deletion requires a second explicit action',
       (tester) async {
     await pumpShell(tester);

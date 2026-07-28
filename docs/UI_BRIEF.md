@@ -387,6 +387,12 @@ receipt exposes the observation count, date window and coefficient, always says
 “correlation, not cause,” and a later review must never reactivate something
 the user dismissed.
 
+The adjacent Week in View is also local-first. `PREPARE` summarizes the seven
+complete days before today using only canonical recorded movement, sleep,
+journal-entry counts and self-reported signal counts. It never sends journal
+prose, never invents advice, and says that missing days were omitted rather
+than treated as zero. Re-preparing the same period updates one cached review.
+
 ---
 
 ## 11. Testing

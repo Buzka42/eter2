@@ -168,3 +168,8 @@ The local pattern-review milestone also adds no raster commission. Evidence is
 deliberately typographic and inspectable; illustrating a correlation would
 give weak local statistics more authority than the product intends. No
 two-option asset decision is triggered by this slice.
+
+The local Week in View is likewise editorial text, not an illustration or
+animated event. Its value is factual continuity across recorded days; adding a
+hero image would make the quiet Sanctum denser and imply a model-authored
+reading. No asset was generated, so the two-option gate does not apply.

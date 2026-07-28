@@ -12,6 +12,7 @@ import '../../core/health/platform_health_gateway.dart';
 import '../../core/privacy/local_data_export.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/register.dart';
+import '../../core/retrospectives/local_weekly_retrospective.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
 
@@ -202,6 +203,8 @@ class _PersonalizationControls extends StatefulWidget {
 class _PersonalizationControlsState extends State<_PersonalizationControls> {
   late Future<List<PatternCandidateRow>> _patterns =
       widget.database.loadActivePatterns();
+  late Future<List<RetrospectiveRow>> _retrospectives =
+      widget.database.loadRetrospectives(limit: 1);
   bool _confirmReset = false;
   bool _busy = false;
   String? _message;
@@ -223,6 +226,25 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
           ? 'Not enough consistent local evidence yet.'
           : '${result.activePatterns} local pattern refreshed from '
               '${result.observations} observations.';
+    });
+  }
+
+  Future<void> _prepareWeek() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _message = 'Preparing a factual seven-day view…';
+    });
+    final result = await LocalWeeklyRetrospective(widget.database).prepare(
+      now: DateTime.now(),
+    );
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _retrospectives = widget.database.loadRetrospectives(limit: 1);
+      _message = result == null
+          ? 'There is not enough local history for a weekly view yet.'
+          : 'Seven-day view prepared on this device.';
     });
   }
 
@@ -252,6 +274,7 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _busy = false;
       _confirmReset = false;
       _patterns = widget.database.loadActivePatterns();
+      _retrospectives = widget.database.loadRetrospectives(limit: 1);
       _message = result.total == 0
           ? 'Aether memory was already empty.'
           : 'Aether memory cleared from this device.';
@@ -272,6 +295,59 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
           'treated as causes.',
           style: text.bodyMedium,
         ),
+        const SizedBox(height: EterSpace.s16),
+        Text('WEEK IN VIEW', style: text.labelSmall),
+        FutureBuilder<List<RetrospectiveRow>>(
+          future: _retrospectives,
+          builder: (context, snapshot) {
+            final rows = snapshot.data;
+            if (rows == null) return const SizedBox.shrink();
+            if (rows.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: EterSpace.s8),
+                child: Text(
+                  'No weekly view has been prepared.',
+                  style: text.bodySmall?.copyWith(color: ink.labelMuted),
+                ),
+              );
+            }
+            final review = _RetrospectiveView.tryParse(rows.first);
+            if (review == null) return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsets.only(top: EterSpace.s8),
+              child: Semantics(
+                container: true,
+                label: review.semanticLabel,
+                child: ExcludeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(review.headline, style: text.titleMedium),
+                      const SizedBox(height: EterSpace.s4),
+                      for (final passage in review.passages)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: EterSpace.s4),
+                          child: Text(passage, style: text.bodySmall),
+                        ),
+                      Text(
+                        review.caveat,
+                        style: text.bodySmall?.copyWith(color: ink.labelMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        EterAction(
+          label: 'Prepare',
+          emphasis: EterActionEmphasis.quiet,
+          busy: _busy,
+          onPressed: _busy ? null : _prepareWeek,
+        ),
+        const SizedBox(height: EterSpace.s16),
+        Text('LOCAL PATTERNS', style: text.labelSmall),
         FutureBuilder<List<PatternCandidateRow>>(
           future: _patterns,
           builder: (context, snapshot) {
@@ -372,6 +448,46 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
 
   String _patternSemantics(PatternCandidateRow pattern) =>
       '${pattern.summary}. ${_patternReceipt(pattern)}.';
+}
+
+class _RetrospectiveView {
+  const _RetrospectiveView({
+    required this.headline,
+    required this.passages,
+    required this.caveat,
+    required this.window,
+  });
+
+  final String headline;
+  final List<String> passages;
+  final String caveat;
+  final String window;
+
+  String get semanticLabel =>
+      '$headline. ${passages.join(' ')} $caveat Window $window.';
+
+  static _RetrospectiveView? tryParse(RetrospectiveRow row) {
+    try {
+      final content = jsonDecode(row.contentJson);
+      if (content is! Map<String, dynamic>) return null;
+      final headline = content['headline'];
+      final rawPassages = content['passages'];
+      final caveat = content['caveat'];
+      if (headline is! String || rawPassages is! List || caveat is! String) {
+        return null;
+      }
+      final passages = rawPassages.whereType<String>().toList();
+      if (passages.isEmpty) return null;
+      return _RetrospectiveView(
+        headline: headline,
+        passages: passages,
+        caveat: caveat,
+        window: '${row.periodStart} to ${row.periodEnd}',
+      );
+    } on FormatException {
+      return null;
+    }
+  }
 }
 
 class _LocalDeletion extends StatefulWidget {
