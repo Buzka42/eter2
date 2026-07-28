@@ -41,6 +41,13 @@ dependencies:
   # Birthplace geocoding; vendor OAuth hands off to a custom tab.
   geocoding: ^4.0.0
 
+  # Accounts and the cloud mirror. Optional by design: Eter opens, works and
+  # keeps every record with no account and no network. Signing in adds
+  # recovery on a new phone, and nothing else.
+  firebase_core: ^3.8.0
+  firebase_auth: ^5.3.4
+  google_sign_in: ^6.2.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

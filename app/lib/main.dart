@@ -1,8 +1,11 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/account/account.dart';
+import 'core/account/firebase_account_service.dart';
 import 'core/aether/guidance_mode.dart';
 import 'core/aether/guidance_contract.dart';
 import 'core/ai/transport.dart';
@@ -34,9 +37,25 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final database = AppDatabase();
   await database.runLocalRetention();
+
+  // Accounts are optional, so their absence must not be fatal. A build with no
+  // Firebase configuration — or a device that cannot reach Google Play
+  // services — opens normally, keeps every record, and simply has no
+  // "sign in to sync" to offer.
+  AccountService? accounts;
+  try {
+    await Firebase.initializeApp();
+    accounts = FirebaseAccountService();
+  } catch (error) {
+    debugPrint('Accounts unavailable, continuing local-only: $error');
+  }
+
   runApp(
     ProviderScope(
-      overrides: [databaseProvider.overrideWithValue(database)],
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+        accountServiceProvider.overrideWithValue(accounts),
+      ],
       child: const EterApp(),
     ),
   );
@@ -48,6 +67,21 @@ Future<void> main() async {
 final databaseProvider = Provider<AppDatabase>(
   (ref) => throw StateError('databaseProvider must be overridden'),
 );
+
+/// The account system, or null when this build has none.
+///
+/// Null is a supported, shipped state — Eter is local-first and an account
+/// only ever adds recovery on a new phone. Every surface that reads this must
+/// behave correctly when it is null, and tests read it null by default so that
+/// stays true.
+final accountServiceProvider = Provider<AccountService?>((ref) => null);
+
+/// Who is signed in, if anyone. Null covers both "no account system" and
+/// "signed out", because no surface needs to tell those apart.
+final accountProvider = StreamProvider<EterAccount?>((ref) {
+  final service = ref.watch(accountServiceProvider);
+  return service == null ? Stream.value(null) : service.changes();
+});
 
 /// The single network transport, or null when this build was compiled without
 /// `ETER_AI_ENDPOINT`. Null is a supported, shipped configuration: the app is
