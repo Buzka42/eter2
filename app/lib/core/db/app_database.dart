@@ -749,6 +749,21 @@ class AppDatabase extends _$AppDatabase {
             ..limit(limit))
           .get();
 
+  /// Clears derived Aether memory without touching source health, journal,
+  /// profile, consent, nutrition, or deterministic symbolic calculations.
+  Future<PersonalizationResetResult> resetPersonalization() async {
+    return transaction(() async {
+      final guidanceCount = await delete(guidanceHistory).go();
+      final patternCount = await delete(patternCandidates).go();
+      final retrospectiveCount = await delete(retrospectives).go();
+      return PersonalizationResetResult(
+        guidance: guidanceCount,
+        patterns: patternCount,
+        retrospectives: retrospectiveCount,
+      );
+    });
+  }
+
   // -------------------------------------------------------------------------
   // Intake
   // -------------------------------------------------------------------------
@@ -902,6 +917,19 @@ class DayTotalUpdate {
 
   /// The recomputed total came out lower than what was stored.
   final bool recalibrated;
+}
+
+class PersonalizationResetResult {
+  const PersonalizationResetResult({
+    required this.guidance,
+    required this.patterns,
+    required this.retrospectives,
+  });
+
+  final int guidance;
+  final int patterns;
+  final int retrospectives;
+  int get total => guidance + patterns + retrospectives;
 }
 
 Map<String, Object?> _decodeMetadata(String raw) {

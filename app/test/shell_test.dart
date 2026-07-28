@@ -483,6 +483,74 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('Sanctum makes learned patterns inspectable and dismissible',
+      (tester) async {
+    await db.upsertPattern(
+      PatternCandidatesCompanion.insert(
+        key: 'mood-after-walking',
+        computedAt: DateTime.utc(2026, 7, 27),
+        summary: 'Mood was higher after walking.',
+        evidenceJson: '{"n":12,"window":"30 days"}',
+        confidence: 0.68,
+      ),
+    );
+    final semantics = tester.ensureSemantics();
+    await pumpShell(tester);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    final summary = find.bySemanticsLabel(
+      RegExp(r'Mood was higher after walking.*12 observations.*30 days'),
+    );
+    await tester.ensureVisible(summary);
+    await tester.pump();
+    expect(summary, findsOneWidget);
+
+    final dismiss = find.text('DISMISS');
+    await tester.ensureVisible(dismiss);
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: dismiss, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    expect(await db.loadActivePatterns(), isEmpty);
+    expect(find.textContaining('will not use it'), findsOneWidget);
+    semantics.dispose();
+    await closeShell(tester);
+  });
+
+  testWidgets('local deletion requires a second explicit action',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+
+    final first = find.text('DELETE');
+    await tester.ensureVisible(first);
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: first, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    expect(find.text('DELETE NOW'), findsOneWidget);
+    expect(find.textContaining('future cloud account copy'), findsOneWidget);
+    expect(await db.loadProfile(), isNotNull);
+    await closeShell(tester);
+  });
+
   testWidgets('system back closes the Sanctum before leaving the shell',
       (tester) async {
     await pumpShell(tester);

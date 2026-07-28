@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -167,7 +168,14 @@ class SanctumOverlay extends ConsumerWidget {
                     const SizedBox(height: EterSpace.s32),
                     _HealthConnection(database: db),
                     const SizedBox(height: EterSpace.s32),
+                    _PersonalizationControls(database: db),
+                    const SizedBox(height: EterSpace.s32),
                     _LocalExport(database: db),
+                    const SizedBox(height: EterSpace.s32),
+                    _LocalDeletion(
+                      database: db,
+                      onDeleted: onClose,
+                    ),
                     const SizedBox(height: EterSpace.s64),
                   ],
                 ),
@@ -176,6 +184,215 @@ class SanctumOverlay extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PersonalizationControls extends StatefulWidget {
+  const _PersonalizationControls({required this.database});
+
+  final AppDatabase database;
+
+  @override
+  State<_PersonalizationControls> createState() =>
+      _PersonalizationControlsState();
+}
+
+class _PersonalizationControlsState extends State<_PersonalizationControls> {
+  late Future<List<PatternCandidateRow>> _patterns =
+      widget.database.loadActivePatterns();
+  bool _confirmReset = false;
+  bool _busy = false;
+  String? _message;
+
+  Future<void> _dismiss(String key) async {
+    await widget.database.dismissPattern(key);
+    if (mounted) {
+      setState(() {
+        _patterns = widget.database.loadActivePatterns();
+        _message = 'Pattern dismissed. Aether will not use it.';
+      });
+    }
+  }
+
+  Future<void> _reset() async {
+    if (!_confirmReset) {
+      setState(() {
+        _confirmReset = true;
+        _message = 'This removes composed guidance, learned patterns, and '
+            'retrospectives. Your journal and health history stay.';
+      });
+      return;
+    }
+    setState(() => _busy = true);
+    final result = await widget.database.resetPersonalization();
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _confirmReset = false;
+      _patterns = widget.database.loadActivePatterns();
+      _message = result.total == 0
+          ? 'Aether memory was already empty.'
+          : 'Aether memory cleared from this device.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('AETHER MEMORY', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          'Only structured patterns are retained. Local correlations are not '
+          'treated as causes.',
+          style: text.bodyMedium,
+        ),
+        FutureBuilder<List<PatternCandidateRow>>(
+          future: _patterns,
+          builder: (context, snapshot) {
+            final patterns = snapshot.data;
+            if (patterns == null) return const SizedBox.shrink();
+            if (patterns.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: EterSpace.s8),
+                child: Text(
+                  'No active patterns.',
+                  style: text.bodySmall?.copyWith(color: ink.labelMuted),
+                ),
+              );
+            }
+            return Column(
+              children: [
+                for (final pattern in patterns)
+                  Padding(
+                    padding: const EdgeInsets.only(top: EterSpace.s16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Semantics(
+                          container: true,
+                          label: _patternSemantics(pattern),
+                          child: ExcludeSemantics(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(pattern.summary, style: text.titleMedium),
+                                const SizedBox(height: EterSpace.s4),
+                                Text(
+                                  _patternReceipt(pattern),
+                                  style: text.bodySmall?.copyWith(
+                                    color: ink.labelMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        EterAction(
+                          label: 'Dismiss',
+                          emphasis: EterActionEmphasis.quiet,
+                          onPressed: () => _dismiss(pattern.key),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: _confirmReset ? 'Clear now' : 'Reset',
+          busy: _busy,
+          onPressed: _busy ? null : _reset,
+        ),
+        if (_message != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+      ],
+    );
+  }
+
+  String _patternReceipt(PatternCandidateRow pattern) {
+    final parts = <String>[
+      '${(pattern.confidence * 100).round()}% confidence',
+    ];
+    try {
+      final evidence = jsonDecode(pattern.evidenceJson);
+      if (evidence is Map<String, dynamic>) {
+        if (evidence['n'] case final num count) {
+          parts.add('$count observations');
+        }
+        if (evidence['window'] case final String window) {
+          parts.add(window);
+        }
+      }
+    } on FormatException {
+      // The summary remains inspectable even if legacy evidence is malformed.
+    }
+    return '${parts.join(' · ')} · correlation, not cause';
+  }
+
+  String _patternSemantics(PatternCandidateRow pattern) =>
+      '${pattern.summary}. ${_patternReceipt(pattern)}.';
+}
+
+class _LocalDeletion extends StatefulWidget {
+  const _LocalDeletion({
+    required this.database,
+    required this.onDeleted,
+  });
+
+  final AppDatabase database;
+  final VoidCallback onDeleted;
+
+  @override
+  State<_LocalDeletion> createState() => _LocalDeletionState();
+}
+
+class _LocalDeletionState extends State<_LocalDeletion> {
+  bool _confirming = false;
+  bool _busy = false;
+
+  Future<void> _delete() async {
+    if (!_confirming) {
+      setState(() => _confirming = true);
+      return;
+    }
+    setState(() => _busy = true);
+    await widget.database.deleteAllLocalData();
+    if (mounted) widget.onDeleted();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('DELETE FROM THIS DEVICE', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          _confirming
+              ? 'This permanently removes the local profile, journal, health '
+                  'history, and derived readings. It does not claim to delete '
+                  'a future cloud account copy.'
+              : 'Remove every local Eter record and return to onboarding.',
+          style: text.bodyMedium,
+        ),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: _confirming ? 'Delete now' : 'Delete',
+          busy: _busy,
+          onPressed: _busy ? null : _delete,
+        ),
+      ],
     );
   }
 }

@@ -356,6 +356,11 @@ Not a later pass. The brief ranks accessibility above decorative animation.
   **Never carry information in it on a day surface.** (This remains an open
   product decision; treat it as decoration until told otherwise.)
 
+Sanctum’s structured personalization controls follow the same contract:
+pattern evidence is spoken before its independent Dismiss action, and both
+memory reset and full local deletion require a consequence-revealing first
+action before the destructive second action appears.
+
 ---
 
 ## 11. Testing

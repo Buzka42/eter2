@@ -499,6 +499,54 @@ void main() {
       expect(active, hasLength(1));
       expect(active.single.key, 'sleep-after-late-workouts');
     });
+
+    test('reset removes derived memory but preserves source records', () async {
+      final journalId = await db.addJournalEntry(
+        JournalEntriesCompanion.insert(
+          createdAt: DateTime.utc(2026, 7, 27),
+          entryText: 'A source memory that must remain.',
+        ),
+      );
+      await db.recordGuidance(
+        GuidanceHistoryCompanion.insert(
+          date: '2026-07-27',
+          dimension: 'synthesis',
+          generatedAt: DateTime.utc(2026, 7, 27),
+          contentJson: '{}',
+          contextFingerprint: 'reset-test',
+          source: 'test',
+        ),
+      );
+      await db.upsertPattern(
+        PatternCandidatesCompanion.insert(
+          key: 'test-pattern',
+          computedAt: DateTime.utc(2026, 7, 27),
+          summary: 'A derived pattern',
+          evidenceJson: '{"n":8}',
+          confidence: 0.6,
+        ),
+      );
+      await db.saveRetrospective(
+        RetrospectivesCompanion.insert(
+          id: 'week-1',
+          kind: 'weekly',
+          periodStart: '2026-07-21',
+          periodEnd: '2026-07-27',
+          generatedAt: DateTime.utc(2026, 7, 27),
+          contentJson: '{}',
+          model: 'test',
+        ),
+      );
+
+      final result = await db.resetPersonalization();
+
+      expect(result.total, 3);
+      expect(await db.loadRecentGuidance(), isEmpty);
+      expect(await db.loadActivePatterns(), isEmpty);
+      expect(await db.loadRetrospectives(), isEmpty);
+      expect((await db.loadJournalEntry(journalId))!.entryText,
+          'A source memory that must remain.');
+    });
   });
 
   group('integrations', () {
