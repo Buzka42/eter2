@@ -8,6 +8,7 @@ import 'core/aether/guidance_contract.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
 import 'core/journal/classification_contract.dart';
+import 'core/profile/birth_context.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
 import 'core/vessel/reading_composer.dart';
@@ -54,6 +55,9 @@ final aetherTransportProvider = Provider<AetherProvider?>((ref) => null);
 
 final vesselReadingTransportProvider =
     Provider<VesselReadingProvider?>((ref) => null);
+final birthplaceResolverProvider = Provider<BirthplaceResolver>(
+  (ref) => PlatformBirthplaceResolver(),
+);
 
 class EterApp extends ConsumerStatefulWidget {
   const EterApp({super.key});

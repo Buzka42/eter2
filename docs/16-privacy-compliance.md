@@ -21,6 +21,11 @@ Each journal entry can additionally be marked `excludedFromAi`; guidance
 queries omit it at the database boundary. Consent-policy versioning and
 Function-side enforcement remain part of the cloud pipeline milestone.
 
+Birth-place completion in the Sanctum discloses that its typed place label is
+passed to the operating-system geocoder. The resolved label and coordinates
+are stored in Drift; raw birth inputs and coordinates remain excluded from all
+implemented Aether/Vessel provider payloads.
+
 ## Data handling rules
 
 - HR raw samples: device-only (14). AI payloads: anonymized (no uid/name/DOB — age integer only), TLS, never logged server-side in app-provided mode (Function proxy strips and forwards, logs only quota counters).

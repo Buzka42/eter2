@@ -5,6 +5,7 @@ import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
+import 'package:eter/core/profile/birth_context.dart';
 import 'package:eter/core/vessel/reading_composer.dart';
 import 'package:eter/core/controls.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
@@ -38,6 +39,7 @@ void main() {
     JournalClassificationProvider? journalProvider,
     AetherProvider? aetherProvider,
     VesselReadingProvider? vesselProvider,
+    BirthplaceResolver? birthplaceResolver,
     double width = 390,
     double height = 844,
     double textScale = 1,
@@ -50,6 +52,7 @@ void main() {
       journalProvider: journalProvider,
       aetherProvider: aetherProvider,
       vesselProvider: vesselProvider,
+      birthplaceResolver: birthplaceResolver,
       textScale: textScale,
     );
     await tester.pumpWidget(
@@ -626,6 +629,38 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('Vessel refreshes after birth context changes', (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('VESSEL'));
+    await tester.pump();
+    await waitForWidget(
+      tester,
+      find.textContaining('Ascendant is not reliable'),
+    );
+
+    await db.updateBirthContext(
+      birthTimeMinutes: 405,
+      birthUtcOffsetMinutes: 60,
+      birthPlace: 'Warsaw, Poland',
+      birthLatitude: 52.2297,
+      birthLongitude: 21.0122,
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+    await waitForWidget(tester, find.text('ASCENDANT'));
+
+    expect(
+      find.textContaining('Ascendant is not reliable'),
+      findsNothing,
+    );
+    expect(find.text('ASCENDANT'), findsOneWidget);
+    await closeShell(tester);
+  });
+
   testWidgets('Vessel states unavailable composition without losing keywords',
       (tester) async {
     await db.updateProfileConsents(aiAllowed: true);
@@ -793,6 +828,49 @@ void main() {
     expect(after?.dob, before?.dob);
     expect(after?.birthPlace, before?.birthPlace);
     expect(after?.weightKg, before?.weightKg);
+    await closeShell(tester);
+  });
+
+  testWidgets('Sanctum completes birth context and improves chart inputs',
+      (tester) async {
+    final resolver = _BirthplaceResolver();
+    await pumpShell(tester, birthplaceResolver: resolver);
+    await tester.tap(find.bySemanticsLabel('Open Sanctum'));
+    await tester.pump();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    final action = find.byKey(const ValueKey('birth-context-primary-action'));
+    await tester.ensureVisible(action);
+    tester.widget<EterAction>(action).onPressed!.call();
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('birth-context-time')),
+      '06:45',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('birth-context-offset')),
+      '+01:00',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('birth-context-place')),
+      'Warsaw, Poland',
+    );
+    tester.widget<EterAction>(action).onPressed!.call();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+
+    expect(find.text('Birth context saved on this device.'), findsOneWidget);
+    final profile = await db.loadProfile();
+    expect(profile?.birthTimeMinutes, 405);
+    expect(profile?.birthUtcOffsetMinutes, 60);
+    expect(profile?.birthLatitude, 52.2297);
+    expect(profile?.birthLongitude, 21.0122);
+    expect(resolver.queries, ['Warsaw, Poland']);
     await closeShell(tester);
   });
 
@@ -1101,5 +1179,18 @@ class _VesselProvider implements VesselReadingProvider {
           },
       ],
     });
+  }
+}
+
+class _BirthplaceResolver implements BirthplaceResolver {
+  final queries = <String>[];
+
+  @override
+  Future<BirthplaceCoordinates> resolve(String place) async {
+    queries.add(place);
+    return const BirthplaceCoordinates(
+      latitude: 52.2297,
+      longitude: 21.0122,
+    );
   }
 }

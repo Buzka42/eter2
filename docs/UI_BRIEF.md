@@ -318,6 +318,13 @@ missing positions, validates an exact safe response, commits the set
 atomically, and never replaces known keywords or cached prose with a spinner.
 The deployed live reading transport remains unconfigured.
 
+Birth context is editable later from a collapsed Sanctum section, as
+onboarding promises. Exact local time and the historical UTC offset are a
+validated pair; place lookup uses the device geocoder and commits the returned
+coordinates atomically with the label. Failed lookup changes nothing. Updating
+these inputs removes readings belonging to stale chart hashes and refreshes an
+already-open Vessel without requiring an app restart.
+
 **What this means for you:** an uncomposed reading is a normal state, not an
 error. Show the keywords and say the reading has not been composed yet. Never
 show a spinner where a keyword would do, and never show an error for something

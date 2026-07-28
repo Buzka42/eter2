@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -33,6 +34,8 @@ class VesselSection extends ConsumerStatefulWidget {
 
 class _VesselSectionState extends ConsumerState<VesselSection> {
   late Future<_VesselData?> _data;
+  StreamSubscription<ProfileRow?>? _profileSubscription;
+  String? _profileFingerprint;
   bool _readingOpen = false;
   bool _composing = false;
   String? _compositionMessage;
@@ -41,11 +44,50 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   void initState() {
     super.initState();
     _data = _load();
+    _profileSubscription = widget.db.watchProfile().listen(_profileChanged);
+  }
+
+  @override
+  void dispose() {
+    _profileSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _profileChanged(ProfileRow? profile) {
+    final fingerprint = profile == null
+        ? 'none'
+        : [
+            profile.dob.toIso8601String(),
+            profile.birthTimeMinutes,
+            profile.birthUtcOffsetMinutes,
+            profile.birthLatitude,
+            profile.birthLongitude,
+            profile.guidanceMode,
+          ].join('|');
+    if (_profileFingerprint == null) {
+      _profileFingerprint = fingerprint;
+      return;
+    }
+    if (_profileFingerprint == fingerprint || !mounted) return;
+    _profileFingerprint = fingerprint;
+    setState(() {
+      _readingOpen = false;
+      _compositionMessage = null;
+      _data = _load();
+    });
   }
 
   Future<_VesselData?> _load() async {
     final profile = await widget.db.loadProfile();
     if (profile == null) return null;
+    _profileFingerprint = [
+      profile.dob.toIso8601String(),
+      profile.birthTimeMinutes,
+      profile.birthUtcOffsetMinutes,
+      profile.birthLatitude,
+      profile.birthLongitude,
+      profile.guidanceMode,
+    ].join('|');
     final content = await SymbolContent.load();
     final minutes = profile.birthTimeMinutes ?? 12 * 60;
     final input = NatalInput(
@@ -92,7 +134,8 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         'immersive' => GuidanceMode.immersive,
         _ => GuidanceMode.balanced,
       },
-      usedApproximateTime: profile.birthTimeMinutes == null,
+      usedApproximateTime: profile.birthTimeMinutes == null ||
+          profile.birthUtcOffsetMinutes == null,
       usedApproximatePlace:
           profile.birthLatitude == null || profile.birthLongitude == null,
     );

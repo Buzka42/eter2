@@ -179,3 +179,8 @@ This is interface line work, scales cleanly at dynamic type, and belongs to the
 existing disclosure family; a raster calendar or page-curl asset would add
 chrome the owner explicitly rejected. No generated asset exists, so no
 two-option review is required.
+
+The collapsed Birth Context editor is ordinary Sanctum typography and line
+fields. It needs accuracy and clear failure copy, not a map, globe, or zodiac
+asset; those would add density without helping users enter time, offset, and
+place. No generated asset exists, so no two-option review is required.

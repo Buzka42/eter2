@@ -108,6 +108,41 @@ class AppDatabase extends _$AppDatabase {
         profile.copyWith(id: const Value(1), syncedAt: const Value(null)),
       );
 
+  /// Updates the chart inputs together and keeps only readings matching the
+  /// new chart. Stale alternatives never accumulate.
+  Future<void> updateBirthContext({
+    required int? birthTimeMinutes,
+    required int? birthUtcOffsetMinutes,
+    required String? birthPlace,
+    required double? birthLatitude,
+    required double? birthLongitude,
+  }) async {
+    await transaction(() async {
+      final profile = await loadProfile();
+      if (profile == null) return;
+      await (update(profiles)..where((row) => row.id.equals(1))).write(
+        ProfilesCompanion(
+          birthTimeMinutes: Value(birthTimeMinutes),
+          birthUtcOffsetMinutes: Value(birthUtcOffsetMinutes),
+          birthPlace: Value(birthPlace),
+          birthLatitude: Value(birthLatitude),
+          birthLongitude: Value(birthLongitude),
+          syncedAt: const Value(null),
+        ),
+      );
+      final inputHash = [
+        profile.dob.toIso8601String(),
+        birthTimeMinutes ?? 'unknown-time',
+        birthUtcOffsetMinutes ?? 'unknown-offset',
+        birthLatitude ?? 'unknown-latitude',
+        birthLongitude ?? 'unknown-longitude',
+      ].join('|');
+      await (delete(vesselReadings)
+            ..where((row) => row.inputHash.equals(inputHash).not()))
+          .go();
+    });
+  }
+
   /// Updates only shell-level preferences. Keeping this separate from
   /// [saveProfile] prevents a settings tap from rewriting birth or consent
   /// data that the Sanctum did not display.

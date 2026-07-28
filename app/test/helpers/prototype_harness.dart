@@ -7,6 +7,7 @@ import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/journal/classification_contract.dart';
+import 'package:eter/core/profile/birth_context.dart';
 import 'package:eter/core/theme.dart';
 import 'package:eter/core/vessel/reading_composer.dart';
 import 'package:eter/features/prototype/fixtures.dart';
@@ -71,6 +72,7 @@ Widget eterPrototypeApp({
   JournalClassificationProvider? journalProvider,
   AetherProvider? aetherProvider,
   VesselReadingProvider? vesselProvider,
+  BirthplaceResolver? birthplaceResolver,
 }) {
   final pinned = now ?? eterPinnedNow;
   return ProviderScope(
@@ -83,6 +85,8 @@ Widget eterPrototypeApp({
         aetherTransportProvider.overrideWithValue(aetherProvider),
       if (vesselProvider != null)
         vesselReadingTransportProvider.overrideWithValue(vesselProvider),
+      if (birthplaceResolver != null)
+        birthplaceResolverProvider.overrideWithValue(birthplaceResolver),
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,

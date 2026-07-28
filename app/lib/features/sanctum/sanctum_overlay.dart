@@ -11,6 +11,7 @@ import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
 import '../../core/privacy/local_data_export.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
+import '../../core/profile/birth_context.dart';
 import '../../core/register.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
 import '../../core/tokens.dart';
@@ -95,6 +96,12 @@ class SanctumOverlay extends ConsumerWidget {
                       onChanged: (value) => db.updateProfilePreferences(
                         guidanceMode: value,
                       ),
+                    ),
+                    const SizedBox(height: EterSpace.s32),
+                    _BirthContext(
+                      database: db,
+                      profile: profile,
+                      resolver: ref.watch(birthplaceResolverProvider),
                     ),
                     const SizedBox(height: EterSpace.s32),
                     Container(height: 1, color: ink.line),
@@ -187,6 +194,209 @@ class SanctumOverlay extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+class _BirthContext extends StatefulWidget {
+  const _BirthContext({
+    required this.database,
+    required this.profile,
+    required this.resolver,
+  });
+
+  final AppDatabase database;
+  final ProfileRow? profile;
+  final BirthplaceResolver resolver;
+
+  @override
+  State<_BirthContext> createState() => _BirthContextState();
+}
+
+class _BirthContextState extends State<_BirthContext> {
+  final _time = TextEditingController();
+  final _offset = TextEditingController();
+  final _place = TextEditingController();
+  bool _editing = false;
+  bool _busy = false;
+  String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncFields();
+  }
+
+  @override
+  void didUpdateWidget(_BirthContext oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_editing && oldWidget.profile != widget.profile) _syncFields();
+  }
+
+  @override
+  void dispose() {
+    _time.dispose();
+    _offset.dispose();
+    _place.dispose();
+    super.dispose();
+  }
+
+  void _syncFields() {
+    final profile = widget.profile;
+    final minutes = profile?.birthTimeMinutes;
+    _time.text = minutes == null
+        ? ''
+        : '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+            '${(minutes % 60).toString().padLeft(2, '0')}';
+    final offset = profile?.birthUtcOffsetMinutes;
+    if (offset == null) {
+      _offset.text = '';
+    } else {
+      final sign = offset < 0 ? '-' : '+';
+      final absolute = offset.abs();
+      _offset.text = '$sign${(absolute ~/ 60).toString().padLeft(2, '0')}:'
+          '${(absolute % 60).toString().padLeft(2, '0')}';
+    }
+    _place.text = profile?.birthPlace ?? '';
+  }
+
+  Future<void> _save() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _message = 'Locating this birth context…';
+    });
+    try {
+      await BirthContextService(
+        database: widget.database,
+        resolver: widget.resolver,
+      ).save(
+        time: _time.text,
+        utcOffset: _offset.text,
+        place: _place.text,
+      );
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _editing = false;
+        _message = 'Birth context saved on this device.';
+      });
+    } on BirthContextException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = error.message;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final profile = widget.profile;
+    final exact = profile?.birthTimeMinutes != null &&
+        profile?.birthUtcOffsetMinutes != null &&
+        profile?.birthLatitude != null &&
+        profile?.birthLongitude != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('BIRTH CONTEXT', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          exact
+              ? '${profile!.birthPlace ?? 'Located place'} · '
+                  '${_formatTime(profile.birthTimeMinutes!)} · '
+                  'UTC${_formatOffset(profile.birthUtcOffsetMinutes!)}'
+              : 'Provisional. Add exact local time, its UTC offset, and a '
+                  'place to improve chart reliability.',
+          style: text.bodyMedium?.copyWith(
+            color: exact ? null : ink.labelMuted,
+          ),
+        ),
+        if (_editing) ...[
+          const SizedBox(height: EterSpace.s12),
+          TextField(
+            key: const ValueKey('birth-context-time'),
+            controller: _time,
+            enabled: !_busy,
+            keyboardType: TextInputType.datetime,
+            decoration: const InputDecoration(
+              labelText: 'Local birth time · HH:MM',
+            ),
+          ),
+          const SizedBox(height: EterSpace.s12),
+          TextField(
+            key: const ValueKey('birth-context-offset'),
+            controller: _offset,
+            enabled: !_busy,
+            keyboardType: TextInputType.datetime,
+            decoration: const InputDecoration(
+              labelText: 'UTC offset at birth · for example +01:00',
+            ),
+          ),
+          const SizedBox(height: EterSpace.s12),
+          TextField(
+            key: const ValueKey('birth-context-place'),
+            controller: _place,
+            enabled: !_busy,
+            textCapitalization: TextCapitalization.words,
+            decoration: const InputDecoration(
+              labelText: 'Birth city and country',
+            ),
+          ),
+          const SizedBox(height: EterSpace.s8),
+          Text(
+            'Place lookup uses the device geocoder. The label and coordinates '
+            'are stored locally.',
+            style: text.bodySmall?.copyWith(color: ink.labelMuted),
+          ),
+        ],
+        const SizedBox(height: EterSpace.s8),
+        Wrap(
+          spacing: EterSpace.s8,
+          children: [
+            EterAction(
+              key: const ValueKey('birth-context-primary-action'),
+              label: _editing ? 'Save' : 'Edit',
+              emphasis: EterActionEmphasis.quiet,
+              busy: _busy,
+              onPressed: widget.profile == null || _busy
+                  ? null
+                  : (_editing ? _save : () => setState(() => _editing = true)),
+            ),
+            if (_editing)
+              EterAction(
+                label: 'Cancel',
+                emphasis: EterActionEmphasis.quiet,
+                onPressed: _busy
+                    ? null
+                    : () => setState(() {
+                          _editing = false;
+                          _message = null;
+                          _syncFields();
+                        }),
+              ),
+          ],
+        ),
+        if (_message != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+      ],
+    );
+  }
+
+  static String _formatTime(int minutes) =>
+      '${(minutes ~/ 60).toString().padLeft(2, '0')}:'
+      '${(minutes % 60).toString().padLeft(2, '0')}';
+
+  static String _formatOffset(int minutes) {
+    final sign = minutes < 0 ? '−' : '+';
+    final absolute = minutes.abs();
+    return '$sign${(absolute ~/ 60).toString().padLeft(2, '0')}:'
+        '${(absolute % 60).toString().padLeft(2, '0')}';
   }
 }
 
