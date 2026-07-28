@@ -111,13 +111,13 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     );
     final chart = NatalChartEngine().calculate(input);
     final lifePath = calculateLifePath(profile.dob);
-    final hash = [
-      profile.dob.toIso8601String(),
-      profile.birthTimeMinutes ?? 'unknown-time',
-      profile.birthUtcOffsetMinutes ?? 'unknown-offset',
-      profile.birthLatitude ?? 'unknown-latitude',
-      profile.birthLongitude ?? 'unknown-longitude',
-    ].join('|');
+    final hash = natalInputHash(
+      dob: profile.dob,
+      birthTimeMinutes: profile.birthTimeMinutes,
+      birthUtcOffsetMinutes: profile.birthUtcOffsetMinutes,
+      birthLatitude: profile.birthLatitude,
+      birthLongitude: profile.birthLongitude,
+    );
     final readings = <String, VesselReadingRow?>{
       for (final key in const ['lifePath', 'sun', 'moon', 'ascendant'])
         key: await widget.db.loadVesselReading(

@@ -25,6 +25,33 @@ const _signs = <String>[
   'Pisces',
 ];
 
+/// Bumped whenever a correction changes what the engine computes.
+///
+/// It travels inside [natalInputHash], so a cached reading written by an
+/// older engine no longer matches and is recomposed rather than shown. The
+/// ascendant fix is exactly why this exists: without it, every reading written
+/// against the descendant would have survived the fix indefinitely.
+const natalEngineVersion = 'astronomia-meeus-2';
+
+/// Identifies the chart a reading was written against.
+///
+/// One definition, because there were five and they had to agree forever.
+String natalInputHash({
+  required DateTime dob,
+  int? birthTimeMinutes,
+  int? birthUtcOffsetMinutes,
+  double? birthLatitude,
+  double? birthLongitude,
+}) =>
+    [
+      dob.toIso8601String(),
+      birthTimeMinutes ?? 'unknown-time',
+      birthUtcOffsetMinutes ?? 'unknown-offset',
+      birthLatitude ?? 'unknown-latitude',
+      birthLongitude ?? 'unknown-longitude',
+      natalEngineVersion,
+    ].join('|');
+
 class NatalInput {
   const NatalInput({
     required this.localDateTime,
@@ -232,7 +259,7 @@ class NatalChartEngine {
       houseCusps: List.unmodifiable(houses),
       aspects: List.unmodifiable(_aspects(positions)),
       houseSystem: 'equal',
-      engine: 'astronomia-meeus-1',
+      engine: natalEngineVersion,
     );
   }
 
@@ -303,9 +330,18 @@ class NatalChartEngine {
     final gst = sidereal.apparent(jd) / 86400 * 2 * math.pi;
     final lst = gst + toRad(longitude);
     final phi = toRad(latitude.clamp(-89.999, 89.999).toDouble());
+    // ASC = atan2( cos θ , −(sin θ · cos ε + tan φ · sin ε) )
+    //
+    // Both signs matter and both were wrong: the previous form negated the
+    // numerator instead of the denominator, which returns the antipode. That
+    // is the descendant — a real degree, in a real sign, reading perfectly
+    // plausibly, and wrong for every chart the app has ever drawn. Verified
+    // against the eastern horizon in `test/ascendant_test.dart` rather than by
+    // reading the formula, because reading the formula is what missed it.
     final asc = math.atan2(
-      -math.cos(lst),
-      math.sin(lst) * math.cos(obliquity) + math.tan(phi) * math.sin(obliquity),
+      math.cos(lst),
+      -(math.sin(lst) * math.cos(obliquity) +
+          math.tan(phi) * math.sin(obliquity)),
     );
     final mc = math.atan2(
       math.sin(lst),

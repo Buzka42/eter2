@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../clock.dart';
 import '../energy/energy.dart' as energy;
 import '../journal/classification_contract.dart';
+import '../symbolic/natal_chart.dart';
 import 'tables.dart';
 
 part 'app_database.g.dart';
@@ -146,13 +147,13 @@ class AppDatabase extends _$AppDatabase {
           syncedAt: const Value(null),
         ),
       );
-      final inputHash = [
-        profile.dob.toIso8601String(),
-        birthTimeMinutes ?? 'unknown-time',
-        birthUtcOffsetMinutes ?? 'unknown-offset',
-        birthLatitude ?? 'unknown-latitude',
-        birthLongitude ?? 'unknown-longitude',
-      ].join('|');
+      final inputHash = natalInputHash(
+        dob: profile.dob,
+        birthTimeMinutes: birthTimeMinutes,
+        birthUtcOffsetMinutes: birthUtcOffsetMinutes,
+        birthLatitude: birthLatitude,
+        birthLongitude: birthLongitude,
+      );
       await (delete(vesselReadings)
             ..where((row) => row.inputHash.equals(inputHash).not()))
           .go();

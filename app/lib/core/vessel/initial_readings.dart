@@ -83,13 +83,13 @@ class InitialVesselReadings {
         database: database,
         provider: transport,
       ).compose(
-        inputHash: [
-          profile.dob.toIso8601String(),
-          profile.birthTimeMinutes ?? 'unknown-time',
-          profile.birthUtcOffsetMinutes ?? 'unknown-offset',
-          profile.birthLatitude ?? 'unknown-latitude',
-          profile.birthLongitude ?? 'unknown-longitude',
-        ].join('|'),
+        inputHash: natalInputHash(
+          dob: profile.dob,
+          birthTimeMinutes: profile.birthTimeMinutes,
+          birthUtcOffsetMinutes: profile.birthUtcOffsetMinutes,
+          birthLatitude: profile.birthLatitude,
+          birthLongitude: profile.birthLongitude,
+        ),
         request: VesselReadingRequest(
           mode: switch (profile.guidanceMode) {
             'grounded' => GuidanceMode.grounded,

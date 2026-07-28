@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../../core/clock.dart';
 import '../../core/db/app_database.dart';
 import '../../core/energy/energy.dart' as energy;
+import '../../core/symbolic/natal_chart.dart';
 import '../../core/symbolic/numerology.dart';
 
 /// Fixture content for the defining prototype.
@@ -320,13 +321,13 @@ abstract final class PrototypeFixtures {
     if (profile == null) return;
     // No daily card: the Vessel leads with the Sun's Arcana, which is
     // derived from the profile rather than stored.
-    final inputHash = [
-      profile.dob.toIso8601String(),
-      profile.birthTimeMinutes ?? 'unknown-time',
-      profile.birthUtcOffsetMinutes ?? 'unknown-offset',
-      profile.birthLatitude ?? 'unknown-latitude',
-      profile.birthLongitude ?? 'unknown-longitude',
-    ].join('|');
+    final inputHash = natalInputHash(
+      dob: profile.dob,
+      birthTimeMinutes: profile.birthTimeMinutes,
+      birthUtcOffsetMinutes: profile.birthUtcOffsetMinutes,
+      birthLatitude: profile.birthLatitude,
+      birthLongitude: profile.birthLongitude,
+    );
     if (await db.loadVesselReading(
           inputHash: inputHash,
           positionKey: 'lifePath',
