@@ -10,10 +10,9 @@ import '../../core/symbolic/numerology.dart';
 
 /// Fixture content for the defining prototype.
 ///
-/// The Aether pipeline, the health hub and onboarding are not built yet; the
-/// brief's answer is to read the table the data will land in and render
-/// fixtures against the real contracts. Seeding is idempotent and only fills
-/// empty tables, so a real pipeline outgrows it without a migration.
+/// Test and golden captures exercise complete populated states without using
+/// production startup or external providers. These fixtures use the real
+/// contracts, seed idempotently, and fill only empty tables.
 abstract final class PrototypeFixtures {
   static const profileLatitude = 51.5072;
   static const profileLongitude = -0.1276;

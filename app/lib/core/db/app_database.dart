@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../energy/energy.dart' as energy;
+import '../journal/classification_contract.dart';
 import 'tables.dart';
 
 part 'app_database.g.dart';
@@ -474,6 +475,10 @@ class AppDatabase extends _$AppDatabase {
   Future<int> addJournalEntry(JournalEntriesCompanion entry) =>
       into(journalEntries).insert(entry);
 
+  Future<JournalEntryRow?> loadJournalEntry(int id) =>
+      (select(journalEntries)..where((row) => row.id.equals(id)))
+          .getSingleOrNull();
+
   Stream<List<JournalEntryRow>> watchJournalForRange(
     DateTime startUtc,
     DateTime endUtc,
@@ -529,6 +534,64 @@ class AppDatabase extends _$AppDatabase {
           syncedAt: const Value(null),
         ),
       );
+
+  /// Applies a validated interpretation exactly once.
+  ///
+  /// Food remains unconfirmed and therefore excluded from totals until the
+  /// user reviews it. The entry status and every derived record commit in one
+  /// transaction so provider retries cannot leave partial state.
+  Future<void> applyJournalClassification({
+    required JournalEntryRow entry,
+    required String status,
+    required String extractionJson,
+    required String model,
+    required List<FoodEstimate> food,
+    required List<LifestyleEstimate> lifestyle,
+  }) async {
+    await transaction(() async {
+      final current = await loadJournalEntry(entry.id);
+      if (current == null || current.appliedAt != null) return;
+      final appliedAt = status == 'classified' ? DateTime.now().toUtc() : null;
+      for (final item in food) {
+        await into(nutritionEntries).insert(
+          NutritionEntriesCompanion.insert(
+            recordedAt: entry.createdAt,
+            kcal: item.kcal,
+            proteinG: Value(item.proteinG),
+            carbsG: Value(item.carbsG),
+            fatG: Value(item.fatG),
+            meal: item.meal,
+            source: const Value('aether-estimate'),
+            metadataJson: Value(jsonEncode({
+              'journalEntryId': entry.id,
+              'confidence': item.confidence,
+              'assumptions': item.assumptions,
+            })),
+            confirmed: const Value(false),
+          ),
+        );
+      }
+      for (final item in lifestyle) {
+        await into(lifestyleEntries).insert(
+          LifestyleEntriesCompanion.insert(
+            recordedAt: entry.createdAt,
+            kind: item.kind,
+            value: Value(item.value),
+            durationMinutes: Value(item.durationMinutes),
+            note: Value(item.note),
+            source: Value('journal:${entry.id}'),
+          ),
+        );
+      }
+      await markJournalClassified(
+        id: entry.id,
+        status: status,
+        extractionJson: extractionJson,
+        model: model,
+        appliedAt: appliedAt,
+      );
+    });
+  }
 
   /// Undo: remove every row this entry produced, then mark it unapplied.
   ///

@@ -328,7 +328,10 @@ names.
   provider-independent request/response boundary, consent gates, safety
   validation, atomic persistence, and unchanged-context cache are implemented.
 - The health hub and ingest service.
-- The journal classification service.
+- The live journal-classification provider and explicit UI trigger. The strict
+  food/lifestyle response contract, current-consent gate, atomic application,
+  replay protection, clarification state, and unconfirmed-estimate behavior
+  are implemented.
 - Profile providers, auth, Firebase wiring, onboarding.
 
 Where you need data that does not exist yet, read the table it will land in and
