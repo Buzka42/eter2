@@ -72,6 +72,47 @@ void main() {
       expect(record.calls, 0);
     });
 
+    test('cleartext to a LAN address needs an explicit opt-in', () async {
+      const lan = 'http://192.168.1.24:8787';
+      final refused = recorder();
+      await expectLater(
+        transportWith(
+          refused,
+          configuration: const EterAiConfig(endpoint: lan, token: 't'),
+        ).send(
+          call: EterAiCall.guidance,
+          system: 's',
+          user: const {},
+          responseSchema: const {},
+        ),
+        throwsA(isA<EterTransportException>()),
+      );
+      expect(refused.calls, 0);
+
+      final permitted = recorder();
+      await transportWith(
+        permitted,
+        configuration: const EterAiConfig(
+          endpoint: lan,
+          token: 't',
+          allowInsecure: true,
+        ),
+      ).send(
+        call: EterAiCall.guidance,
+        system: 's',
+        user: const {},
+        responseSchema: const {},
+      );
+      expect(permitted.calls, 1);
+    });
+
+    test('the opt-in is off unless a build asks for it', () {
+      expect(
+        const EterAiConfig(endpoint: 'https://x.test', token: '').allowInsecure,
+        isFalse,
+      );
+    });
+
     test('a nonsense endpoint is refused before anything is sent', () async {
       final record = recorder();
       final transport = transportWith(

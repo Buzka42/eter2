@@ -35,7 +35,11 @@ import 'prompts.dart';
 /// behaves exactly as the app does today: no transport, and every surface says
 /// so.
 class EterAiConfig {
-  const EterAiConfig({required this.endpoint, required this.token});
+  const EterAiConfig({
+    required this.endpoint,
+    required this.token,
+    this.allowInsecure = false,
+  });
 
   /// The owner-controlled endpoint. Empty means no transport is configured.
   final String endpoint;
@@ -43,14 +47,30 @@ class EterAiConfig {
   /// The caller's credential for that endpoint — not for any model.
   final String token;
 
+  /// Permits cleartext to an address that is not loopback.
+  ///
+  /// For one case only: a phone on the same network as a development machine
+  /// running `tool/dev_endpoint.dart`, where tethering to `adb reverse` would
+  /// defeat the point of testing the app as it is actually used. It is off
+  /// unless a build explicitly asks for it, and a release build cannot use it
+  /// regardless — the Android network-security config that permits cleartext
+  /// is merged into debug and profile only.
+  final bool allowInsecure;
+
   static const _endpoint = String.fromEnvironment('ETER_AI_ENDPOINT');
   static const _token = String.fromEnvironment('ETER_AI_TOKEN');
+  static const _allowInsecure =
+      bool.fromEnvironment('ETER_AI_ALLOW_INSECURE');
 
   /// The configuration this build was compiled with, or null if it was
   /// compiled without one.
   static EterAiConfig? fromEnvironment() {
     if (_endpoint.isEmpty) return null;
-    return const EterAiConfig(endpoint: _endpoint, token: _token);
+    return const EterAiConfig(
+      endpoint: _endpoint,
+      token: _token,
+      allowInsecure: _allowInsecure,
+    );
   }
 
   /// HTTPS, or loopback.
@@ -65,6 +85,7 @@ class EterAiConfig {
     if (url == null) return false;
     if (url.scheme == 'https') return true;
     if (url.scheme != 'http') return false;
+    if (allowInsecure) return true;
     return const {'localhost', '127.0.0.1', '::1', '10.0.2.2'}
         .contains(url.host);
   }
