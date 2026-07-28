@@ -283,12 +283,12 @@ void main() {
   // Every capture surface, opened
   // ---------------------------------------------------------------------
 
-  testWidgets('journal, an earlier page', (tester) async {
+  testWidgets('journal history', (tester) async {
     await pumpShell(tester, db: await seededDatabase(tester));
     await tapText(tester, 'JOURNAL');
-    await tester.tap(find.bySemanticsLabel('Previous journal day'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await shot(tester, 'journal-earlier-day');
+    await tester.tap(find.bySemanticsLabel('Open journal history'));
+    await tester.pumpAndSettle();
+    await shot(tester, 'journal-history');
     await dispose(tester);
   });
 

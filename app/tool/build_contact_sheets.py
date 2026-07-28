@@ -31,7 +31,7 @@ SHEETS: dict[str, list[str]] = {
     ],
     "3-journal": [
         "journal-day", "journal-night",
-        "journal-earlier-day",
+        "journal-history",
         "whole-journal-day",
     ],
     "4-body": [

@@ -12,6 +12,7 @@ import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
+import '../../core/icons.dart';
 import '../../core/journal/classification_contract.dart';
 import '../../core/journal/classifier.dart';
 import '../../core/journal/day_story.dart';
@@ -48,11 +49,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   String? _dictationNote;
   String _dictationBase = '';
   final _storyKey = GlobalKey<_DayStoryState>();
-  Stream<List<JournalEntryRow>>? _entriesStream;
-  String? _streamedDay;
   DateTime? _selectedDay;
-
-  static final _marginalTime = DateFormat('HH:mm');
 
   @override
   void initState() {
@@ -170,42 +167,33 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     }
   }
 
-  /// Cached so rebuilds (every keystroke) never resubscribe the
-  /// StreamBuilder.
-  Stream<List<JournalEntryRow>> _entriesFor(AppDatabase db, DateTime day) {
-    final date = eterIsoDate(day);
-    if (_entriesStream == null || _streamedDay != date) {
-      _streamedDay = date;
-      final (dayStart, dayEnd) = eterDayBounds(day);
-      _entriesStream = db.watchJournalForRange(dayStart, dayEnd);
-    }
-    return _entriesStream!;
-  }
-
-  Future<void> _moveDay(int delta, DateTime now) async {
-    final today = DateTime(now.year, now.month, now.day);
-    final current = _selectedDay ?? today;
-    final target = current.add(Duration(days: delta));
-    if (target.isAfter(today)) return;
-
+  /// Everything already written, one day at a time.
+  ///
+  /// The page itself is for today; this is the archive, and archives belong
+  /// behind a door. Day navigation lives here too, which is why the two
+  /// page-turn marks left the header — turning pages *is* reading history.
+  Future<void> _openHistory(DateTime day, DateTime now) async {
     if (_listening) {
       await _speech.stop();
       if (mounted) setState(() => _listening = false);
     }
-    if (_selectedDay == null && _composer.text.trim().isNotEmpty) {
-      await _save();
-    }
+    if (_composer.text.trim().isNotEmpty) await _save();
     if (!mounted) return;
-    setState(() {
-      _selectedDay = target == today ? null : target;
-      _arrivingIds.clear();
-      _dictationNote = null;
-    });
+    final today = DateTime(now.year, now.month, now.day);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _JournalHistorySheet(
+        db: ref.read(databaseProvider),
+        initialDay: day,
+        today: today,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final db = ref.watch(databaseProvider);
     final now = ref.watch(nowProvider)();
     final today = DateTime(now.year, now.month, now.day);
     final selectedDay = _selectedDay ?? today;
@@ -232,8 +220,16 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: isToday ? _focusNode.requestFocus : null,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: EterSpace.gutter),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: EterSpace.gutter,
+              ),
+              // One screen, and it does not scroll. The story takes whatever
+              // height is left over and fits itself to it; the writing field
+              // and its one action sit on the floor of the page, where a hand
+              // already is. Everything already written is a tap away behind
+              // HISTORY rather than a column below the fold — a journal you
+              // scroll through is an archive, and this page is for today.
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -259,26 +255,23 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                           ],
                         ),
                       ),
-                      _DayTurn(
-                        direction: _DayTurnDirection.earlier,
-                        semanticLabel: 'Previous journal day',
-                        onTap: () => _moveDay(-1, now),
-                      ),
-                      _DayTurn(
-                        direction: _DayTurnDirection.later,
-                        semanticLabel: isToday
-                            ? 'Next journal day unavailable'
-                            : 'Next journal day',
-                        onTap: isToday ? null : () => _moveDay(1, now),
+                      _GlyphAction(
+                        label: 'History',
+                        semanticLabel: 'Open journal history',
+                        color: ink.labelMuted,
+                        onTap: () => _openHistory(selectedDay, now),
+                        compact: true,
                       ),
                     ],
                   ),
                   const SizedBox(height: EterSpace.s16),
-                  _DayStory(
-                    key: _storyKey,
-                    day: selectedDay,
-                    isToday: isToday,
-                    proseStyle: proseStyle,
+                  Expanded(
+                    child: _DayStory(
+                      key: _storyKey,
+                      day: selectedDay,
+                      isToday: isToday,
+                      proseStyle: proseStyle,
+                    ),
                   ),
                   if (isToday) ...[
                     Stack(
@@ -300,8 +293,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                           style: proseStyle,
                           cursorColor: ink.lineStrong,
                           cursorWidth: 1,
-                          minLines: 6,
-                          maxLines: null,
+                          minLines: 4,
+                          maxLines: 6,
                           keyboardType: TextInputType.multiline,
                           textCapitalization: TextCapitalization.sentences,
                           decoration: InputDecoration.collapsed(
@@ -317,8 +310,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                     const SizedBox(height: EterSpace.s4),
                     // Under the field it belongs to, at the end of the line —
                     // where a hand already is after writing, and out of the
-                    // reading path. Compact: the word only, with its 48 dp
-                    // target invisible around it.
+                    // reading path.
                     Row(
                       children: [
                         if (_listening)
@@ -335,46 +327,258 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                           color: _listening ? ink.lineStrong : ink.labelMuted,
                           onTap: _toggleDictation,
                           compact: true,
+                          mark: true,
+                          markActive: _listening,
                         ),
                       ],
                     ),
-                  ],
-                  const SizedBox(height: EterSpace.s24),
-                  StreamBuilder<List<JournalEntryRow>>(
-                    stream: _entriesFor(db, selectedDay),
-                    builder: (context, snapshot) {
-                      final entries =
-                          snapshot.data ?? const <JournalEntryRow>[];
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (!isToday && entries.isEmpty)
-                            Text(
-                              'Nothing was written on this page.',
-                              style: proseStyle?.copyWith(
-                                fontStyle: FontStyle.italic,
-                                color: ink.labelMuted,
-                              ),
-                            ),
-                          for (final entry in entries)
-                            _JournalPassage(
-                              key: ValueKey('passage-${entry.id}'),
-                              entry: entry,
-                              db: db,
-                              time: _marginalTime.format(entry.createdAt),
-                              proseStyle: proseStyle,
-                              playArrival: _arrivingIds.contains(entry.id),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: EterSpace.s64),
+                  ] else
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: EterSpace.s16),
+                      child: Text(
+                        'This page is closed. Today’s page is the one you can '
+                        'write on.',
+                        style: text.bodySmall,
+                      ),
+                    ),
+                  const SizedBox(height: EterSpace.s16),
                 ],
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Prose that fits the height it is given.
+///
+/// The Journal is one screen that does not scroll, so the story has to hold
+/// whatever it says inside whatever room is left after the date and the
+/// writing field. Rather than truncating — a story cut mid-sentence is worse
+/// than a small one — the type steps down until the whole passage fits, and
+/// stops at a floor where it would stop being reading.
+///
+/// A binary search over point size, measured with the real [TextPainter], is
+/// the only way to know: line breaking depends on the face, the width and the
+/// user's own text scale, none of which can be estimated.
+class _FittedProse extends StatelessWidget {
+  const _FittedProse({
+    required this.text,
+    required this.style,
+    required this.arrivalKey,
+    required this.playArrival,
+  });
+
+  final String text;
+  final TextStyle? style;
+  final Key arrivalKey;
+  final bool playArrival;
+
+  /// Below this the passage stops being editorial prose and becomes fine
+  /// print. A story this long is rare; the parser caps it at 700 characters.
+  static const double minimumFontSize = 13;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = style ?? const TextStyle();
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        var size = base.fontSize ?? 19;
+        if (constraints.maxHeight.isFinite) {
+          var low = minimumFontSize;
+          var high = size;
+          bool fits(double candidate) {
+            final painter = TextPainter(
+              text: TextSpan(text: text, style: base.copyWith(
+                fontSize: scaler.scale(candidate),
+              )),
+              textDirection: Directionality.of(context),
+            )..layout(maxWidth: constraints.maxWidth);
+            return painter.height <= constraints.maxHeight;
+          }
+
+          if (!fits(high)) {
+            // Eight halvings resolve a 6-point range to well under a tenth of
+            // a point, which is finer than the eye or the layout can tell.
+            for (var i = 0; i < 8; i++) {
+              final mid = (low + high) / 2;
+              if (fits(mid)) {
+                low = mid;
+              } else {
+                high = mid;
+              }
+            }
+            size = low;
+          }
+        }
+        return Align(
+          alignment: Alignment.topLeft,
+          child: EterArrival.single(
+            text,
+            key: arrivalKey,
+            style: base.copyWith(fontSize: size),
+            playArrival: playArrival,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The archive: one day at a time, with its story and its pages.
+///
+/// A sheet rather than a route, because it is a drawer pulled out of the page
+/// and pushed back in. `rSheet` is one of the two radii the system allows, and
+/// this is what it is for.
+class _JournalHistorySheet extends ConsumerStatefulWidget {
+  const _JournalHistorySheet({
+    required this.db,
+    required this.initialDay,
+    required this.today,
+  });
+
+  final AppDatabase db;
+  final DateTime initialDay;
+  final DateTime today;
+
+  @override
+  ConsumerState<_JournalHistorySheet> createState() =>
+      _JournalHistorySheetState();
+}
+
+class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
+  late DateTime _day = widget.initialDay;
+  Stream<List<JournalEntryRow>>? _entries;
+  String? _streamedDay;
+
+  static final _marginal = DateFormat('HH:mm');
+
+  Stream<List<JournalEntryRow>> _entriesFor(DateTime day) {
+    final date = eterIsoDate(day);
+    if (_entries == null || _streamedDay != date) {
+      _streamedDay = date;
+      final (start, end) = eterDayBounds(day);
+      _entries = widget.db.watchJournalForRange(start, end);
+    }
+    return _entries!;
+  }
+
+  void _move(int delta) {
+    final target = _day.add(Duration(days: delta));
+    if (target.isAfter(widget.today)) return;
+    setState(() => _day = target);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final night = Theme.of(context).brightness == Brightness.dark;
+    final proseStyle = text.headlineSmall?.copyWith(
+      fontSize: 18,
+      height: 1.5,
+      fontWeight: FontWeight.w400,
+    );
+    final isToday = eterIsoDate(_day) == eterIsoDate(widget.today);
+
+    return FractionallySizedBox(
+      heightFactor: 0.9,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: night
+              ? EterColors.night900.withValues(alpha: 0.97)
+              : EterColors.parchment,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(EterSpace.rSheet),
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: EterSpace.gutter,
+              vertical: EterSpace.s16,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('HISTORY', style: text.labelSmall),
+                    ),
+                    _GlyphAction(
+                      label: 'Close',
+                      semanticLabel: 'Close history',
+                      color: ink.labelMuted,
+                      onTap: () => Navigator.of(context).pop(),
+                      compact: true,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: EterSpace.s8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        DateFormat('EEEE d MMMM').format(_day),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: text.headlineSmall,
+                      ),
+                    ),
+                    _DayTurn(
+                      direction: _DayTurnDirection.earlier,
+                      semanticLabel: 'Previous journal day',
+                      onTap: () => _move(-1),
+                    ),
+                    _DayTurn(
+                      direction: _DayTurnDirection.later,
+                      semanticLabel: isToday
+                          ? 'Next journal day unavailable'
+                          : 'Next journal day',
+                      onTap: isToday ? null : () => _move(1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: EterSpace.s8),
+                Expanded(
+                  child: StreamBuilder<List<JournalEntryRow>>(
+                    stream: _entriesFor(_day),
+                    builder: (context, snapshot) {
+                      final entries =
+                          snapshot.data ?? const <JournalEntryRow>[];
+                      if (entries.isEmpty) {
+                        return Text(
+                          'Nothing was written on this page.',
+                          style: proseStyle?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: ink.labelMuted,
+                          ),
+                        );
+                      }
+                      return ListView.builder(
+                        padding: const EdgeInsets.only(bottom: EterSpace.s32),
+                        itemCount: entries.length,
+                        itemBuilder: (context, index) => _JournalPassage(
+                          key: ValueKey('history-${entries[index].id}'),
+                          entry: entries[index],
+                          db: widget.db,
+                          time: _marginal.format(entries[index].createdAt),
+                          proseStyle: proseStyle,
+                          playArrival: false,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -465,7 +669,10 @@ class _DayStoryState extends ConsumerState<_DayStory> {
       builder: (context, snapshot) {
         final row = snapshot.data;
         if (row == null || row.story.trim().isEmpty) {
-          return const SizedBox.shrink();
+          // The space stays the story's whether or not one exists yet, so the
+          // writing field does not travel up the page and back down again
+          // when the day's first story arrives.
+          return const SizedBox.expand();
         }
         final arriving = _lastRefreshedFingerprint != null &&
             _lastRefreshedFingerprint != row.sourceFingerprint;
@@ -480,14 +687,16 @@ class _DayStoryState extends ConsumerState<_DayStory> {
               // which is the one thing it must never be mistaken for.
               Text('THE DAY SO FAR', style: text.labelSmall),
               const SizedBox(height: EterSpace.s8),
-              EterArrival.single(
-                row.story,
-                key: ValueKey('story-${row.sourceFingerprint}'),
-                style: widget.proseStyle?.copyWith(
-                  fontStyle: FontStyle.italic,
-                  color: ink.label,
+              Expanded(
+                child: _FittedProse(
+                  text: row.story,
+                  style: widget.proseStyle?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: ink.label,
+                  ),
+                  arrivalKey: ValueKey('story-${row.sourceFingerprint}'),
+                  playArrival: arriving,
                 ),
-                playArrival: arriving,
               ),
               const SizedBox(height: EterSpace.s12),
               Container(height: 1, width: 64, color: ink.line),
@@ -742,12 +951,19 @@ class _GlyphAction extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.compact = false,
+    this.mark = false,
+    this.markActive = false,
   });
 
   final String label;
   final String semanticLabel;
   final Color color;
   final VoidCallback onTap;
+
+  /// Draws the dictation mark before the word. Only dictation carries a glyph:
+  /// it is the one action here that names a device rather than an intention.
+  final bool mark;
+  final bool markActive;
 
   /// Sizes to the word instead of reserving a fixed column, while keeping the
   /// 48 dp target. Used where the action sits at the end of a line rather than
@@ -774,11 +990,24 @@ class _GlyphAction extends StatelessWidget {
               padding: compact
                   ? const EdgeInsets.symmetric(horizontal: EterSpace.s8)
                   : EdgeInsets.zero,
-              child: Text(
-              label.toUpperCase(),
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: color,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (mark) ...[
+                    EterMicMark(size: 15, active: markActive, color: color),
+                    const SizedBox(width: EterSpace.s8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: color,
+                          ),
+                    ),
                   ),
+                ],
               ),
             ),
           ),

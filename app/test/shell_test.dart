@@ -162,15 +162,18 @@ void main() {
     // composer is painted.
     await tester.pump();
 
-    // It renders on the page, composer cleared.
+    // The composer clears; the page itself stays today's, so the entry is
+    // read in the archive rather than below the field.
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      isEmpty,
+    );
+    await tester.tap(find.bySemanticsLabel('Open journal history'));
+    await tester.pumpAndSettle();
     expect(
       find.text('I slept badly, but the morning walk helped me feel clearer.',
           findRichText: true),
       findsWidgets,
-    );
-    expect(
-      tester.widget<TextField>(find.byType(TextField)).controller!.text,
-      isEmpty,
     );
     final keepLocal = find.text('KEEP LOCAL');
     await tester.ensureVisible(keepLocal);
@@ -203,6 +206,8 @@ void main() {
     await pumpShell(tester, journalProvider: provider);
     await tester.tap(find.text('JOURNAL'));
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.bySemanticsLabel('Open journal history'));
+    await tester.pumpAndSettle();
 
     final interpret = find.text('INTERPRET');
     await tester.ensureVisible(interpret);
@@ -255,6 +260,8 @@ void main() {
     await pumpShell(tester, journalProvider: _FailingJournalProvider());
     await tester.tap(find.text('JOURNAL'));
     await tester.pump(const Duration(milliseconds: 400));
+    await tester.tap(find.bySemanticsLabel('Open journal history'));
+    await tester.pumpAndSettle();
 
     final interpret = find.text('INTERPRET');
     await tester.ensureVisible(interpret);
@@ -287,7 +294,7 @@ void main() {
     await closeShell(tester);
   });
 
-  testWidgets('Journal turns to an older page and saves today before leaving',
+  testWidgets('History opens the archive, saving today before it does',
       (tester) async {
     await db.addJournalEntry(
       JournalEntriesCompanion.insert(
@@ -299,23 +306,21 @@ void main() {
     await tester.tap(find.text('JOURNAL'));
     await tester.pump();
 
+    // The page itself is today only: nothing already written is on it.
+    expect(
+      find.text('Yesterday held a quieter rhythm.', findRichText: true),
+      findsNothing,
+    );
+
     final composer = find.byType(TextField).first;
     await tester.enterText(composer, 'A thought from today.');
-    await tester.tap(find.bySemanticsLabel('Previous journal day'));
+    await tester.tap(find.bySemanticsLabel('Open journal history'));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 30)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
-    expect(find.text('26 July'), findsOneWidget);
-    final olderEntry = find.text(
-      'Yesterday held a quieter rhythm.',
-      findRichText: true,
-    );
-    await waitForWidget(tester, olderEntry);
-    expect(olderEntry, findsOneWidget);
-    expect(find.text('DICTATE'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    // Leaving the page commits the draft rather than discarding it.
     final todayEntries = await db.loadJournalForRange(
       DateTime(2026, 7, 27),
       DateTime(2026, 7, 28),
@@ -325,9 +330,21 @@ void main() {
       contains('A thought from today.'),
     );
 
-    await tester.tap(find.bySemanticsLabel('Next journal day'));
-    await tester.pump();
-    expect(find.text('27 July'), findsOneWidget);
+    // Two: the button that opened it and the sheet's own heading.
+    expect(find.text('HISTORY'), findsNWidgets(2));
+    await tester.tap(find.bySemanticsLabel('Previous journal day'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sunday 26 July'), findsOneWidget);
+    final olderEntry = find.text(
+      'Yesterday held a quieter rhythm.',
+      findRichText: true,
+    );
+    await waitForWidget(tester, olderEntry);
+    expect(olderEntry, findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Close history'));
+    await tester.pumpAndSettle();
+    expect(find.text('HISTORY'), findsOneWidget);
     expect(find.text('DICTATE'), findsOneWidget);
     await closeShell(tester);
   });
