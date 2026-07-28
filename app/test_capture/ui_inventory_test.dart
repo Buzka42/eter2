@@ -316,6 +316,20 @@ void main() {
       await dispose(tester);
     });
 
+    testWidgets('vessel read deeper · $name', (tester) async {
+      await pumpShell(
+        tester,
+        db: await seededDatabase(tester),
+        register: register,
+        height: 2800,
+      );
+      await tapText(tester, 'LOOK DEEPER');
+      await tapText(tester, 'VESSEL');
+      await tapText(tester, 'READ DEEPER');
+      await shot(tester, 'vessel-read-deeper-$name');
+      await dispose(tester);
+    });
+
     testWidgets('whole vessel · $name', (tester) async {
       await pumpShell(
         tester,

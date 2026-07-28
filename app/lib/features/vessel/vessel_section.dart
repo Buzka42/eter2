@@ -267,21 +267,32 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 ),
               ],
               const SizedBox(height: EterSpace.s24),
+              // One list at two depths, never two lists. Read deeper used to
+              // append a second copy of the same four positions underneath the
+              // first, so the same headings appeared twice on one screen; it
+              // now deepens the list in place.
               for (final position in data.positions)
-                _PositionLine(position: position),
+                if (_readingOpen)
+                  _ComposedReading(
+                    position: position,
+                    reading: data.readings[position.key],
+                    // The daily card is already on screen at full size a few
+                    // lines above. When a position resolves to that same card
+                    // — which Life Path often does — its plate is omitted
+                    // rather than printed twice.
+                    showCard: data.daily == null ||
+                        position.card.assetSlug != data.daily!.arcanaSlug,
+                  )
+                else
+                  _PositionLine(position: position),
               const SizedBox(height: EterSpace.s16),
               EterAction(
-                label: _readingOpen ? 'Keywords' : 'Read deeper',
+                label: _readingOpen ? 'Show less' : 'Read deeper',
                 emphasis: EterActionEmphasis.secondary,
                 onPressed: () => setState(() => _readingOpen = !_readingOpen),
               ),
               if (_readingOpen) ...[
-                const SizedBox(height: EterSpace.s24),
-                for (final position in data.positions)
-                  _ComposedReading(
-                    position: position,
-                    reading: data.readings[position.key],
-                  ),
+                const SizedBox(height: EterSpace.s16),
                 if (data.readings.values.any((reading) => reading == null))
                   EterAction(
                     label: _composing ? 'Composing' : 'Compose readings',
@@ -609,10 +620,15 @@ class _PositionLine extends StatelessWidget {
 }
 
 class _ComposedReading extends StatelessWidget {
-  const _ComposedReading({required this.position, required this.reading});
+  const _ComposedReading({
+    required this.position,
+    required this.reading,
+    this.showCard = true,
+  });
 
   final _VesselPosition position;
   final VesselReadingRow? reading;
+  final bool showCard;
 
   @override
   Widget build(BuildContext context) {
@@ -626,23 +642,33 @@ class _ComposedReading extends StatelessWidget {
           // Every reading is headed by its own card. Read deeper is where the
           // deck earns its place: the passage is about that card, so the card
           // sits above the passage rather than being named in it.
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(EterSpace.rChip),
-              child: EterArcanaPlate(
-                card: position.card,
-                width: 140,
-                semanticLabel: '${position.card.title}, ${position.label}',
+          if (showCard) ...[
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(EterSpace.rChip),
+                child: EterArcanaPlate(
+                  card: position.card,
+                  width: 132,
+                  semanticLabel: '${position.card.title}, ${position.label}',
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: EterSpace.s12),
+            const SizedBox(height: EterSpace.s12),
+          ],
           Text(position.label.toUpperCase(), style: text.labelSmall),
+          const SizedBox(height: EterSpace.s4),
+          // The keywords stay visible at depth: the passage interprets them,
+          // and losing them on opening made the deeper view feel like a
+          // different subject rather than the same one, closer.
+          Text(
+            '${position.card.title} · ${position.keywords.join(', ')}',
+            style: text.titleMedium,
+          ),
           const SizedBox(height: EterSpace.s8),
           Text(
             passage ??
                 'This personal reading has not been composed yet. The '
-                    'offline keywords above remain available.',
+                    'keywords are shipped with the app and stand on their own.',
             style: text.headlineSmall?.copyWith(
               fontSize: 18,
               height: 1.5,
