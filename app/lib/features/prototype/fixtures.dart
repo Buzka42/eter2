@@ -2,22 +2,11 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../core/clock.dart';
 import '../../core/db/app_database.dart';
 import '../../core/energy/energy.dart' as energy;
 import '../../core/arcana/major_arcana.dart';
 import '../../core/symbolic/numerology.dart';
-
-/// The local `yyyy-MM-dd` day key the database contracts use.
-String eterIsoDate(DateTime local) =>
-    '${local.year.toString().padLeft(4, '0')}-'
-    '${local.month.toString().padLeft(2, '0')}-'
-    '${local.day.toString().padLeft(2, '0')}';
-
-/// Local start and end of the day containing [local].
-(DateTime, DateTime) eterDayBounds(DateTime local) {
-  final start = DateTime(local.year, local.month, local.day);
-  return (start, start.add(const Duration(days: 1)));
-}
 
 /// Fixture content for the defining prototype.
 ///

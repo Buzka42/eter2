@@ -9,7 +9,6 @@ import '../../core/db/app_database.dart';
 import '../../core/instruments.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
-import '../prototype/fixtures.dart';
 
 /// The Body disclosure and its in-place expansion.
 ///

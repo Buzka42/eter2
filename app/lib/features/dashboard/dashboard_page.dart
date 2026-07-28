@@ -10,7 +10,6 @@ import '../../core/db/app_database.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
-import '../prototype/fixtures.dart';
 import '../vessel/vessel_section.dart';
 import 'body_section.dart';
 

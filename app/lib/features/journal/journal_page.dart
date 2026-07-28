@@ -14,7 +14,6 @@ import '../../core/haptics.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
-import '../prototype/fixtures.dart';
 
 /// The Journal — an open, date-led personal page, not a form.
 ///
