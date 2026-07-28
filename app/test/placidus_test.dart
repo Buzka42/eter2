@@ -1,9 +1,6 @@
 import 'package:eter/core/symbolic/natal_chart.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Off until the implementation lands; see the note on main().
-const _skip = 'Placidus is not implemented yet — see the note above main().';
-
 /// Houses, and the honesty about where they stop working.
 ///
 /// Placidus is easy to get plausibly wrong: a bad solution still produces
@@ -38,7 +35,7 @@ void main() {
         longitude: longitude,
       ));
 
-  group('at ordinary latitudes', skip: _skip, () {
+  group('at ordinary latitudes', () {
     final chart = chartAt(latitude: 52.23, longitude: 21.01);
 
     test('Placidus is used, and says so', () {
@@ -102,7 +99,7 @@ void main() {
     });
   });
 
-  group('near the equator', skip: _skip, () {
+  group('near the equator', () {
     test('the distortion nearly vanishes, as it should', () {
       final chart = chartAt(latitude: 0.5, longitude: 32.6);
       final spans = [
@@ -112,15 +109,19 @@ void main() {
                   360) %
               360,
       ];
-      // At the equator every semi-arc is a quarter turn, so Placidus and equal
-      // houses converge. A solver that disagrees here is wrong.
+      // At the equator tan φ is zero, so every semi-arc is exactly a quarter
+      // turn and the cusps are evenly spaced *in right ascension*. They are
+      // not evenly spaced in ecliptic longitude: the obliquity alone bends
+      // them by a couple of degrees, which is why the tolerance here is 4 and
+      // not nothing. A solver returning exactly 30 everywhere has fallen back
+      // to equal houses; one returning wildly more has lost the semi-arc.
       for (final span in spans) {
-        expect(span, closeTo(30, 1.5));
+        expect(span, closeTo(30, 4));
       }
     });
   });
 
-  group('inside the polar circles', skip: _skip, () {
+  group('inside the polar circles', () {
     test('it refuses rather than inventing a cusp', () {
       // Tromsø. A degree of the ecliptic may never rise here, so there is no
       // semi-arc to divide — not a hard problem, an absent one.
@@ -141,7 +142,7 @@ void main() {
     });
   });
 
-  test('a chart always carries the system it actually used', skip: _skip, () {
+  test('a chart always carries the system it actually used', () {
     // The label is not decoration: a reading that says "your Mars is in the
     // eighth" means something different under each system, and a surface can
     // only be honest about that if the chart tells it which was used.

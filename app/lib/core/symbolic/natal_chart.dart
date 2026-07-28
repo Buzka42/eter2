@@ -246,19 +246,31 @@ class NatalChartEngine {
       ..add(ZodiacPosition(name: 'Ascendant', longitude: angles.ascendant))
       ..add(ZodiacPosition(name: 'Midheaven', longitude: angles.midheaven));
 
-    // Equal houses are deterministic at all ordinary latitudes and do not
-    // silently fail near polar circles. The system is explicit in the result.
-    final houses = List<double>.generate(
-      12,
-      (index) => _normalizeDegrees(angles.ascendant + index * 30),
+    final placidus = _placidusCusps(
+      ascendant: angles.ascendant,
+      midheaven: angles.midheaven,
+      ramc: angles.ramc,
+      latitude: input.latitude,
+      obliquity: eps,
     );
+    // Placidus is what "the houses" means to most people who use the word, so
+    // it is what Eter computes. It is also genuinely undefined inside the
+    // polar circles: a degree that never rises has no semi-arc to divide, so
+    // there is no cusp — not a hard one, an absent one. Rather than emit a
+    // plausible number there, the chart falls back to equal houses and says
+    // so in `houseSystem`, which travels with every reading.
+    final houses = placidus ??
+        List<double>.generate(
+          12,
+          (index) => _normalizeDegrees(angles.ascendant + index * 30),
+        );
 
     return NatalChart(
       calculatedAtUtc: utc,
       positions: List.unmodifiable(positions),
       houseCusps: List.unmodifiable(houses),
       aspects: List.unmodifiable(_aspects(positions)),
-      houseSystem: 'equal',
+      houseSystem: placidus == null ? 'equal' : 'placidus',
       engine: natalEngineVersion,
     );
   }
@@ -321,7 +333,84 @@ class NatalChartEngine {
     );
   }
 
-  ({double ascendant, double midheaven}) _angles({
+  /// The four intermediate cusps that Placidus actually solves for, or null
+  /// where the system has no answer.
+  ///
+  /// Placidus divides *time*, not space: the cusp of the eleventh is the
+  /// degree that has spent a third of its own daytime travelling from the
+  /// horizon toward the meridian. In hour-angle terms, with H measured from
+  /// the meridian and negative to the east:
+  ///
+  ///   cusp 11: H = −(1/3)·DSA        cusp 12: H = −(2/3)·DSA
+  ///   cusp  9: H = +(1/3)·DSA        cusp  8: H = +(2/3)·DSA
+  ///
+  /// where DSA = acos(−tan φ · tan δ) is the degree's own semi-diurnal arc.
+  /// The second and third cusps are the opposites of the eighth and ninth,
+  /// because opposite cusps are opposed in any quadrant system.
+  ///
+  /// δ depends on the longitude being solved for, so this is a fixed point:
+  /// guess, compute the semi-arc, see where that puts the right ascension,
+  /// correct, repeat.
+  List<double>? _placidusCusps({
+    required double ascendant,
+    required double midheaven,
+    required double ramc,
+    required double latitude,
+    required double obliquity,
+  }) {
+    final phi = toRad(latitude);
+
+    /// Solves one cusp. [fraction] is how much of the semi-arc has been
+    /// travelled; [east] places it before the meridian rather than after.
+    double? solve(double fraction, {required bool east}) {
+      // Start from the meridian and walk outward — close enough that the
+      // iteration converges without hunting.
+      var longitude = _normalizeDegrees(
+        midheaven + (east ? 1 : -1) * fraction * 90,
+      );
+      for (var iteration = 0; iteration < 100; iteration++) {
+        final lambda = toRad(longitude);
+        final declination = math.asin(math.sin(obliquity) * math.sin(lambda));
+        final tangent = math.tan(phi) * math.tan(declination);
+        // |tan φ · tan δ| ≥ 1 is a degree that never crosses the horizon.
+        if (tangent.abs() >= 1) return null;
+        final semiArc = _degrees(math.acos(-tangent));
+        final target = ramc + (east ? 1 : -1) * fraction * semiArc;
+        final rightAscension = _degrees(
+          math.atan2(math.sin(lambda) * math.cos(obliquity), math.cos(lambda)),
+        );
+        final error = _normalizeDegrees(target - rightAscension + 180) - 180;
+        if (error.abs() < 1e-9) return _normalizeDegrees(longitude);
+        longitude = _normalizeDegrees(longitude + error);
+      }
+      return null;
+    }
+
+    final eleven = solve(1 / 3, east: true);
+    final twelve = solve(2 / 3, east: true);
+    final nine = solve(1 / 3, east: false);
+    final eight = solve(2 / 3, east: false);
+    if (eleven == null || twelve == null || nine == null || eight == null) {
+      return null;
+    }
+
+    return [
+      ascendant,
+      _normalizeDegrees(eight + 180),
+      _normalizeDegrees(nine + 180),
+      _normalizeDegrees(midheaven + 180),
+      _normalizeDegrees(eleven + 180),
+      _normalizeDegrees(twelve + 180),
+      _normalizeDegrees(ascendant + 180),
+      eight,
+      nine,
+      midheaven,
+      eleven,
+      twelve,
+    ];
+  }
+
+  ({double ascendant, double midheaven, double ramc}) _angles({
     required double jd,
     required double latitude,
     required double longitude,
@@ -350,6 +439,8 @@ class NatalChartEngine {
     return (
       ascendant: _degrees(asc),
       midheaven: _degrees(mc),
+      // Right ascension of the meridian: the zero the semi-arcs measure from.
+      ramc: _degrees(lst),
     );
   }
 
