@@ -1,6 +1,6 @@
 # Eter custom icon system — commissioning and integration plan
 
-Status: ready for asset commissioning  
+Status: code-native disclosure mark integrated; broader set remains optional
 Prepared: 25 July 2026
 
 ## 1. Goal
@@ -9,6 +9,13 @@ Replace the remaining Material iconography with a bespoke thin-line set that
 matches the tarot line-work of the Arcana masters: 1 px optical stroke,
 geometric-mystical vocabulary (circles, rays, crescents, threads), quiet
 enough for an ultra-minimal interface.
+
+The two production disclosure chevrons no longer use Material icons. They now
+share `EterDisclosureMark`, a code-native bead-and-thread painter in
+`app/lib/core/icons.dart`. This resolves the only currently visible generic
+glyphs without introducing an asset dependency. The larger 24-glyph set below
+remains a commissioning menu for future surfaces, not a blocker or a reason to
+add icons where words already work.
 
 ## 2. The set (24 glyphs)
 

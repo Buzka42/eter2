@@ -7,6 +7,7 @@ import '../../core/arrival.dart';
 import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/icons.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -174,7 +175,7 @@ class _SectionThreshold extends StatelessWidget {
                   children: [
                     Text('LOOK DEEPER', style: text.labelSmall),
                     const Spacer(),
-                    Icon(Icons.chevron_right, size: 18, color: ink.labelMuted),
+                    const EterDisclosureMark(),
                   ],
                 ),
               ),

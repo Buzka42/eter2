@@ -8,7 +8,7 @@ import 'tokens.dart';
 /// Engraved instruments — the widgets that render live data.
 ///
 /// These were the weakest surfaces in the app: the balance was a single
-/// rotated 3px line with a Material `Icons.balance` between two text labels,
+/// rotated 3px line with a bespoke fulcrum between two text labels,
 /// and the progress rings were 6px strokes with a sky-to-gold sweep. In both
 /// cases the illustrated *empty state* sitting directly beneath was more
 /// carefully drawn than the live widget above it. They are redrawn here as

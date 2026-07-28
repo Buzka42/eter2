@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/icons.dart';
 import '../../core/instruments.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -13,7 +14,8 @@ import '../../main.dart';
 /// The Body disclosure and its in-place expansion.
 ///
 /// Collapsed, it is one quiet line: the word `Body`, at most one short
-/// textual fact, and a conventional chevron — no metric strip, no sparkline.
+/// textual fact, and Eter's thread disclosure mark — no metric strip or
+/// sparkline.
 /// Expanded, it begins with its conclusion in words, then shows one
 /// instrument — the engraved intake/burn balance — and offers an explicit
 /// close. It never leads with a chart, and it says what it cannot see: an
@@ -193,7 +195,7 @@ class _DisclosureLine extends StatelessWidget {
               ] else
                 const Spacer(),
               const SizedBox(width: EterSpace.s8),
-              Icon(Icons.chevron_right, size: 18, color: ink.labelMuted),
+              const EterDisclosureMark(),
             ],
           ),
         ),
