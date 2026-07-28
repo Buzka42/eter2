@@ -433,26 +433,44 @@ WHAT TO DERIVE
   what you assumed.
 - "lifestyle": self-reports of mood, stress, recovery, sleep, meditation or
   breathwork, and nothing else. Ratings are 0–10, durations are minutes.
+- "weight": a body weight they state as a fact they read — "84.2 this
+  morning", "back under eighty". Never a guess and never a feeling: "I feel
+  heavier" is not a weight. Kilograms; convert if they wrote pounds or stone.
+- "activity": movement they say they did, with a duration and an energy
+  estimate carrying the same confidence and assumptions a meal does. Walking,
+  running, cycling, swimming, a class. Not lifting — that is the next field.
+- "strength": resistance work, as exercises with their sets. Reps always, load
+  in kilograms when they gave one and omitted when they did not, because
+  bodyweight work is real work. Do not estimate the energy: it is derived from
+  their body weight and the sets themselves, on the device.
 
 WHAT NOT TO DERIVE
 - Anything they did not say. A page about a hard morning is not a page about
   skipping breakfast.
 - Anything they said about *another* day, or about the future, or in the
   conditional. Only what they record as having happened.
-- Weight, workouts, steps or heart rate. Those come from elsewhere; ignore any
-  mention of them.
+- Steps or heart rate. Those come from a device; ignore any mention of them.
 - A diagnosis, a judgement, or a comment of any kind. You produce records.
 
 WHEN THE PAGE IS AMBIGUOUS
-If the entry mentions food or a practice but you cannot estimate it without
-guessing at something material — the portion, whether a meal happened at all —
-return status "needsDetail" with exactly one short clarifying question, an
-empty food list and an empty lifestyle list. One question, in plain language,
-about the single most material unknown. It is always better to ask than to
+Most pages are partly certain. A page can state a weight exactly and describe
+a workout vaguely, and the weight is not made doubtful by the vagueness beside
+it. So:
+
+If *some* of the page is certain, return status "classified" with everything
+you are sure of, and simply leave out what you are not. Omitting one exercise
+is not a failure — it is the honest reading. Do not ask a question in this
+case, and do not record a guess to fill the gap.
+
+Use status "needsDetail" only when the page names something material and
+*nothing* can be recorded without guessing at it — a meal with no way to judge
+the portion, movement with no way to judge whether it happened. Then return
+exactly one short clarifying question, in plain language, about the single most
+material unknown, with every list empty. It is always better to ask than to
 invent: an unanswered question costs nothing, and a wrong meal costs trust.
 
-If the page contains nothing to derive, return status "classified" with two
-empty lists. That is a normal and frequent answer.
+If the page contains nothing to derive, return status "classified" with every
+list empty. That is a normal and frequent answer.
 
 $safety
 
@@ -521,6 +539,74 @@ Return JSON only, with no text around it.''',
               'maximum': 1440,
             },
             'note': {'type': 'string'},
+          },
+        },
+      },
+      'weight': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'required': ['kg'],
+          'additionalProperties': false,
+          'properties': {
+            'kg': {'type': 'number', 'minimum': 20, 'maximum': 500},
+          },
+        },
+      },
+      'activity': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'required': [
+            'activity',
+            'durationMinutes',
+            'kcal',
+            'confidence',
+            'assumptions',
+          ],
+          'additionalProperties': false,
+          'properties': {
+            'activity': {'type': 'string', 'minLength': 1, 'maxLength': 80},
+            'durationMinutes': {
+              'type': 'integer',
+              'minimum': 1,
+              'maximum': 1440,
+            },
+            'kcal': {'type': 'number', 'exclusiveMinimum': 0, 'maximum': 10000},
+            'confidence': {'type': 'number', 'minimum': 0, 'maximum': 1},
+            'assumptions': {
+              'type': 'array',
+              'items': {'type': 'string'},
+            },
+          },
+        },
+      },
+      'strength': {
+        'type': 'array',
+        'items': {
+          'type': 'object',
+          'required': ['name', 'sets'],
+          'additionalProperties': false,
+          'properties': {
+            'name': {'type': 'string', 'minLength': 1, 'maxLength': 80},
+            'sets': {
+              'type': 'array',
+              'minItems': 1,
+              'maxItems': 30,
+              'items': {
+                'type': 'object',
+                'required': ['reps'],
+                'additionalProperties': false,
+                'properties': {
+                  'reps': {'type': 'integer', 'minimum': 1, 'maximum': 500},
+                  'loadKg': {
+                    'type': 'number',
+                    'minimum': 0,
+                    'maximum': 1000,
+                  },
+                },
+              },
+            },
           },
         },
       },

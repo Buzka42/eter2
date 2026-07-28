@@ -103,7 +103,8 @@ void main() {
     final result = await classifier.classify(id);
     final journal = await database.loadJournalEntry(id);
 
-    expect(result.status, 'needsDetail');
+    expect(result.classification.status, 'needsDetail');
+    expect(result.body, isNull);
     expect(journal!.appliedAt, isNull);
     expect(
       await database

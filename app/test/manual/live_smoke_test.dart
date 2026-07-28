@@ -46,6 +46,8 @@ void main() {
     test('guidance composes and parses', () => _guidance(transport));
     test('the day story composes and parses', () => _dayStory(transport));
     test('interpretation composes and parses', () => _interpretation(transport));
+    test('interpretation reads weight, a run and lifted work',
+        () => _bodyInterpretation(transport));
     test('vessel readings compose and parse', () => _vesselReadings(transport));
     test('positions compose and parse', () => _positions(transport));
   },
@@ -140,6 +142,36 @@ Future<String> _interpretation(EterAiTransport transport) async {
     ),
   );
   _parsed(raw, () => const JournalClassificationParser().parse(raw));
+  return raw;
+}
+
+/// The three shapes that reach the body log. A page naming all of them at once
+/// is rare in life and exactly right here: it is the only way to see that the
+/// model keeps them apart — that a run does not become an exercise and a
+/// stated weight does not acquire a confidence it never had.
+Future<String> _bodyInterpretation(EterAiTransport transport) async {
+  final raw = await TransportJournalClassificationProvider(transport).classify(
+    const JournalClassificationRequest(
+      text: '84.2 on the scale this morning. Easy run along the river, about '
+          'half an hour. Then back squats, 100 kilos for five, three times, '
+          'and pull-ups until they ran out.',
+      source: 'typed',
+      responseSchema: journalClassificationSchema,
+    ),
+  );
+  final parsed =
+      _parsed(raw, () => const JournalClassificationParser().parse(raw));
+
+  expect(parsed.weight.single.kg, closeTo(84.2, 0.01));
+  expect(parsed.activity, isNotEmpty);
+  expect(parsed.activity.first.durationMinutes, inInclusiveRange(20, 40));
+  expect(parsed.activity.first.assumptions, isNotEmpty);
+  expect(parsed.strength.map((item) => item.name).join(' ').toLowerCase(),
+      contains('squat'));
+  expect(
+    parsed.strength.first.sets.first.loadKg,
+    closeTo(100, 0.01),
+  );
   return raw;
 }
 

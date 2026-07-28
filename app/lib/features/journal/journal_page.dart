@@ -774,7 +774,7 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
       _message = null;
     });
     try {
-      final result = await JournalClassifier(
+      final outcome = await JournalClassifier(
         database: widget.db,
         provider: provider,
       ).classify(widget.entry.id, clarification: answer);
@@ -782,11 +782,7 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
       _clarification.clear();
       setState(() {
         _busy = false;
-        _message = result.status == 'needsDetail'
-            ? 'Aether needs one detail before applying anything.'
-            : result.food.isEmpty
-                ? 'The entry was interpreted.'
-                : 'Food estimates are waiting for review in Body.';
+        _message = _outcomeMessage(outcome);
       });
     } on JournalClassificationConsentException {
       if (!mounted) return;
@@ -808,6 +804,38 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
         _message = 'Interpretation is unavailable right now. Nothing changed.';
       });
     }
+  }
+
+  /// Says what actually happened, in the order the person cares about: what
+  /// still needs them, then what was written, then what could not be.
+  String _outcomeMessage(JournalClassificationOutcome outcome) {
+    final result = outcome.classification;
+    if (result.status == 'needsDetail') {
+      return 'Aether needs one detail before applying anything.';
+    }
+
+    final written = <String>[];
+    final body = outcome.body;
+    if (body != null) {
+      if (body.weights > 0) written.add('a weight');
+      if (body.activities > 0) {
+        written.add(body.activities == 1 ? 'an activity' : 'activities');
+      }
+      if (body.workouts > 0) written.add('a workout');
+    }
+    if (result.food.isNotEmpty) written.add('food waiting for review in Body');
+
+    final sentence = switch (written.length) {
+      0 => result.lifestyle.isEmpty
+          ? 'The entry was interpreted.'
+          : 'The entry was interpreted and logged.',
+      1 => 'Recorded ${written.first}.',
+      _ =>
+        'Recorded ${written.take(written.length - 1).join(', ')} and ${written.last}.',
+    };
+
+    final failures = body?.failures ?? const <String>[];
+    return failures.isEmpty ? sentence : '$sentence ${failures.first}';
   }
 
   Future<void> _undo() async {

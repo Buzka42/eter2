@@ -226,8 +226,34 @@ void main() {
 
     expect(system, contains('Anything they did not say'));
     expect(system, contains('better to ask than to'));
-    // Weight, activity and strength are explicitly out of scope today; see
-    // ROADMAP.md 1a, which tracks giving them a route in.
-    expect(system, contains('Weight, workouts, steps or heart rate'));
+    // Steps and heart rate come from a device and are still out of scope.
+    // Weight, activity and strength are in scope now, and each carries the
+    // rule that keeps it honest.
+    expect(system, contains('Steps or heart rate'));
+    expect(system, contains('Never a guess and never a feeling'));
+    expect(system, contains('Do not estimate the energy'));
+  });
+
+  test('interpretation asks for the fields the parser requires', () {
+    final schema = EterPrompts.journalInterpretation(
+      entryText: 'Squatted 100 for five, twice.',
+    ).responseSchema;
+    final properties = schema['properties'] as Map<String, Object?>;
+
+    for (final field in ['weight', 'activity', 'strength']) {
+      expect(properties[field], isNotNull, reason: field);
+    }
+    final activity = ((properties['activity'] as Map)['items'] as Map);
+    expect(
+      activity['required'],
+      containsAll(<String>['activity', 'durationMinutes', 'kcal']),
+    );
+    // The energy of lifted work is derived on the device, so the model is
+    // never asked for it.
+    final strength = ((properties['strength'] as Map)['items'] as Map);
+    expect(
+      (strength['properties'] as Map).keys,
+      isNot(contains('kcal')),
+    );
   });
 }

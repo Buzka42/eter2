@@ -56,23 +56,105 @@ class LifestyleEstimate {
       };
 }
 
+/// A weight the person stated in prose. Never an estimate — a body weight is
+/// either read off a scale or it is not a number, so there is no confidence
+/// field here and no assumptions to review.
+class WeightObservation {
+  const WeightObservation({required this.kg});
+
+  final double kg;
+
+  Map<String, Object?> toJson() => {'kg': kg};
+}
+
+/// Something they said they did with their body, with the energy it cost
+/// estimated the way a meal's is: reviewable, and shown with the guesses it
+/// rests on.
+class ActivityObservation {
+  const ActivityObservation({
+    required this.activity,
+    required this.durationMinutes,
+    required this.kcal,
+    required this.confidence,
+    required this.assumptions,
+  });
+
+  final String activity;
+  final int durationMinutes;
+  final double kcal;
+  final double confidence;
+  final List<String> assumptions;
+
+  Map<String, Object?> toJson() => {
+        'activity': activity,
+        'durationMinutes': durationMinutes,
+        'kcal': kcal,
+        'confidence': confidence,
+        'assumptions': assumptions,
+      };
+}
+
+class StrengthSetObservation {
+  const StrengthSetObservation({required this.reps, this.loadKg});
+
+  final int reps;
+  final double? loadKg;
+
+  Map<String, Object?> toJson() => {
+        'reps': reps,
+        if (loadKg != null) 'loadKg': loadKg,
+      };
+}
+
+/// Lifted work, as written. The energy is not estimated here: the strength
+/// service derives it from body weight and the work itself, which is the same
+/// arithmetic the Register uses and the only one that agrees with it.
+class StrengthObservation {
+  const StrengthObservation({required this.name, required this.sets});
+
+  final String name;
+  final List<StrengthSetObservation> sets;
+
+  Map<String, Object?> toJson() => {
+        'name': name,
+        'sets': sets.map((set) => set.toJson()).toList(),
+      };
+}
+
 class JournalClassification {
   const JournalClassification({
     required this.status,
     required this.food,
     required this.lifestyle,
+    this.weight = const [],
+    this.activity = const [],
+    this.strength = const [],
     this.clarifyingQuestion,
   });
 
   final String status;
   final List<FoodEstimate> food;
   final List<LifestyleEstimate> lifestyle;
+  final List<WeightObservation> weight;
+  final List<ActivityObservation> activity;
+  final List<StrengthObservation> strength;
   final String? clarifyingQuestion;
+
+  /// True when the page produced nothing at all to commit.
+  bool get isEmpty =>
+      food.isEmpty &&
+      lifestyle.isEmpty &&
+      weight.isEmpty &&
+      activity.isEmpty &&
+      strength.isEmpty;
 
   Map<String, Object?> toJson() => {
         'status': status,
         'food': food.map((item) => item.toJson()).toList(),
         'lifestyle': lifestyle.map((item) => item.toJson()).toList(),
+        'weight': weight.map((item) => item.toJson()).toList(),
+        'activity': activity.map((item) => item.toJson()).toList(),
+        'strength': strength.map((item) => item.toJson()).toList(),
         'clarifyingQuestion': clarifyingQuestion,
       };
 }
@@ -125,8 +207,24 @@ class JournalClassificationParser {
         'A detail request requires one clarifying question',
       );
     }
+    // The three shapes added when capture left the Dashboard. Absent is the
+    // normal case — most pages mention none of them — so each defaults to
+    // empty rather than being required of every response.
+    final rawWeight = decoded['weight'] ?? const [];
+    final rawActivity = decoded['activity'] ?? const [];
+    final rawStrength = decoded['strength'] ?? const [];
+    if (rawWeight is! List || rawActivity is! List || rawStrength is! List) {
+      throw const JournalClassificationException(
+        'Weight, activity and strength must be lists when present',
+      );
+    }
+
     if (status == 'needsDetail' &&
-        (rawFood.isNotEmpty || rawLifestyle.isNotEmpty)) {
+        (rawFood.isNotEmpty ||
+            rawLifestyle.isNotEmpty ||
+            rawWeight.isNotEmpty ||
+            rawActivity.isNotEmpty ||
+            rawStrength.isNotEmpty)) {
       throw const JournalClassificationException(
         'Ambiguous entries cannot create derived records',
       );
@@ -136,8 +234,93 @@ class JournalClassificationParser {
       status: status,
       food: List.unmodifiable(rawFood.map(_parseFood)),
       lifestyle: List.unmodifiable(rawLifestyle.map(_parseLifestyle)),
+      weight: List.unmodifiable(rawWeight.map(_parseWeight)),
+      activity: List.unmodifiable(rawActivity.map(_parseActivity)),
+      strength: List.unmodifiable(rawStrength.map(_parseStrength)),
       clarifyingQuestion: question is String ? question.trim() : null,
     );
+  }
+
+  /// The same bounds `ManualWeightService` enforces. A page that says "I feel
+  /// heavy today" must not become a 0 kg reading.
+  WeightObservation _parseWeight(Object? raw) {
+    if (raw is! Map<String, dynamic>) {
+      throw const JournalClassificationException('Weight must be an object');
+    }
+    final kg = _number(raw['kg']);
+    if (kg == null || kg < 20 || kg > 500) {
+      throw const JournalClassificationException('Invalid weight observation');
+    }
+    return WeightObservation(kg: kg);
+  }
+
+  ActivityObservation _parseActivity(Object? raw) {
+    if (raw is! Map<String, dynamic>) {
+      throw const JournalClassificationException('Activity must be an object');
+    }
+    final activity = raw['activity'];
+    final duration = _number(raw['durationMinutes']);
+    final kcal = _number(raw['kcal']);
+    final confidence = _number(raw['confidence']);
+    final assumptions = raw['assumptions'];
+    if (activity is! String ||
+        activity.trim().isEmpty ||
+        activity.trim().length > 80 ||
+        duration == null ||
+        duration < 1 ||
+        duration > 1440 ||
+        kcal == null ||
+        kcal <= 0 ||
+        kcal > 10000 ||
+        confidence == null ||
+        confidence < 0 ||
+        confidence > 1 ||
+        assumptions is! List ||
+        assumptions.any((item) => item is! String)) {
+      throw const JournalClassificationException('Invalid activity estimate');
+    }
+    return ActivityObservation(
+      activity: activity.trim(),
+      durationMinutes: duration.round(),
+      kcal: kcal,
+      confidence: confidence,
+      assumptions: List.unmodifiable(assumptions.cast<String>()),
+    );
+  }
+
+  StrengthObservation _parseStrength(Object? raw) {
+    if (raw is! Map<String, dynamic>) {
+      throw const JournalClassificationException('Strength must be an object');
+    }
+    final name = raw['name'];
+    final sets = raw['sets'];
+    if (name is! String ||
+        name.trim().isEmpty ||
+        name.trim().length > 80 ||
+        sets is! List ||
+        sets.isEmpty ||
+        sets.length > 30) {
+      throw const JournalClassificationException('Invalid strength exercise');
+    }
+    return StrengthObservation(
+      name: name.trim(),
+      sets: List.unmodifiable(sets.map(_parseStrengthSet)),
+    );
+  }
+
+  StrengthSetObservation _parseStrengthSet(Object? raw) {
+    if (raw is! Map<String, dynamic>) {
+      throw const JournalClassificationException('A set must be an object');
+    }
+    final reps = _number(raw['reps']);
+    final load = _number(raw['loadKg']);
+    if (reps == null ||
+        reps < 1 ||
+        reps > 500 ||
+        (load != null && (load < 0 || load > 1000))) {
+      throw const JournalClassificationException('Invalid strength set');
+    }
+    return StrengthSetObservation(reps: reps.round(), loadKg: load);
   }
 
   FoodEstimate _parseFood(Object? raw) {
@@ -237,5 +420,14 @@ const journalClassificationSchema = <String, Object>{
     'meditation',
     'breathwork',
   ],
+  'weightRequires': <String>['kg'],
+  'activityRequires': <String>[
+    'activity',
+    'durationMinutes',
+    'kcal',
+    'confidence',
+    'assumptions',
+  ],
+  'strengthRequires': <String>['name', 'sets'],
   'unconfirmedFood': true,
 };
