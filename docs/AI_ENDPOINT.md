@@ -37,6 +37,41 @@ supported, shippable configuration — the app is complete without a model and
 every surface says so rather than pretending. Plain `http://` is refused
 client-side before anything is sent.
 
+## 1a. Running the whole thing on one machine
+
+`app/tool/dev_endpoint.dart` is a working stand-in that does the two things
+that matter — it holds the credential, and it forwards the triple unchanged.
+It listens on loopback only and has no authentication worth the name, so it is
+for development and nothing else.
+
+```bash
+dart run tool/dev_endpoint.dart
+```
+
+It reads the key from `GEMINI_API_KEY`, or from `app/tool/dev_endpoint.secret`
+(one line, gitignored). Model defaults to `gemini-3.5-flash-lite`; override
+with `ETER_DEV_MODEL`.
+
+Then, from `app/`:
+
+```bash
+flutter run --dart-define=ETER_AI_ENDPOINT=http://10.0.2.2:8787
+```
+
+`10.0.2.2` is how the Android emulator reaches its host; use `127.0.0.1` for a
+desktop build. Debug builds may reach a cleartext loopback endpoint — release
+builds cannot, and do not merge the config that would let them.
+
+To check the whole chain without opening the app:
+
+```bash
+flutter test test/manual/live_smoke_test.dart --dart-define=ETER_LIVE_SMOKE=true
+```
+
+That drives all five contracts through the real transport and runs each real
+parser over what comes back. It is the fastest way to tell a transport problem
+from a prompt problem, and it prints any response a parser refuses.
+
 ## 2. What the server must do
 
 **Hold the model key.** This is the entire reason the endpoint exists. The

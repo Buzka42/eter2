@@ -30,22 +30,26 @@ is [`AI_ENDPOINT.md`](AI_ENDPOINT.md).
 **The client must never hold a model key.** This is the one constraint the
 steering brief states twice, and it is why the endpoint exists at all.
 
-### 0.2 Recording weight, activity and strength
+### 0.2 Recording weight, activity and strength — done
 
-Created deliberately, unfinished deliberately. Capture left the Dashboard under
-*the Dashboard reads; the Journal writes*, and journal classification accepts
-food and lifestyle shapes only. So today:
+Every record now has a route in:
 
 | Record | Route in |
 |---|---|
 | Food, mood, sleep, meditation | Journal interpretation ✓ |
-| Weight | **none** — health hub only |
-| Activity | **none** — health hub only |
-| Strength | **none at all** |
+| Weight | Journal interpretation ✓, or a health hub |
+| Activity | Journal interpretation ✓, or a health hub |
+| Strength | Journal interpretation ✓ |
 
-Needs bounded weight/activity/strength shapes in
-`classification_contract.dart` and a commit path through the services that
-already exist and are already tested. Blocked on 0.1.
+The shapes are in `classification_contract.dart`, each carrying the rule that
+keeps it honest: a weight is read and never estimated, an activity carries the
+same reviewable estimate a meal does, and lifted work carries reps and load but
+no energy — that is derived on the device from body weight, and any other
+number would disagree with the Register.
+
+`journal/body_commit.dart` commits through `ManualWeightService`,
+`ManualActivityService` and `StrengthWorkoutService` rather than around them,
+so a run written in the Journal lands where a run entered by hand lands.
 
 ### 0.3 Owner-only items
 
