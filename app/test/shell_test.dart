@@ -210,25 +210,23 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Open journal history'));
     await tester.pumpAndSettle();
 
-    final interpret = find.text('INTERPRET');
-    await tester.ensureVisible(interpret);
-    await tester.tap(interpret);
+    // Nobody asks for interpretation any more: opening the day reads what is
+    // pending, and the model's question arrives on its own.
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      () => Future<void>.delayed(const Duration(milliseconds: 40)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text('How large was the bowl?'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const ValueKey('journal-clarification-1')),
       'A medium bowl.',
     );
-    // The clarification field and the marginal check-ins above it both grow
-    // the page; the action has to be brought back into view before the tap.
-    await tester.ensureVisible(find.text('INTERPRET'));
-    await tester.tap(find.text('INTERPRET'));
+    // Answering the question is the one interpretation still triggered by
+    // hand, because it is a reply rather than a request.
+    await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      () => Future<void>.delayed(const Duration(milliseconds: 40)),
     );
     await tester.pump();
     expect(find.textContaining('waiting for review in Body'), findsOneWidget);
@@ -264,17 +262,17 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Open journal history'));
     await tester.pumpAndSettle();
 
-    final interpret = find.text('INTERPRET');
-    await tester.ensureVisible(interpret);
-    await tester.tap(interpret);
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      () => Future<void>.delayed(const Duration(milliseconds: 40)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
+    // Nobody asked for this, so nothing may be reported as having failed.
+    // The page is unchanged, stays pending, and is tried again next time —
+    // an error banner for work the person never requested is noise.
     expect(
       find.text('Interpretation is unavailable right now. Nothing changed.'),
-      findsOneWidget,
+      findsNothing,
     );
     final entry = await db.loadJournalEntry(1);
     expect(entry?.status, 'pending');

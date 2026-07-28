@@ -41,6 +41,7 @@ dependencies:
   # Birthplace geocoding; vendor OAuth hands off to a custom tab.
   geocoding: ^4.0.0
 
+
   # Accounts and the cloud mirror. Optional by design: Eter opens, works and
   # keeps every record with no account and no network. Signing in adds
   # recovery on a new phone, and nothing else.

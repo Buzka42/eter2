@@ -912,6 +912,23 @@ class AppDatabase extends _$AppDatabase {
   /// Retention. Drops the prose while keeping the derived facts, so deleting
   /// what you wrote does not silently delete what you ate.
   ///
+  /// Removes one entry the person asked to be rid of.
+  ///
+  /// The prose is cleared rather than the row deleted, so the id stays taken
+  /// and nothing that referenced it can be silently re-pointed at a different
+  /// page later. Every query that reads the journal already excludes
+  /// `discarded`.
+  Future<int> discardJournalEntry(int id) =>
+      (update(journalEntries)..where((row) => row.id.equals(id))).write(
+        const JournalEntriesCompanion(
+          entryText: Value(''),
+          status: Value('discarded'),
+          extractionJson: Value(null),
+          appliedAt: Value(null),
+          syncedAt: Value(null),
+        ),
+      );
+
   /// v1 implemented this and never called it from anywhere; the Sanctum must
   /// expose it.
   Future<int> pruneJournalProse(DateTime olderThanUtc) =>

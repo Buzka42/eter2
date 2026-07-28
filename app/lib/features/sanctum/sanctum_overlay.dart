@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -7,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/profile/birth_offset.dart';
 import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
 import '../../core/health/health_hub.dart';
@@ -329,6 +331,24 @@ class _BirthContextState extends State<_BirthContext> {
     _place.text = profile?.birthPlace ?? '';
   }
 
+  /// Fills the offset field with the one that was in force on the birth date,
+  /// if the person has not written one themselves.
+  ///
+  /// A suggestion, and labelled as one: see `core/profile/birth_offset.dart`
+  /// for why the zone is the device's rather than the birthplace's.
+  void _suggestOffset() {
+    if (_offset.text.trim().isNotEmpty) return;
+    final dob = widget.profile?.dob;
+    if (dob == null) return;
+    final minutes = BirthOffset.suggestMinutes(dob);
+    if (minutes == null || !mounted || _offset.text.trim().isNotEmpty) return;
+    setState(() {
+      _offset.text = BirthOffset.format(minutes);
+      _message = 'Offset suggested from this phone’s timezone on that date, '
+          'summer time included. Correct it if you were born elsewhere.';
+    });
+  }
+
   Future<void> _save() async {
     if (_busy) return;
     setState(() {
@@ -482,7 +502,12 @@ class _BirthContextState extends State<_BirthContext> {
               busy: _busy,
               onPressed: widget.profile == null || _busy
                   ? null
-                  : (_editing ? _save : () => setState(() => _editing = true)),
+                  : (_editing
+                      ? _save
+                      : () {
+                          setState(() => _editing = true);
+                          _suggestOffset();
+                        }),
             ),
             if (_editing)
               EterAction(

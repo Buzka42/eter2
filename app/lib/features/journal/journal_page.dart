@@ -14,6 +14,7 @@ import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
 import '../../core/icons.dart';
 import '../../core/journal/classification_contract.dart';
+import '../../core/journal/auto_interpret.dart';
 import '../../core/journal/classifier.dart';
 import '../../core/journal/day_story.dart';
 import '../../core/register.dart';
@@ -54,6 +55,11 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   @override
   void initState() {
     super.initState();
+    // Anything written before interpretation was automatic — or while the
+    // endpoint was unreachable — is read when the Journal next opens.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_autoInterpret());
+    });
   }
 
   @override
@@ -116,9 +122,25 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       unawaited(EterHaptics.light());
       // The day now reads differently, so its story is stale.
       unawaited(_storyKey.currentState?.refresh() ?? Future<void>.value());
+      // And the page that was just kept is read, without being asked about.
+      unawaited(_autoInterpret());
     } finally {
       _saving = false;
     }
+  }
+
+  /// Reads whatever is pending on the day in view.
+  ///
+  /// Unawaited by every caller: interpretation is something Eter does with a
+  /// page, not something the page waits for.
+  Future<void> _autoInterpret() async {
+    final now = ref.read(nowProvider)();
+    final day = _selectedDay ?? now;
+    final (start, end) = eterDayBounds(day);
+    await JournalAutoInterpreter(
+      database: ref.read(databaseProvider),
+      provider: ref.read(journalClassificationProvider),
+    ).run(start: start.toUtc(), end: end.toUtc());
   }
 
   Future<void> _toggleDictation() async {
@@ -894,6 +916,39 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
     return failures.isEmpty ? sentence : '$sentence ${failures.first}';
   }
 
+  /// Deleting asks once, because it removes prose nobody else has a copy of.
+  Future<void> _confirmDelete() async {
+    if (_busy) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete this entry?'),
+        content: const Text(
+          'The page and anything derived from it are removed from this '
+          'device. This cannot be undone.',
+        ),
+        actions: [
+          EterAction(
+            label: 'Keep',
+            emphasis: EterActionEmphasis.quiet,
+            onPressed: () => Navigator.of(context).pop(false),
+          ),
+          EterAction(
+            label: 'Delete',
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _busy = true);
+    // The derived rows go first: an orphaned meal estimate outliving the
+    // sentence it came from is exactly the kind of record nobody can explain.
+    await widget.db.revertJournalEntryRows(widget.entry.id);
+    await widget.db.discardJournalEntry(widget.entry.id);
+    if (mounted) setState(() => _busy = false);
+  }
+
   Future<void> _undo() async {
     if (_busy) return;
     setState(() {
@@ -946,13 +1001,22 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
                   !widget.entry.excludedFromAi,
                 ),
               ),
+              // Interpretation is no longer asked for; it happens to every
+              // page that is kept. What is left here is the way back out of
+              // it, and the way to remove the page entirely.
+              if (interpreted)
+                _GlyphAction(
+                  label: 'Undo interpretation',
+                  semanticLabel: 'Remove interpretation and derived records',
+                  color: ink.labelMuted,
+                  onTap: _undo,
+                ),
               _GlyphAction(
-                label: interpreted ? 'Undo interpretation' : 'Interpret',
-                semanticLabel: interpreted
-                    ? 'Remove interpretation and derived records'
-                    : 'Interpret food and wellbeing details in this entry',
+                label: 'Delete',
+                semanticLabel: 'Delete this journal entry and anything '
+                    'derived from it',
                 color: ink.labelMuted,
-                onTap: interpreted ? _undo : _interpret,
+                onTap: _confirmDelete,
               ),
             ],
           ),
