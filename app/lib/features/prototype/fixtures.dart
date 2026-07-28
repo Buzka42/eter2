@@ -31,6 +31,7 @@ abstract final class PrototypeFixtures {
         dob: DateTime.utc(1990, 4, 12),
         sex: 'other',
         weightKg: 71,
+        heightCm: const Value(170),
         units: 'metric',
         guidanceMode: const Value('balanced'),
         startSurface: const Value('dashboard'),

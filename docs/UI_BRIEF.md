@@ -266,6 +266,12 @@ Closing it restores the guidance and its scroll state.
   zero. This is the v1 lesson that mattered most: the old build showed
   "−828 kcal · a lighter balance today" when the user simply had not logged
   food, which in a calorie app is an endorsement the product must never make.
+- A successful Apple Health / Health Connect movement import refreshes the
+  canonical day summary that this surface watches. The refresh is replay-safe,
+  preserves logged intake, and may mark a lower corrected total as
+  recalibrated. Resting burn requires profile height; for a legacy profile
+  without it, show the available raw signals and request the missing context
+  instead of manufacturing a basal number.
 - `SurfaceIntent.plain`.
 
 **Charts are `CustomPainter` in the `EngravedBalance` idiom.** No charting
@@ -332,13 +338,13 @@ names.
 - Vendor-direct integrations and background/differential sync. The phone health
   hub is implemented for an explicit 30-day Apple Health / Health Connect
   read from Sanctum, including native permissions, canonical minute
-  deduplication, staged sleep, daily vitals, honest denial/error states, and
-  integration diagnostics.
+  deduplication, replay-safe day-summary refresh, staged sleep, daily vitals,
+  honest denial/error states, and integration diagnostics.
 - The live journal-classification provider and explicit UI trigger. The strict
   food/lifestyle response contract, current-consent gate, atomic application,
   replay protection, clarification state, and unconfirmed-estimate behavior
   are implemented.
-- Profile providers, auth, Firebase wiring, onboarding.
+- Profile providers, auth and Firebase wiring. Local onboarding is implemented.
 
 Where you need data that does not exist yet, read the table it will land in and
 render fixtures. The schema is stable.

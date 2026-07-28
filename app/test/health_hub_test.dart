@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/health/health_hub.dart';
@@ -44,10 +45,6 @@ void main() {
     await service.sync(
       start: DateTime.utc(2026, 7, 28, 10),
       end: DateTime.utc(2026, 7, 28, 11),
-    );
-    await database.recomputeMinuteWinners(
-      DateTime.utc(2026, 7, 28, 10),
-      DateTime.utc(2026, 7, 28, 11),
     );
     final rows = await database.loadMinuteBuckets(
       DateTime.utc(2026, 7, 28, 10),
@@ -107,6 +104,103 @@ void main() {
     expect(row.hrvMs, 42);
     expect(row.respiratoryRate, isNull);
   });
+
+  test('refreshes a replay-safe daily summary when body context is complete',
+      () async {
+    await _saveProfile(database);
+    final service = HealthHubSyncService(
+      database: database,
+      gateway: _FakeGateway(samples: [
+        _sample(HubMetric.activeEnergy, 12),
+        _sample(HubMetric.steps, 30),
+      ]),
+    );
+
+    final first = await service.sync(
+      start: DateTime.utc(2026, 7, 28),
+      end: DateTime.utc(2026, 7, 28, 12),
+    );
+    final second = await service.sync(
+      start: DateTime.utc(2026, 7, 28),
+      end: DateTime.utc(2026, 7, 28, 12),
+    );
+    final summary = await database.loadDaySummary('2026-07-28');
+
+    expect(first.summariesUpdated, 1);
+    expect(second.summariesUpdated, 1);
+    expect(summary?.activeKcal, 12);
+    expect(summary?.steps, 30);
+    expect(summary?.basalKcal, greaterThan(0));
+  });
+
+  test('refreshes each imported day without treating today as a full day',
+      () async {
+    await _saveProfile(database);
+    final service = HealthHubSyncService(
+      database: database,
+      gateway: _FakeGateway(samples: [
+        _sampleAt(
+          HubMetric.activeEnergy,
+          20,
+          DateTime.utc(2026, 7, 27, 10),
+        ),
+        _sampleAt(
+          HubMetric.activeEnergy,
+          10,
+          DateTime.utc(2026, 7, 28, 10),
+        ),
+      ]),
+    );
+
+    final result = await service.sync(
+      start: DateTime.utc(2026, 7, 27),
+      end: DateTime.utc(2026, 7, 28, 12),
+    );
+    final yesterday = await database.loadDaySummary('2026-07-27');
+    final today = await database.loadDaySummary('2026-07-28');
+
+    expect(result.summariesUpdated, 2);
+    expect(yesterday?.activeKcal, 20);
+    expect(today?.activeKcal, 10);
+    expect(yesterday!.basalKcal, greaterThan(today!.basalKcal));
+  });
+
+  test('does not fabricate basal totals when legacy height is missing',
+      () async {
+    await _saveProfile(database, includeHeight: false);
+    final service = HealthHubSyncService(
+      database: database,
+      gateway: _FakeGateway(samples: [_sample(HubMetric.activeEnergy, 12)]),
+    );
+
+    final result = await service.sync(
+      start: DateTime.utc(2026, 7, 28),
+      end: DateTime.utc(2026, 7, 28, 12),
+    );
+
+    expect(result.summariesUpdated, 0);
+    expect(await database.loadDaySummary('2026-07-28'), isNull);
+  });
+
+  test('marks a lower replayed activity total as recalibrated', () async {
+    await _saveProfile(database);
+    Future<void> sync(double activeEnergy) => HealthHubSyncService(
+          database: database,
+          gateway: _FakeGateway(
+            samples: [_sample(HubMetric.activeEnergy, activeEnergy)],
+          ),
+        ).sync(
+          start: DateTime.utc(2026, 7, 28),
+          end: DateTime.utc(2026, 7, 28, 12),
+        );
+
+    await sync(30);
+    await sync(10);
+    final summary = await database.loadDaySummary('2026-07-28');
+
+    expect(summary?.activeKcal, 10);
+    expect(summary?.recalibrated, isTrue);
+  });
 }
 
 HubSample _sample(HubMetric metric, double value) => HubSample(
@@ -116,6 +210,30 @@ HubSample _sample(HubMetric metric, double value) => HubSample(
       end: DateTime.utc(2026, 7, 28, 10, 1),
       value: value,
       source: 'Pixel Watch',
+    );
+
+HubSample _sampleAt(HubMetric metric, double value, DateTime start) =>
+    HubSample(
+      id: '${metric.name}-$value-${start.toIso8601String()}',
+      metric: metric,
+      start: start,
+      end: start.add(const Duration(minutes: 1)),
+      value: value,
+      source: 'Pixel Watch',
+    );
+
+Future<void> _saveProfile(
+  AppDatabase database, {
+  bool includeHeight = true,
+}) =>
+    database.saveProfile(
+      ProfilesCompanion.insert(
+        dob: DateTime(1990, 1, 1),
+        sex: 'female',
+        weightKg: 65,
+        heightCm: Value(includeHeight ? 168 : null),
+        units: 'metric',
+      ),
     );
 
 class _FakeGateway implements HealthHubGateway {

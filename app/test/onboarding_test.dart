@@ -145,8 +145,11 @@ void main() {
     final dob = find.widgetWithText(TextField, 'Birth date');
     final weight =
         find.widgetWithText(TextField, 'Current weight in kilograms');
+    final height =
+        find.widgetWithText(TextField, 'Current height in centimetres');
     await tester.enterText(dob, '2015-01-01');
     await tester.enterText(weight, '62');
+    await tester.enterText(height, '168');
     await tester.ensureVisible(find.text('CONTINUE'));
     await tester.tap(find.text('CONTINUE'));
     await tester.pump();
@@ -170,6 +173,7 @@ void main() {
     final saved = await emptyDb.loadProfile();
     expect(saved?.dob, DateTime(1995, 6, 14));
     expect(saved?.weightKg, 62);
+    expect(saved?.heightCm, 168);
     expect(saved?.sex, 'female');
     expect(saved?.aiConsentAt, isNull);
     expect(saved?.cloudSyncConsentAt, isNull);

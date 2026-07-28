@@ -30,6 +30,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _birthPlace = TextEditingController();
   final _dob = TextEditingController();
   final _weight = TextEditingController();
+  final _height = TextEditingController();
   var _step = 0;
   var _sex = 'other';
   var _ai = false;
@@ -50,6 +51,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           '${profile.dob.month.toString().padLeft(2, '0')}-'
           '${profile.dob.day.toString().padLeft(2, '0')}';
       _weight.text = profile.weightKg.toStringAsFixed(1);
+      if (profile.heightCm != null) {
+        _height.text = profile.heightCm!.toStringAsFixed(1);
+      }
     }
   }
 
@@ -60,6 +64,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _birthPlace.dispose();
     _dob.dispose();
     _weight.dispose();
+    _height.dispose();
     super.dispose();
   }
 
@@ -68,12 +73,14 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     final now = DateTime.now().toUtc();
     final dob = DateTime.parse(_dob.text.trim());
     final weight = double.parse(_weight.text.trim());
+    final height = double.parse(_height.text.trim());
     final existing = widget.profile;
     final profile = existing == null
         ? ProfilesCompanion.insert(
             dob: dob,
             sex: _sex,
             weightKg: weight,
+            heightCm: Value(height),
             units: 'metric',
             firstName:
                 Value(_name.text.trim().isEmpty ? null : _name.text.trim()),
@@ -88,6 +95,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               dob: Value(dob),
               sex: Value(_sex),
               weightKg: Value(weight),
+              heightCm: Value(height),
               firstName:
                   Value(_name.text.trim().isEmpty ? null : _name.text.trim()),
               birthPlace: Value(_birthPlace.text.trim().isEmpty
@@ -114,6 +122,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   bool _validateBirth() {
     final dob = DateTime.tryParse(_dob.text.trim());
     final weight = double.tryParse(_weight.text.trim());
+    final height = double.tryParse(_height.text.trim());
     String? error;
     if (dob == null || dob.isAfter(DateTime.now())) {
       error = 'Enter a valid birth date as YYYY-MM-DD.';
@@ -130,6 +139,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     }
     if (error == null && (weight == null || weight < 20 || weight > 500)) {
       error = 'Enter your current weight between 20 and 500 kg.';
+    }
+    if (error == null && (height == null || height < 100 || height > 250)) {
+      error = 'Enter your current height between 100 and 250 cm.';
     }
     setState(() => _birthError = error);
     return error == null;
@@ -174,6 +186,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                               key: const ValueKey(1),
                               dob: _dob,
                               weight: _weight,
+                              height: _height,
                               sex: _sex,
                               onSex: (value) => setState(() => _sex = value),
                               place: _birthPlace,
@@ -293,6 +306,7 @@ class _BirthStep extends StatelessWidget {
     super.key,
     required this.dob,
     required this.weight,
+    required this.height,
     required this.sex,
     required this.onSex,
     required this.place,
@@ -300,6 +314,7 @@ class _BirthStep extends StatelessWidget {
   });
   final TextEditingController dob;
   final TextEditingController weight;
+  final TextEditingController height;
   final String sex;
   final ValueChanged<String> onSex;
   final TextEditingController place;
@@ -322,6 +337,13 @@ class _BirthStep extends StatelessWidget {
             controller: weight,
             label: 'Current weight in kilograms',
             hint: '70',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          ),
+          const SizedBox(height: EterSpace.s24),
+          _LineField(
+            controller: height,
+            label: 'Current height in centimetres',
+            hint: '170',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           const SizedBox(height: EterSpace.s24),
