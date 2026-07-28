@@ -21,7 +21,10 @@ class JournalClassifier {
   final JournalClassificationParser parser;
   final String model;
 
-  Future<JournalClassification> classify(int journalEntryId) async {
+  Future<JournalClassification> classify(
+    int journalEntryId, {
+    String? clarification,
+  }) async {
     final profile = await database.loadProfile();
     if (profile?.aiConsentAt == null) {
       throw const JournalClassificationConsentException(
@@ -42,6 +45,8 @@ class JournalClassifier {
       text: entry.entryText,
       source: entry.source,
       responseSchema: journalClassificationSchema,
+      clarification:
+          clarification?.trim().isEmpty == true ? null : clarification?.trim(),
     ));
     final result = parser.parse(raw);
     await database.applyJournalClassification(

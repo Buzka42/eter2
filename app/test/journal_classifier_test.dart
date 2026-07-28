@@ -116,6 +116,25 @@ void main() {
     );
   });
 
+  test('passes a clarification separately from the source prose', () async {
+    await database.updateProfileConsents(aiAllowed: true);
+    final id = await entry();
+    final provider = _FakeProvider(_classifiedResponse());
+    final classifier = JournalClassifier(
+      database: database,
+      provider: provider,
+    );
+
+    await classifier.classify(
+      id,
+      clarification: 'It was a large sandwich.',
+    );
+
+    expect(provider.lastRequest?.text,
+        'Lunch was a chicken sandwich. Meditated for 10 minutes.');
+    expect(provider.lastRequest?.clarification, 'It was a large sandwich.');
+  });
+
   test('invalid estimates write no partial state', () async {
     await database.updateProfileConsents(aiAllowed: true);
     final id = await entry();
@@ -159,10 +178,12 @@ class _FakeProvider implements JournalClassificationProvider {
   _FakeProvider(this.response);
   final String response;
   int calls = 0;
+  JournalClassificationRequest? lastRequest;
 
   @override
   Future<String> classify(JournalClassificationRequest request) async {
     calls += 1;
+    lastRequest = request;
     return response;
   }
 }

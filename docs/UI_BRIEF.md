@@ -342,10 +342,10 @@ names.
   read from Sanctum, including native permissions, canonical minute
   deduplication, replay-safe day-summary refresh, staged sleep, daily vitals,
   honest denial/error states, and integration diagnostics.
-- The live journal-classification provider and explicit UI trigger. The strict
-  food/lifestyle response contract, current-consent gate, atomic application,
-  replay protection, clarification state, and unconfirmed-estimate behavior
-  are implemented.
+- The live journal-classification provider. The explicit Journal trigger,
+  strict food/lifestyle response contract, current-consent gate, atomic
+  application, replay protection, one-question clarification path,
+  unconfirmed-estimate behavior and user-visible undo are implemented.
 - Profile providers, auth and Firebase wiring. Local onboarding is implemented.
 
 Where you need data that does not exist yet, read the table it will land in and

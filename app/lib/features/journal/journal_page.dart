@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
@@ -11,6 +12,8 @@ import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
+import '../../core/journal/classification_contract.dart';
+import '../../core/journal/classifier.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -276,44 +279,13 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           for (final entry in entries)
-                            Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: EterSpace.s24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _marginalTime.format(entry.createdAt) +
-                                        (entry.excludedFromAi
-                                            ? '  ·  Kept from Aether'
-                                            : ''),
-                                    style: text.labelSmall,
-                                  ),
-                                  const SizedBox(height: EterSpace.s4),
-                                  EterArrival.single(
-                                    entry.entryText,
-                                    key: ValueKey('entry-${entry.id}'),
-                                    style: proseStyle,
-                                    playArrival:
-                                        _arrivingIds.contains(entry.id),
-                                  ),
-                                  _GlyphAction(
-                                    label: entry.excludedFromAi
-                                        ? 'Allow Aether'
-                                        : 'Keep local',
-                                    semanticLabel: entry.excludedFromAi
-                                        ? 'Allow this journal entry in '
-                                            'Aether guidance'
-                                        : 'Keep this journal entry out of '
-                                            'Aether guidance',
-                                    color: ink.labelMuted,
-                                    onTap: () => db.setJournalExcludedFromAi(
-                                      entry.id,
-                                      !entry.excludedFromAi,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            _JournalPassage(
+                              key: ValueKey('passage-${entry.id}'),
+                              entry: entry,
+                              db: db,
+                              time: _marginalTime.format(entry.createdAt),
+                              proseStyle: proseStyle,
+                              playArrival: _arrivingIds.contains(entry.id),
                             ),
                         ],
                       );
@@ -324,6 +296,196 @@ class _JournalPageState extends ConsumerState<JournalPage> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JournalPassage extends ConsumerStatefulWidget {
+  const _JournalPassage({
+    super.key,
+    required this.entry,
+    required this.db,
+    required this.time,
+    required this.proseStyle,
+    required this.playArrival,
+  });
+
+  final JournalEntryRow entry;
+  final AppDatabase db;
+  final String time;
+  final TextStyle? proseStyle;
+  final bool playArrival;
+
+  @override
+  ConsumerState<_JournalPassage> createState() => _JournalPassageState();
+}
+
+class _JournalPassageState extends ConsumerState<_JournalPassage> {
+  final _clarification = TextEditingController();
+  bool _busy = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _clarification.dispose();
+    super.dispose();
+  }
+
+  String? get _question {
+    final raw = widget.entry.extractionJson;
+    if (widget.entry.status != 'needsDetail' || raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      final question = decoded is Map<String, dynamic>
+          ? decoded['clarifyingQuestion']
+          : null;
+      return question is String && question.trim().isNotEmpty
+          ? question.trim()
+          : null;
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Future<void> _interpret() async {
+    if (_busy) return;
+    final provider = ref.read(journalClassificationProvider);
+    if (provider == null) {
+      setState(() {
+        _message = 'Journal interpretation is not connected on this build yet.';
+      });
+      return;
+    }
+    final answer = _question == null ? null : _clarification.text.trim();
+    if (_question != null && (answer == null || answer.isEmpty)) {
+      setState(() => _message = 'Add a little more detail first.');
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final result = await JournalClassifier(
+        database: widget.db,
+        provider: provider,
+      ).classify(widget.entry.id, clarification: answer);
+      if (!mounted) return;
+      _clarification.clear();
+      setState(() {
+        _busy = false;
+        _message = result.status == 'needsDetail'
+            ? 'Aether needs one detail before applying anything.'
+            : result.food.isEmpty
+                ? 'The entry was interpreted.'
+                : 'Food estimates are waiting for review in Body.';
+      });
+    } on JournalClassificationConsentException {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message =
+            'Enable AI guidance in the Sanctum before sending this entry.';
+      });
+    } on JournalClassificationException {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = 'This entry could not be interpreted safely. Try again.';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = 'Interpretation is unavailable right now. Nothing changed.';
+      });
+    }
+  }
+
+  Future<void> _undo() async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    await widget.db.revertJournalEntryRows(widget.entry.id);
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _message = 'The interpretation and its derived records were removed.';
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final interpreted = widget.entry.status == 'classified';
+    final question = _question;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EterSpace.s24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.time +
+                (widget.entry.excludedFromAi ? '  ·  Kept from Aether' : ''),
+            style: text.labelSmall,
+          ),
+          const SizedBox(height: EterSpace.s4),
+          EterArrival.single(
+            widget.entry.entryText,
+            key: ValueKey('entry-${widget.entry.id}'),
+            style: widget.proseStyle,
+            playArrival: widget.playArrival,
+          ),
+          Wrap(
+            spacing: EterSpace.s8,
+            children: [
+              _GlyphAction(
+                label:
+                    widget.entry.excludedFromAi ? 'Allow Aether' : 'Keep local',
+                semanticLabel: widget.entry.excludedFromAi
+                    ? 'Allow this journal entry in Aether guidance'
+                    : 'Keep this journal entry out of Aether guidance',
+                color: ink.labelMuted,
+                onTap: () => widget.db.setJournalExcludedFromAi(
+                  widget.entry.id,
+                  !widget.entry.excludedFromAi,
+                ),
+              ),
+              _GlyphAction(
+                label: interpreted ? 'Undo interpretation' : 'Interpret',
+                semanticLabel: interpreted
+                    ? 'Remove interpretation and derived records'
+                    : 'Interpret food and wellbeing details in this entry',
+                color: ink.labelMuted,
+                onTap: interpreted ? _undo : _interpret,
+              ),
+            ],
+          ),
+          if (question != null) ...[
+            Text(question, style: text.bodyMedium),
+            const SizedBox(height: EterSpace.s4),
+            TextField(
+              key: ValueKey('journal-clarification-${widget.entry.id}'),
+              controller: _clarification,
+              enabled: !_busy,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _interpret(),
+              decoration:
+                  const InputDecoration(labelText: 'Add the missing detail'),
+            ),
+          ],
+          if (_message != null) ...[
+            const SizedBox(height: EterSpace.s4),
+            Semantics(
+              liveRegion: true,
+              child: Text(_message!, style: text.bodySmall),
+            ),
+          ],
         ],
       ),
     );

@@ -216,11 +216,13 @@ class JournalClassificationRequest {
     required this.text,
     required this.source,
     required this.responseSchema,
+    this.clarification,
   });
 
   final String text;
   final String source;
   final Map<String, Object> responseSchema;
+  final String? clarification;
 }
 
 const journalClassificationSchema = <String, Object>{

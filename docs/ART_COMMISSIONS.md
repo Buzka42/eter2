@@ -145,3 +145,9 @@ authored asset. It is a plain factual passage using the existing typographic
 actions and hairline fields; decoration would compete with the values being
 entered. Because no asset was generated, the two-option review gate is not
 triggered.
+
+The Journal interpretation, clarification and undo passage added on 28 July
+2026 also remains code-native. It extends the ruled page with marginal
+typographic actions and one ordinary answer line; adding an AI badge, sparkle
+or animated oracle would overstate model authority and violate the journal
+direction. No generated asset exists, so no two-option review is required.

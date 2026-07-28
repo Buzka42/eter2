@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/aether/guidance_mode.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
+import 'core/journal/classification_contract.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
 import 'core/theme.dart';
@@ -38,6 +39,12 @@ Future<void> main() async {
 final databaseProvider = Provider<AppDatabase>(
   (ref) => throw StateError('databaseProvider must be overridden'),
 );
+
+/// Optional live interpretation transport. Production leaves this absent until
+/// a reviewed provider and deployment configuration are supplied; the Journal
+/// still exposes the explicit workflow and explains that state honestly.
+final journalClassificationProvider =
+    Provider<JournalClassificationProvider?>((ref) => null);
 
 class EterApp extends ConsumerStatefulWidget {
   const EterApp({super.key});

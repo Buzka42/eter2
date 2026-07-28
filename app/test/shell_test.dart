@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/instruments.dart';
+import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/controls.dart';
 import 'package:eter/features/dashboard/dashboard_page.dart';
@@ -30,14 +33,17 @@ void main() {
     WidgetTester tester, {
     EterRegister register = EterRegister.day,
     bool reduceMotion = false,
+    JournalClassificationProvider? journalProvider,
   }) async {
     eterSurfaceSize(tester, 390, 844);
+    final app = eterPrototypeApp(
+      db: db,
+      register: register,
+      reduceMotion: reduceMotion,
+      journalProvider: journalProvider,
+    );
     await tester.pumpWidget(
-      eterPrototypeApp(
-        db: db,
-        register: register,
-        reduceMotion: reduceMotion,
-      ),
+      app,
     );
     // Let the streams emit, then settle the arrival and the balance.
     await tester.pump();
@@ -216,6 +222,88 @@ void main() {
     expect(excluded.single.excludedFromAi, isTrue);
     expect(find.textContaining('Kept from Aether'), findsOneWidget);
     expect(find.text('ALLOW AETHER'), findsOneWidget);
+    await closeShell(tester);
+  });
+
+  testWidgets(
+      'journal interpretation asks for detail, applies estimates, and undoes',
+      (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    await db.addJournalEntry(
+      JournalEntriesCompanion.insert(
+        createdAt: eterPinnedNow,
+        entryText: 'I had soup for lunch.',
+      ),
+    );
+    final provider = _JournalSequenceProvider();
+    await pumpShell(tester, journalProvider: provider);
+    await tester.tap(find.text('JOURNAL'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final interpret = find.text('INTERPRET');
+    await tester.ensureVisible(interpret);
+    await tester.tap(interpret);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    expect(find.text('How large was the bowl?'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('journal-clarification-1')),
+      'A medium bowl.',
+    );
+    await tester.tap(find.text('INTERPRET'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    expect(find.textContaining('waiting for review in Body'), findsOneWidget);
+    expect(provider.clarification, 'A medium bowl.');
+    expect((await db.loadJournalEntry(1))?.status, 'classified');
+    final undo = find.text('UNDO INTERPRETATION');
+    tester
+        .widget<GestureDetector>(
+          find.ancestor(of: undo, matching: find.byType(GestureDetector)).first,
+        )
+        .onTap!
+        .call();
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+    expect((await db.loadJournalEntry(1))?.status, 'pending');
+    await closeShell(tester);
+  }, timeout: const Timeout(Duration(seconds: 20)));
+
+  testWidgets('journal provider failure changes no source or derived state',
+      (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    await db.addJournalEntry(
+      JournalEntriesCompanion.insert(
+        createdAt: eterPinnedNow,
+        entryText: 'Lunch was soup.',
+      ),
+    );
+    await pumpShell(tester, journalProvider: _FailingJournalProvider());
+    await tester.tap(find.text('JOURNAL'));
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final interpret = find.text('INTERPRET');
+    await tester.ensureVisible(interpret);
+    await tester.tap(interpret);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 20)),
+    );
+    await tester.pump();
+
+    expect(
+      find.text('Interpretation is unavailable right now. Nothing changed.'),
+      findsOneWidget,
+    );
+    final entry = await db.loadJournalEntry(1);
+    expect(entry?.status, 'pending');
+    expect(entry?.entryText, 'Lunch was soup.');
     await closeShell(tester);
   });
 
@@ -641,4 +729,42 @@ void main() {
     semanticsHandle.dispose();
     await closeShell(tester);
   });
+}
+
+class _JournalSequenceProvider implements JournalClassificationProvider {
+  int calls = 0;
+  String? clarification;
+
+  @override
+  Future<String> classify(JournalClassificationRequest request) async {
+    calls += 1;
+    clarification = request.clarification;
+    if (calls == 1) {
+      return jsonEncode({
+        'status': 'needsDetail',
+        'food': [],
+        'lifestyle': [],
+        'clarifyingQuestion': 'How large was the bowl?',
+      });
+    }
+    return jsonEncode({
+      'status': 'classified',
+      'food': [
+        {
+          'meal': 'Soup',
+          'kcal': 280,
+          'confidence': 0.6,
+          'assumptions': ['One medium bowl'],
+        },
+      ],
+      'lifestyle': [],
+      'clarifyingQuestion': null,
+    });
+  }
+}
+
+class _FailingJournalProvider implements JournalClassificationProvider {
+  @override
+  Future<String> classify(JournalClassificationRequest request) =>
+      Future.error(StateError('offline'));
 }

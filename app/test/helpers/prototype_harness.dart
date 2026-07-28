@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:eter/core/clock.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/register.dart';
+import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/theme.dart';
 import 'package:eter/features/prototype/fixtures.dart';
 import 'package:eter/features/shell/eter_shell.dart';
@@ -65,12 +66,15 @@ Widget eterPrototypeApp({
   EterRegister register = EterRegister.day,
   bool reduceMotion = false,
   double textScale = 1.0,
+  JournalClassificationProvider? journalProvider,
 }) {
   final pinned = now ?? eterPinnedNow;
   return ProviderScope(
     overrides: [
       databaseProvider.overrideWithValue(db),
       nowProvider.overrideWithValue(() => pinned),
+      if (journalProvider != null)
+        journalClassificationProvider.overrideWithValue(journalProvider),
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,
