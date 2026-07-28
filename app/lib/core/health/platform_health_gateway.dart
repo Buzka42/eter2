@@ -21,6 +21,11 @@ class PlatformHealthGateway implements HealthHubGateway {
     HealthDataType.SLEEP_DEEP,
     HealthDataType.SLEEP_REM,
     HealthDataType.SLEEP_UNKNOWN,
+    // The session itself, not only its stages. A source that writes a sleep
+    // session without a stage breakdown -- which some watches and some sync
+    // paths do -- otherwise reaches Eter as nothing at all, and the night
+    // looks unslept rather than unstaged.
+    HealthDataType.SLEEP_SESSION,
   ];
 
   @override
@@ -74,7 +79,12 @@ class PlatformHealthGateway implements HealthHubGateway {
       HealthDataType.SLEEP_LIGHT => HubMetric.sleepLight,
       HealthDataType.SLEEP_DEEP => HubMetric.sleepDeep,
       HealthDataType.SLEEP_REM => HubMetric.sleepRem,
-      HealthDataType.SLEEP_UNKNOWN => HubMetric.sleepUnknown,
+      HealthDataType.SLEEP_UNKNOWN ||
+      // A session with no stages is time asleep of an unknown kind, which is
+      // exactly what `sleepUnknown` means. Stages, when they exist, arrive as
+      // their own samples and are preferred.
+      HealthDataType.SLEEP_SESSION =>
+        HubMetric.sleepUnknown,
       _ => null,
     };
     if (metric == null) return null;

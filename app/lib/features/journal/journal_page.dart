@@ -108,13 +108,21 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       return;
     }
     try {
+      // Logged because the on-screen sentence has to stay short, and the
+      // reason dictation failed is exactly what a short sentence loses.
       final available = await _speech.initialize(
+        debugLogging: true,
         onStatus: (status) {
+          debugPrint('Eter dictation: status $status');
           if ((status == 'done' || status == 'notListening') && mounted) {
             setState(() => _listening = false);
           }
         },
         onError: (error) {
+          debugPrint(
+            'Eter dictation: error ${error.errorMsg} '
+            '(permanent: ${error.permanent})',
+          );
           if (!mounted) return;
           setState(() {
             _listening = false;
@@ -135,6 +143,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           });
         },
       );
+      debugPrint('Eter dictation: initialize returned $available');
       if (!available) {
         if (mounted) {
           setState(() => _dictationNote =
@@ -143,7 +152,9 @@ class _JournalPageState extends ConsumerState<JournalPage> {
         }
         return;
       }
-      if (!await _speech.hasPermission) {
+      final permitted = await _speech.hasPermission;
+      debugPrint('Eter dictation: hasPermission $permitted');
+      if (!permitted) {
         if (mounted) {
           setState(() => _dictationNote =
               'Eter needs microphone access to take dictation. You can grant '
@@ -178,7 +189,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           if (result.finalResult) _dictationBase = _composer.text;
         },
       );
-    } catch (_) {
+    } catch (error) {
+      debugPrint('Eter dictation: threw $error');
       if (mounted) {
         setState(() {
           _listening = false;

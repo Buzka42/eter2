@@ -596,3 +596,18 @@ class EterRule extends StatelessWidget {
 
 /// The line glyph for an activity. Outline weights only — the filled Material
 /// variants sit heavier than every hairline around them.
+
+/// The Body's sentence voice.
+///
+/// Serif, at reading size — the same face the conclusion and every absence
+/// statement use. It exists because those sentences were set three different
+/// ways in one column, and a shared definition is the only thing that keeps
+/// them together as more are written.
+abstract final class EterProse {
+  static TextStyle? of(BuildContext context) =>
+      Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontSize: 18,
+            height: 27 / 18,
+            fontWeight: FontWeight.w400,
+          );
+}

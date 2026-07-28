@@ -262,11 +262,7 @@ class _ExpandedBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
-    final proseStyle = text.headlineSmall?.copyWith(
-      fontSize: 18,
-      height: 27 / 18,
-      fontWeight: FontWeight.w400,
-    );
+    final proseStyle = EterProse.of(context);
     final showBalance = intake != null && burn != null && burn! > 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +430,11 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
             if (rows.isEmpty) {
               return Text(
                 'Sleep stages were not provided for last night.',
-                style: text.bodyMedium,
+                // Absence is the section speaking, not a label: it takes the
+                // same serif prose as the conclusion above it. Two sentences
+                // of the same kind in two different faces reads as a bug,
+                // because it is one.
+                style: EterProse.of(context),
               );
             }
             final minutes = <String, int>{};
@@ -609,7 +609,7 @@ class _SignalSummary extends StatelessWidget {
             vitals!.respiratoryRate == null)) {
       return Text(
         'No wearable recovery signals are available today.',
-        style: text.bodyMedium,
+        style: EterProse.of(context),
       );
     }
     final parts = <String>[
