@@ -120,34 +120,6 @@ class _EterShellHeaderState extends State<EterShellHeader>
                   ),
                 ),
               ),
-              // The mark was always the way in, and nobody found it.
-              //
-              // The brief calls the wordmark "the visible Sanctum threshold",
-              // and the tutorial says so once — but a threshold you have to be
-              // told about is a threshold that failed. This is the composition
-              // grammar's own device: one quiet text affordance announcing
-              // deeper content, in the same letterspaced caps every other
-              // affordance uses, inside the same hit target rather than beside
-              // it. No new control, no corner icon, nothing added to the
-              // silhouette.
-              if (widget.onOpenSanctum != null)
-                Positioned(
-                  bottom: 2,
-                  child: MediaQuery.withNoTextScaling(
-                    child: Text(
-                      'SANCTUM',
-                      style: text.labelSmall?.copyWith(
-                        fontSize: 9,
-                        letterSpacing: 3.2,
-                        fontWeight: FontWeight.w600,
-                        color: (night
-                                ? EterColors.nightText2
-                                : EterColors.ink600)
-                            .withValues(alpha: 0.75),
-                      ),
-                    ),
-                  ),
-                ),
             ],
           ),
         ),

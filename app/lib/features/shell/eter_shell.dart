@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/controls.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
 import '../dashboard/dashboard_page.dart';
@@ -77,6 +78,24 @@ class _EterShellState extends State<EterShell> {
                 child: Column(
                   children: [
                     const SizedBox(height: EterSpace.s8),
+                    // The way into the Sanctum, named and out of the lockup.
+                    //
+                    // The mark alone was undiscoverable; a label under the
+                    // mark read as part of the wordmark, which is worse —
+                    // ornament that looks like a caption. It sits in the
+                    // corner instead, where a way out of a screen belongs,
+                    // and the mark stays tappable for anyone who learned it.
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: EterSpace.gutter),
+                        child: EterAction(
+                          label: 'Sanctum',
+                          emphasis: EterActionEmphasis.quiet,
+                          onPressed: _openSanctum,
+                        ),
+                      ),
+                    ),
                     EterShellHeader(onOpenSanctum: _openSanctum),
                     DestinationSwitch(activeIndex: _active, onSelect: _goTo),
                     Expanded(
