@@ -16,6 +16,7 @@ import '../../core/register.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
+import 'account_section.dart';
 
 /// The Sanctum is the shell's quiet settings layer, not another destination
 /// page. It is deliberately plain in both registers and leaves the Journal and
@@ -173,6 +174,11 @@ class SanctumOverlay extends ConsumerWidget {
                           : (value) => db.updateProfileConsents(
                                 cloudSyncAllowed: value == 'allowed',
                               ),
+                    ),
+                    const SizedBox(height: EterSpace.s32),
+                    AccountSection(
+                      service: ref.watch(accountServiceProvider),
+                      account: ref.watch(accountProvider).value,
                     ),
                     const SizedBox(height: EterSpace.s32),
                     _HealthConnection(database: db),
