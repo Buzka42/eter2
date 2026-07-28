@@ -22,7 +22,7 @@ product decision about size.
 | minSdk / target | 26 (Health Connect floor) / Flutter default |
 | Permissions | Declared and justified: activity recognition and the seven Health Connect read scopes; HealthKit entitlement on iOS. |
 | Privacy policy | `PRIVACY_POLICY.md` — needs a public URL before submission. |
-| Tests | 201 passing, 31 golden captures, `flutter analyze` clean. |
+| Tests | 270 passing, 31 golden captures, `flutter analyze` clean. |
 | Release build | `flutter build appbundle --release` produces an **81.2 MB** bundle, under Play's 150 MB ceiling. |
 
 **The ordered plan from here — including the AI transport, the recording gap it

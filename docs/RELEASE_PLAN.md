@@ -3,7 +3,7 @@
 28 July 2026. Ordered so nothing waits on something below it.
 
 The honest position: **the local product is finished and the intelligence is
-inert.** Every surface works, 209 tests pass, `flutter analyze` is clean, and
+inert.** Every surface works, 270 tests pass, `flutter analyze` is clean, and
 the release bundle is 81 MB against Play's 150 MB ceiling. What is missing is
 not polish. It is the five model calls the product is shaped around, and a
 handful of things that only became gaps *because* the shape changed.
@@ -69,20 +69,19 @@ means losing the ability to update the listing.
    crash signal is flying blind; adding it needs consent and a privacy-policy
    line. Either answer is defensible, silence is not.
 
-## 2. Test coverage that is genuinely missing
+## 2. Test coverage — the four that mattered are done
 
-Fourteen core modules have no test naming them. Most are widgets the goldens
-cover indirectly, but four carry real logic and should be tested before they
-ship:
+Fourteen core modules had no test naming them. Most are widgets the goldens
+cover indirectly; four carried real logic, and those four are now covered:
 
-| Module | Why it matters |
-|---|---|
-| `symbolic/transits.dart` | Aspect detection, applying vs separating, orb weighting. Pure arithmetic, trivially testable, currently unverified. |
-| `journal/day_story.dart` | Consent gating, the fingerprint cache, and the parser's bounds. It writes to the database. |
-| `vessel/positions_composer.dart` | Caching per day and chart, and the safety gate on the note that reaches guidance. |
-| `health/daily_activity_summary.dart` | The resting-burn path, including the new Katch-McArdle branch when body fat is known. |
+| Module | Covered by | What is verified |
+|---|---|---|
+| `symbolic/transits.dart` | `test/transits_test.dart` | Every contact's aspect matches the separation it was found at, orbs stay inside the six/four table, the angles are natal points only, one aspect per pair, applying means tomorrow is tighter, contacts sort by weight, the day is read at noon so the hour of asking does not move it, and the provider context carries no birth inputs or coordinates. |
+| `journal/day_story.dart` | `test/journal_day_story_test.dart` | Both consents are required and neither absence reaches a provider; excluded and empty entries are not part of the day; the fingerprint suppresses recomposition and an edit or a later exclusion forces one; the parser's bounds — story length, unknown digest fields, at most three notable phrases — and that a rejected response writes nothing. |
+| `vessel/positions_composer.dart` | `test/positions_composer_test.dart` | Reading never calls a provider; the cache is keyed on day *and* chart; a corrupt stored passage degrades rather than crashes; no transport and no consent each refuse without writing; the parser's bounds; and the guidance note passes the same safety gate guidance does, including grounded mode's refusal of fated phrasing. |
+| `health/daily_activity_summary.dart` | `test/daily_activity_summary_test.dart` | No profile, no height and no minutes each produce no totals; sums and session counts land on the right local day; a finished day accrues 1440 minutes and today only what has elapsed; the Katch-McArdle branch is taken when body fat is known and differs measurably from Mifflin–St Jeor; age is counted at the end of the window; and a lowered rebuild marks the day recalibrated. |
 
-Also worth adding: a **prompt fixture set** (`AI_FLOW.md` §5.5) — recorded
+Still worth adding: a **prompt fixture set** (`AI_FLOW.md` §5.5) — recorded
 good, malformed, unsafe and empty responses for each of the five calls, so the
 parsers are tested against real model output rather than hand-written JSON.
 
@@ -111,7 +110,9 @@ Not gaps; decisions. Recorded so they are not rediscovered as bugs.
 
 1. Keystore and store accounts (0.3) — slow, external, start now.
 2. Server boundary and one wired contract, guidance first (0.1).
-3. The four missing tests (§2), against the real transport.
+3. ~~The four missing tests (§2)~~ — done against fakes, which is where the
+   consent gates, caches and parser bounds actually live. The prompt fixture
+   set is what still wants a real transport.
 4. The remaining four contracts.
 5. Weight/activity/strength shapes (0.2), which 0.1 unblocks.
 6. Card backs (1.2) and the first-run test (1.3).
