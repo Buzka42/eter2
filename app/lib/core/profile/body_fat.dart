@@ -83,9 +83,11 @@ class _BodyFatFieldState extends State<BodyFatField> {
               child: Row(
                 children: [
                   Expanded(
+                    // Sentence case, like the fields it sits among. In caps it
+                    // read as a section heading for whatever followed it.
                     child: Text(
-                      'BODY FAT — OPTIONAL',
-                      style: text.labelSmall,
+                      'Body fat — optional',
+                      style: text.bodyMedium?.copyWith(color: ink.label),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),

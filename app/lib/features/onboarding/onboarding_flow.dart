@@ -569,19 +569,33 @@ class _TextChoice extends StatelessWidget {
         onTap: onTap,
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 48),
-          // Left-aligned, like every field above it. Centred labels inside a
-          // left-aligned form read as three captions rather than a choice.
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: selected ? ink.label : ink.labelMuted,
-                    decoration: selected
-                        ? TextDecoration.underline
-                        : TextDecoration.none,
-                  ),
-            ),
+          // Left-aligned, like every field above it — centred labels inside a
+          // left-aligned form read as three captions rather than a choice —
+          // and marked the way the Sanctum marks a choice: a travelling rule
+          // at the end of the row. An underline alone was too quiet to read
+          // as selection, and it is also how the app draws a pressed action.
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: selected ? ink.label : ink.labelMuted,
+                        fontWeight:
+                            selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                ),
+              ),
+              const SizedBox(width: EterSpace.s16),
+              AnimatedContainer(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : EterMotion.durStandard,
+                width: selected ? 32 : 12,
+                height: 1,
+                color: selected ? ink.lineStrong : ink.line,
+              ),
+            ],
           ),
         ),
       ),

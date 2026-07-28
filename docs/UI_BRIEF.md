@@ -212,6 +212,10 @@ Two consequences, both binding:
   strength. Until it does, those tables can only be written by the health hub.
   This is tracked in `ROADMAP.md`.
 
+Lifestyle self-reports are not an exception to this and no longer have a
+control: mood, energy and sleep are derived from what the page says, like
+everything else. Asking for them separately asked twice for the same thing.
+
 The one interaction that survives on a reading surface is correcting a
 *derived* food estimate, which is review of something the Journal produced —
 and which the brief requires before an estimate may count toward a total.

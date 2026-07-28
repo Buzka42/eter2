@@ -22,6 +22,33 @@ abstract final class PrototypeFixtures {
     await _seedGuidance(db, now);
     await _seedBody(db, now);
     await _seedVessel(db, now);
+    await _seedJournal(db, now);
+  }
+
+  /// The day's story. Entries are deliberately *not* seeded: several tests
+  /// assert against an empty journal, and a fixture that writes pages breaks
+  /// them. The story stands alone here, which is also a real state — a day
+  /// whose pages were written and later kept from Aether.
+  static Future<void> _seedJournal(AppDatabase db, DateTime now) async {
+    final today = eterIsoDate(now);
+    if (await db.loadDayStory(today) != null) return;
+
+    await db.saveDayStory(
+      JournalDayStoriesCompanion.insert(
+        date: today,
+        generatedAt: now.toUtc(),
+        story: 'You were awake before the alarm, and the cold on the way to '
+            'the station turned out to be welcome. Lunch was soup at the desk. '
+            'The afternoon stayed quieter than the morning promised.',
+        digestJson: const Value(
+          '{"movement":"walk to the station","food":"soup and bread",'
+          '"mood":"steady, quieter than expected","sleep":"woke before the alarm"}',
+        ),
+        entryCount: const Value(2),
+        sourceFingerprint: 'fixture',
+        model: const Value('fixture'),
+      ),
+    );
   }
 
   static Future<void> _seedProfile(AppDatabase db) async {

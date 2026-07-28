@@ -283,14 +283,6 @@ void main() {
   // Every capture surface, opened
   // ---------------------------------------------------------------------
 
-  testWidgets('journal check-in rail', (tester) async {
-    await pumpShell(tester, db: await seededDatabase(tester));
-    await tapText(tester, 'JOURNAL');
-    await tapText(tester, 'MOOD');
-    await shot(tester, 'journal-check-in');
-    await dispose(tester);
-  });
-
   testWidgets('journal, an earlier page', (tester) async {
     await pumpShell(tester, db: await seededDatabase(tester));
     await tapText(tester, 'JOURNAL');

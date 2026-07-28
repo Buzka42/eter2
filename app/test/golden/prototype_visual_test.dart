@@ -140,19 +140,6 @@ void main() {
     });
   }
 
-  testWidgets('journal check-in rail day review capture', (tester) async {
-    await pumpPrototype(tester, register: EterRegister.day);
-    await tester.tap(find.text('JOURNAL'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.tap(find.text('MOOD'));
-    await tester.pump();
-    await expectLater(
-      find.byType(ProviderScope),
-      matchesGoldenFile('journal-check-in-day-390x844.png'),
-    );
-    await disposePrototype(tester);
-  });
-
   testWidgets('body estimate correction day review capture', (tester) async {
     await pumpPrototype(tester, register: EterRegister.day);
     await tester.tap(find.text('LOOK DEEPER'));
