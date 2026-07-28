@@ -96,48 +96,70 @@ class _MicPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // A voice mark, not a microphone.
+    //
+    // The literal capsule-and-arc drawn here before was the one glyph in the
+    // app borrowed from everyone else's toolbar: correct, legible, and from a
+    // different product. This is the same idea in the shell's own language —
+    // the plumb line of the colophon, with the graduated arcs of the header
+    // engraving opening from it. Sound leaving a still point.
     final scale = size.shortestSide / 16;
+    final centreX = size.width / 2;
+    final centreY = size.height / 2;
+
     final stroke = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.1 * scale
       ..strokeCap = StrokeCap.round;
-    final centreX = size.width / 2;
 
-    // The head: a rounded capsule, which is the shape of the object rather
-    // than a control — the no-capsules rule is about buttons, not about what a
-    // microphone looks like.
-    final head = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(centreX, 5.2 * scale),
-        width: 5 * scale,
-        height: 8.4 * scale,
-      ),
-      Radius.circular(2.5 * scale),
-    );
-    if (active) {
-      canvas.drawRRect(head, Paint()..color = color);
-    } else {
-      canvas.drawRRect(head, stroke);
-    }
-
-    // The listening arc and the stem it stands on.
-    canvas.drawArc(
-      Rect.fromCenter(
-        center: Offset(centreX, 8.4 * scale),
-        width: 9.6 * scale,
-        height: 9.6 * scale,
-      ),
-      0.15,
-      3.14159 - 0.3,
-      false,
-      stroke,
-    );
+    // The stem: a plumb line, the same device the colophon uses.
     canvas.drawLine(
-      Offset(centreX, 13.2 * scale),
-      Offset(centreX, 15 * scale),
+      Offset(centreX, centreY - 5.4 * scale),
+      Offset(centreX, centreY + 5.4 * scale),
       stroke,
     );
+
+    // The still point it hangs from. Filled while listening, so the state
+    // reads at a glance without the glyph changing shape.
+    canvas.drawCircle(
+      Offset(centreX, centreY - 5.4 * scale),
+      1.5 * scale,
+      active
+          ? (Paint()..color = color)
+          : (Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.1 * scale),
+    );
+
+    // Three graduated arcs to each side, widening outward. While listening
+    // they are all present; at rest the outermost fades, so the mark is
+    // quieter until it is doing something.
+    const arcCount = 3;
+    for (var i = 1; i <= arcCount; i++) {
+      final radius = (1.9 * i + 1.4) * scale;
+      final alpha = active
+          ? 1.0
+          : switch (i) {
+              1 => 0.9,
+              2 => 0.55,
+              _ => 0.25,
+            };
+      final arc = Paint()
+        ..color = color.withValues(alpha: color.a * alpha)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.0 * scale
+        ..strokeCap = StrokeCap.round;
+      final rect = Rect.fromCenter(
+        center: Offset(centreX, centreY),
+        width: radius * 2,
+        height: radius * 2,
+      );
+      // Opening left and right of the stem, a third of a turn each.
+      canvas.drawArc(rect, -0.55, 1.1, false, arc);
+      canvas.drawArc(rect, 3.14159 - 0.55, 1.1, false, arc);
+    }
   }
 
   @override

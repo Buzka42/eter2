@@ -63,7 +63,7 @@ void main() {
     final service = _FakeAccountService();
     await pump(tester, service: service);
 
-    await tester.tap(find.text('Create one'));
+    await tester.tap(find.text('CREATE ONE'));
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'someone@example.com');
     await tester.enterText(find.byType(TextField).last, 'longenough');
@@ -79,7 +79,7 @@ void main() {
     final service = _FakeAccountService();
     await pump(tester, service: service);
 
-    await tester.tap(find.text('Create one'));
+    await tester.tap(find.text('CREATE ONE'));
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, 'someone@example.com');
     await tester.enterText(find.byType(TextField).last, 'short');
@@ -166,7 +166,7 @@ void main() {
     await pump(tester, service: _FakeAccountService());
 
     await tester.enterText(find.byType(TextField).first, 'someone@example.com');
-    await tester.tap(find.text('Forgotten password'));
+    await tester.tap(find.text('FORGOTTEN PASSWORD'));
     await tester.pump();
 
     // "If that address has an account" — the same answer either way.

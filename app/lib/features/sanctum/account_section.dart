@@ -168,17 +168,15 @@ class _AccountSectionState extends State<AccountSection> {
             onPressed: _busy ? null : _submit,
           ),
           const SizedBox(width: EterSpace.s12),
-          TextButton(
+          EterAction(
+            label: registering ? 'I have an account' : 'Create one',
+            emphasis: EterActionEmphasis.quiet,
             onPressed: _busy
                 ? null
                 : () => setState(() {
                       _mode = registering ? _Mode.signIn : _Mode.register;
                       _message = null;
                     }),
-            child: Text(
-              registering ? 'I have an account' : 'Create one',
-              style: text.bodySmall,
-            ),
           ),
         ],
       ),
@@ -195,7 +193,9 @@ class _AccountSectionState extends State<AccountSection> {
       ),
       if (!registering) ...[
         const SizedBox(height: EterSpace.s8),
-        TextButton(
+        EterAction(
+          label: 'Forgotten password',
+          emphasis: EterActionEmphasis.quiet,
           onPressed: _busy
               ? null
               : () => _run(() async {
@@ -205,7 +205,6 @@ class _AccountSectionState extends State<AccountSection> {
                     return 'If that address has an account, a reset link is '
                         'on its way.';
                   }),
-          child: Text('Forgotten password', style: text.bodySmall),
         ),
       ],
     ];

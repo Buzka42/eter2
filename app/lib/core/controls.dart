@@ -182,18 +182,29 @@ class _EterActionState extends State<EterAction> {
         ],
       );
     } else {
+      // Every enabled action carries its rule at rest.
+      //
+      // It used to appear only on press — 28px for secondary, nothing at all
+      // for quiet — which meant a resting action was letterspaced caps and
+      // no more, indistinguishable from a label. Testing on a phone found
+      // exactly that: buttons that read as text.
+      //
+      // The hierarchy survives in weight rather than in presence. Primary
+      // keeps its two hairlines, secondary gets one spanning the label, quiet
+      // gets the same rule at half strength. Press and focus still answer.
       rules = Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Center(
-            child: AnimatedContainer(
-              duration: EterMotion.durMicro,
-              curve: EterMotion.easeAir,
-              width: quiet ? ((_down || _focused) ? 28 : 0) : (_down ? 44 : 28),
-              height: _focused ? 2 : 1,
-              color: ruleColor,
-            ),
+          AnimatedContainer(
+            duration: EterMotion.durMicro,
+            curve: EterMotion.easeAir,
+            height: _focused ? 2 : 1,
+            color: enabled
+                ? ruleColor.withValues(
+                    alpha: quiet ? (_down ? 0.8 : 0.4) : (_down ? 1 : 0.75),
+                  )
+                : Colors.transparent,
           ),
           if (_focused && !quiet) ...[
             const SizedBox(height: 3),

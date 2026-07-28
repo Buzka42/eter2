@@ -114,19 +114,40 @@ class _JournalPageState extends ConsumerState<JournalPage> {
             setState(() => _listening = false);
           }
         },
-        onError: (_) {
-          if (mounted) {
-            setState(() {
-              _listening = false;
-              _dictationNote = 'Dictation is unavailable right now.';
-            });
-          }
+        onError: (error) {
+          if (!mounted) return;
+          setState(() {
+            _listening = false;
+            // The recogniser's own codes are useless to a person, and the
+            // three that actually happen mean very different things: try
+            // again, grant something, or give up on this phone.
+            _dictationNote = switch (error.errorMsg) {
+              'error_permission' || 'error_audio_error' =>
+                'Eter needs microphone access to take dictation. You can '
+                    'grant it in your phone’s settings.',
+              'error_no_match' || 'error_speech_timeout' =>
+                'Nothing was heard. Tap to try again.',
+              'error_network' || 'error_network_timeout' =>
+                'Dictation needs a connection on this phone. You can still '
+                    'type.',
+              _ => 'Dictation stopped. You can tap to try again, or type.',
+            };
+          });
         },
       );
       if (!available) {
         if (mounted) {
-          setState(() =>
-              _dictationNote = 'Dictation is unavailable on this device.');
+          setState(() => _dictationNote =
+              'This phone has no speech recogniser Eter can use. You can '
+              'still type.');
+        }
+        return;
+      }
+      if (!await _speech.hasPermission) {
+        if (mounted) {
+          setState(() => _dictationNote =
+              'Eter needs microphone access to take dictation. You can grant '
+              'it in your phone’s settings.');
         }
         return;
       }
