@@ -1,0 +1,13 @@
+# Copy to android/key.properties and fill in the upload keystore's real values.
+# That file is gitignored: signing material must never enter the repository.
+#
+# Create the keystore once, and keep the .jks and these passwords in a password
+# manager — losing them means losing the ability to update the listing:
+#
+#   keytool -genkey -v -keystore eter-upload.jks -storetype JKS \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias eter-upload
+#
+storePassword=
+keyPassword=
+keyAlias=eter-upload
+storeFile=C:/path/to/eter-upload.jks
