@@ -53,7 +53,21 @@ class EterAiConfig {
     return const EterAiConfig(endpoint: _endpoint, token: _token);
   }
 
-  bool get isHttps => Uri.tryParse(endpoint)?.scheme == 'https';
+  /// HTTPS, or loopback.
+  ///
+  /// The payload is bounded but it is still a person's records, so it does not
+  /// travel a network in the clear. The carve-out is for an endpoint running
+  /// on the same machine — `tool/dev_endpoint.dart` during development, and
+  /// `10.0.2.2`, which is how the Android emulator addresses its own host.
+  /// Nothing leaves the device on those routes.
+  bool get isTransportSecure {
+    final url = Uri.tryParse(endpoint);
+    if (url == null) return false;
+    if (url.scheme == 'https') return true;
+    if (url.scheme != 'http') return false;
+    return const {'localhost', '127.0.0.1', '::1', '10.0.2.2'}
+        .contains(url.host);
+  }
 }
 
 class EterTransportException implements Exception {
@@ -151,9 +165,10 @@ class EterAiTransport {
     if (url == null || !url.isAbsolute) {
       throw const EterTransportException('The endpoint is not a valid URL');
     }
-    if (!config.isHttps) {
-      // The payload is bounded but it is still a person's records.
-      throw const EterTransportException('The endpoint must be HTTPS');
+    if (!config.isTransportSecure) {
+      throw const EterTransportException(
+        'The endpoint must be HTTPS, or on this device',
+      );
     }
 
     final body = jsonEncode({
@@ -252,7 +267,10 @@ class TransportJournalClassificationProvider
       call: EterAiCall.journalInterpretation,
       system: prompt.system,
       user: prompt.user,
-      responseSchema: request.responseSchema,
+      // The prompt's schema, which names `meal`, `kcal` and `proteinG` — the
+      // fields the parser requires. Left to itself a model reaches for
+      // `name`, `energy_kcal` and `protein_g`, and the estimate is refused.
+      responseSchema: prompt.responseSchema,
     );
   }
 }

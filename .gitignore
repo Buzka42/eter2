@@ -27,3 +27,6 @@
 # OS noise
 .DS_Store
 Thumbs.db
+
+# The local dev endpoint holds the model key; it must never enter history.
+/app/tool/dev_endpoint.secret

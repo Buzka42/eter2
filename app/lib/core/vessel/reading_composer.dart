@@ -141,7 +141,7 @@ class VesselReadingComposer {
       VesselReadingProviderRequest(
         system: prompt.system,
         context: prompt.user.cast<String, Object>(),
-        responseSchema: vesselReadingResponseSchema,
+        responseSchema: prompt.responseSchema.cast<String, Object>(),
       ),
     );
     final passages = _parse(

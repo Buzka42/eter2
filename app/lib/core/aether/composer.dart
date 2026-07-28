@@ -49,7 +49,11 @@ class AetherComposer {
     final raw = await provider.compose(AetherProviderRequest(
       system: prompt.system,
       context: prompt.user.cast<String, Object>(),
-      responseSchema: aetherResponseSchema,
+      // The prompt's own JSON Schema, not the loose summary in
+      // `aetherResponseSchema`: it names the exact fields the parser below
+      // requires, and a provider that can constrain decoding to it will stop
+      // inventing plausible neighbours like `healthAction`.
+      responseSchema: prompt.responseSchema.cast<String, Object>(),
     ));
     final guidance = parser.parse(raw, mode: request.mode);
     final instant = now ?? DateTime.now();

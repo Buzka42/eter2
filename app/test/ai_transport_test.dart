@@ -33,7 +33,24 @@ void main() {
       expect(EterAiConfig.fromEnvironment(), isNull);
     });
 
-    test('plain HTTP is refused before anything is sent', () async {
+    test('loopback is allowed, because nothing leaves the device', () async {
+      for (final host in ['127.0.0.1:8787', 'localhost:8787', '10.0.2.2:8787']) {
+        final record = recorder();
+        await transportWith(
+          record,
+          configuration: EterAiConfig(endpoint: 'http://$host', token: 't'),
+        ).send(
+          call: EterAiCall.guidance,
+          system: 's',
+          user: const {},
+          responseSchema: const {},
+        );
+        expect(record.calls, 1, reason: host);
+      }
+    });
+
+    test('plain HTTP to anywhere else is refused before anything is sent',
+        () async {
       final record = recorder();
       final transport = transportWith(
         record,

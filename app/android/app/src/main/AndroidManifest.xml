@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The one network call the app makes: the bounded guidance payload, to
+         the owner-controlled endpoint the build was compiled with. A build
+         without ETER_AI_ENDPOINT never opens a socket, but the permission is
+         declared unconditionally because it is the same binary. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
     <uses-permission android:name="android.permission.health.READ_STEPS"/>
