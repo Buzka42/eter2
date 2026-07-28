@@ -46,6 +46,62 @@ class AetherJournalContext {
   final bool excludedFromAi;
 }
 
+/// The chart, as guidance is allowed to see it: derived placements and a Life
+/// Path number, never the inputs they were computed from.
+class AetherSymbolicContext {
+  const AetherSymbolicContext({
+    required this.sunSign,
+    required this.moonSign,
+    this.ascendantSign,
+    required this.lifePath,
+    this.personalYear,
+    this.todaysCard,
+    this.positionsNote,
+  });
+
+  final String sunSign;
+  final String moonSign;
+
+  /// Absent when birth time or place is unknown — never guessed at noon for
+  /// the purposes of guidance, because a provisional ascendant that reads as
+  /// certain is worse than none.
+  final String? ascendantSign;
+  final int lifePath;
+  final int? personalYear;
+  final String? todaysCard;
+
+  /// The one sentence Positions is allowed to hand to guidance. It is prose
+  /// the model wrote earlier today about the day's transits, already validated.
+  final String? positionsNote;
+
+  Map<String, Object> toJson() => {
+        'sunSign': sunSign,
+        'moonSign': moonSign,
+        if (ascendantSign != null) 'ascendantSign': ascendantSign!,
+        'lifePath': lifePath,
+        if (personalYear != null) 'personalYear': personalYear!,
+        if (todaysCard != null) 'todaysCard': todaysCard!,
+        if (positionsNote != null) 'positionsNote': positionsNote!,
+      };
+}
+
+/// One day of the journal, as the day's own story pass compressed it.
+///
+/// Guidance sends these instead of raw prose. A digest is bounded by
+/// construction, so a person who writes at length costs no more than one who
+/// writes a line.
+class AetherJournalDigest {
+  const AetherJournalDigest({required this.localDate, required this.points});
+
+  final String localDate;
+  final Map<String, Object?> points;
+
+  Map<String, Object> toJson() => {
+        'localDate': localDate,
+        'points': points,
+      };
+}
+
 class AetherRequest {
   const AetherRequest({
     required this.schemaVersion,
@@ -54,6 +110,9 @@ class AetherRequest {
     required this.health,
     required this.journal,
     required this.contextFingerprint,
+    this.symbolic,
+    this.digests = const [],
+    this.bodyFatPercent,
   });
 
   final int schemaVersion;
@@ -63,11 +122,25 @@ class AetherRequest {
   final List<Map<String, Object>> journal;
   final String contextFingerprint;
 
+  /// Absent when the chart could not be calculated — guidance still composes,
+  /// with the measured half only, and the prompt is told so.
+  final AetherSymbolicContext? symbolic;
+
+  /// Bounded per-day journal digests, newest last.
+  final List<AetherJournalDigest> digests;
+
+  /// Optional, 5–40. Present only when the person supplied it.
+  final double? bodyFatPercent;
+
   Map<String, Object> toJson() => {
         'schemaVersion': schemaVersion,
         'mode': mode.name,
         'ageYears': ageYears,
+        if (bodyFatPercent != null) 'bodyFatPercent': bodyFatPercent!,
         'health': health.map((item) => item.toJson()).toList(),
+        if (symbolic != null) 'symbolic': symbolic!.toJson(),
+        if (digests.isNotEmpty)
+          'journalDigests': digests.map((item) => item.toJson()).toList(),
         'journal': journal,
         'contextFingerprint': contextFingerprint,
       };
@@ -94,6 +167,9 @@ class AetherRequestBuilder {
     required GuidanceMode mode,
     required List<AetherHealthContext> health,
     List<AetherJournalContext> journal = const [],
+    AetherSymbolicContext? symbolic,
+    List<AetherJournalDigest> digests = const [],
+    double? bodyFatPercent,
   }) {
     if (!aiConsented) {
       throw const AetherConsentException('AI processing is not permitted');
@@ -119,19 +195,29 @@ class AetherRequestBuilder {
       }
     }
 
+    // Digests are journal-derived, so they cross only under the same consent
+    // the prose itself needs.
+    final digestPayload = journalConsented ? digests : const <AetherJournalDigest>[];
+
     final stableContext = <String, Object>{
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'mode': mode.name,
       'ageYears': ageYears,
+      if (bodyFatPercent != null) 'bodyFatPercent': bodyFatPercent,
       'health': health.map((item) => item.toJson()).toList(),
+      if (symbolic != null) 'symbolic': symbolic.toJson(),
+      'journalDigests': digestPayload.map((item) => item.toJson()).toList(),
       'journal': prose,
     };
     return AetherRequest(
-      schemaVersion: 1,
+      schemaVersion: 2,
       mode: mode,
       ageYears: ageYears,
       health: List.unmodifiable(health),
       journal: List.unmodifiable(prose),
+      symbolic: symbolic,
+      digests: List.unmodifiable(digestPayload),
+      bodyFatPercent: bodyFatPercent,
       contextFingerprint: _fnv1a64(jsonEncode(stableContext)),
     );
   }

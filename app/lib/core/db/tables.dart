@@ -28,6 +28,14 @@ class Profiles extends Table {
 
   RealColumn get weightKg => real()();
   RealColumn get heightCm => real().nullable()();
+
+  /// Optional body fat, 5–40% in 2.5-point steps. Null means unknown, which is
+  /// the honest and common case — it is never estimated from weight and height.
+  ///
+  /// When present it improves two different things: resting burn is derived
+  /// from lean mass (Katch-McArdle) rather than from body mass alone, and the
+  /// guidance context can speak about composition instead of a single number.
+  RealColumn get bodyFatPercent => real().nullable()();
   TextColumn get units => text()();
   TextColumn get firstName => text().nullable()();
 
@@ -304,6 +312,64 @@ class LifestyleEntries extends Table {
   TextColumn get note => text().nullable()();
   TextColumn get source => text().withDefault(const Constant('self-report'))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+}
+
+/// One local day, as the day's own pages tell it.
+///
+/// Two things at once, produced by a single pass over everything written that
+/// day:
+///
+/// * [story] — a few sentences of continuous prose the Journal always shows.
+///   It is the day read back to the person, not advice.
+/// * [digestJson] — the same day compressed into the few structured points
+///   guidance actually needs (movement, food, mood, sleep, notable events).
+///   Guidance sends this instead of the raw prose, which is what keeps the
+///   request small however much someone writes.
+///
+/// Regenerated whenever the day's entries change, so [entryCount] and
+/// [sourceFingerprint] record what it was made from.
+@DataClassName('JournalDayStoryRow')
+class JournalDayStories extends Table {
+  /// Local `YYYY-MM-DD`.
+  TextColumn get date => text()();
+  DateTimeColumn get generatedAt => dateTime()();
+  TextColumn get story => text()();
+  TextColumn get digestJson => text().withDefault(const Constant('{}'))();
+  IntColumn get entryCount => integer().withDefault(const Constant(0))();
+
+  /// Hash of the prose this was derived from. An unchanged fingerprint means
+  /// the story is current and no provider call is needed.
+  TextColumn get sourceFingerprint => text()();
+  TextColumn get model => text().withDefault(const Constant('provider'))();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date};
+}
+
+/// Today's sky against the natal chart, and what was written about it.
+///
+/// The contacts themselves are arithmetic and recomputed freely; this table
+/// caches the *prose*, which costs a provider call. Keyed by day and by the
+/// chart it was read against, so changing birth context retires old readings
+/// rather than editing them.
+@DataClassName('TransitReadingRow')
+class TransitReadings extends Table {
+  TextColumn get date => text()();
+
+  /// The same local chart hash the Vessel's readings use.
+  TextColumn get inputHash => text()();
+  DateTimeColumn get generatedAt => dateTime()();
+
+  /// The computed contacts, kept so a reading can be inspected against what it
+  /// was written from.
+  TextColumn get contactsJson => text()();
+  TextColumn get passage => text()();
+  TextColumn get model => text().withDefault(const Constant('provider'))();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date, inputHash};
 }
 
 // ---------------------------------------------------------------------------

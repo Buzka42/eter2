@@ -38,6 +38,12 @@ class $ProfilesTable extends Profiles
   late final GeneratedColumn<double> heightCm = GeneratedColumn<double>(
       'height_cm', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _bodyFatPercentMeta =
+      const VerificationMeta('bodyFatPercent');
+  @override
+  late final GeneratedColumn<double> bodyFatPercent = GeneratedColumn<double>(
+      'body_fat_percent', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _unitsMeta = const VerificationMeta('units');
   @override
   late final GeneratedColumn<String> units = GeneratedColumn<String>(
@@ -144,6 +150,7 @@ class $ProfilesTable extends Profiles
         sex,
         weightKg,
         heightCm,
+        bodyFatPercent,
         units,
         firstName,
         hapticsEnabled,
@@ -194,6 +201,12 @@ class $ProfilesTable extends Profiles
     if (data.containsKey('height_cm')) {
       context.handle(_heightCmMeta,
           heightCm.isAcceptableOrUnknown(data['height_cm']!, _heightCmMeta));
+    }
+    if (data.containsKey('body_fat_percent')) {
+      context.handle(
+          _bodyFatPercentMeta,
+          bodyFatPercent.isAcceptableOrUnknown(
+              data['body_fat_percent']!, _bodyFatPercentMeta));
     }
     if (data.containsKey('units')) {
       context.handle(
@@ -300,6 +313,8 @@ class $ProfilesTable extends Profiles
           .read(DriftSqlType.double, data['${effectivePrefix}weight_kg'])!,
       heightCm: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}height_cm']),
+      bodyFatPercent: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}body_fat_percent']),
       units: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}units'])!,
       firstName: attachedDatabase.typeMapping
@@ -354,6 +369,14 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final String sex;
   final double weightKg;
   final double? heightCm;
+
+  /// Optional body fat, 5–40% in 2.5-point steps. Null means unknown, which is
+  /// the honest and common case — it is never estimated from weight and height.
+  ///
+  /// When present it improves two different things: resting burn is derived
+  /// from lean mass (Katch-McArdle) rather than from body mass alone, and the
+  /// guidance context can speak about composition instead of a single number.
+  final double? bodyFatPercent;
   final String units;
   final String? firstName;
   final bool hapticsEnabled;
@@ -390,6 +413,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       required this.sex,
       required this.weightKg,
       this.heightCm,
+      this.bodyFatPercent,
       required this.units,
       this.firstName,
       required this.hapticsEnabled,
@@ -414,6 +438,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     map['weight_kg'] = Variable<double>(weightKg);
     if (!nullToAbsent || heightCm != null) {
       map['height_cm'] = Variable<double>(heightCm);
+    }
+    if (!nullToAbsent || bodyFatPercent != null) {
+      map['body_fat_percent'] = Variable<double>(bodyFatPercent);
     }
     map['units'] = Variable<String>(units);
     if (!nullToAbsent || firstName != null) {
@@ -462,6 +489,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       heightCm: heightCm == null && nullToAbsent
           ? const Value.absent()
           : Value(heightCm),
+      bodyFatPercent: bodyFatPercent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bodyFatPercent),
       units: Value(units),
       firstName: firstName == null && nullToAbsent
           ? const Value.absent()
@@ -509,6 +539,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       sex: serializer.fromJson<String>(json['sex']),
       weightKg: serializer.fromJson<double>(json['weightKg']),
       heightCm: serializer.fromJson<double?>(json['heightCm']),
+      bodyFatPercent: serializer.fromJson<double?>(json['bodyFatPercent']),
       units: serializer.fromJson<String>(json['units']),
       firstName: serializer.fromJson<String?>(json['firstName']),
       hapticsEnabled: serializer.fromJson<bool>(json['hapticsEnabled']),
@@ -539,6 +570,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'sex': serializer.toJson<String>(sex),
       'weightKg': serializer.toJson<double>(weightKg),
       'heightCm': serializer.toJson<double?>(heightCm),
+      'bodyFatPercent': serializer.toJson<double?>(bodyFatPercent),
       'units': serializer.toJson<String>(units),
       'firstName': serializer.toJson<String?>(firstName),
       'hapticsEnabled': serializer.toJson<bool>(hapticsEnabled),
@@ -563,6 +595,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           String? sex,
           double? weightKg,
           Value<double?> heightCm = const Value.absent(),
+          Value<double?> bodyFatPercent = const Value.absent(),
           String? units,
           Value<String?> firstName = const Value.absent(),
           bool? hapticsEnabled,
@@ -584,6 +617,8 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         sex: sex ?? this.sex,
         weightKg: weightKg ?? this.weightKg,
         heightCm: heightCm.present ? heightCm.value : this.heightCm,
+        bodyFatPercent:
+            bodyFatPercent.present ? bodyFatPercent.value : this.bodyFatPercent,
         units: units ?? this.units,
         firstName: firstName.present ? firstName.value : this.firstName,
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
@@ -617,6 +652,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       sex: data.sex.present ? data.sex.value : this.sex,
       weightKg: data.weightKg.present ? data.weightKg.value : this.weightKg,
       heightCm: data.heightCm.present ? data.heightCm.value : this.heightCm,
+      bodyFatPercent: data.bodyFatPercent.present
+          ? data.bodyFatPercent.value
+          : this.bodyFatPercent,
       units: data.units.present ? data.units.value : this.units,
       firstName: data.firstName.present ? data.firstName.value : this.firstName,
       hapticsEnabled: data.hapticsEnabled.present
@@ -665,6 +703,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('sex: $sex, ')
           ..write('weightKg: $weightKg, ')
           ..write('heightCm: $heightCm, ')
+          ..write('bodyFatPercent: $bodyFatPercent, ')
           ..write('units: $units, ')
           ..write('firstName: $firstName, ')
           ..write('hapticsEnabled: $hapticsEnabled, ')
@@ -685,27 +724,29 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      dob,
-      sex,
-      weightKg,
-      heightCm,
-      units,
-      firstName,
-      hapticsEnabled,
-      guidanceMode,
-      startSurface,
-      birthTimeMinutes,
-      birthUtcOffsetMinutes,
-      birthPlace,
-      birthLatitude,
-      birthLongitude,
-      aiConsentAt,
-      journalAiConsentAt,
-      cloudSyncConsentAt,
-      connectedSourcesJson,
-      syncedAt);
+  int get hashCode => Object.hashAll([
+        id,
+        dob,
+        sex,
+        weightKg,
+        heightCm,
+        bodyFatPercent,
+        units,
+        firstName,
+        hapticsEnabled,
+        guidanceMode,
+        startSurface,
+        birthTimeMinutes,
+        birthUtcOffsetMinutes,
+        birthPlace,
+        birthLatitude,
+        birthLongitude,
+        aiConsentAt,
+        journalAiConsentAt,
+        cloudSyncConsentAt,
+        connectedSourcesJson,
+        syncedAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -715,6 +756,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.sex == this.sex &&
           other.weightKg == this.weightKg &&
           other.heightCm == this.heightCm &&
+          other.bodyFatPercent == this.bodyFatPercent &&
           other.units == this.units &&
           other.firstName == this.firstName &&
           other.hapticsEnabled == this.hapticsEnabled &&
@@ -738,6 +780,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<String> sex;
   final Value<double> weightKg;
   final Value<double?> heightCm;
+  final Value<double?> bodyFatPercent;
   final Value<String> units;
   final Value<String?> firstName;
   final Value<bool> hapticsEnabled;
@@ -759,6 +802,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.sex = const Value.absent(),
     this.weightKg = const Value.absent(),
     this.heightCm = const Value.absent(),
+    this.bodyFatPercent = const Value.absent(),
     this.units = const Value.absent(),
     this.firstName = const Value.absent(),
     this.hapticsEnabled = const Value.absent(),
@@ -781,6 +825,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     required String sex,
     required double weightKg,
     this.heightCm = const Value.absent(),
+    this.bodyFatPercent = const Value.absent(),
     required String units,
     this.firstName = const Value.absent(),
     this.hapticsEnabled = const Value.absent(),
@@ -806,6 +851,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<String>? sex,
     Expression<double>? weightKg,
     Expression<double>? heightCm,
+    Expression<double>? bodyFatPercent,
     Expression<String>? units,
     Expression<String>? firstName,
     Expression<bool>? hapticsEnabled,
@@ -828,6 +874,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (sex != null) 'sex': sex,
       if (weightKg != null) 'weight_kg': weightKg,
       if (heightCm != null) 'height_cm': heightCm,
+      if (bodyFatPercent != null) 'body_fat_percent': bodyFatPercent,
       if (units != null) 'units': units,
       if (firstName != null) 'first_name': firstName,
       if (hapticsEnabled != null) 'haptics_enabled': hapticsEnabled,
@@ -856,6 +903,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       Value<String>? sex,
       Value<double>? weightKg,
       Value<double?>? heightCm,
+      Value<double?>? bodyFatPercent,
       Value<String>? units,
       Value<String?>? firstName,
       Value<bool>? hapticsEnabled,
@@ -877,6 +925,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       sex: sex ?? this.sex,
       weightKg: weightKg ?? this.weightKg,
       heightCm: heightCm ?? this.heightCm,
+      bodyFatPercent: bodyFatPercent ?? this.bodyFatPercent,
       units: units ?? this.units,
       firstName: firstName ?? this.firstName,
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
@@ -913,6 +962,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     }
     if (heightCm.present) {
       map['height_cm'] = Variable<double>(heightCm.value);
+    }
+    if (bodyFatPercent.present) {
+      map['body_fat_percent'] = Variable<double>(bodyFatPercent.value);
     }
     if (units.present) {
       map['units'] = Variable<String>(units.value);
@@ -974,6 +1026,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('sex: $sex, ')
           ..write('weightKg: $weightKg, ')
           ..write('heightCm: $heightCm, ')
+          ..write('bodyFatPercent: $bodyFatPercent, ')
           ..write('units: $units, ')
           ..write('firstName: $firstName, ')
           ..write('hapticsEnabled: $hapticsEnabled, ')
@@ -9493,6 +9546,847 @@ class IntakeAnswersCompanion extends UpdateCompanion<IntakeAnswerRow> {
   }
 }
 
+class $JournalDayStoriesTable extends JournalDayStories
+    with TableInfo<$JournalDayStoriesTable, JournalDayStoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $JournalDayStoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+      'date', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _generatedAtMeta =
+      const VerificationMeta('generatedAt');
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+      'generated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _storyMeta = const VerificationMeta('story');
+  @override
+  late final GeneratedColumn<String> story = GeneratedColumn<String>(
+      'story', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _digestJsonMeta =
+      const VerificationMeta('digestJson');
+  @override
+  late final GeneratedColumn<String> digestJson = GeneratedColumn<String>(
+      'digest_json', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('{}'));
+  static const VerificationMeta _entryCountMeta =
+      const VerificationMeta('entryCount');
+  @override
+  late final GeneratedColumn<int> entryCount = GeneratedColumn<int>(
+      'entry_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _sourceFingerprintMeta =
+      const VerificationMeta('sourceFingerprint');
+  @override
+  late final GeneratedColumn<String> sourceFingerprint =
+      GeneratedColumn<String>('source_fingerprint', aliasedName, false,
+          type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+      'model', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('provider'));
+  static const VerificationMeta _syncedAtMeta =
+      const VerificationMeta('syncedAt');
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+      'synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        date,
+        generatedAt,
+        story,
+        digestJson,
+        entryCount,
+        sourceFingerprint,
+        model,
+        syncedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'journal_day_stories';
+  @override
+  VerificationContext validateIntegrity(Insertable<JournalDayStoryRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+          _dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+          _generatedAtMeta,
+          generatedAt.isAcceptableOrUnknown(
+              data['generated_at']!, _generatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('story')) {
+      context.handle(
+          _storyMeta, story.isAcceptableOrUnknown(data['story']!, _storyMeta));
+    } else if (isInserting) {
+      context.missing(_storyMeta);
+    }
+    if (data.containsKey('digest_json')) {
+      context.handle(
+          _digestJsonMeta,
+          digestJson.isAcceptableOrUnknown(
+              data['digest_json']!, _digestJsonMeta));
+    }
+    if (data.containsKey('entry_count')) {
+      context.handle(
+          _entryCountMeta,
+          entryCount.isAcceptableOrUnknown(
+              data['entry_count']!, _entryCountMeta));
+    }
+    if (data.containsKey('source_fingerprint')) {
+      context.handle(
+          _sourceFingerprintMeta,
+          sourceFingerprint.isAcceptableOrUnknown(
+              data['source_fingerprint']!, _sourceFingerprintMeta));
+    } else if (isInserting) {
+      context.missing(_sourceFingerprintMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+          _modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(_syncedAtMeta,
+          syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  JournalDayStoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return JournalDayStoryRow(
+      date: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      generatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}generated_at'])!,
+      story: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}story'])!,
+      digestJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}digest_json'])!,
+      entryCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}entry_count'])!,
+      sourceFingerprint: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}source_fingerprint'])!,
+      model: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model'])!,
+      syncedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+    );
+  }
+
+  @override
+  $JournalDayStoriesTable createAlias(String alias) {
+    return $JournalDayStoriesTable(attachedDatabase, alias);
+  }
+}
+
+class JournalDayStoryRow extends DataClass
+    implements Insertable<JournalDayStoryRow> {
+  /// Local `YYYY-MM-DD`.
+  final String date;
+  final DateTime generatedAt;
+  final String story;
+  final String digestJson;
+  final int entryCount;
+
+  /// Hash of the prose this was derived from. An unchanged fingerprint means
+  /// the story is current and no provider call is needed.
+  final String sourceFingerprint;
+  final String model;
+  final DateTime? syncedAt;
+  const JournalDayStoryRow(
+      {required this.date,
+      required this.generatedAt,
+      required this.story,
+      required this.digestJson,
+      required this.entryCount,
+      required this.sourceFingerprint,
+      required this.model,
+      this.syncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['story'] = Variable<String>(story);
+    map['digest_json'] = Variable<String>(digestJson);
+    map['entry_count'] = Variable<int>(entryCount);
+    map['source_fingerprint'] = Variable<String>(sourceFingerprint);
+    map['model'] = Variable<String>(model);
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    return map;
+  }
+
+  JournalDayStoriesCompanion toCompanion(bool nullToAbsent) {
+    return JournalDayStoriesCompanion(
+      date: Value(date),
+      generatedAt: Value(generatedAt),
+      story: Value(story),
+      digestJson: Value(digestJson),
+      entryCount: Value(entryCount),
+      sourceFingerprint: Value(sourceFingerprint),
+      model: Value(model),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+    );
+  }
+
+  factory JournalDayStoryRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return JournalDayStoryRow(
+      date: serializer.fromJson<String>(json['date']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      story: serializer.fromJson<String>(json['story']),
+      digestJson: serializer.fromJson<String>(json['digestJson']),
+      entryCount: serializer.fromJson<int>(json['entryCount']),
+      sourceFingerprint: serializer.fromJson<String>(json['sourceFingerprint']),
+      model: serializer.fromJson<String>(json['model']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'story': serializer.toJson<String>(story),
+      'digestJson': serializer.toJson<String>(digestJson),
+      'entryCount': serializer.toJson<int>(entryCount),
+      'sourceFingerprint': serializer.toJson<String>(sourceFingerprint),
+      'model': serializer.toJson<String>(model),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+    };
+  }
+
+  JournalDayStoryRow copyWith(
+          {String? date,
+          DateTime? generatedAt,
+          String? story,
+          String? digestJson,
+          int? entryCount,
+          String? sourceFingerprint,
+          String? model,
+          Value<DateTime?> syncedAt = const Value.absent()}) =>
+      JournalDayStoryRow(
+        date: date ?? this.date,
+        generatedAt: generatedAt ?? this.generatedAt,
+        story: story ?? this.story,
+        digestJson: digestJson ?? this.digestJson,
+        entryCount: entryCount ?? this.entryCount,
+        sourceFingerprint: sourceFingerprint ?? this.sourceFingerprint,
+        model: model ?? this.model,
+        syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+      );
+  JournalDayStoryRow copyWithCompanion(JournalDayStoriesCompanion data) {
+    return JournalDayStoryRow(
+      date: data.date.present ? data.date.value : this.date,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      story: data.story.present ? data.story.value : this.story,
+      digestJson:
+          data.digestJson.present ? data.digestJson.value : this.digestJson,
+      entryCount:
+          data.entryCount.present ? data.entryCount.value : this.entryCount,
+      sourceFingerprint: data.sourceFingerprint.present
+          ? data.sourceFingerprint.value
+          : this.sourceFingerprint,
+      model: data.model.present ? data.model.value : this.model,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JournalDayStoryRow(')
+          ..write('date: $date, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('story: $story, ')
+          ..write('digestJson: $digestJson, ')
+          ..write('entryCount: $entryCount, ')
+          ..write('sourceFingerprint: $sourceFingerprint, ')
+          ..write('model: $model, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(date, generatedAt, story, digestJson,
+      entryCount, sourceFingerprint, model, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is JournalDayStoryRow &&
+          other.date == this.date &&
+          other.generatedAt == this.generatedAt &&
+          other.story == this.story &&
+          other.digestJson == this.digestJson &&
+          other.entryCount == this.entryCount &&
+          other.sourceFingerprint == this.sourceFingerprint &&
+          other.model == this.model &&
+          other.syncedAt == this.syncedAt);
+}
+
+class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
+  final Value<String> date;
+  final Value<DateTime> generatedAt;
+  final Value<String> story;
+  final Value<String> digestJson;
+  final Value<int> entryCount;
+  final Value<String> sourceFingerprint;
+  final Value<String> model;
+  final Value<DateTime?> syncedAt;
+  final Value<int> rowid;
+  const JournalDayStoriesCompanion({
+    this.date = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.story = const Value.absent(),
+    this.digestJson = const Value.absent(),
+    this.entryCount = const Value.absent(),
+    this.sourceFingerprint = const Value.absent(),
+    this.model = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  JournalDayStoriesCompanion.insert({
+    required String date,
+    required DateTime generatedAt,
+    required String story,
+    this.digestJson = const Value.absent(),
+    this.entryCount = const Value.absent(),
+    required String sourceFingerprint,
+    this.model = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : date = Value(date),
+        generatedAt = Value(generatedAt),
+        story = Value(story),
+        sourceFingerprint = Value(sourceFingerprint);
+  static Insertable<JournalDayStoryRow> custom({
+    Expression<String>? date,
+    Expression<DateTime>? generatedAt,
+    Expression<String>? story,
+    Expression<String>? digestJson,
+    Expression<int>? entryCount,
+    Expression<String>? sourceFingerprint,
+    Expression<String>? model,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (story != null) 'story': story,
+      if (digestJson != null) 'digest_json': digestJson,
+      if (entryCount != null) 'entry_count': entryCount,
+      if (sourceFingerprint != null) 'source_fingerprint': sourceFingerprint,
+      if (model != null) 'model': model,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  JournalDayStoriesCompanion copyWith(
+      {Value<String>? date,
+      Value<DateTime>? generatedAt,
+      Value<String>? story,
+      Value<String>? digestJson,
+      Value<int>? entryCount,
+      Value<String>? sourceFingerprint,
+      Value<String>? model,
+      Value<DateTime?>? syncedAt,
+      Value<int>? rowid}) {
+    return JournalDayStoriesCompanion(
+      date: date ?? this.date,
+      generatedAt: generatedAt ?? this.generatedAt,
+      story: story ?? this.story,
+      digestJson: digestJson ?? this.digestJson,
+      entryCount: entryCount ?? this.entryCount,
+      sourceFingerprint: sourceFingerprint ?? this.sourceFingerprint,
+      model: model ?? this.model,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (story.present) {
+      map['story'] = Variable<String>(story.value);
+    }
+    if (digestJson.present) {
+      map['digest_json'] = Variable<String>(digestJson.value);
+    }
+    if (entryCount.present) {
+      map['entry_count'] = Variable<int>(entryCount.value);
+    }
+    if (sourceFingerprint.present) {
+      map['source_fingerprint'] = Variable<String>(sourceFingerprint.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('JournalDayStoriesCompanion(')
+          ..write('date: $date, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('story: $story, ')
+          ..write('digestJson: $digestJson, ')
+          ..write('entryCount: $entryCount, ')
+          ..write('sourceFingerprint: $sourceFingerprint, ')
+          ..write('model: $model, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TransitReadingsTable extends TransitReadings
+    with TableInfo<$TransitReadingsTable, TransitReadingRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TransitReadingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+      'date', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _inputHashMeta =
+      const VerificationMeta('inputHash');
+  @override
+  late final GeneratedColumn<String> inputHash = GeneratedColumn<String>(
+      'input_hash', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _generatedAtMeta =
+      const VerificationMeta('generatedAt');
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+      'generated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _contactsJsonMeta =
+      const VerificationMeta('contactsJson');
+  @override
+  late final GeneratedColumn<String> contactsJson = GeneratedColumn<String>(
+      'contacts_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _passageMeta =
+      const VerificationMeta('passage');
+  @override
+  late final GeneratedColumn<String> passage = GeneratedColumn<String>(
+      'passage', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+      'model', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('provider'));
+  static const VerificationMeta _syncedAtMeta =
+      const VerificationMeta('syncedAt');
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+      'synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [date, inputHash, generatedAt, contactsJson, passage, model, syncedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'transit_readings';
+  @override
+  VerificationContext validateIntegrity(Insertable<TransitReadingRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+          _dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('input_hash')) {
+      context.handle(_inputHashMeta,
+          inputHash.isAcceptableOrUnknown(data['input_hash']!, _inputHashMeta));
+    } else if (isInserting) {
+      context.missing(_inputHashMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+          _generatedAtMeta,
+          generatedAt.isAcceptableOrUnknown(
+              data['generated_at']!, _generatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('contacts_json')) {
+      context.handle(
+          _contactsJsonMeta,
+          contactsJson.isAcceptableOrUnknown(
+              data['contacts_json']!, _contactsJsonMeta));
+    } else if (isInserting) {
+      context.missing(_contactsJsonMeta);
+    }
+    if (data.containsKey('passage')) {
+      context.handle(_passageMeta,
+          passage.isAcceptableOrUnknown(data['passage']!, _passageMeta));
+    } else if (isInserting) {
+      context.missing(_passageMeta);
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+          _modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(_syncedAtMeta,
+          syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date, inputHash};
+  @override
+  TransitReadingRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TransitReadingRow(
+      date: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      inputHash: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}input_hash'])!,
+      generatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}generated_at'])!,
+      contactsJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}contacts_json'])!,
+      passage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}passage'])!,
+      model: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model'])!,
+      syncedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+    );
+  }
+
+  @override
+  $TransitReadingsTable createAlias(String alias) {
+    return $TransitReadingsTable(attachedDatabase, alias);
+  }
+}
+
+class TransitReadingRow extends DataClass
+    implements Insertable<TransitReadingRow> {
+  final String date;
+
+  /// The same local chart hash the Vessel's readings use.
+  final String inputHash;
+  final DateTime generatedAt;
+
+  /// The computed contacts, kept so a reading can be inspected against what it
+  /// was written from.
+  final String contactsJson;
+  final String passage;
+  final String model;
+  final DateTime? syncedAt;
+  const TransitReadingRow(
+      {required this.date,
+      required this.inputHash,
+      required this.generatedAt,
+      required this.contactsJson,
+      required this.passage,
+      required this.model,
+      this.syncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['input_hash'] = Variable<String>(inputHash);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['contacts_json'] = Variable<String>(contactsJson);
+    map['passage'] = Variable<String>(passage);
+    map['model'] = Variable<String>(model);
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    return map;
+  }
+
+  TransitReadingsCompanion toCompanion(bool nullToAbsent) {
+    return TransitReadingsCompanion(
+      date: Value(date),
+      inputHash: Value(inputHash),
+      generatedAt: Value(generatedAt),
+      contactsJson: Value(contactsJson),
+      passage: Value(passage),
+      model: Value(model),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+    );
+  }
+
+  factory TransitReadingRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TransitReadingRow(
+      date: serializer.fromJson<String>(json['date']),
+      inputHash: serializer.fromJson<String>(json['inputHash']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      contactsJson: serializer.fromJson<String>(json['contactsJson']),
+      passage: serializer.fromJson<String>(json['passage']),
+      model: serializer.fromJson<String>(json['model']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'inputHash': serializer.toJson<String>(inputHash),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'contactsJson': serializer.toJson<String>(contactsJson),
+      'passage': serializer.toJson<String>(passage),
+      'model': serializer.toJson<String>(model),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+    };
+  }
+
+  TransitReadingRow copyWith(
+          {String? date,
+          String? inputHash,
+          DateTime? generatedAt,
+          String? contactsJson,
+          String? passage,
+          String? model,
+          Value<DateTime?> syncedAt = const Value.absent()}) =>
+      TransitReadingRow(
+        date: date ?? this.date,
+        inputHash: inputHash ?? this.inputHash,
+        generatedAt: generatedAt ?? this.generatedAt,
+        contactsJson: contactsJson ?? this.contactsJson,
+        passage: passage ?? this.passage,
+        model: model ?? this.model,
+        syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+      );
+  TransitReadingRow copyWithCompanion(TransitReadingsCompanion data) {
+    return TransitReadingRow(
+      date: data.date.present ? data.date.value : this.date,
+      inputHash: data.inputHash.present ? data.inputHash.value : this.inputHash,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      contactsJson: data.contactsJson.present
+          ? data.contactsJson.value
+          : this.contactsJson,
+      passage: data.passage.present ? data.passage.value : this.passage,
+      model: data.model.present ? data.model.value : this.model,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TransitReadingRow(')
+          ..write('date: $date, ')
+          ..write('inputHash: $inputHash, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('contactsJson: $contactsJson, ')
+          ..write('passage: $passage, ')
+          ..write('model: $model, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      date, inputHash, generatedAt, contactsJson, passage, model, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TransitReadingRow &&
+          other.date == this.date &&
+          other.inputHash == this.inputHash &&
+          other.generatedAt == this.generatedAt &&
+          other.contactsJson == this.contactsJson &&
+          other.passage == this.passage &&
+          other.model == this.model &&
+          other.syncedAt == this.syncedAt);
+}
+
+class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
+  final Value<String> date;
+  final Value<String> inputHash;
+  final Value<DateTime> generatedAt;
+  final Value<String> contactsJson;
+  final Value<String> passage;
+  final Value<String> model;
+  final Value<DateTime?> syncedAt;
+  final Value<int> rowid;
+  const TransitReadingsCompanion({
+    this.date = const Value.absent(),
+    this.inputHash = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.contactsJson = const Value.absent(),
+    this.passage = const Value.absent(),
+    this.model = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TransitReadingsCompanion.insert({
+    required String date,
+    required String inputHash,
+    required DateTime generatedAt,
+    required String contactsJson,
+    required String passage,
+    this.model = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : date = Value(date),
+        inputHash = Value(inputHash),
+        generatedAt = Value(generatedAt),
+        contactsJson = Value(contactsJson),
+        passage = Value(passage);
+  static Insertable<TransitReadingRow> custom({
+    Expression<String>? date,
+    Expression<String>? inputHash,
+    Expression<DateTime>? generatedAt,
+    Expression<String>? contactsJson,
+    Expression<String>? passage,
+    Expression<String>? model,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (inputHash != null) 'input_hash': inputHash,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (contactsJson != null) 'contacts_json': contactsJson,
+      if (passage != null) 'passage': passage,
+      if (model != null) 'model': model,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TransitReadingsCompanion copyWith(
+      {Value<String>? date,
+      Value<String>? inputHash,
+      Value<DateTime>? generatedAt,
+      Value<String>? contactsJson,
+      Value<String>? passage,
+      Value<String>? model,
+      Value<DateTime?>? syncedAt,
+      Value<int>? rowid}) {
+    return TransitReadingsCompanion(
+      date: date ?? this.date,
+      inputHash: inputHash ?? this.inputHash,
+      generatedAt: generatedAt ?? this.generatedAt,
+      contactsJson: contactsJson ?? this.contactsJson,
+      passage: passage ?? this.passage,
+      model: model ?? this.model,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (inputHash.present) {
+      map['input_hash'] = Variable<String>(inputHash.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (contactsJson.present) {
+      map['contacts_json'] = Variable<String>(contactsJson.value);
+    }
+    if (passage.present) {
+      map['passage'] = Variable<String>(passage.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TransitReadingsCompanion(')
+          ..write('date: $date, ')
+          ..write('inputHash: $inputHash, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('contactsJson: $contactsJson, ')
+          ..write('passage: $passage, ')
+          ..write('model: $model, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -9524,6 +10418,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $PatternCandidatesTable(this);
   late final $RetrospectivesTable retrospectives = $RetrospectivesTable(this);
   late final $IntakeAnswersTable intakeAnswers = $IntakeAnswersTable(this);
+  late final $JournalDayStoriesTable journalDayStories =
+      $JournalDayStoriesTable(this);
+  late final $TransitReadingsTable transitReadings =
+      $TransitReadingsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -9549,7 +10447,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         dailyCards,
         patternCandidates,
         retrospectives,
-        intakeAnswers
+        intakeAnswers,
+        journalDayStories,
+        transitReadings
       ];
 }
 
@@ -9559,6 +10459,7 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   required String sex,
   required double weightKg,
   Value<double?> heightCm,
+  Value<double?> bodyFatPercent,
   required String units,
   Value<String?> firstName,
   Value<bool> hapticsEnabled,
@@ -9581,6 +10482,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<String> sex,
   Value<double> weightKg,
   Value<double?> heightCm,
+  Value<double?> bodyFatPercent,
   Value<String> units,
   Value<String?> firstName,
   Value<bool> hapticsEnabled,
@@ -9621,6 +10523,10 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<double> get heightCm => $composableBuilder(
       column: $table.heightCm, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get bodyFatPercent => $composableBuilder(
+      column: $table.bodyFatPercent,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get units => $composableBuilder(
       column: $table.units, builder: (column) => ColumnFilters(column));
@@ -9698,6 +10604,10 @@ class $$ProfilesTableOrderingComposer
 
   ColumnOrderings<double> get heightCm => $composableBuilder(
       column: $table.heightCm, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get bodyFatPercent => $composableBuilder(
+      column: $table.bodyFatPercent,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get units => $composableBuilder(
       column: $table.units, builder: (column) => ColumnOrderings(column));
@@ -9779,6 +10689,9 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<double> get heightCm =>
       $composableBuilder(column: $table.heightCm, builder: (column) => column);
 
+  GeneratedColumn<double> get bodyFatPercent => $composableBuilder(
+      column: $table.bodyFatPercent, builder: (column) => column);
+
   GeneratedColumn<String> get units =>
       $composableBuilder(column: $table.units, builder: (column) => column);
 
@@ -9853,6 +10766,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<String> sex = const Value.absent(),
             Value<double> weightKg = const Value.absent(),
             Value<double?> heightCm = const Value.absent(),
+            Value<double?> bodyFatPercent = const Value.absent(),
             Value<String> units = const Value.absent(),
             Value<String?> firstName = const Value.absent(),
             Value<bool> hapticsEnabled = const Value.absent(),
@@ -9875,6 +10789,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             sex: sex,
             weightKg: weightKg,
             heightCm: heightCm,
+            bodyFatPercent: bodyFatPercent,
             units: units,
             firstName: firstName,
             hapticsEnabled: hapticsEnabled,
@@ -9897,6 +10812,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             required String sex,
             required double weightKg,
             Value<double?> heightCm = const Value.absent(),
+            Value<double?> bodyFatPercent = const Value.absent(),
             required String units,
             Value<String?> firstName = const Value.absent(),
             Value<bool> hapticsEnabled = const Value.absent(),
@@ -9919,6 +10835,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             sex: sex,
             weightKg: weightKg,
             heightCm: heightCm,
+            bodyFatPercent: bodyFatPercent,
             units: units,
             firstName: firstName,
             hapticsEnabled: hapticsEnabled,
@@ -14232,6 +15149,433 @@ typedef $$IntakeAnswersTableProcessedTableManager = ProcessedTableManager<
     ),
     IntakeAnswerRow,
     PrefetchHooks Function()>;
+typedef $$JournalDayStoriesTableCreateCompanionBuilder
+    = JournalDayStoriesCompanion Function({
+  required String date,
+  required DateTime generatedAt,
+  required String story,
+  Value<String> digestJson,
+  Value<int> entryCount,
+  required String sourceFingerprint,
+  Value<String> model,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+typedef $$JournalDayStoriesTableUpdateCompanionBuilder
+    = JournalDayStoriesCompanion Function({
+  Value<String> date,
+  Value<DateTime> generatedAt,
+  Value<String> story,
+  Value<String> digestJson,
+  Value<int> entryCount,
+  Value<String> sourceFingerprint,
+  Value<String> model,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+
+class $$JournalDayStoriesTableFilterComposer
+    extends Composer<_$AppDatabase, $JournalDayStoriesTable> {
+  $$JournalDayStoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get story => $composableBuilder(
+      column: $table.story, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get digestJson => $composableBuilder(
+      column: $table.digestJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get entryCount => $composableBuilder(
+      column: $table.entryCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceFingerprint => $composableBuilder(
+      column: $table.sourceFingerprint,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get model => $composableBuilder(
+      column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$JournalDayStoriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $JournalDayStoriesTable> {
+  $$JournalDayStoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get story => $composableBuilder(
+      column: $table.story, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get digestJson => $composableBuilder(
+      column: $table.digestJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get entryCount => $composableBuilder(
+      column: $table.entryCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceFingerprint => $composableBuilder(
+      column: $table.sourceFingerprint,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get model => $composableBuilder(
+      column: $table.model, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$JournalDayStoriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $JournalDayStoriesTable> {
+  $$JournalDayStoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get story =>
+      $composableBuilder(column: $table.story, builder: (column) => column);
+
+  GeneratedColumn<String> get digestJson => $composableBuilder(
+      column: $table.digestJson, builder: (column) => column);
+
+  GeneratedColumn<int> get entryCount => $composableBuilder(
+      column: $table.entryCount, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceFingerprint => $composableBuilder(
+      column: $table.sourceFingerprint, builder: (column) => column);
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$JournalDayStoriesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $JournalDayStoriesTable,
+    JournalDayStoryRow,
+    $$JournalDayStoriesTableFilterComposer,
+    $$JournalDayStoriesTableOrderingComposer,
+    $$JournalDayStoriesTableAnnotationComposer,
+    $$JournalDayStoriesTableCreateCompanionBuilder,
+    $$JournalDayStoriesTableUpdateCompanionBuilder,
+    (
+      JournalDayStoryRow,
+      BaseReferences<_$AppDatabase, $JournalDayStoriesTable, JournalDayStoryRow>
+    ),
+    JournalDayStoryRow,
+    PrefetchHooks Function()> {
+  $$JournalDayStoriesTableTableManager(
+      _$AppDatabase db, $JournalDayStoriesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$JournalDayStoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$JournalDayStoriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$JournalDayStoriesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> date = const Value.absent(),
+            Value<DateTime> generatedAt = const Value.absent(),
+            Value<String> story = const Value.absent(),
+            Value<String> digestJson = const Value.absent(),
+            Value<int> entryCount = const Value.absent(),
+            Value<String> sourceFingerprint = const Value.absent(),
+            Value<String> model = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              JournalDayStoriesCompanion(
+            date: date,
+            generatedAt: generatedAt,
+            story: story,
+            digestJson: digestJson,
+            entryCount: entryCount,
+            sourceFingerprint: sourceFingerprint,
+            model: model,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String date,
+            required DateTime generatedAt,
+            required String story,
+            Value<String> digestJson = const Value.absent(),
+            Value<int> entryCount = const Value.absent(),
+            required String sourceFingerprint,
+            Value<String> model = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              JournalDayStoriesCompanion.insert(
+            date: date,
+            generatedAt: generatedAt,
+            story: story,
+            digestJson: digestJson,
+            entryCount: entryCount,
+            sourceFingerprint: sourceFingerprint,
+            model: model,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$JournalDayStoriesTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $JournalDayStoriesTable,
+    JournalDayStoryRow,
+    $$JournalDayStoriesTableFilterComposer,
+    $$JournalDayStoriesTableOrderingComposer,
+    $$JournalDayStoriesTableAnnotationComposer,
+    $$JournalDayStoriesTableCreateCompanionBuilder,
+    $$JournalDayStoriesTableUpdateCompanionBuilder,
+    (
+      JournalDayStoryRow,
+      BaseReferences<_$AppDatabase, $JournalDayStoriesTable, JournalDayStoryRow>
+    ),
+    JournalDayStoryRow,
+    PrefetchHooks Function()>;
+typedef $$TransitReadingsTableCreateCompanionBuilder = TransitReadingsCompanion
+    Function({
+  required String date,
+  required String inputHash,
+  required DateTime generatedAt,
+  required String contactsJson,
+  required String passage,
+  Value<String> model,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+typedef $$TransitReadingsTableUpdateCompanionBuilder = TransitReadingsCompanion
+    Function({
+  Value<String> date,
+  Value<String> inputHash,
+  Value<DateTime> generatedAt,
+  Value<String> contactsJson,
+  Value<String> passage,
+  Value<String> model,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+
+class $$TransitReadingsTableFilterComposer
+    extends Composer<_$AppDatabase, $TransitReadingsTable> {
+  $$TransitReadingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get inputHash => $composableBuilder(
+      column: $table.inputHash, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get contactsJson => $composableBuilder(
+      column: $table.contactsJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get passage => $composableBuilder(
+      column: $table.passage, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get model => $composableBuilder(
+      column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$TransitReadingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TransitReadingsTable> {
+  $$TransitReadingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get inputHash => $composableBuilder(
+      column: $table.inputHash, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get contactsJson => $composableBuilder(
+      column: $table.contactsJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get passage => $composableBuilder(
+      column: $table.passage, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get model => $composableBuilder(
+      column: $table.model, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TransitReadingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TransitReadingsTable> {
+  $$TransitReadingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<String> get inputHash =>
+      $composableBuilder(column: $table.inputHash, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get contactsJson => $composableBuilder(
+      column: $table.contactsJson, builder: (column) => column);
+
+  GeneratedColumn<String> get passage =>
+      $composableBuilder(column: $table.passage, builder: (column) => column);
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$TransitReadingsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TransitReadingsTable,
+    TransitReadingRow,
+    $$TransitReadingsTableFilterComposer,
+    $$TransitReadingsTableOrderingComposer,
+    $$TransitReadingsTableAnnotationComposer,
+    $$TransitReadingsTableCreateCompanionBuilder,
+    $$TransitReadingsTableUpdateCompanionBuilder,
+    (
+      TransitReadingRow,
+      BaseReferences<_$AppDatabase, $TransitReadingsTable, TransitReadingRow>
+    ),
+    TransitReadingRow,
+    PrefetchHooks Function()> {
+  $$TransitReadingsTableTableManager(
+      _$AppDatabase db, $TransitReadingsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TransitReadingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TransitReadingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TransitReadingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> date = const Value.absent(),
+            Value<String> inputHash = const Value.absent(),
+            Value<DateTime> generatedAt = const Value.absent(),
+            Value<String> contactsJson = const Value.absent(),
+            Value<String> passage = const Value.absent(),
+            Value<String> model = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TransitReadingsCompanion(
+            date: date,
+            inputHash: inputHash,
+            generatedAt: generatedAt,
+            contactsJson: contactsJson,
+            passage: passage,
+            model: model,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String date,
+            required String inputHash,
+            required DateTime generatedAt,
+            required String contactsJson,
+            required String passage,
+            Value<String> model = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TransitReadingsCompanion.insert(
+            date: date,
+            inputHash: inputHash,
+            generatedAt: generatedAt,
+            contactsJson: contactsJson,
+            passage: passage,
+            model: model,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TransitReadingsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TransitReadingsTable,
+    TransitReadingRow,
+    $$TransitReadingsTableFilterComposer,
+    $$TransitReadingsTableOrderingComposer,
+    $$TransitReadingsTableAnnotationComposer,
+    $$TransitReadingsTableCreateCompanionBuilder,
+    $$TransitReadingsTableUpdateCompanionBuilder,
+    (
+      TransitReadingRow,
+      BaseReferences<_$AppDatabase, $TransitReadingsTable, TransitReadingRow>
+    ),
+    TransitReadingRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14278,4 +15622,8 @@ class $AppDatabaseManager {
       $$RetrospectivesTableTableManager(_db, _db.retrospectives);
   $$IntakeAnswersTableTableManager get intakeAnswers =>
       $$IntakeAnswersTableTableManager(_db, _db.intakeAnswers);
+  $$JournalDayStoriesTableTableManager get journalDayStories =>
+      $$JournalDayStoriesTableTableManager(_db, _db.journalDayStories);
+  $$TransitReadingsTableTableManager get transitReadings =>
+      $$TransitReadingsTableTableManager(_db, _db.transitReadings);
 }

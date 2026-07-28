@@ -36,16 +36,19 @@ part 'app_database.g.dart';
     PatternCandidates,
     Retrospectives,
     IntakeAnswers,
+    JournalDayStories,
+    TransitReadings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
-  /// Schema 1. The v1 tree reached 18; there is no migration path because
+  /// Schema 2. The v1 tree reached 18; there is no migration path because
   /// there are no external users and the fitness-era shape is not what this
-  /// product stores.
+  /// product stores. v2 adds optional body fat, the journal's daily story and
+  /// digest, and the cached transit reading.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -139,6 +142,9 @@ class AppDatabase extends _$AppDatabase {
         birthLongitude ?? 'unknown-longitude',
       ].join('|');
       await (delete(vesselReadings)
+            ..where((row) => row.inputHash.equals(inputHash).not()))
+          .go();
+      await (delete(transitReadings)
             ..where((row) => row.inputHash.equals(inputHash).not()))
           .go();
     });
@@ -616,6 +622,56 @@ class AppDatabase extends _$AppDatabase {
             ..orderBy([(row) => OrderingTerm.desc(row.endedAt)])
             ..limit(limit))
           .watch();
+
+  // -------------------------------------------------------------------------
+  // The day's story, and the digest guidance reads instead of raw prose
+  // -------------------------------------------------------------------------
+
+  Stream<JournalDayStoryRow?> watchDayStory(String date) =>
+      (select(journalDayStories)..where((row) => row.date.equals(date)))
+          .watchSingleOrNull();
+
+  Future<JournalDayStoryRow?> loadDayStory(String date) =>
+      (select(journalDayStories)..where((row) => row.date.equals(date)))
+          .getSingleOrNull();
+
+  Future<void> saveDayStory(JournalDayStoriesCompanion story) =>
+      into(journalDayStories).insertOnConflictUpdate(story);
+
+  /// The digests guidance sends in place of prose, oldest first.
+  Future<List<JournalDayStoryRow>> loadDayStoryRange(
+    String fromDate,
+    String toDate,
+  ) =>
+      (select(journalDayStories)
+            ..where((row) =>
+                row.date.isBiggerOrEqualValue(fromDate) &
+                row.date.isSmallerOrEqualValue(toDate))
+            ..orderBy([(row) => OrderingTerm.asc(row.date)]))
+          .get();
+
+  // -------------------------------------------------------------------------
+  // Transits
+  // -------------------------------------------------------------------------
+
+  Future<TransitReadingRow?> loadTransitReading({
+    required String date,
+    required String inputHash,
+  }) =>
+      (select(transitReadings)
+            ..where((row) =>
+                row.date.equals(date) & row.inputHash.equals(inputHash)))
+          .getSingleOrNull();
+
+  Future<void> saveTransitReading(TransitReadingsCompanion reading) =>
+      into(transitReadings).insertOnConflictUpdate(reading);
+
+  /// Readings for charts other than the current one are meaningless; birth
+  /// context changes therefore retire them, as they do vessel readings.
+  Future<void> retireTransitReadingsExcept(String inputHash) =>
+      (delete(transitReadings)
+            ..where((row) => row.inputHash.equals(inputHash).not()))
+          .go();
 
   // -------------------------------------------------------------------------
   // Journal
