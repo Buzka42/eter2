@@ -173,3 +173,9 @@ The local Week in View is likewise editorial text, not an illustration or
 animated event. Its value is factual continuity across recorded days; adding a
 hero image would make the quiet Sanctum denser and imply a model-authored
 reading. No asset was generated, so the two-option gate does not apply.
+
+Journal history uses a code-native bead, thread and chevron page-turn mark.
+This is interface line work, scales cleanly at dynamic type, and belongs to the
+existing disclosure family; a raster calendar or page-curl asset would add
+chrome the owner explicitly rejected. No generated asset exists, so no
+two-option review is required.

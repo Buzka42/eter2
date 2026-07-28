@@ -48,6 +48,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   String _dictationBase = '';
   Stream<List<JournalEntryRow>>? _entriesStream;
   String? _streamedDay;
+  DateTime? _selectedDay;
 
   static final _marginalTime = DateFormat('HH:mm');
 
@@ -167,20 +168,44 @@ class _JournalPageState extends ConsumerState<JournalPage> {
 
   /// Cached so rebuilds (every keystroke) never resubscribe the
   /// StreamBuilder.
-  Stream<List<JournalEntryRow>> _entriesFor(AppDatabase db, DateTime now) {
-    final today = eterIsoDate(now);
-    if (_entriesStream == null || _streamedDay != today) {
-      _streamedDay = today;
-      final (dayStart, dayEnd) = eterDayBounds(now);
+  Stream<List<JournalEntryRow>> _entriesFor(AppDatabase db, DateTime day) {
+    final date = eterIsoDate(day);
+    if (_entriesStream == null || _streamedDay != date) {
+      _streamedDay = date;
+      final (dayStart, dayEnd) = eterDayBounds(day);
       _entriesStream = db.watchJournalForRange(dayStart, dayEnd);
     }
     return _entriesStream!;
+  }
+
+  Future<void> _moveDay(int delta, DateTime now) async {
+    final today = DateTime(now.year, now.month, now.day);
+    final current = _selectedDay ?? today;
+    final target = current.add(Duration(days: delta));
+    if (target.isAfter(today)) return;
+
+    if (_listening) {
+      await _speech.stop();
+      if (mounted) setState(() => _listening = false);
+    }
+    if (_selectedDay == null && _composer.text.trim().isNotEmpty) {
+      await _save();
+    }
+    if (!mounted) return;
+    setState(() {
+      _selectedDay = target == today ? null : target;
+      _arrivingIds.clear();
+      _dictationNote = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final db = ref.watch(databaseProvider);
     final now = ref.watch(nowProvider)();
+    final today = DateTime(now.year, now.month, now.day);
+    final selectedDay = _selectedDay ?? today;
+    final isToday = _selectedDay == null;
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
 
@@ -202,82 +227,119 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           // to this one.
           GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: _focusNode.requestFocus,
+            onTap: isToday ? _focusNode.requestFocus : null,
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: EterSpace.gutter),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: EterSpace.s24),
-                  Text(
-                    DateFormat('EEEE').format(now).toUpperCase(),
-                    style: text.labelSmall,
-                  ),
-                  const SizedBox(height: EterSpace.s4),
-                  Text(
-                    DateFormat('d MMMM').format(now),
-                    style: text.headlineSmall,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateFormat('EEEE')
+                                  .format(selectedDay)
+                                  .toUpperCase(),
+                              style: text.labelSmall,
+                            ),
+                            const SizedBox(height: EterSpace.s4),
+                            Text(
+                              DateFormat('d MMMM').format(selectedDay),
+                              style: text.headlineSmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                      _DayTurn(
+                        direction: _DayTurnDirection.earlier,
+                        semanticLabel: 'Previous journal day',
+                        onTap: () => _moveDay(-1, now),
+                      ),
+                      _DayTurn(
+                        direction: _DayTurnDirection.later,
+                        semanticLabel: isToday
+                            ? 'Next journal day unavailable'
+                            : 'Next journal day',
+                        onTap: isToday ? null : () => _moveDay(1, now),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: EterSpace.s16),
-                  Stack(
-                    children: [
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: CustomPaint(
-                            painter: _WritingLinesPainter(
-                              color: ink.line.withValues(alpha: 0.3),
-                              spacing: writingLineHeight,
+                  if (isToday) ...[
+                    Stack(
+                      children: [
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter: _WritingLinesPainter(
+                                color: ink.line.withValues(alpha: 0.3),
+                                spacing: writingLineHeight,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      TextField(
-                        controller: _composer,
-                        focusNode: _focusNode,
-                        onChanged: _onChanged,
-                        style: proseStyle,
-                        cursorColor: ink.lineStrong,
-                        cursorWidth: 1,
-                        minLines: 6,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        textCapitalization: TextCapitalization.sentences,
-                        decoration: InputDecoration.collapsed(
-                          hintText: 'What is asking for your attention?',
-                          hintStyle: proseStyle?.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: ink.labelMuted.withValues(alpha: 0.75),
+                        TextField(
+                          controller: _composer,
+                          focusNode: _focusNode,
+                          onChanged: _onChanged,
+                          style: proseStyle,
+                          cursorColor: ink.lineStrong,
+                          cursorWidth: 1,
+                          minLines: 6,
+                          maxLines: null,
+                          keyboardType: TextInputType.multiline,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration.collapsed(
+                            hintText: 'What is asking for your attention?',
+                            hintStyle: proseStyle?.copyWith(
+                              fontStyle: FontStyle.italic,
+                              color: ink.labelMuted.withValues(alpha: 0.75),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: EterSpace.s4),
-                  Row(
-                    children: [
-                      _GlyphAction(
-                        label: _listening ? 'Stop dictation' : 'Dictate',
-                        semanticLabel:
-                            _listening ? 'Stop dictation' : 'Dictate',
-                        color: _listening ? ink.lineStrong : ink.labelMuted,
-                        onTap: _toggleDictation,
-                      ),
-                      if (_listening) Text('Listening…', style: text.bodySmall),
-                      if (_dictationNote != null)
-                        Expanded(
-                          child: Text(_dictationNote!, style: text.bodySmall),
+                      ],
+                    ),
+                    const SizedBox(height: EterSpace.s4),
+                    Row(
+                      children: [
+                        _GlyphAction(
+                          label: _listening ? 'Stop dictation' : 'Dictate',
+                          semanticLabel:
+                              _listening ? 'Stop dictation' : 'Dictate',
+                          color: _listening ? ink.lineStrong : ink.labelMuted,
+                          onTap: _toggleDictation,
                         ),
-                    ],
-                  ),
+                        if (_listening)
+                          Text('Listening…', style: text.bodySmall),
+                        if (_dictationNote != null)
+                          Expanded(
+                            child: Text(_dictationNote!, style: text.bodySmall),
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: EterSpace.s24),
                   StreamBuilder<List<JournalEntryRow>>(
-                    stream: _entriesFor(db, now),
+                    stream: _entriesFor(db, selectedDay),
                     builder: (context, snapshot) {
                       final entries =
                           snapshot.data ?? const <JournalEntryRow>[];
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          if (!isToday && entries.isEmpty)
+                            Text(
+                              'Nothing was written on this page.',
+                              style: proseStyle?.copyWith(
+                                fontStyle: FontStyle.italic,
+                                color: ink.labelMuted,
+                              ),
+                            ),
                           for (final entry in entries)
                             _JournalPassage(
                               key: ValueKey('passage-${entry.id}'),
@@ -576,6 +638,93 @@ class _GlyphAction extends StatelessWidget {
       ),
     );
   }
+}
+
+enum _DayTurnDirection { earlier, later }
+
+/// A journal page-turn mark: one bead and a short engraved thread. It keeps
+/// older dates discoverable without introducing calendar chrome.
+class _DayTurn extends StatelessWidget {
+  const _DayTurn({
+    required this.direction,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  final _DayTurnDirection direction;
+  final String semanticLabel;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = EterInk.of(context).labelMuted.withValues(
+          alpha: onTap == null ? 0.28 : 1,
+        );
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: semanticLabel,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox.square(
+          dimension: 48,
+          child: CustomPaint(
+            painter: _DayTurnPainter(
+              color: color,
+              direction: direction,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DayTurnPainter extends CustomPainter {
+  const _DayTurnPainter({
+    required this.color,
+    required this.direction,
+  });
+
+  final Color color;
+  final _DayTurnDirection direction;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final y = size.height / 2;
+    final pointsEarlier = <Offset>[
+      Offset(29, y - 5),
+      Offset(23, y),
+      Offset(29, y + 5),
+    ];
+    final points = direction == _DayTurnDirection.earlier
+        ? pointsEarlier
+        : pointsEarlier.map((point) => Offset(size.width - point.dx, point.dy));
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.dx, point.dy);
+    }
+    canvas.drawPath(path, paint);
+    final beadX = direction == _DayTurnDirection.earlier ? 34.0 : 14.0;
+    canvas.drawLine(
+      Offset(direction == _DayTurnDirection.earlier ? 23 : 25, y),
+      Offset(beadX - (direction == _DayTurnDirection.earlier ? 3 : -3), y),
+      paint,
+    );
+    canvas.drawCircle(Offset(beadX, y), 1.5, paint);
+  }
+
+  @override
+  bool shouldRepaint(_DayTurnPainter old) =>
+      old.color != color || old.direction != direction;
 }
 
 class _WritingLinesPainter extends CustomPainter {

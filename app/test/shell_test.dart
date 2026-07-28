@@ -345,6 +345,51 @@ void main() {
     await closeShell(tester);
   });
 
+  testWidgets('Journal turns to an older page and saves today before leaving',
+      (tester) async {
+    await db.addJournalEntry(
+      JournalEntriesCompanion.insert(
+        createdAt: DateTime.utc(2026, 7, 26, 9),
+        entryText: 'Yesterday held a quieter rhythm.',
+      ),
+    );
+    await pumpShell(tester);
+    await tester.tap(find.text('JOURNAL'));
+    await tester.pump();
+
+    final composer = find.byType(TextField).first;
+    await tester.enterText(composer, 'A thought from today.');
+    await tester.tap(find.bySemanticsLabel('Previous journal day'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pump();
+
+    expect(find.text('26 July'), findsOneWidget);
+    final olderEntry = find.text(
+      'Yesterday held a quieter rhythm.',
+      findRichText: true,
+    );
+    await waitForWidget(tester, olderEntry);
+    expect(olderEntry, findsOneWidget);
+    expect(find.text('DICTATE'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    final todayEntries = await db.loadJournalForRange(
+      DateTime(2026, 7, 27),
+      DateTime(2026, 7, 28),
+    );
+    expect(
+      todayEntries.map((entry) => entry.entryText),
+      contains('A thought from today.'),
+    );
+
+    await tester.tap(find.bySemanticsLabel('Next journal day'));
+    await tester.pump();
+    expect(find.text('27 July'), findsOneWidget);
+    expect(find.text('DICTATE'), findsOneWidget);
+    await closeShell(tester);
+  });
+
   testWidgets('nothing is essential behind a gesture: words reach both pages',
       (tester) async {
     await pumpShell(tester);

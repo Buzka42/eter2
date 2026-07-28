@@ -199,7 +199,11 @@ An open, date-led personal journal page. `SurfaceIntent.plain`.
   no Done, Save, checkmark, privacy toggle or completion state in the writing
   surface.
 - Today's entries in reverse-chronological order; older days behind a date
-  affordance.
+  affordance. The implemented affordance is a pair of borderless,
+  code-native bead-and-thread page turns beside the date. Both retain 48 dp
+  semantic targets. Future pages are disabled, past pages are read-only, and
+  leaving today stops dictation and commits any non-empty draft before the
+  date changes.
 - **Capture is the whole game.** The path from intent to recording should be as
   close to one tap as the platform allows. If your layout adds a step, the
   layout is wrong.
