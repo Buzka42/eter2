@@ -153,46 +153,6 @@ void main() {
     await disposePrototype(tester);
   });
 
-  testWidgets('body strength tracker day review capture', (tester) async {
-    await pumpPrototype(tester, register: EterRegister.day);
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('THE BODY'));
-    await tester.pump();
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 120)),
-    );
-    await tester.pump(const Duration(milliseconds: 700));
-
-    // The tracker is deliberately not reachable at rest: it exists only once
-    // STRENGTH / RECORD is taken, which is what this capture records.
-    final strength = find.ancestor(
-      of: find.text('STRENGTH'),
-      matching: find.byType(Row),
-    );
-    tester
-        .widget<EterAction>(
-          find.descendant(of: strength.first, matching: find.byType(EterAction)),
-        )
-        .onPressed!
-        .call();
-    await tester.pump();
-    final strengthScroll = find
-        .byWidgetPredicate(
-          (widget) =>
-              widget is Scrollable &&
-              widget.axisDirection == AxisDirection.down,
-        )
-        .hitTestable();
-    tester.state<ScrollableState>(strengthScroll).position.jumpTo(320);
-    await tester.pump();
-    await expectLater(
-      find.byType(ProviderScope),
-      matchesGoldenFile('body-strength-day-390x844.png'),
-    );
-    await disposePrototype(tester);
-  });
-
   testWidgets('body estimate correction day review capture', (tester) async {
     await pumpPrototype(tester, register: EterRegister.day);
     await tester.tap(find.text('LOOK DEEPER'));

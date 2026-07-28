@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
-import 'package:eter/core/clock.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
@@ -134,118 +133,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    await closeShell(tester);
-  });
-
-  testWidgets('manual activity enters the canonical Body record',
-      (tester) async {
-    await pumpShell(tester);
-    await expandBody(tester);
-
-    final addActivity = find.text('ADD ACTIVITY');
-    await tester.ensureVisible(addActivity);
-    await tester.tap(addActivity);
-    await tester.pump();
-    await tester.enterText(
-      find.byKey(const ValueKey('manual-activity-name')),
-      'Evening walk',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('manual-activity-duration')),
-      '30',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('manual-activity-energy')),
-      '120',
-    );
-    final add = find.text('ADD');
-    await tester.ensureVisible(add);
-    await tester.tap(add);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
-    );
-    await tester.pump();
-
-    expect(find.text('Evening walk added to today.'), findsOneWidget);
-    final sessions = await db.loadSessions(
-      DateTime(2026, 7, 27),
-      DateTime(2026, 7, 28),
-    );
-    expect(sessions.any((session) => session.sport == 'Evening walk'), isTrue);
-    await closeShell(tester);
-  });
-
-  testWidgets('manual meal enters confirmed nutrition and the Body balance',
-      (tester) async {
-    final (dayStart, dayEnd) = eterDayBounds(eterPinnedNow);
-    final before = await db.intakeKcalForRange(dayStart, dayEnd);
-    await pumpShell(tester);
-    await expandBody(tester);
-
-    final addMeal = find.text('ADD MEAL');
-    await tester.ensureVisible(addMeal);
-    await tester.pump();
-    await tester.tap(addMeal);
-    await tester.pump();
-    await tester.enterText(
-      find.byKey(const ValueKey('manual-meal-name')),
-      'Rice and vegetables',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('manual-meal-energy')),
-      '430',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('manual-meal-protein')),
-      '18',
-    );
-    final add = find.text('ADD');
-    await tester.ensureVisible(add);
-    await tester.tap(add);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
-    );
-    await tester.pump();
-
-    expect(
-      find.text('Rice and vegetables added as a confirmed food record.'),
-      findsOneWidget,
-    );
-    expect(find.text('Rice and vegetables'), findsOneWidget);
-    expect(
-      await db.intakeKcalForRange(dayStart, dayEnd),
-      closeTo(before + 430, .001),
-    );
-    expect(
-      (await db.loadDaySummary('2026-07-27'))?.intakeKcal,
-      closeTo(before + 430, .001),
-    );
-    await closeShell(tester);
-  });
-
-  testWidgets('expansion and a half-written entry survive the page crossing',
-      (tester) async {
-    await pumpShell(tester);
-    await expandBody(tester);
-    expect(find.text('CLOSE'), findsOneWidget);
-
-    // Cross to the Journal and write half an entry.
-    await tester.tap(find.text('JOURNAL'));
-    await tester.pump(const Duration(milliseconds: 400));
-    await tester.enterText(find.byType(TextField), 'A half-formed thought');
-    await tester.pump();
-
-    // Cross back: the expansion holds; the entry holds.
-    await tester.tap(find.text('DASHBOARD'));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('CLOSE'), findsOneWidget);
-
-    await tester.tap(find.text('JOURNAL'));
-    await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('A half-formed thought'), findsOneWidget);
-
-    // Flush the autosave debounce, then the close timer.
-    await tester.pump(const Duration(milliseconds: 1100));
     await closeShell(tester);
   });
 
@@ -544,18 +431,14 @@ void main() {
   });
 
   testWidgets(
-      'uncomposed guidance composes once and unchanged refresh is cached',
+      'the first look of the day composes once, and refresh reuses the cache',
       (tester) async {
     await db.resetPersonalization();
     await db.updateProfileConsents(aiAllowed: true);
     final provider = _DashboardAetherProvider();
+    // Composition is automatic on the day's first look: nothing is tapped
+    // here, and the guidance still arrives.
     await pumpShell(tester, aetherProvider: provider);
-
-    expect(
-      find.text('Today’s guidance has not been composed yet.'),
-      findsOneWidget,
-    );
-    await tester.tap(find.text('COMPOSE GUIDANCE'));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
@@ -590,7 +473,13 @@ void main() {
     await db.updateProfileConsents(aiAllowed: true);
     await pumpShell(tester);
 
-    await tester.tap(find.text('COMPOSE GUIDANCE'));
+    // Without a transport there is nothing to compose automatically, so the
+    // surface stays honest and the explicit retry says why.
+    expect(
+      find.text('Today’s guidance has not been composed yet.'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('COMPOSE NOW'));
     await tester.pump();
 
     expect(

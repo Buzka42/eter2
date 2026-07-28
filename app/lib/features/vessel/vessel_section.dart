@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/aether/guidance_mode.dart';
+import '../../core/arcana/animated_arcana_card.dart';
 import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/symbol_content.dart';
 import '../../core/arcana/zodiac.dart';
@@ -311,41 +312,74 @@ class _DailyCard extends StatelessWidget {
     final card = MajorArcana.bySlug(data.daily!.arcanaSlug);
     if (card == null) return const SizedBox.shrink();
     final attributes = data.content.card(card);
-    final brightness = Theme.of(context).brightness;
     final text = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(top: EterSpace.s8),
-      child: Row(
+      // The card leads and the prose follows beneath it. It used to be a 92 dp
+      // thumbnail with three lines crowded to its right, which made the most
+      // considered art in the product read as decoration beside the text
+      // rather than the thing the section is about.
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(EterSpace.rChip),
-            child: Image.asset(
-              card.assetFor(brightness),
-              width: 92,
-              height: 137,
-              fit: BoxFit.cover,
-              semanticLabel: '${card.title}, card of the day',
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(EterSpace.rChip),
+              child: EterArcanaPlate(
+                card: card,
+                width: 168,
+                semanticLabel: '${card.title}, card of the day',
+              ),
             ),
           ),
-          const SizedBox(width: EterSpace.s16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('TODAY’S CARD', style: text.labelSmall),
-                const SizedBox(height: EterSpace.s4),
-                Text(card.title, style: text.headlineSmall),
-                if (attributes != null) ...[
-                  const SizedBox(height: EterSpace.s4),
-                  Text(attributes.subtitle, style: text.bodySmall),
-                ],
-                const SizedBox(height: EterSpace.s8),
-                Text(data.daily!.reason, style: text.bodySmall),
-              ],
-            ),
-          ),
+          const SizedBox(height: EterSpace.s16),
+          Text('TODAY’S CARD', style: text.labelSmall),
+          const SizedBox(height: EterSpace.s4),
+          Text(card.title, style: text.headlineSmall),
+          if (attributes != null) ...[
+            const SizedBox(height: EterSpace.s4),
+            Text(attributes.subtitle, style: text.bodySmall),
+          ],
+          const SizedBox(height: EterSpace.s8),
+          Text(data.daily!.reason, style: text.bodySmall),
         ],
+      ),
+    );
+  }
+}
+
+/// One Arcana card as the Vessel shows it: the shipped still, with the night
+/// loop composited on top wherever the deck has one.
+///
+/// Day is still and night moves — the same register rule the shell follows —
+/// and reduced motion is still everywhere. The static art is always drawn
+/// underneath, so a missing or slow loop is invisible rather than a gap.
+class EterArcanaPlate extends StatelessWidget {
+  const EterArcanaPlate({
+    super.key,
+    required this.card,
+    required this.width,
+    this.semanticLabel,
+  });
+
+  final MajorArcana card;
+  final double width;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    return Semantics(
+      image: true,
+      label: semanticLabel ?? card.title,
+      excludeSemantics: true,
+      child: ArcanaCardMedia(
+        path: card.assetFor(brightness),
+        videoPath: reduceMotion ? null : card.nightLoopFor(brightness),
+        lightOverlay: brightness == Brightness.light,
+        width: width,
+        height: width * 1.485,
       ),
     );
   }
@@ -399,6 +433,20 @@ class _ComposedReading extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Every reading is headed by its own card. Read deeper is where the
+          // deck earns its place: the passage is about that card, so the card
+          // sits above the passage rather than being named in it.
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(EterSpace.rChip),
+              child: EterArcanaPlate(
+                card: position.card,
+                width: 140,
+                semanticLabel: '${position.card.title}, ${position.label}',
+              ),
+            ),
+          ),
+          const SizedBox(height: EterSpace.s12),
           Text(position.label.toUpperCase(), style: text.labelSmall),
           const SizedBox(height: EterSpace.s8),
           Text(

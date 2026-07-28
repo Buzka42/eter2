@@ -3,7 +3,6 @@ library;
 
 import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
-import 'package:eter/core/controls.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/theme.dart';
@@ -121,22 +120,6 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 400));
     }
-  }
-
-  /// Presses the [EterAction] whose label sits in the same row as [heading] —
-  /// how the Body's `FOOD / ADD MEAL` line rhythm is driven.
-  void pressAction(WidgetTester tester, String label) {
-    tester
-        .widget<EterAction>(
-          find
-              .ancestor(
-                of: find.text(label),
-                matching: find.byType(EterAction),
-              )
-              .first,
-        )
-        .onPressed!
-        .call();
   }
 
   Future<void> scrollTo(WidgetTester tester, double offset) async {
@@ -299,23 +282,6 @@ void main() {
   // Every capture surface, opened
   // ---------------------------------------------------------------------
 
-  for (final entry in [
-    ('ADD ACTIVITY', 'activity', 0.0),
-    ('ADD MEAL', 'meal', 240.0),
-    ('RECORD', 'strength', 320.0),
-  ]) {
-    testWidgets('body capture · ${entry.$2}', (tester) async {
-      await pumpShell(tester, db: await seededDatabase(tester));
-      await tapText(tester, 'LOOK DEEPER');
-      await tapText(tester, 'THE BODY');
-      pressAction(tester, entry.$1);
-      await tester.pump();
-      if (entry.$3 > 0) await scrollTo(tester, entry.$3);
-      await shot(tester, 'capture-${entry.$2}');
-      await dispose(tester);
-    });
-  }
-
   testWidgets('journal check-in rail', (tester) async {
     await pumpShell(tester, db: await seededDatabase(tester));
     await tapText(tester, 'JOURNAL');
@@ -398,26 +364,6 @@ void main() {
     await shot(tester, 'whole-journal-day');
     await dispose(tester);
   });
-
-  for (final entry in [
-    ('ADD ACTIVITY', 'activity'),
-    ('ADD MEAL', 'meal'),
-    ('RECORD', 'strength'),
-  ]) {
-    testWidgets('whole capture · ${entry.$2}', (tester) async {
-      await pumpShell(
-        tester,
-        db: await seededDatabase(tester),
-        height: 2400,
-      );
-      await tapText(tester, 'LOOK DEEPER');
-      await tapText(tester, 'THE BODY');
-      pressAction(tester, entry.$1);
-      await tester.pump();
-      await shot(tester, 'whole-capture-${entry.$2}');
-      await dispose(tester);
-    });
-  }
 
   testWidgets('whole onboarding, consent step', (tester) async {
     final db = await emptyDatabase(tester);

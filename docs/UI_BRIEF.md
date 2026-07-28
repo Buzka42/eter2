@@ -190,6 +190,34 @@ Three destinations. Not five, not a tab bar.
 
 ---
 
+## 5a. Where input happens
+
+**The Dashboard reads; the Journal writes** (product rule, 28 July 2026).
+
+Every capture control has been removed from the Body: no add activity, no add
+meal, no record strength, no record weight. The Dashboard exists for guidance
+and analysis, and it asks the user for nothing.
+
+All input outside the Sanctum happens by writing a Journal page and letting
+interpretation derive from it. The Sanctum keeps settings, consents, birth
+context and the health connection, because those are configuration rather than
+the day's record.
+
+Two consequences, both binding:
+
+- **Do not add a capture control to a reading surface**, however small or
+  quiet, and however obviously useful. The rule is the point.
+- **Journal classification is now the only route into the record**, so its
+  contract has to grow beyond food and lifestyle to cover weight, activity and
+  strength. Until it does, those tables can only be written by the health hub.
+  This is tracked in `ROADMAP.md`.
+
+The one interaction that survives on a reading surface is correcting a
+*derived* food estimate, which is review of something the Journal produced —
+and which the brief requires before an estimate may count toward a total.
+
+---
+
 ## 6. The Journal
 
 An open, date-led personal journal page. `SurfaceIntent.plain`.

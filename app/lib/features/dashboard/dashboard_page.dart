@@ -40,6 +40,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
   bool _composing = false;
   String? _compositionMessage;
 
+  /// The day this surface has already offered to compose for. Guidance is the
+  /// day's first sentence; asking the user to press a button for it every
+  /// morning made the product feel like it was waiting to be operated.
+  String? _autoComposedDay;
+
   @override
   void dispose() {
     _scrollController.dispose();
@@ -146,6 +151,17 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const SizedBox.shrink();
                   }
+                  // Once per local day, and only once: the first look at the
+                  // Dashboard composes on its own. `_autoComposedDay` is set
+                  // before the attempt, so a failure does not retry on every
+                  // rebuild — the explicit action below is the retry.
+                  if (_autoComposedDay != today &&
+                      ref.read(aetherTransportProvider) != null) {
+                    _autoComposedDay = today;
+                    WidgetsBinding.instance.addPostFrameCallback(
+                      (_) => _compose(db, now),
+                    );
+                  }
                   return _UncomposedGuidance(
                     style: supportingStyle,
                     composing: _composing,
@@ -222,14 +238,23 @@ class _UncomposedGuidance extends StatelessWidget {
   Widget build(BuildContext context) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Today’s guidance has not been composed yet.', style: style),
-          const SizedBox(height: EterSpace.s12),
-          EterAction(
-            label: composing ? 'Composing' : 'Compose guidance',
-            busy: composing,
-            emphasis: EterActionEmphasis.quiet,
-            onPressed: onCompose,
+          Text(
+            composing
+                ? 'Composing today’s guidance…'
+                : 'Today’s guidance has not been composed yet.',
+            style: style,
           ),
+          // Composition is automatic on the day's first look, so this is a
+          // retry rather than the way in. It is smaller and quieter than the
+          // sentence above it, and it says nothing while it is working.
+          if (!composing) ...[
+            const SizedBox(height: EterSpace.s12),
+            EterAction(
+              label: 'Compose now',
+              emphasis: EterActionEmphasis.quiet,
+              onPressed: onCompose,
+            ),
+          ],
           if (message != null) ...[
             const SizedBox(height: EterSpace.s8),
             Semantics(

@@ -146,6 +146,33 @@ Until 1–4 exist, everything below is optional and this is not.
 
 ---
 
+## 1a. The input rule's unfinished half
+
+**Urgent, and created deliberately on 28 July 2026.** Capture left the
+Dashboard: the Body no longer offers add-activity, add-meal, record-strength or
+record-weight, because all input outside the Sanctum now happens through the
+Journal.
+
+The Journal's classification contract accepts **food and lifestyle shapes
+only**. So three things a user could record this morning have no route at all
+until it grows:
+
+| Record | Was | Is now |
+|---|---|---|
+| Weight | `WEIGHT / RECORD` on Body | nothing — the health hub only |
+| Activity | `ACTIVITY / ADD ACTIVITY` | nothing — the health hub only |
+| Strength | `STRENGTH / RECORD` | nothing |
+
+The write services (`ManualWeightService`, `ManualActivityService`,
+`StrengthWorkoutService`) are intact and still tested; what is missing is the
+bridge from interpreted prose to them. That means extending
+`classification_contract.dart` with bounded weight, activity and strength
+shapes, and extending the classifier's commit to route them through the same
+canonical deduplicated paths those services already use.
+
+Doing this needs the AI transport (§1) to exist first, which is why it is
+here and not in §0.
+
 ## 2. Promises made in the product docs that have no code
 
 Ordered by how visible the gap is to a user.

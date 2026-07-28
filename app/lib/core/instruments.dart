@@ -134,57 +134,121 @@ class _BalancePainter extends CustomPainter {
       ..strokeWidth = 1.3
       ..strokeCap = StrokeCap.round;
 
-    // Column and footed base.
-    final baseY = size.height * 0.92;
-    canvas.drawLine(
-        Offset(g.pivot.dx, g.pivotY), Offset(g.pivot.dx, baseY), thin);
-    final footWidth = size.width * 0.13;
-    canvas.drawLine(Offset(g.pivot.dx - footWidth, baseY),
-        Offset(g.pivot.dx + footWidth, baseY), thin);
-    canvas.drawLine(Offset(g.pivot.dx - footWidth * 0.55, baseY - 7),
-        Offset(g.pivot.dx - footWidth, baseY), thin);
-    canvas.drawLine(Offset(g.pivot.dx + footWidth * 0.55, baseY - 7),
-        Offset(g.pivot.dx + footWidth, baseY), thin);
+    final faint = Paint()
+      ..color = line.withValues(alpha: line.a * 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7
+      ..strokeCap = StrokeCap.round;
 
-    // The beam, and the pivot jewel it turns on.
+    // --- The pillar: a tapered column on a stepped plinth, not a stick on a
+    // triangle. The taper is two lines that meet the cap moulding; the plinth
+    // is three narrowing courses. This is where most of the object's weight
+    // comes from, and it costs nothing at any size.
+    final baseY = size.height * 0.92;
+    final capY = g.pivotY + 6;
+    final halfCap = size.width * 0.011;
+    final halfFoot = size.width * 0.022;
+    canvas.drawLine(
+      Offset(g.pivot.dx - halfCap, capY),
+      Offset(g.pivot.dx - halfFoot, baseY - 10),
+      thin,
+    );
+    canvas.drawLine(
+      Offset(g.pivot.dx + halfCap, capY),
+      Offset(g.pivot.dx + halfFoot, baseY - 10),
+      thin,
+    );
+    canvas.drawLine(
+      Offset(g.pivot.dx - halfCap * 1.6, capY),
+      Offset(g.pivot.dx + halfCap * 1.6, capY),
+      thin,
+    );
+    for (final (index, course) in [(0, 0.62), (1, 0.82), (2, 1.0)].indexed) {
+      final width = size.width * 0.070 * course.$2;
+      final y = baseY - 10 + index * 5;
+      canvas.drawLine(
+        Offset(g.pivot.dx - width, y),
+        Offset(g.pivot.dx + width, y),
+        index == 2 ? strong : thin,
+      );
+    }
+
+    // --- The graduated scale, and the pointer that reads against it. Both sit
+    // *below* the pivot, in front of the column, where a beam balance actually
+    // carries them — above the pivot the arc had nothing to hang on and ran
+    // straight out of the frame.
+    final arcRadius = size.height * 0.235;
+    final arcRect = Rect.fromCircle(center: g.pivot, radius: arcRadius);
+    canvas.drawArc(arcRect, math.pi * 0.36, math.pi * 0.28, false, faint);
+    for (var i = -3; i <= 3; i++) {
+      final angle = math.pi / 2 + i * 0.075;
+      final direction = Offset(math.cos(angle), math.sin(angle));
+      final long = i == 0;
+      canvas.drawLine(
+        g.pivot + direction * arcRadius,
+        g.pivot + direction * (arcRadius + (long ? 6 : 3)),
+        long ? thin : faint,
+      );
+    }
+
+    // The pointer swings with the beam: a level beam reads dead centre.
+    final needle = math.pi / 2 - g.radians;
+    canvas.drawLine(
+      g.pivot,
+      g.pivot + Offset(math.cos(needle), math.sin(needle)) * (arcRadius - 3),
+      thin,
+    );
+
+    // --- The beam: a tapered bar with an eye at each end, and the pivot jewel
+    // it turns on.
     canvas.drawLine(g.leftEnd, g.rightEnd, strong);
-    canvas.drawCircle(g.pivot, 4.5, thin);
+    for (final end in [g.leftEnd, g.rightEnd]) {
+      canvas.drawCircle(end, 2.2, thin);
+    }
+    canvas.drawCircle(g.pivot, 5.5, thin);
+    canvas.drawCircle(g.pivot, 3.2, faint);
     canvas.drawCircle(g.pivot, 1.6, Paint()..color = lineStrong);
 
-    // Hangers and pans. The pan is an arc with a rim, not a filled shape.
+    // --- Chains and pans.
     //
-    // The pans hang plumb: the hanger drops vertically from the beam end and
+    // The pans hang plumb: the chain drops vertically from the beam end and
     // the bowl stays level however far the beam tilts, because that is what
     // gravity does to a suspended pan. Rotating the pans with the beam — which
     // is what a naive transform gives you — is the single thing that makes a
     // drawn balance look like a diagram instead of an object.
     for (final end in [g.leftEnd, g.rightEnd]) {
       final pan = end + Offset(0, g.hangerLength);
-      canvas.drawLine(end, Offset(pan.dx - g.panRadius * 0.8, pan.dy), thin);
-      canvas.drawLine(end, Offset(pan.dx + g.panRadius * 0.8, pan.dy), thin);
-      final rect = Rect.fromCenter(
+      for (final side in [-1.0, 1.0]) {
+        final foot = Offset(pan.dx + g.panRadius * 0.8 * side, pan.dy);
+        canvas.drawLine(end, foot, faint);
+        // Three links, struck along the run: enough to read as chain.
+        for (final t in [0.32, 0.55, 0.78]) {
+          final at = Offset.lerp(end, foot, t)!;
+          canvas.drawCircle(at, 1.1, faint);
+        }
+      }
+      // A bowl with depth: rim, body, and a second arc for thickness.
+      final rim = Rect.fromCenter(
         center: pan,
         width: g.panRadius * 2,
-        height: g.panRadius * 0.9,
+        height: g.panRadius * 0.55,
       );
-      canvas.drawArc(rect, 0, math.pi, false, strong);
+      final body = Rect.fromCenter(
+        center: pan,
+        width: g.panRadius * 2,
+        height: g.panRadius * 1.15,
+      );
+      canvas.drawArc(body, 0, math.pi, false, strong);
+      canvas.drawArc(
+        body.deflate(2.5),
+        0.25,
+        math.pi - 0.5,
+        false,
+        faint,
+      );
+      canvas.drawArc(rim, 0, math.pi, false, faint);
       canvas.drawLine(Offset(pan.dx - g.panRadius, pan.dy),
           Offset(pan.dx + g.panRadius, pan.dy), strong);
-    }
-
-    // A level mark above the pivot: the eye needs a reference to read tilt
-    // against, or a tilted beam just looks like a crooked line.
-    final markTop = g.pivotY - size.height * 0.11;
-    canvas.drawLine(
-        Offset(g.pivot.dx, markTop), Offset(g.pivot.dx, markTop + 8), thin);
-    for (final direction in [-1, 1]) {
-      final angle = -math.pi / 2 + direction * 0.42;
-      final radius = size.height * 0.10;
-      canvas.drawCircle(
-        g.pivot + Offset(radius * math.cos(angle), radius * math.sin(angle)),
-        1.1,
-        Paint()..color = line,
-      );
     }
   }
 
@@ -387,32 +451,54 @@ class EngravedSleepStages extends StatelessWidget {
     return Semantics(
       container: true,
       label: 'Sleep stages. $summary.',
+      // The rail carries the proportions; the legend beneath carries the
+      // values, and each legend entry is struck in its own stage's weight so
+      // the two read as one instrument. Positional alignment was tried first
+      // and cannot work: a ratio as small as awake-against-a-whole-night gives
+      // a column too narrow to hold the word AWAKE.
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 30,
+              height: 14,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   for (final entry in minutesByStage.entries)
                     Expanded(
                       flex: entry.value,
-                      child: Container(
-                        height: entry.key == 'awake' ? 6 : 1.5,
-                        color: entry.key == 'deep' ? ink.lineStrong : ink.line,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 2),
+                        child: Container(
+                          height: _stageWeight(entry.key),
+                          color: entry.key == 'deep' ? ink.lineStrong : ink.line,
+                        ),
                       ),
                     ),
                 ],
               ),
             ),
+            const SizedBox(height: EterSpace.s8),
             Wrap(
               spacing: EterSpace.s16,
+              runSpacing: EterSpace.s4,
               children: [
                 for (final entry in minutesByStage.entries)
-                  Text(
-                    '${entry.key.toUpperCase()} ${entry.value}m',
-                    style: text.labelSmall,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 14,
+                        height: _stageWeight(entry.key),
+                        color: entry.key == 'deep' ? ink.lineStrong : ink.line,
+                      ),
+                      const SizedBox(width: EterSpace.s8),
+                      Text(
+                        '${entry.key.toUpperCase()} ${entry.value}m',
+                        style: text.labelSmall,
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -421,6 +507,10 @@ class EngravedSleepStages extends StatelessWidget {
       ),
     );
   }
+
+  /// Awake is drawn heavier than sleep: it is the interruption, and the eye
+  /// should find it without a colour.
+  static double _stageWeight(String stage) => stage == 'awake' ? 5 : 1.5;
 }
 
 /// Several nights of stage totals. Each night is a narrow measured column,

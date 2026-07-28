@@ -340,6 +340,19 @@ class _BirthStep extends StatelessWidget {
             hint: 'YYYY-MM-DD',
             keyboardType: TextInputType.datetime,
           ),
+          // The message belongs under the field that raised it. It used to sit
+          // at the foot of the step, below the optional birth place, several
+          // fields away from the input it was about.
+          if (error != null) ...[
+            const SizedBox(height: EterSpace.s8),
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                error!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ],
           const SizedBox(height: EterSpace.s24),
           _LineField(
             controller: weight,
@@ -382,18 +395,6 @@ class _BirthStep extends StatelessWidget {
             'Exact birth time can be added later in the Sanctum.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          if (error != null) ...[
-            const SizedBox(height: EterSpace.s16),
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                error!,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: EterInk.of(context).lineStrong,
-                    ),
-              ),
-            ),
-          ],
         ],
       );
 }
@@ -525,7 +526,10 @@ class _TextChoice extends StatelessWidget {
         onTap: onTap,
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 48),
-          child: Center(
+          // Left-aligned, like every field above it. Centred labels inside a
+          // left-aligned form read as three captions rather than a choice.
+          child: Align(
+            alignment: Alignment.centerLeft,
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
