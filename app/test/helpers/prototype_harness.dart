@@ -58,7 +58,11 @@ Future<void> loadEterFonts() async {
   ]) {
     inter.addFont(Future.value(bytes('assets/fonts/$file')));
   }
-  await Future.wait([cormorant.load(), inter.load()]);
+  // The astrological face, so charts render their real glyphs in captures
+  // rather than the test font's boxes.
+  final astro = FontLoader('EterAstro')
+    ..addFont(Future.value(bytes('assets/fonts/EterAstro.ttf')));
+  await Future.wait([cormorant.load(), inter.load(), astro.load()]);
 }
 
 /// The shell as the prototype ships it, against the pinned clock and an

@@ -615,8 +615,7 @@ class _PositionLine extends StatelessWidget {
                 AstroGlyphMark(
                   glyph: glyph,
                   color: ink.labelMuted,
-                  size: 13,
-                  strokeWidth: 1.1,
+                  size: 14,
                 ),
                 const SizedBox(width: EterSpace.s8),
               ],
@@ -637,8 +636,7 @@ class _PositionLine extends StatelessWidget {
                   AstroGlyphMark(
                     glyph: sign,
                     color: ink.labelMuted,
-                    size: 11,
-                    strokeWidth: 1,
+                    size: 12,
                   ),
                   const SizedBox(width: EterSpace.s4),
                 ],

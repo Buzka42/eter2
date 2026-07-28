@@ -1,0 +1,20 @@
+EterAstro.ttf
+=============
+
+A subset of two Google Noto faces, merged, containing only the 22 astrological
+codepoints Eter draws:
+
+  U+2609            Sun                  from Noto Sans Symbols 2
+  U+263D..U+2647    Moon and planets     from Noto Sans Symbols
+  U+2648..U+2653    the twelve signs     from Noto Sans Symbols
+
+Both sources are licensed under the SIL Open Font License, Version 1.1, which
+permits subsetting, merging and redistribution with the software. The full
+licence travels with the originals at:
+
+  https://github.com/google/fonts/tree/main/ofl/notosanssymbols
+  https://github.com/google/fonts/tree/main/ofl/notosanssymbols2
+
+Regenerate with tool/build_astro_font.py after changing the codepoint list.
+The face is used for symbols only and never for text: Cormorant Garamond and
+Inter remain the app's two voices.

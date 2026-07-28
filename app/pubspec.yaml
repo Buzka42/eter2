@@ -71,6 +71,11 @@ flutter:
         - asset: assets/fonts/CormorantGaramond-MediumItalic.ttf
           weight: 500
           style: italic
+    # Symbols only, never text. A 5.5 KB subset of two Noto faces carrying the
+    # 22 astrological codepoints; see assets/fonts/EterAstro.LICENSE.txt.
+    - family: EterAstro
+      fonts:
+        - asset: assets/fonts/EterAstro.ttf
     - family: Inter
       fonts:
         - asset: assets/fonts/Inter-Regular.ttf

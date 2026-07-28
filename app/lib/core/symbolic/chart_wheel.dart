@@ -81,6 +81,7 @@ class NatalChartWheel extends StatelessWidget {
                 ? EterColors.night900.withValues(alpha: 0.55)
                 : null,
             drawHouses: ascendantReliable,
+            textDirection: Directionality.of(context),
           ),
         ),
       ),
@@ -95,6 +96,7 @@ class _ChartWheelPainter extends CustomPainter {
     required this.lineStrong,
     required this.label,
     required this.drawHouses,
+    required this.textDirection,
     this.ground,
   });
 
@@ -107,6 +109,7 @@ class _ChartWheelPainter extends CustomPainter {
   /// line-work. Null in day, where the plate is already calm.
   final Color? ground;
   final bool drawHouses;
+  final TextDirection textDirection;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -162,8 +165,8 @@ class _ChartWheelPainter extends CustomPainter {
         start + 15,
         (outer + ringInner) / 2,
         anchor,
-        AstroGlyph.values[AstroGlyph.aries.index + i],
-        (outer - ringInner) * 0.62,
+        AstroGlyph.signs[i],
+        (outer - ringInner) * 0.66,
       );
       for (var tick = 10; tick < 30; tick += 10) {
         _spoke(
@@ -251,7 +254,7 @@ class _ChartWheelPainter extends CustomPainter {
         radius,
         anchor,
         glyph,
-        outer * 0.115,
+        outer * 0.125,
       );
     }
 
@@ -260,16 +263,13 @@ class _ChartWheelPainter extends CustomPainter {
       for (final point in ['Ascendant', 'Midheaven']) {
         final position = _positionOf(point);
         if (position == null) continue;
-        _glyph(
+        _angleLabel(
           canvas,
           centre,
           position.longitude,
           outer * 0.995,
           anchor,
-          point == 'Ascendant'
-              ? AstroGlyph.ascendant
-              : AstroGlyph.midheaven,
-          outer * 0.10,
+          point == 'Ascendant' ? 'ASC' : 'MC',
         );
       }
     }
@@ -324,15 +324,45 @@ class _ChartWheelPainter extends CustomPainter {
     AstroGlyph glyph,
     double size,
   ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: glyph.character,
+        style: TextStyle(
+          fontFamily: AstroGlyph.fontFamily,
+          fontSize: size,
+          color: label,
+        ),
+      ),
+      textDirection: textDirection,
+    )..layout();
     final at = _point(centre, longitude, radius, anchor);
-    canvas.save();
-    canvas.translate(at.dx - size / 2, at.dy - size / 2);
-    AstroGlyphPainter(
-      glyph: glyph,
-      color: label,
-      strokeWidth: 0.9,
-    ).paint(canvas, Size.square(size));
-    canvas.restore();
+    painter.paint(canvas, at - Offset(painter.width / 2, painter.height / 2));
+  }
+
+  /// The angles have no glyph in Unicode, so they keep their letters.
+  void _angleLabel(
+    Canvas canvas,
+    Offset centre,
+    double longitude,
+    double radius,
+    double anchor,
+    String text,
+  ) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontFamily: 'Inter',
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.8,
+          color: label,
+        ),
+      ),
+      textDirection: textDirection,
+    )..layout();
+    final at = _point(centre, longitude, radius, anchor);
+    painter.paint(canvas, at - Offset(painter.width / 2, painter.height / 2));
   }
 
   @override
