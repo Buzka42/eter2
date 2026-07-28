@@ -7,6 +7,7 @@ import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/register.dart';
 import 'package:eter/core/theme.dart';
 import 'package:eter/features/onboarding/onboarding_flow.dart';
+import 'package:eter/features/onboarding/tutorial.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -364,6 +365,31 @@ void main() {
     await shot(tester, 'whole-journal-day');
     await dispose(tester);
   });
+
+  for (final step in [0, 3]) {
+    testWidgets('tutorial passage ${step + 1}', (tester) async {
+      final db = await emptyDatabase(tester);
+      eterSurfaceSize(tester, 390, 844);
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: EterTheme.day(),
+            home: EterRegisterScope(
+              register: EterRegister.day,
+              child: EterTutorial(database: db, onFinished: () {}),
+            ),
+          ),
+        ),
+      );
+      await settleAssets(tester);
+      for (var i = 0; i < step; i++) {
+        await tapText(tester, 'NEXT');
+      }
+      await shot(tester, 'tutorial-${step + 1}');
+      await dispose(tester);
+    });
+  }
 
   testWidgets('whole onboarding, consent step', (tester) async {
     final db = await emptyDatabase(tester);

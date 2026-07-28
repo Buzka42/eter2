@@ -23,6 +23,41 @@ double rmrKcalPerDay({
   };
 }
 
+/// kcal/day from lean mass — Katch-McArdle.
+///
+/// Preferred over Mifflin-St Jeor whenever body fat is actually known, because
+/// it reads the tissue that does the spending rather than total mass and sex.
+/// It is never used with a guessed composition: Eter does not estimate body
+/// fat, so an absent value falls back to [rmrKcalPerDay] rather than to an
+/// invented one.
+double rmrKcalPerDayFromLeanMass({
+  required double weightKg,
+  required double bodyFatPercent,
+}) {
+  final leanKg = weightKg * (1 - bodyFatPercent / 100);
+  return 370 + 21.6 * leanKg;
+}
+
+/// The best resting estimate the recorded facts support.
+double restingKcalPerDay({
+  required Sex sex,
+  required double weightKg,
+  required double heightCm,
+  required int age,
+  double? bodyFatPercent,
+}) =>
+    bodyFatPercent == null
+        ? rmrKcalPerDay(
+            sex: sex,
+            weightKg: weightKg,
+            heightCm: heightCm,
+            age: age,
+          )
+        : rmrKcalPerDayFromLeanMass(
+            weightKg: weightKg,
+            bodyFatPercent: bodyFatPercent,
+          );
+
 double rmrPerMin(double rmrPerDay) => rmrPerDay / 1440;
 
 /// Everything the body has spent so far today: resting burn accrued since

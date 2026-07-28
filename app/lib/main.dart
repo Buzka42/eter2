@@ -8,6 +8,7 @@ import 'core/aether/guidance_contract.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
 import 'core/journal/classification_contract.dart';
+import 'core/journal/day_story.dart';
 import 'core/profile/birth_context.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
@@ -15,6 +16,7 @@ import 'core/health/foreground_refresh.dart';
 import 'core/vessel/reading_composer.dart';
 import 'core/theme.dart';
 import 'features/onboarding/onboarding_flow.dart';
+import 'features/onboarding/tutorial.dart';
 import 'features/shell/eter_shell.dart';
 
 /// Bootstrap.
@@ -56,6 +58,12 @@ final aetherTransportProvider = Provider<AetherProvider?>((ref) => null);
 
 final vesselReadingTransportProvider =
     Provider<VesselReadingProvider?>((ref) => null);
+
+/// Optional transport for the Journal's daily story and its digest. Absent
+/// until a provider is configured; the Journal then shows the day's pages
+/// without a story rather than pretending to have one.
+final journalDayStoryProvider =
+    Provider<JournalDayStoryProvider?>((ref) => null);
 final birthplaceResolverProvider = Provider<BirthplaceResolver>(
   (ref) => PlatformBirthplaceResolver(),
 );
@@ -81,6 +89,7 @@ class _EterAppState extends ConsumerState<EterApp> {
   Stream<ProfileRow?>? _profileStream;
   Future<Map<String, IntakeAnswerRow>>? _intakeFuture;
   bool _onboardingCompletedNow = false;
+  bool _tutorialCompletedNow = false;
 
   @override
   void dispose() {
@@ -160,6 +169,18 @@ class _EterAppState extends ConsumerState<EterApp> {
                     profile: profile,
                     onComplete: () =>
                         setState(() => _onboardingCompletedNow = true),
+                  );
+                }
+                // The first minute, once. A sparse interface is the kind most
+                // often misread, so the four passages that say where things
+                // are come between intake and the shell — and never again.
+                final tutorialDone = _tutorialCompletedNow ||
+                    intake.data?[EterTutorial.answerKey]?.value == 'true';
+                if (!tutorialDone) {
+                  return EterTutorial(
+                    database: db,
+                    onFinished: () =>
+                        setState(() => _tutorialCompletedNow = true),
                   );
                 }
                 return HealthRefreshOnResume(

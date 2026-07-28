@@ -41,7 +41,7 @@ class DailyActivitySummaryService {
     final endLocal = end.toLocal();
     final endDate = eterIsoDate(endLocal);
     final restingPerMinute = energy.rmrPerMin(
-      energy.rmrKcalPerDay(
+      energy.restingKcalPerDay(
         sex: switch (profile.sex) {
           'female' => energy.Sex.female,
           'male' => energy.Sex.male,
@@ -50,6 +50,7 @@ class DailyActivitySummaryService {
         weightKg: profile.weightKg,
         heightCm: height,
         age: _ageAt(profile.dob, endLocal),
+        bodyFatPercent: profile.bodyFatPercent,
       ),
     );
 

@@ -14,6 +14,7 @@ import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
 import '../../core/journal/classification_contract.dart';
 import '../../core/journal/classifier.dart';
+import '../../core/journal/day_story.dart';
 import '../../core/lifestyle/daily_check_in.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
@@ -47,6 +48,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   bool _listening = false;
   String? _dictationNote;
   String _dictationBase = '';
+  final _storyKey = GlobalKey<_DayStoryState>();
   Stream<List<JournalEntryRow>>? _entriesStream;
   String? _streamedDay;
   DateTime? _selectedDay;
@@ -96,6 +98,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       // Haptics confirm the save but must never hold the page in its composing
       // state when a platform channel is slow or unavailable.
       unawaited(EterHaptics.light());
+      // The day now reads differently, so its story is stale.
+      unawaited(_storyKey.currentState?.refresh() ?? Future<void>.value());
     } finally {
       _saving = false;
     }
@@ -271,6 +275,12 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                     ],
                   ),
                   const SizedBox(height: EterSpace.s16),
+                  _DayStory(
+                    key: _storyKey,
+                    day: selectedDay,
+                    isToday: isToday,
+                    proseStyle: proseStyle,
+                  ),
                   if (isToday) ...[
                     Stack(
                       children: [
@@ -370,6 +380,119 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// The day, read back — the first thing on the Journal page and always there.
+///
+/// It is not a header and not a card: a short passage in the page's own prose,
+/// set apart by a hairline beneath rather than a box around. It arrives through
+/// the shared reveal the first time it appears, like everything else Aether
+/// writes.
+///
+/// Refreshed when the Journal opens and again after each entry saves. Both are
+/// cheap: the composer fingerprints the day's prose and returns the stored row
+/// untouched when nothing has changed.
+class _DayStory extends ConsumerStatefulWidget {
+  const _DayStory({
+    super.key,
+    required this.day,
+    required this.isToday,
+    required this.proseStyle,
+  });
+
+  final DateTime day;
+  final bool isToday;
+  final TextStyle? proseStyle;
+
+  @override
+  ConsumerState<_DayStory> createState() => _DayStoryState();
+}
+
+class _DayStoryState extends ConsumerState<_DayStory> {
+  Stream<JournalDayStoryRow?>? _stream;
+  String? _streamedDay;
+  String? _lastRefreshedFingerprint;
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // The story for the page being opened, not for whatever was open before.
+    WidgetsBinding.instance.addPostFrameCallback((_) => refresh());
+  }
+
+  @override
+  void didUpdateWidget(covariant _DayStory old) {
+    super.didUpdateWidget(old);
+    if (eterIsoDate(old.day) != eterIsoDate(widget.day)) refresh();
+  }
+
+  /// Recomposes the day if its prose has changed. Silent throughout: a story
+  /// is something the page has, not a task the reader is waiting on.
+  Future<void> refresh() async {
+    if (_busy || !mounted) return;
+    final provider = ref.read(journalDayStoryProvider);
+    if (provider == null) return;
+    _busy = true;
+    try {
+      await JournalDayStoryComposer(
+        database: ref.read(databaseProvider),
+        provider: provider,
+      ).refresh(day: widget.day, now: ref.read(nowProvider)());
+    } catch (_) {
+      // A story that cannot be written changes nothing about the page. The
+      // previous one, if any, stays.
+    } finally {
+      _busy = false;
+    }
+  }
+
+  Stream<JournalDayStoryRow?> _storyFor(AppDatabase db) {
+    final date = eterIsoDate(widget.day);
+    if (_stream == null || _streamedDay != date) {
+      _streamedDay = date;
+      _stream = db.watchDayStory(date);
+    }
+    return _stream!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final db = ref.watch(databaseProvider);
+    final ink = EterInk.of(context);
+
+    return StreamBuilder<JournalDayStoryRow?>(
+      stream: _storyFor(db),
+      builder: (context, snapshot) {
+        final row = snapshot.data;
+        if (row == null || row.story.trim().isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final arriving = _lastRefreshedFingerprint != null &&
+            _lastRefreshedFingerprint != row.sourceFingerprint;
+        _lastRefreshedFingerprint = row.sourceFingerprint;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: EterSpace.s24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              EterArrival.single(
+                row.story,
+                key: ValueKey('story-${row.sourceFingerprint}'),
+                style: widget.proseStyle?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: ink.label,
+                ),
+                playArrival: arriving,
+              ),
+              const SizedBox(height: EterSpace.s12),
+              Container(height: 1, width: 64, color: ink.line),
+            ],
+          ),
+        );
+      },
     );
   }
 }

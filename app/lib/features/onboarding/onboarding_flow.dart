@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/profile/body_fat.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
@@ -33,6 +34,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _height = TextEditingController();
   var _step = 0;
   var _sex = 'other';
+  double? _bodyFat;
   var _ai = false;
   var _journalAi = false;
   var _cloud = false;
@@ -46,6 +48,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _name.text = profile?.firstName ?? '';
     _birthPlace.text = profile?.birthPlace ?? '';
     _sex = profile?.sex ?? 'other';
+    _bodyFat = EterBodyFat.normalize(profile?.bodyFatPercent);
     if (profile != null) {
       _dob.text = '${profile.dob.year.toString().padLeft(4, '0')}-'
           '${profile.dob.month.toString().padLeft(2, '0')}-'
@@ -81,6 +84,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             sex: _sex,
             weightKg: weight,
             heightCm: Value(height),
+            bodyFatPercent: Value(_bodyFat),
             units: 'metric',
             firstName:
                 Value(_name.text.trim().isEmpty ? null : _name.text.trim()),
@@ -96,6 +100,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               sex: Value(_sex),
               weightKg: Value(weight),
               heightCm: Value(height),
+              bodyFatPercent: Value(_bodyFat),
               firstName:
                   Value(_name.text.trim().isEmpty ? null : _name.text.trim()),
               birthPlace: Value(_birthPlace.text.trim().isEmpty
@@ -163,6 +168,8 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const _OnboardingMark(),
+                      const SizedBox(height: EterSpace.s12),
+                      const EterMotto(),
                       const SizedBox(height: EterSpace.s32),
                       Semantics(
                         label: 'Onboarding step ${_step + 1} of 3',
@@ -187,6 +194,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                               dob: _dob,
                               weight: _weight,
                               height: _height,
+                              bodyFat: _bodyFat,
+                              onBodyFat: (value) =>
+                                  setState(() => _bodyFat = value),
                               sex: _sex,
                               onSex: (value) => setState(() => _sex = value),
                               place: _birthPlace,
@@ -286,6 +296,33 @@ class _OnboardingMark extends StatelessWidget {
       );
 }
 
+/// The line the whole product is an argument for. It appears once, under the
+/// name, at the moment someone meets Eter for the first time — and again on
+/// the first card of the tutorial. Nowhere else: a motto repeated is a slogan.
+///
+/// `anima` rather than Juvenal's `mens`: soul rather than mind, which is the
+/// triad this product actually reads — health, mind, spirit.
+class EterMotto extends StatelessWidget {
+  const EterMotto({super.key, this.textAlign = TextAlign.center});
+
+  static const text = 'Anima Sana In Corpore Sano';
+
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        textAlign: textAlign,
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontFamily: 'Cormorant Garamond',
+              fontSize: 16,
+              fontStyle: FontStyle.italic,
+              letterSpacing: 0.6,
+              color: EterInk.of(context).labelMuted,
+            ),
+      );
+}
+
 class _WelcomeStep extends StatelessWidget {
   const _WelcomeStep({super.key, required this.name, required this.intention});
   final TextEditingController name;
@@ -319,10 +356,14 @@ class _BirthStep extends StatelessWidget {
     required this.onSex,
     required this.place,
     required this.error,
+    required this.bodyFat,
+    required this.onBodyFat,
   });
   final TextEditingController dob;
   final TextEditingController weight;
   final TextEditingController height;
+  final double? bodyFat;
+  final ValueChanged<double?> onBodyFat;
   final String sex;
   final ValueChanged<String> onSex;
   final TextEditingController place;
@@ -367,7 +408,9 @@ class _BirthStep extends StatelessWidget {
             hint: '170',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
-          const SizedBox(height: EterSpace.s24),
+          const SizedBox(height: EterSpace.s8),
+          BodyFatField(value: bodyFat, onChanged: onBodyFat),
+          const SizedBox(height: EterSpace.s16),
           Text('BODY CONTEXT', style: Theme.of(context).textTheme.labelSmall),
           Wrap(
             spacing: EterSpace.s16,
