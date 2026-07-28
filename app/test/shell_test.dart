@@ -517,8 +517,10 @@ void main() {
     await waitForWidget(tester, find.text('READ DEEPER'));
 
     expect(find.byType(VesselSection), findsOneWidget);
-    expect(find.text('TODAY’S CARD'), findsOneWidget);
-    expect(find.text('Strength'), findsWidgets);
+    // The card is the Sun's Arcana, fixed at birth — not a daily draw.
+    expect(find.text('YOUR CARD'), findsOneWidget);
+    expect(find.text('The Emperor'), findsWidgets);
+    expect(find.textContaining('It does not change'), findsOneWidget);
     expect(find.text('LIFE PATH 8'), findsOneWidget);
     expect(find.text('SUN'), findsOneWidget);
     expect(find.text('MOON'), findsOneWidget);

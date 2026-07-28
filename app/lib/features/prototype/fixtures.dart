@@ -5,7 +5,6 @@ import 'package:drift/drift.dart';
 import '../../core/clock.dart';
 import '../../core/db/app_database.dart';
 import '../../core/energy/energy.dart' as energy;
-import '../../core/arcana/major_arcana.dart';
 import '../../core/symbolic/numerology.dart';
 
 /// Fixture content for the defining prototype.
@@ -319,28 +318,8 @@ abstract final class PrototypeFixtures {
   static Future<void> _seedVessel(AppDatabase db, DateTime now) async {
     final profile = await db.loadProfile();
     if (profile == null) return;
-    final today = eterIsoDate(now);
-    if (await db.loadDailyCard(today) == null) {
-      final personalYear = calculatePersonalYear(profile.dob, now);
-      final card = MajorArcana.forLifePath(personalYear);
-      await db.recordDailyCard(
-        DailyCardsCompanion.insert(
-          date: today,
-          arcanaSlug: card.assetSlug,
-          reason: '${card.title} corresponds to personal year $personalYear, '
-              'the deterministic cycle active for this date.',
-          sourceJson: Value(
-            jsonEncode({
-              'selector': 'personalYear',
-              'personalYear': personalYear,
-              'dob': profile.dob.toIso8601String(),
-              'date': today,
-            }),
-          ),
-        ),
-      );
-    }
-
+    // No daily card: the Vessel leads with the Sun's Arcana, which is
+    // derived from the profile rather than stored.
     final inputHash = [
       profile.dob.toIso8601String(),
       profile.birthTimeMinutes ?? 'unknown-time',

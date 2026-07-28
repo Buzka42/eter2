@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../arcana/major_arcana.dart';
+import '../arcana/zodiac.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
 import '../symbolic/natal_chart.dart';
@@ -155,7 +156,11 @@ class AetherContextAssembler {
       ));
       final lifePath = calculateLifePath(profile.dob);
       final today = eterIsoDate(localNow);
-      final card = await database.loadDailyCard(today);
+      // The Sun's Arcana: the one card that is permanently this person's,
+      // rather than a daily draw. See _SunCard in the Vessel.
+      final sunSign = Zodiac.values.firstWhere(
+        (value) => value.label == chart.sun.sign,
+      );
       final transit = await database.loadTransitReading(
         date: today,
         inputHash: _inputHash(profile),
@@ -169,9 +174,7 @@ class AetherContextAssembler {
             knowsTime && knowsPlace ? chart.ascendant.sign : null,
         lifePath: lifePath,
         personalYear: calculatePersonalYear(profile.dob, localNow),
-        todaysCard: card == null
-            ? null
-            : MajorArcana.bySlug(card.arcanaSlug)?.title,
+        sunCard: MajorArcana.forZodiac(sunSign).title,
         positionsNote: transit == null ? null : _guidanceNote(transit.passage),
       );
     } catch (_) {

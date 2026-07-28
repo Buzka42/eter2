@@ -55,7 +55,7 @@ class AetherSymbolicContext {
     this.ascendantSign,
     required this.lifePath,
     this.personalYear,
-    this.todaysCard,
+    this.sunCard,
     this.positionsNote,
   });
 
@@ -68,7 +68,8 @@ class AetherSymbolicContext {
   final String? ascendantSign;
   final int lifePath;
   final int? personalYear;
-  final String? todaysCard;
+  /// The Arcana of the person's Sun sign — fixed at birth, not a daily draw.
+  final String? sunCard;
 
   /// The one sentence Positions is allowed to hand to guidance. It is prose
   /// the model wrote earlier today about the day's transits, already validated.
@@ -80,7 +81,7 @@ class AetherSymbolicContext {
         if (ascendantSign != null) 'ascendantSign': ascendantSign!,
         'lifePath': lifePath,
         if (personalYear != null) 'personalYear': personalYear!,
-        if (todaysCard != null) 'todaysCard': todaysCard!,
+        if (sunCard != null) 'sunCard': sunCard!,
         if (positionsNote != null) 'positionsNote': positionsNote!,
       };
 }

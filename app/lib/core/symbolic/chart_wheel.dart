@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../controls.dart';
+import '../tokens.dart';
 import 'natal_chart.dart';
 
 /// The chart itself, drawn as an instrument.
@@ -43,6 +44,7 @@ class NatalChartWheel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
+    final night = Theme.of(context).brightness == Brightness.dark;
     final positions = chart.positions
         .where((position) =>
             position.name != 'Ascendant' && position.name != 'Midheaven')
@@ -62,9 +64,20 @@ class NatalChartWheel extends StatelessWidget {
         child: CustomPaint(
           painter: _ChartWheelPainter(
             chart: chart,
-            line: ink.line,
-            lineStrong: ink.lineStrong,
-            label: ink.labelMuted,
+            // Night draws the chart in gold on its own ground rather than in
+            // the shell's hairline ink. Against a star field an ink hairline
+            // competes with the stars and loses: the wheel was legible in day
+            // and nearly gone at night.
+            line: night
+                ? EterColors.aura500.withValues(alpha: 0.85)
+                : ink.line,
+            lineStrong: night ? EterColors.gild : ink.lineStrong,
+            label: night
+                ? EterColors.aura300.withValues(alpha: 0.9)
+                : ink.labelMuted,
+            ground: night
+                ? EterColors.night900.withValues(alpha: 0.55)
+                : null,
             drawHouses: ascendantReliable,
             textDirection: Directionality.of(context),
           ),
@@ -82,12 +95,17 @@ class _ChartWheelPainter extends CustomPainter {
     required this.label,
     required this.drawHouses,
     required this.textDirection,
+    this.ground,
   });
 
   final NatalChart chart;
   final Color line;
   final Color lineStrong;
   final Color label;
+
+  /// A disc laid under the wheel so the sky behind it stops competing with the
+  /// line-work. Null in day, where the plate is already calm.
+  final Color? ground;
   final bool drawHouses;
   final TextDirection textDirection;
 
@@ -132,6 +150,18 @@ class _ChartWheelPainter extends CustomPainter {
       ..strokeWidth = 0.7
       ..strokeCap = StrokeCap.round;
 
+    final ground = this.ground;
+    if (ground != null) {
+      canvas.drawCircle(
+        centre,
+        outer,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [ground, ground.withValues(alpha: 0)],
+            stops: const [0.72, 1],
+          ).createShader(Rect.fromCircle(center: centre, radius: outer)),
+      );
+    }
     canvas.drawCircle(centre, outer, thin);
     canvas.drawCircle(centre, ringInner, thin);
     canvas.drawCircle(centre, aspectRadius, faint);
@@ -332,5 +362,6 @@ class _ChartWheelPainter extends CustomPainter {
       old.chart != chart ||
       old.line != line ||
       old.lineStrong != lineStrong ||
+      old.ground != ground ||
       old.drawHouses != drawHouses;
 }

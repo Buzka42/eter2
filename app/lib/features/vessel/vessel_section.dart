@@ -116,10 +116,6 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       profile.birthLatitude ?? 'unknown-latitude',
       profile.birthLongitude ?? 'unknown-longitude',
     ].join('|');
-    final today = '${widget.now.year.toString().padLeft(4, '0')}-'
-        '${widget.now.month.toString().padLeft(2, '0')}-'
-        '${widget.now.day.toString().padLeft(2, '0')}';
-    final daily = await widget.db.loadDailyCard(today);
     final readings = <String, VesselReadingRow?>{
       for (final key in const ['lifePath', 'sun', 'moon', 'ascendant'])
         key: await widget.db.loadVesselReading(
@@ -131,7 +127,6 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       content: content,
       chart: chart,
       lifePath: lifePath,
-      daily: daily,
       readings: readings,
       inputHash: hash,
       mode: switch (profile.guidanceMode) {
@@ -258,7 +253,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 ),
               ),
               const SizedBox(height: EterSpace.s24),
-              if (data.daily != null) _DailyCard(data: data),
+              _SunCard(data: data),
               if (data.usedApproximateTime || data.usedApproximatePlace) ...[
                 const SizedBox(height: EterSpace.s16),
                 Text(
@@ -276,12 +271,10 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                   _ComposedReading(
                     position: position,
                     reading: data.readings[position.key],
-                    // The daily card is already on screen at full size a few
-                    // lines above. When a position resolves to that same card
-                    // — which Life Path often does — its plate is omitted
-                    // rather than printed twice.
-                    showCard: data.daily == null ||
-                        position.card.assetSlug != data.daily!.arcanaSlug,
+                    // The Sun card is already on screen at full width a few
+                    // lines above; a position resolving to the same card does
+                    // not print it twice.
+                    showCard: position.key != 'sun',
                   )
                 else
                   _PositionLine(position: position),
@@ -334,46 +327,58 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   }
 }
 
-class _DailyCard extends StatelessWidget {
-  const _DailyCard({required this.data});
+/// The card a person is born under.
+///
+/// There was a "card of the day" here, and it was two failures wearing one
+/// name: it was written only by the prototype fixtures, so no real user ever
+/// saw one, and its selector was the personal *year*, which changes annually.
+/// Rather than repair a daily card, the Vessel now leads with the one card
+/// that is genuinely, permanently theirs — the Arcana of their Sun sign,
+/// fixed at birth and identical every time they open it.
+class _SunCard extends StatelessWidget {
+  const _SunCard({required this.data});
 
   final _VesselData data;
 
   @override
   Widget build(BuildContext context) {
-    final card = MajorArcana.bySlug(data.daily!.arcanaSlug);
-    if (card == null) return const SizedBox.shrink();
-    final attributes = data.content.card(card);
+    final sun = data.positions.firstWhere((p) => p.key == 'sun');
+    final attributes = data.content.card(sun.card);
     final text = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(top: EterSpace.s8),
-      // The card leads and the prose follows beneath it. It used to be a 92 dp
-      // thumbnail with three lines crowded to its right, which made the most
-      // considered art in the product read as decoration beside the text
-      // rather than the thing the section is about.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Nearly the full measure. This is the most considered art in the
+          // product and the one image the Vessel is about; at thumbnail size
+          // it read as decoration beside the text.
           Center(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(EterSpace.rChip),
-              child: EterArcanaPlate(
-                card: card,
-                width: 168,
-                semanticLabel: '${card.title}, card of the day',
+              child: LayoutBuilder(
+                builder: (context, constraints) => EterArcanaPlate(
+                  card: sun.card,
+                  width: constraints.maxWidth.clamp(200.0, 420.0),
+                  semanticLabel: '${sun.card.title}, your Sun card',
+                ),
               ),
             ),
           ),
           const SizedBox(height: EterSpace.s16),
-          Text('TODAY’S CARD', style: text.labelSmall),
+          Text('YOUR CARD', style: text.labelSmall),
           const SizedBox(height: EterSpace.s4),
-          Text(card.title, style: text.headlineSmall),
+          Text(sun.card.title, style: text.headlineSmall),
           if (attributes != null) ...[
             const SizedBox(height: EterSpace.s4),
             Text(attributes.subtitle, style: text.bodySmall),
           ],
           const SizedBox(height: EterSpace.s8),
-          Text(data.daily!.reason, style: text.bodySmall),
+          Text(
+            'Your Sun sits in ${sun.detail ?? 'its own sign'}, which is what '
+            'sets this card. It does not change.',
+            style: text.bodySmall,
+          ),
         ],
       ),
     );
@@ -698,7 +703,6 @@ class _VesselData {
     required this.content,
     required this.chart,
     required this.lifePath,
-    required this.daily,
     required this.readings,
     required this.inputHash,
     required this.mode,
@@ -709,7 +713,6 @@ class _VesselData {
   final SymbolContent content;
   final NatalChart chart;
   final int lifePath;
-  final DailyCardRow? daily;
   final Map<String, VesselReadingRow?> readings;
   final String inputHash;
   final GuidanceMode mode;
