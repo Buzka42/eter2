@@ -22,8 +22,8 @@ product decision about size.
 | minSdk / target | 26 (Health Connect floor) / Flutter default |
 | Permissions | Declared and justified: activity recognition and the seven Health Connect read scopes; HealthKit entitlement on iOS. |
 | Privacy policy | `PRIVACY_POLICY.md` — needs a public URL before submission. |
-| Tests | 196 passing, 31 golden captures, `flutter analyze` clean. |
-| Release build | `flutter build apk --release` completes with shrinking on (182.6 MB fat APK — see §3). |
+| Tests | 201 passing, 31 golden captures, `flutter analyze` clean. |
+| Release build | `flutter build appbundle --release` produces an **81.2 MB** bundle, under Play's 150 MB ceiling. |
 
 ## 2. Blocked on the product owner
 
@@ -51,31 +51,18 @@ decision.
 7. **Store listing copy and screenshots.** The golden captures under
    `app/test/golden/` are the honest source for screenshots.
 
-## 3. The one open engineering decision: size
+## 3. Size — resolved
 
-The release APK is ~182 MB, dominated by art:
+The bundle was 186 MB against Play's 150 MB ceiling. `tool/compress_assets.py`
+re-encodes every shipped asset to roughly 2x the largest size the interface can
+render it at — the Arcana deck was shipping at 1030 px wide for a 92 dp
+surface — taking the bundle to **81.2 MB** with no visible change. Thirteen
+unused dependencies came out at the same time, removing `BLUETOOTH`,
+`BLUETOOTH_ADMIN`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`,
+`USE_BIOMETRIC`, `USE_FINGERPRINT`, `FOREGROUND_SERVICE` and `WAKE_LOCK` from
+the merged manifest.
 
-| Asset group | Size |
-|---|---|
-| `assets/art/animations/` — 25 Arcana loops + the night field | ~70 MB |
-| `assets/art/cards/` — the light/dark Arcana deck | ~30 MB |
-| everything else in `assets/art/` | ~18 MB |
-
-Play's limit is 200 MB for the compressed download of an app bundle, so this
-is close to the ceiling and will fail the moment the deck grows. Three ways
-out, in the order they should be considered:
-
-1. **Ship the deck, cut the loops.** The animated Arcana are a night flourish;
-   the still deck carries the meaning. Removing `animations/*-dark.mp4` (all
-   but the night field) drops roughly 66 MB and changes nothing about what the
-   Vessel can say.
-2. **Play Asset Delivery / on-demand resources.** Keeps the loops, moves them
-   out of the base install. Real work, and iOS needs its own mechanism.
-3. **Re-encode.** The loops were authored generously; a stricter CRF and a
-   720-wide ceiling would likely halve them without a visible change.
-
-This is a product call, not a cleanup, which is why it is written here rather
-than done.
+Re-run the script after adding art. See `ROADMAP.md` §0.1 and §0.4.
 
 ## 4. Not blockers, deliberately deferred
 

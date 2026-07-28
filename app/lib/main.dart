@@ -11,6 +11,7 @@ import 'core/journal/classification_contract.dart';
 import 'core/profile/birth_context.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
+import 'core/health/foreground_refresh.dart';
 import 'core/vessel/reading_composer.dart';
 import 'core/theme.dart';
 import 'features/onboarding/onboarding_flow.dart';
@@ -57,6 +58,14 @@ final vesselReadingTransportProvider =
     Provider<VesselReadingProvider?>((ref) => null);
 final birthplaceResolverProvider = Provider<BirthplaceResolver>(
   (ref) => PlatformBirthplaceResolver(),
+);
+
+/// Keeps connected health data current when the app is opened or resumed, so
+/// the Body is not quietly stale until someone visits the Sanctum. Inert until
+/// a hub is connected, and debounced; see `core/health/foreground_refresh.dart`
+/// for why resume — not a background service — is the honest ceiling today.
+final healthForegroundRefreshProvider = Provider<HealthForegroundRefresh>(
+  (ref) => HealthForegroundRefresh(database: ref.watch(databaseProvider)),
 );
 
 class EterApp extends ConsumerStatefulWidget {
@@ -153,7 +162,10 @@ class _EterAppState extends ConsumerState<EterApp> {
                         setState(() => _onboardingCompletedNow = true),
                   );
                 }
-                return EterShell(startSurface: profile.startSurface);
+                return HealthRefreshOnResume(
+                  refresh: ref.watch(healthForegroundRefreshProvider),
+                  child: EterShell(startSurface: profile.startSurface),
+                );
               },
             ),
           ),
