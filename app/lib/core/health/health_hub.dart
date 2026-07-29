@@ -17,6 +17,11 @@ enum HubMetric {
   sleepDeep,
   sleepRem,
   sleepUnknown,
+
+  /// A workout the watch recorded as an event, rather than the minutes it
+  /// produced. Both matter and they are not the same: the minutes say a body
+  /// moved, the workout says a person decided to train.
+  workout,
 }
 
 class HubSample {
@@ -27,6 +32,7 @@ class HubSample {
     required this.end,
     required this.value,
     required this.source,
+    this.label,
   });
 
   final String id;
@@ -35,6 +41,10 @@ class HubSample {
   final DateTime end;
   final double value;
   final String source;
+
+  /// What the sample calls itself, when that is more than its metric — a
+  /// workout's sport, for instance. Null for everything measured in units.
+  final String? label;
 }
 
 abstract interface class HealthHubGateway {
@@ -85,6 +95,7 @@ class HealthHubSyncService {
       final summariesUpdated =
           await DailyActivitySummaryService(database).refresh(start, end);
       await _writeSleep(samples);
+      await _writeSessions(samples);
       await _writeVitals(samples);
       await database.recordIntegrationSync(
         vendor: gateway.vendor,
@@ -143,6 +154,30 @@ class HealthHubSyncService {
         hrSampleCount: value.hrSamples,
       );
     }));
+  }
+
+  /// Workouts, as sessions rather than as scattered minutes.
+  ///
+  /// Written through the same table a manually logged activity uses, so a
+  /// Garmin run and a run typed into the Journal are the same kind of thing
+  /// and count once each.
+  Future<void> _writeSessions(List<HubSample> samples) async {
+    for (final sample in samples.where((s) => s.metric == HubMetric.workout)) {
+      await database.upsertActivitySession(
+        ActivitySessionsCompanion.insert(
+          // The hub's own id, so re-reading the same workout replaces it
+          // rather than adding a second one.
+          id: '${gateway.vendor}:${sample.id}',
+          startUtc: sample.start.toUtc(),
+          endUtc: sample.end.toUtc(),
+          source: '${gateway.vendor}:${sample.source}',
+          priority: energy.SourcePriority.hub.index,
+          sport: Value(sample.label),
+          activeKcal: Value(sample.value > 0 ? sample.value : null),
+          externalId: Value(sample.id),
+        ),
+      );
+    }
   }
 
   Future<void> _writeSleep(List<HubSample> samples) async {

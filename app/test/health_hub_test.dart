@@ -274,6 +274,40 @@ void main() {
     expect(sleep.single.stage, 'unknown');
     expect(sleep.single.endUtc.difference(sleep.single.startUtc).inMinutes, 360);
   });
+
+  test('a workout becomes a session, replayably', () async {
+    // Every Garmin run used to arrive as minutes and never as a session,
+    // because a workout carries a name rather than a number and the mapper
+    // only understood numbers.
+    final gateway = _FakeGateway(samples: [
+      HubSample(
+        id: 'run-1',
+        metric: HubMetric.workout,
+        start: DateTime.utc(2026, 7, 29, 6),
+        end: DateTime.utc(2026, 7, 29, 6, 42),
+        value: 410,
+        source: 'Garmin',
+        label: 'RUNNING',
+      ),
+    ]);
+    final service = HealthHubSyncService(database: database, gateway: gateway);
+
+    for (var i = 0; i < 2; i++) {
+      await service.sync(
+        start: DateTime.utc(2026, 7, 28),
+        end: DateTime.utc(2026, 7, 30),
+      );
+    }
+
+    final sessions = await database.loadSessions(
+      DateTime.utc(2026, 7, 28),
+      DateTime.utc(2026, 7, 30),
+    );
+    // Twice synced, once stored.
+    expect(sessions, hasLength(1));
+    expect(sessions.single.sport, 'RUNNING');
+    expect(sessions.single.activeKcal, 410);
+  });
 }
 
 HubSample _sample(HubMetric metric, double value) => HubSample(

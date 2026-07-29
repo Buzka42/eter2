@@ -49,9 +49,10 @@ class AppDatabase extends _$AppDatabase {
   /// product stores. v2 added optional body fat, the journal's daily story and
   /// digest, and the cached transit reading. v3 added the separate consent for
   /// mirroring journal prose; v4 added the crash-report consent; v5 adds how
-  /// precisely the birth time is known.
+  /// precisely the birth time is known; v6 repairs nights that were stored
+  /// twice, once as stages and once as the session containing them.
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -107,12 +108,38 @@ class AppDatabase extends _$AppDatabase {
               r"ELSE 'exact' END",
             );
           }
+          await _repairDoubleCountedSleep();
           await _createIndexes();
         },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },
       );
+
+  /// Removes sleep sessions that were stored alongside their own stages.
+  ///
+  /// Health Connect keeps the night as a session *containing* its stages, and
+  /// for a while Eter stored both — so a night appeared as light/deep/REM
+  /// summing to eight hours, plus an undifferentiated eight-hour block beside
+  /// it. The import no longer does that, but a night already written stays
+  /// written: nights are only rewritten when they are re-synced, and nobody
+  /// re-syncs a fortnight ago. Averages built on them stayed doubled.
+  ///
+  /// Only where stages exist for the same night and source. A source that
+  /// only ever reported a session keeps its one row, because that row is the
+  /// whole of what is known about that night.
+  Future<void> _repairDoubleCountedSleep() async {
+    await customStatement('''
+      DELETE FROM sleep_segments
+      WHERE stage = 'unknown'
+        AND EXISTS (
+          SELECT 1 FROM sleep_segments AS staged
+          WHERE staged.night_of = sleep_segments.night_of
+            AND staged.source = sleep_segments.source
+            AND staged.stage <> 'unknown'
+        )
+    ''');
+  }
 
   /// Adds [column] only if the table does not already have it.
   ///

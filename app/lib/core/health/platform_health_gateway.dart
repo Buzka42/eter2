@@ -26,6 +26,10 @@ class PlatformHealthGateway implements HealthHubGateway {
     // paths do -- otherwise reaches Eter as nothing at all, and the night
     // looks unslept rather than unstaged.
     HealthDataType.SLEEP_SESSION,
+    // Workouts. Never requested before, which is why a phone full of Garmin
+    // runs reported zero sessions: Eter was reading the minutes a workout
+    // produced without ever learning that a workout had happened.
+    HealthDataType.WORKOUT,
   ];
 
   @override
@@ -65,6 +69,20 @@ class PlatformHealthGateway implements HealthHubGateway {
 
   HubSample? _map(HealthDataPoint point) {
     final value = point.value;
+    // A workout is an event with a name, not a number, so it does not survive
+    // the numeric path below — which is why every Garmin run reached Eter as
+    // minutes and never as a session.
+    if (value is WorkoutHealthValue) {
+      return HubSample(
+        id: point.uuid,
+        metric: HubMetric.workout,
+        start: point.dateFrom.toUtc(),
+        end: point.dateTo.toUtc(),
+        value: (value.totalEnergyBurned ?? 0).toDouble(),
+        source: point.sourceName,
+        label: value.workoutActivityType.name,
+      );
+    }
     if (value is! NumericHealthValue) return null;
     final metric = switch (point.type) {
       HealthDataType.ACTIVE_ENERGY_BURNED => HubMetric.activeEnergy,

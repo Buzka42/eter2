@@ -123,4 +123,73 @@ void main() {
     expect(profile.crashReportConsentAt, isNull);
     expect(profile.journalCloudSyncConsentAt, isNull);
   });
+
+  test('a night stored twice is repaired when the database opens', () async {
+    // The state a real phone was left in: nights written before the import
+    // learned to prefer stages carry both the stages and the session that
+    // contains them, and are never rewritten, because nobody re-syncs a
+    // fortnight ago. Every average built on those nights stayed doubled.
+    final memory = sqlite3.openInMemory();
+    final first = AppDatabase(
+      NativeDatabase.opened(memory, closeUnderlyingOnClose: false),
+    );
+    await first.replaceSleepForNight(
+      nightOf: '2026-07-27',
+      source: 'healthConnect:garmin',
+      segments: [
+        SleepSegmentsCompanion.insert(
+          nightOf: '2026-07-27',
+          stage: 'light',
+          startUtc: DateTime.utc(2026, 7, 27, 1),
+          endUtc: DateTime.utc(2026, 7, 27, 6),
+          source: 'healthConnect:garmin',
+          priority: 3,
+        ),
+        SleepSegmentsCompanion.insert(
+          nightOf: '2026-07-27',
+          stage: 'unknown',
+          startUtc: DateTime.utc(2026, 7, 27, 1),
+          endUtc: DateTime.utc(2026, 7, 27, 6),
+          source: 'healthConnect:garmin',
+          priority: 3,
+        ),
+      ],
+    );
+    // A source that only ever reports a session keeps its single row: that
+    // row is the whole of what is known about that night.
+    await first.replaceSleepForNight(
+      nightOf: '2026-07-26',
+      source: 'healthConnect:other',
+      segments: [
+        SleepSegmentsCompanion.insert(
+          nightOf: '2026-07-26',
+          stage: 'unknown',
+          startUtc: DateTime.utc(2026, 7, 26, 1),
+          endUtc: DateTime.utc(2026, 7, 26, 7),
+          source: 'healthConnect:other',
+          priority: 3,
+        ),
+      ],
+    );
+    await first.close();
+    memory.execute('PRAGMA user_version = 5');
+
+    final reopened = AppDatabase(NativeDatabase.opened(memory));
+    addTearDown(reopened.close);
+    final repaired =
+        await reopened.loadSleepForNights('2026-07-26', '2026-07-27');
+
+    final staged = repaired.where((row) => row.nightOf == '2026-07-27');
+    expect(
+      staged.map((row) => row.stage),
+      ['light'],
+      reason: 'the session beside its own stages must be gone',
+    );
+    final sessionOnly = repaired.where((row) => row.nightOf == '2026-07-26');
+    expect(
+      sessionOnly.map((row) => row.stage),
+      ['unknown'],
+      reason: 'a night known only as a session must survive',
+    );
+  });
 }
