@@ -1,7 +1,7 @@
 # Eter · what is stored, where, and for how long
 
-Current as of 29 July 2026. Supersedes `archive/14-data-models-firebase.md`
-and `archive/16-privacy-compliance.md`.
+Current as of 30 July 2026, schema 8. Supersedes
+`archive/14-data-models-firebase.md` and `archive/16-privacy-compliance.md`.
 
 Principle: **the device is canonical.** Every surface reads local SQLite.
 The cloud is a mirror written to when there is a connection and read from
@@ -37,7 +37,7 @@ AI payload; they are used on-device by `NatalChartEngine` and as the
 | `WeightEntries`, `NutritionEntries`, `LifestyleEntries` | manual and derived records | unbounded |
 | `Integrations`, `RememberedSensors` | device-local connection state | device-local |
 
-`pruneNightly()` runs the two bounded prunes.
+`runLocalRetention()` runs every bounded prune. See §4.
 
 ### Written and generated content
 
@@ -45,9 +45,10 @@ AI payload; they are used on-device by `NatalChartEngine` and as the
 |---|---|---|
 | `JournalEntries` | the person's prose, `status`, `excludedFromAi`, `extractionJson`, `model`, `appliedAt` | discarding blanks the text and sets `status: 'discarded'`; the row id is retained so nothing can be re-pointed at a different page |
 | `JournalDayStories` | one story + digest per local date, `sourceFingerprint` | model output |
-| `GuidanceHistory` | one row per dimension per composition, `contentJson`, `evidenceJson`, `contextFingerprint` | model output, **unbounded** |
+| `GuidanceHistory` | one row per dimension per composition, `contentJson`, `evidenceJson`, `contextFingerprint` | model output |
+| `GuidanceRecalls` | one telegraphic note per local day, plus that day's action, `usedJournal`, replaced on recompose | model output; the fortnight guidance reads so it stops repeating itself |
 | `VesselReadings` | one passage per position, keyed by `inputHash` | model output; `clearVesselReadingsExcept` drops readings for superseded charts |
-| `TransitReadings` | one passage per (date, `inputHash`) | model output, **unbounded** |
+| `TransitReadings` | one passage per (date, `inputHash`) | model output |
 | `DailyCards` | the day's Arcana draw + reason | device arithmetic, no model |
 | `PatternCandidates` | locally discovered correlations, `status` | dismissed patterns are never re-sent to a model |
 | `Retrospectives`, `IntakeAnswers` | periodic summaries; onboarding answers | |
@@ -56,9 +57,10 @@ AI payload; they are used on-device by `NatalChartEngine` and as the
 
 - `discardJournalEntry(id)` — blank one page.
 - `pruneJournalProse(olderThanUtc)` — bulk-blank old prose, keeping derived
-  facts. **Currently has no caller.**
+  facts. Exposed as **Sanctum → Old pages → Clear**, at one year.
 - `revertJournalEntryRows(id)` — delete every record one entry produced.
-- `resetPersonalization()` — clears guidance, patterns and retrospectives.
+- `resetPersonalization()` — clears guidance, its recall notes, patterns and
+  retrospectives.
 - `deleteAllLocalData()` — truncates every table. Distinct from account
   deletion, which must additionally clear the mirror.
 - `LocalDataExporter` (`core/privacy/local_data_export.dart`) — writes a JSON
@@ -78,8 +80,8 @@ a confirmed email account (`account.canSync`).
 `journalCloudSyncConsentAt`.
 
 **Withheld, with the reason recorded in `SyncService.withheld`:**
-`minuteBuckets`, `rawBuckets`, `guidanceHistory`, `vesselReadings`,
-`transitReadings`, `journalDayStories`, `integrations`.
+`minuteBuckets`, `rawBuckets`, `guidanceHistory`, `guidanceRecalls`,
+`vesselReadings`, `transitReadings`, `journalDayStories`, `integrations`.
 
 So: **no model output is ever mirrored.** The cloud holds the record, not the
 readings composed from it.
@@ -116,22 +118,39 @@ every path not explicitly named.
 | Journal prose | ✔ | ✔ under *journal* AI consent, bounded | ✔ under *journal* cloud consent |
 | Journal digests | ✔ | ✔ under journal AI consent | ✘ |
 | Model output (guidance, stories, readings) | ✔ | ✘ | ✘ |
+| Aether's own recall notes | ✔ | ✔ 14 days, under AI consent; journal-derived notes need journal consent | ✘ |
 | Account/row identifiers | ✔ | ✘ never | uid scoping only |
 
 ---
 
-## 4. Known gaps
+## 4. Retention, as of schema 8
 
-1. **No retention bound on `GuidanceHistory` or `TransitReadings`.** They grow
-   for the life of the install.
-2. **`pruneJournalProse` is unreachable** from any surface.
-3. **A discarded journal entry keeps its cloud copy.** Local text is blanked
-   and `syncedAt` nulled, but the mirrored document is only overwritten if the
-   entry is pushed again — and a discarded entry is excluded from the push.
-   The original prose survives until `deleteEverything`.
-4. **`extractionJson` is retained indefinitely**, including after
-   `revertJournalEntryRows` removes the records it produced.
-5. **`deleteAllLocalData` does not touch the mirror**, by design — but the
+`runLocalRetention()` bounds everything that is a cache or an interpretation
+rather than a fact:
+
+| What | Bound | Why it is not a fact |
+|---|---|---|
+| `RawBuckets` | 90 days | ingest staging; the winners survive |
+| `LiveSessions.hrSeriesJson` | 180 days | the session aggregate survives |
+| `GuidanceHistory` | 365 days | composed from the record, recomposable from it |
+| `GuidanceRecalls` | 60 days | a summary of prose that has itself expired; only 14 are ever read |
+| `TransitReadings` | 90 days | a passage about one day's sky |
+| `JournalEntries.extractionJson` | 90 days | the model's reading; the records it produced stay |
+
+Discarding a journal entry now also removes the cloud copy: the blanked row is
+pushed and overwrites the mirrored prose, and restore skips tombstones. Model
+output is still never mirrored at all.
+
+`revertJournalEntryRows` clears `extractionJson` with the rows it produced.
+The Sanctum exposes **Old pages → Clear**, which runs `pruneJournalProse` over
+anything older than a year behind a second confirmation.
+
+## 5. Still open
+
+1. **`deleteAllLocalData` does not touch the mirror**, by design — but the
    Sanctum must present both actions, or "delete everything" is not true.
-6. **The export bundle is written to app documents** and is not encrypted;
+2. **The export bundle is written to app documents** and is not encrypted;
    anything that can read the sandbox can read the export.
+3. **Most measured tables are unbounded** (`MinuteBuckets`, `DaySummaries`,
+   `SleepSegments`, `DailyVitals`). That is deliberate — they are the record —
+   but `MinuteBuckets` is 1,440 rows a day and nothing prunes it.

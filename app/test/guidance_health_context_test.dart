@@ -180,20 +180,34 @@ void main() {
         mode: GuidanceMode.balanced,
         health: const [],
         patterns: const [
-          '  You sleep about 40 minutes less after training past nine.  ',
-          'A second finding.',
-          'A third.',
-          'A fourth.',
-          'A fifth that will not fit.',
-          '   ',
+          AetherPatternContext(
+            summary:
+                '  You sleep about 40 minutes less after training past nine.  ',
+            confidence: 0.9,
+            observations: 22,
+          ),
+          AetherPatternContext(summary: 'A second finding.', confidence: 0.8),
+          AetherPatternContext(summary: 'A third.', confidence: 0.7),
+          AetherPatternContext(summary: 'A fourth.', confidence: 0.6),
+          AetherPatternContext(
+            summary: 'A fifth that will not fit.',
+            confidence: 0.5,
+          ),
+          AetherPatternContext(summary: '   ', confidence: 0.95),
         ],
       );
 
       // Four at most, trimmed, empties dropped: a finding that needs a
       // paragraph is not a finding.
       expect(request.patterns, hasLength(4));
-      expect(request.patterns.first, startsWith('You sleep'));
-      expect(jsonEncode(request.toJson()), contains('40 minutes less'));
+      expect(request.patterns.first.summary, startsWith('You sleep'));
+
+      final encoded = jsonEncode(request.toJson());
+      expect(encoded, contains('40 minutes less'));
+      // The strength of a finding travels with it: 0.55 over nine days and
+      // 0.95 over thirty read identically as bare sentences.
+      expect(encoded, contains('"confidence":0.9'));
+      expect(encoded, contains('"observations":22'));
     });
 
     test('a dismissed pattern does not', () async {
@@ -217,7 +231,7 @@ void main() {
     });
 
     test('a new finding moves the fingerprint', () {
-      AetherRequest requestWith(List<String> patterns) =>
+      AetherRequest requestWith(List<AetherPatternContext> patterns) =>
           const AetherRequestBuilder().build(
             aiConsented: true,
             journalConsented: false,
@@ -229,8 +243,12 @@ void main() {
 
       // Otherwise a finding would sit unused until something else changed.
       expect(
-        requestWith(const ['You sleep less after training past nine.'])
-            .contextFingerprint,
+        requestWith(const [
+          AetherPatternContext(
+            summary: 'You sleep less after training past nine.',
+            confidence: 0.8,
+          ),
+        ]).contextFingerprint,
         isNot(requestWith(const []).contextFingerprint),
       );
     });

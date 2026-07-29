@@ -38,6 +38,9 @@ class SyncService {
     'rawBuckets': 'Pre-deduplication imports. The winners are mirrored; the '
         'losers are not worth keeping twice.',
     'guidanceHistory': 'Composed from the record, and recomposable from it.',
+    'guidanceRecalls': 'Notes Aether wrote to itself about what it had already '
+        'said. They mean nothing without the compositions they summarise, and '
+        'those are not mirrored either.',
     'vesselReadings': 'Cached model output, keyed to a chart that is itself '
         'derived from the mirrored profile.',
     'transitReadings': 'A cache of one day of arithmetic.',
@@ -345,10 +348,15 @@ class SyncService {
   /// `excludedFromAi` is about the model rather than the mirror, so it is not
   /// consulted here — an entry kept from Aether is still the person's own
   /// record, and losing it with the phone would be the worse failure.
+  ///
+  /// Discarded entries *are* sent, and this is the point: discarding blanks
+  /// the local text and nulls `syncedAt`, so the blanked row travels and
+  /// overwrites the mirrored prose. Excluding them, as this once did, left the
+  /// original page in the mirror forever — the one copy the person had just
+  /// asked to be rid of.
   Future<int> _pushJournal(String userId) async {
     final rows = await (database.select(database.journalEntries)
-          ..where((row) =>
-              row.syncedAt.isNull() & row.status.equals('discarded').not()))
+          ..where((row) => row.syncedAt.isNull()))
         .get();
     if (rows.isEmpty) return 0;
     await mirror.putAll(
@@ -537,7 +545,12 @@ class SyncService {
   Future<int> _restoreJournal(String userId) async {
     final documents =
         await mirror.readAll(userId: userId, collection: 'journal');
+    var restored = 0;
     for (final data in documents) {
+      // A blanked tombstone carries nothing worth restoring; recreating it
+      // would put an empty page back on a new phone for no reason.
+      if (data['status'] == 'discarded') continue;
+      restored += 1;
       await database.addJournalEntry(JournalEntriesCompanion.insert(
         createdAt: DateTime.parse(data['createdAt']! as String),
         entryText: data['text']! as String,
@@ -547,6 +560,6 @@ class SyncService {
         syncedAt: Value(DateTime.now().toUtc()),
       ));
     }
-    return documents.length;
+    return restored;
   }
 }

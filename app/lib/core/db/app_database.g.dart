@@ -6934,6 +6934,12 @@ class $JournalEntriesTable extends JournalEntries
   late final GeneratedColumn<String> model = GeneratedColumn<String>(
       'model', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _appliedAtMeta =
       const VerificationMeta('appliedAt');
   @override
@@ -6965,6 +6971,7 @@ class $JournalEntriesTable extends JournalEntries
         status,
         extractionJson,
         model,
+        promptVersion,
         appliedAt,
         excludedFromAi,
         syncedAt
@@ -7012,6 +7019,12 @@ class $JournalEntriesTable extends JournalEntries
       context.handle(
           _modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
     }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
     if (data.containsKey('applied_at')) {
       context.handle(_appliedAtMeta,
           appliedAt.isAcceptableOrUnknown(data['applied_at']!, _appliedAtMeta));
@@ -7049,6 +7062,8 @@ class $JournalEntriesTable extends JournalEntries
           .read(DriftSqlType.string, data['${effectivePrefix}extraction_json']),
       model: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}model']),
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
       appliedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}applied_at']),
       excludedFromAi: attachedDatabase.typeMapping
@@ -7081,6 +7096,9 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
   final String? extractionJson;
   final String? model;
 
+  /// See [JournalDayStories.promptVersion].
+  final int? promptVersion;
+
   /// Set once the derived rows exist, so a retry cannot double-log the same
   /// meal into NutritionEntries.
   final DateTime? appliedAt;
@@ -7098,6 +7116,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       required this.status,
       this.extractionJson,
       this.model,
+      this.promptVersion,
       this.appliedAt,
       required this.excludedFromAi,
       this.syncedAt});
@@ -7114,6 +7133,9 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
     }
     if (!nullToAbsent || model != null) {
       map['model'] = Variable<String>(model);
+    }
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
     }
     if (!nullToAbsent || appliedAt != null) {
       map['applied_at'] = Variable<DateTime>(appliedAt);
@@ -7137,6 +7159,9 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           : Value(extractionJson),
       model:
           model == null && nullToAbsent ? const Value.absent() : Value(model),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
       appliedAt: appliedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(appliedAt),
@@ -7158,6 +7183,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       status: serializer.fromJson<String>(json['status']),
       extractionJson: serializer.fromJson<String?>(json['extractionJson']),
       model: serializer.fromJson<String?>(json['model']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
       appliedAt: serializer.fromJson<DateTime?>(json['appliedAt']),
       excludedFromAi: serializer.fromJson<bool>(json['excludedFromAi']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
@@ -7174,6 +7200,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       'status': serializer.toJson<String>(status),
       'extractionJson': serializer.toJson<String?>(extractionJson),
       'model': serializer.toJson<String?>(model),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
       'appliedAt': serializer.toJson<DateTime?>(appliedAt),
       'excludedFromAi': serializer.toJson<bool>(excludedFromAi),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
@@ -7188,6 +7215,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           String? status,
           Value<String?> extractionJson = const Value.absent(),
           Value<String?> model = const Value.absent(),
+          Value<int?> promptVersion = const Value.absent(),
           Value<DateTime?> appliedAt = const Value.absent(),
           bool? excludedFromAi,
           Value<DateTime?> syncedAt = const Value.absent()}) =>
@@ -7200,6 +7228,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
         extractionJson:
             extractionJson.present ? extractionJson.value : this.extractionJson,
         model: model.present ? model.value : this.model,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
         appliedAt: appliedAt.present ? appliedAt.value : this.appliedAt,
         excludedFromAi: excludedFromAi ?? this.excludedFromAi,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
@@ -7215,6 +7245,9 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           ? data.extractionJson.value
           : this.extractionJson,
       model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
       appliedAt: data.appliedAt.present ? data.appliedAt.value : this.appliedAt,
       excludedFromAi: data.excludedFromAi.present
           ? data.excludedFromAi.value
@@ -7233,6 +7266,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           ..write('status: $status, ')
           ..write('extractionJson: $extractionJson, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('appliedAt: $appliedAt, ')
           ..write('excludedFromAi: $excludedFromAi, ')
           ..write('syncedAt: $syncedAt')
@@ -7241,8 +7275,18 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, createdAt, entryText, source, status,
-      extractionJson, model, appliedAt, excludedFromAi, syncedAt);
+  int get hashCode => Object.hash(
+      id,
+      createdAt,
+      entryText,
+      source,
+      status,
+      extractionJson,
+      model,
+      promptVersion,
+      appliedAt,
+      excludedFromAi,
+      syncedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7254,6 +7298,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           other.status == this.status &&
           other.extractionJson == this.extractionJson &&
           other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
           other.appliedAt == this.appliedAt &&
           other.excludedFromAi == this.excludedFromAi &&
           other.syncedAt == this.syncedAt);
@@ -7267,6 +7312,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
   final Value<String> status;
   final Value<String?> extractionJson;
   final Value<String?> model;
+  final Value<int?> promptVersion;
   final Value<DateTime?> appliedAt;
   final Value<bool> excludedFromAi;
   final Value<DateTime?> syncedAt;
@@ -7278,6 +7324,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     this.status = const Value.absent(),
     this.extractionJson = const Value.absent(),
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.appliedAt = const Value.absent(),
     this.excludedFromAi = const Value.absent(),
     this.syncedAt = const Value.absent(),
@@ -7290,6 +7337,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     this.status = const Value.absent(),
     this.extractionJson = const Value.absent(),
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.appliedAt = const Value.absent(),
     this.excludedFromAi = const Value.absent(),
     this.syncedAt = const Value.absent(),
@@ -7303,6 +7351,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     Expression<String>? status,
     Expression<String>? extractionJson,
     Expression<String>? model,
+    Expression<int>? promptVersion,
     Expression<DateTime>? appliedAt,
     Expression<bool>? excludedFromAi,
     Expression<DateTime>? syncedAt,
@@ -7315,6 +7364,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
       if (status != null) 'status': status,
       if (extractionJson != null) 'extraction_json': extractionJson,
       if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (appliedAt != null) 'applied_at': appliedAt,
       if (excludedFromAi != null) 'excluded_from_ai': excludedFromAi,
       if (syncedAt != null) 'synced_at': syncedAt,
@@ -7329,6 +7379,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
       Value<String>? status,
       Value<String?>? extractionJson,
       Value<String?>? model,
+      Value<int?>? promptVersion,
       Value<DateTime?>? appliedAt,
       Value<bool>? excludedFromAi,
       Value<DateTime?>? syncedAt}) {
@@ -7340,6 +7391,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
       status: status ?? this.status,
       extractionJson: extractionJson ?? this.extractionJson,
       model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
       appliedAt: appliedAt ?? this.appliedAt,
       excludedFromAi: excludedFromAi ?? this.excludedFromAi,
       syncedAt: syncedAt ?? this.syncedAt,
@@ -7370,6 +7422,9 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     if (model.present) {
       map['model'] = Variable<String>(model.value);
     }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
     if (appliedAt.present) {
       map['applied_at'] = Variable<DateTime>(appliedAt.value);
     }
@@ -7392,6 +7447,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
           ..write('status: $status, ')
           ..write('extractionJson: $extractionJson, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('appliedAt: $appliedAt, ')
           ..write('excludedFromAi: $excludedFromAi, ')
           ..write('syncedAt: $syncedAt')
@@ -7455,6 +7511,12 @@ class $GuidanceHistoryTable extends GuidanceHistory
   late final GeneratedColumn<String> source = GeneratedColumn<String>(
       'source', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _syncedAtMeta =
       const VerificationMeta('syncedAt');
   @override
@@ -7471,6 +7533,7 @@ class $GuidanceHistoryTable extends GuidanceHistory
         evidenceJson,
         contextFingerprint,
         source,
+        promptVersion,
         syncedAt
       ];
   @override
@@ -7534,6 +7597,12 @@ class $GuidanceHistoryTable extends GuidanceHistory
     } else if (isInserting) {
       context.missing(_sourceMeta);
     }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
     if (data.containsKey('synced_at')) {
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
@@ -7563,6 +7632,8 @@ class $GuidanceHistoryTable extends GuidanceHistory
           DriftSqlType.string, data['${effectivePrefix}context_fingerprint'])!,
       source: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
     );
@@ -7598,6 +7669,9 @@ class GuidanceHistoryRow extends DataClass
   /// The model, or `local` for the offline composition. The surface tells the
   /// user which they are reading.
   final String source;
+
+  /// See [JournalDayStories.promptVersion].
+  final int? promptVersion;
   final DateTime? syncedAt;
   const GuidanceHistoryRow(
       {required this.id,
@@ -7608,6 +7682,7 @@ class GuidanceHistoryRow extends DataClass
       this.evidenceJson,
       required this.contextFingerprint,
       required this.source,
+      this.promptVersion,
       this.syncedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -7622,6 +7697,9 @@ class GuidanceHistoryRow extends DataClass
     }
     map['context_fingerprint'] = Variable<String>(contextFingerprint);
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
@@ -7640,6 +7718,9 @@ class GuidanceHistoryRow extends DataClass
           : Value(evidenceJson),
       contextFingerprint: Value(contextFingerprint),
       source: Value(source),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
@@ -7659,6 +7740,7 @@ class GuidanceHistoryRow extends DataClass
       contextFingerprint:
           serializer.fromJson<String>(json['contextFingerprint']),
       source: serializer.fromJson<String>(json['source']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
     );
   }
@@ -7674,6 +7756,7 @@ class GuidanceHistoryRow extends DataClass
       'evidenceJson': serializer.toJson<String?>(evidenceJson),
       'contextFingerprint': serializer.toJson<String>(contextFingerprint),
       'source': serializer.toJson<String>(source),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
     };
   }
@@ -7687,6 +7770,7 @@ class GuidanceHistoryRow extends DataClass
           Value<String?> evidenceJson = const Value.absent(),
           String? contextFingerprint,
           String? source,
+          Value<int?> promptVersion = const Value.absent(),
           Value<DateTime?> syncedAt = const Value.absent()}) =>
       GuidanceHistoryRow(
         id: id ?? this.id,
@@ -7698,6 +7782,8 @@ class GuidanceHistoryRow extends DataClass
             evidenceJson.present ? evidenceJson.value : this.evidenceJson,
         contextFingerprint: contextFingerprint ?? this.contextFingerprint,
         source: source ?? this.source,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
       );
   GuidanceHistoryRow copyWithCompanion(GuidanceHistoryCompanion data) {
@@ -7716,6 +7802,9 @@ class GuidanceHistoryRow extends DataClass
           ? data.contextFingerprint.value
           : this.contextFingerprint,
       source: data.source.present ? data.source.value : this.source,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
     );
   }
@@ -7731,6 +7820,7 @@ class GuidanceHistoryRow extends DataClass
           ..write('evidenceJson: $evidenceJson, ')
           ..write('contextFingerprint: $contextFingerprint, ')
           ..write('source: $source, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt')
           ..write(')'))
         .toString();
@@ -7738,7 +7828,7 @@ class GuidanceHistoryRow extends DataClass
 
   @override
   int get hashCode => Object.hash(id, date, dimension, generatedAt, contentJson,
-      evidenceJson, contextFingerprint, source, syncedAt);
+      evidenceJson, contextFingerprint, source, promptVersion, syncedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7751,6 +7841,7 @@ class GuidanceHistoryRow extends DataClass
           other.evidenceJson == this.evidenceJson &&
           other.contextFingerprint == this.contextFingerprint &&
           other.source == this.source &&
+          other.promptVersion == this.promptVersion &&
           other.syncedAt == this.syncedAt);
 }
 
@@ -7763,6 +7854,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
   final Value<String?> evidenceJson;
   final Value<String> contextFingerprint;
   final Value<String> source;
+  final Value<int?> promptVersion;
   final Value<DateTime?> syncedAt;
   const GuidanceHistoryCompanion({
     this.id = const Value.absent(),
@@ -7773,6 +7865,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
     this.evidenceJson = const Value.absent(),
     this.contextFingerprint = const Value.absent(),
     this.source = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
   });
   GuidanceHistoryCompanion.insert({
@@ -7784,6 +7877,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
     this.evidenceJson = const Value.absent(),
     required String contextFingerprint,
     required String source,
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
   })  : date = Value(date),
         dimension = Value(dimension),
@@ -7800,6 +7894,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
     Expression<String>? evidenceJson,
     Expression<String>? contextFingerprint,
     Expression<String>? source,
+    Expression<int>? promptVersion,
     Expression<DateTime>? syncedAt,
   }) {
     return RawValuesInsertable({
@@ -7811,6 +7906,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
       if (evidenceJson != null) 'evidence_json': evidenceJson,
       if (contextFingerprint != null) 'context_fingerprint': contextFingerprint,
       if (source != null) 'source': source,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (syncedAt != null) 'synced_at': syncedAt,
     });
   }
@@ -7824,6 +7920,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
       Value<String?>? evidenceJson,
       Value<String>? contextFingerprint,
       Value<String>? source,
+      Value<int?>? promptVersion,
       Value<DateTime?>? syncedAt}) {
     return GuidanceHistoryCompanion(
       id: id ?? this.id,
@@ -7834,6 +7931,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
       evidenceJson: evidenceJson ?? this.evidenceJson,
       contextFingerprint: contextFingerprint ?? this.contextFingerprint,
       source: source ?? this.source,
+      promptVersion: promptVersion ?? this.promptVersion,
       syncedAt: syncedAt ?? this.syncedAt,
     );
   }
@@ -7865,6 +7963,9 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
@@ -7882,6 +7983,7 @@ class GuidanceHistoryCompanion extends UpdateCompanion<GuidanceHistoryRow> {
           ..write('evidenceJson: $evidenceJson, ')
           ..write('contextFingerprint: $contextFingerprint, ')
           ..write('source: $source, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt')
           ..write(')'))
         .toString();
@@ -7923,6 +8025,12 @@ class $VesselReadingsTable extends VesselReadings
   late final GeneratedColumn<String> model = GeneratedColumn<String>(
       'model', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _syncedAtMeta =
       const VerificationMeta('syncedAt');
   @override
@@ -7930,8 +8038,15 @@ class $VesselReadingsTable extends VesselReadings
       'synced_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns =>
-      [inputHash, positionKey, createdAt, contentJson, model, syncedAt];
+  List<GeneratedColumn> get $columns => [
+        inputHash,
+        positionKey,
+        createdAt,
+        contentJson,
+        model,
+        promptVersion,
+        syncedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -7976,6 +8091,12 @@ class $VesselReadingsTable extends VesselReadings
     } else if (isInserting) {
       context.missing(_modelMeta);
     }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
     if (data.containsKey('synced_at')) {
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
@@ -7999,6 +8120,8 @@ class $VesselReadingsTable extends VesselReadings
           .read(DriftSqlType.string, data['${effectivePrefix}content_json'])!,
       model: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}model'])!,
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
     );
@@ -8019,6 +8142,9 @@ class VesselReadingRow extends DataClass
   final DateTime createdAt;
   final String contentJson;
   final String model;
+
+  /// See [JournalDayStories.promptVersion].
+  final int? promptVersion;
   final DateTime? syncedAt;
   const VesselReadingRow(
       {required this.inputHash,
@@ -8026,6 +8152,7 @@ class VesselReadingRow extends DataClass
       required this.createdAt,
       required this.contentJson,
       required this.model,
+      this.promptVersion,
       this.syncedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -8035,6 +8162,9 @@ class VesselReadingRow extends DataClass
     map['created_at'] = Variable<DateTime>(createdAt);
     map['content_json'] = Variable<String>(contentJson);
     map['model'] = Variable<String>(model);
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
@@ -8048,6 +8178,9 @@ class VesselReadingRow extends DataClass
       createdAt: Value(createdAt),
       contentJson: Value(contentJson),
       model: Value(model),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
@@ -8063,6 +8196,7 @@ class VesselReadingRow extends DataClass
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       contentJson: serializer.fromJson<String>(json['contentJson']),
       model: serializer.fromJson<String>(json['model']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
     );
   }
@@ -8075,6 +8209,7 @@ class VesselReadingRow extends DataClass
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'contentJson': serializer.toJson<String>(contentJson),
       'model': serializer.toJson<String>(model),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
     };
   }
@@ -8085,6 +8220,7 @@ class VesselReadingRow extends DataClass
           DateTime? createdAt,
           String? contentJson,
           String? model,
+          Value<int?> promptVersion = const Value.absent(),
           Value<DateTime?> syncedAt = const Value.absent()}) =>
       VesselReadingRow(
         inputHash: inputHash ?? this.inputHash,
@@ -8092,6 +8228,8 @@ class VesselReadingRow extends DataClass
         createdAt: createdAt ?? this.createdAt,
         contentJson: contentJson ?? this.contentJson,
         model: model ?? this.model,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
       );
   VesselReadingRow copyWithCompanion(VesselReadingsCompanion data) {
@@ -8103,6 +8241,9 @@ class VesselReadingRow extends DataClass
       contentJson:
           data.contentJson.present ? data.contentJson.value : this.contentJson,
       model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
     );
   }
@@ -8115,14 +8256,15 @@ class VesselReadingRow extends DataClass
           ..write('createdAt: $createdAt, ')
           ..write('contentJson: $contentJson, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      inputHash, positionKey, createdAt, contentJson, model, syncedAt);
+  int get hashCode => Object.hash(inputHash, positionKey, createdAt,
+      contentJson, model, promptVersion, syncedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -8132,6 +8274,7 @@ class VesselReadingRow extends DataClass
           other.createdAt == this.createdAt &&
           other.contentJson == this.contentJson &&
           other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
           other.syncedAt == this.syncedAt);
 }
 
@@ -8141,6 +8284,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
   final Value<DateTime> createdAt;
   final Value<String> contentJson;
   final Value<String> model;
+  final Value<int?> promptVersion;
   final Value<DateTime?> syncedAt;
   final Value<int> rowid;
   const VesselReadingsCompanion({
@@ -8149,6 +8293,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
     this.createdAt = const Value.absent(),
     this.contentJson = const Value.absent(),
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -8158,6 +8303,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
     required DateTime createdAt,
     required String contentJson,
     required String model,
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : inputHash = Value(inputHash),
@@ -8171,6 +8317,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
     Expression<DateTime>? createdAt,
     Expression<String>? contentJson,
     Expression<String>? model,
+    Expression<int>? promptVersion,
     Expression<DateTime>? syncedAt,
     Expression<int>? rowid,
   }) {
@@ -8180,6 +8327,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
       if (createdAt != null) 'created_at': createdAt,
       if (contentJson != null) 'content_json': contentJson,
       if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (syncedAt != null) 'synced_at': syncedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -8191,6 +8339,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
       Value<DateTime>? createdAt,
       Value<String>? contentJson,
       Value<String>? model,
+      Value<int?>? promptVersion,
       Value<DateTime?>? syncedAt,
       Value<int>? rowid}) {
     return VesselReadingsCompanion(
@@ -8199,6 +8348,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
       createdAt: createdAt ?? this.createdAt,
       contentJson: contentJson ?? this.contentJson,
       model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
       syncedAt: syncedAt ?? this.syncedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -8222,6 +8372,9 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
     if (model.present) {
       map['model'] = Variable<String>(model.value);
     }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
@@ -8239,6 +8392,7 @@ class VesselReadingsCompanion extends UpdateCompanion<VesselReadingRow> {
           ..write('createdAt: $createdAt, ')
           ..write('contentJson: $contentJson, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -9774,6 +9928,12 @@ class $JournalDayStoriesTable extends JournalDayStories
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('provider'));
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _syncedAtMeta =
       const VerificationMeta('syncedAt');
   @override
@@ -9789,6 +9949,7 @@ class $JournalDayStoriesTable extends JournalDayStories
         entryCount,
         sourceFingerprint,
         model,
+        promptVersion,
         syncedAt
       ];
   @override
@@ -9845,6 +10006,12 @@ class $JournalDayStoriesTable extends JournalDayStories
       context.handle(
           _modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
     }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
     if (data.containsKey('synced_at')) {
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
@@ -9872,6 +10039,8 @@ class $JournalDayStoriesTable extends JournalDayStories
           DriftSqlType.string, data['${effectivePrefix}source_fingerprint'])!,
       model: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}model'])!,
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
     );
@@ -9896,6 +10065,10 @@ class JournalDayStoryRow extends DataClass
   /// the story is current and no provider call is needed.
   final String sourceFingerprint;
   final String model;
+
+  /// Which `EterPrompts.version` composed this. Null on rows written before
+  /// the column existed — an honest "we no longer know" rather than a guess.
+  final int? promptVersion;
   final DateTime? syncedAt;
   const JournalDayStoryRow(
       {required this.date,
@@ -9905,6 +10078,7 @@ class JournalDayStoryRow extends DataClass
       required this.entryCount,
       required this.sourceFingerprint,
       required this.model,
+      this.promptVersion,
       this.syncedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -9916,6 +10090,9 @@ class JournalDayStoryRow extends DataClass
     map['entry_count'] = Variable<int>(entryCount);
     map['source_fingerprint'] = Variable<String>(sourceFingerprint);
     map['model'] = Variable<String>(model);
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
@@ -9931,6 +10108,9 @@ class JournalDayStoryRow extends DataClass
       entryCount: Value(entryCount),
       sourceFingerprint: Value(sourceFingerprint),
       model: Value(model),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
@@ -9948,6 +10128,7 @@ class JournalDayStoryRow extends DataClass
       entryCount: serializer.fromJson<int>(json['entryCount']),
       sourceFingerprint: serializer.fromJson<String>(json['sourceFingerprint']),
       model: serializer.fromJson<String>(json['model']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
     );
   }
@@ -9962,6 +10143,7 @@ class JournalDayStoryRow extends DataClass
       'entryCount': serializer.toJson<int>(entryCount),
       'sourceFingerprint': serializer.toJson<String>(sourceFingerprint),
       'model': serializer.toJson<String>(model),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
     };
   }
@@ -9974,6 +10156,7 @@ class JournalDayStoryRow extends DataClass
           int? entryCount,
           String? sourceFingerprint,
           String? model,
+          Value<int?> promptVersion = const Value.absent(),
           Value<DateTime?> syncedAt = const Value.absent()}) =>
       JournalDayStoryRow(
         date: date ?? this.date,
@@ -9983,6 +10166,8 @@ class JournalDayStoryRow extends DataClass
         entryCount: entryCount ?? this.entryCount,
         sourceFingerprint: sourceFingerprint ?? this.sourceFingerprint,
         model: model ?? this.model,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
       );
   JournalDayStoryRow copyWithCompanion(JournalDayStoriesCompanion data) {
@@ -9999,6 +10184,9 @@ class JournalDayStoryRow extends DataClass
           ? data.sourceFingerprint.value
           : this.sourceFingerprint,
       model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
     );
   }
@@ -10013,6 +10201,7 @@ class JournalDayStoryRow extends DataClass
           ..write('entryCount: $entryCount, ')
           ..write('sourceFingerprint: $sourceFingerprint, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt')
           ..write(')'))
         .toString();
@@ -10020,7 +10209,7 @@ class JournalDayStoryRow extends DataClass
 
   @override
   int get hashCode => Object.hash(date, generatedAt, story, digestJson,
-      entryCount, sourceFingerprint, model, syncedAt);
+      entryCount, sourceFingerprint, model, promptVersion, syncedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10032,6 +10221,7 @@ class JournalDayStoryRow extends DataClass
           other.entryCount == this.entryCount &&
           other.sourceFingerprint == this.sourceFingerprint &&
           other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
           other.syncedAt == this.syncedAt);
 }
 
@@ -10043,6 +10233,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
   final Value<int> entryCount;
   final Value<String> sourceFingerprint;
   final Value<String> model;
+  final Value<int?> promptVersion;
   final Value<DateTime?> syncedAt;
   final Value<int> rowid;
   const JournalDayStoriesCompanion({
@@ -10053,6 +10244,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
     this.entryCount = const Value.absent(),
     this.sourceFingerprint = const Value.absent(),
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -10064,6 +10256,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
     this.entryCount = const Value.absent(),
     required String sourceFingerprint,
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : date = Value(date),
@@ -10078,6 +10271,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
     Expression<int>? entryCount,
     Expression<String>? sourceFingerprint,
     Expression<String>? model,
+    Expression<int>? promptVersion,
     Expression<DateTime>? syncedAt,
     Expression<int>? rowid,
   }) {
@@ -10089,6 +10283,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
       if (entryCount != null) 'entry_count': entryCount,
       if (sourceFingerprint != null) 'source_fingerprint': sourceFingerprint,
       if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (syncedAt != null) 'synced_at': syncedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -10102,6 +10297,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
       Value<int>? entryCount,
       Value<String>? sourceFingerprint,
       Value<String>? model,
+      Value<int?>? promptVersion,
       Value<DateTime?>? syncedAt,
       Value<int>? rowid}) {
     return JournalDayStoriesCompanion(
@@ -10112,6 +10308,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
       entryCount: entryCount ?? this.entryCount,
       sourceFingerprint: sourceFingerprint ?? this.sourceFingerprint,
       model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
       syncedAt: syncedAt ?? this.syncedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -10141,6 +10338,9 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
     if (model.present) {
       map['model'] = Variable<String>(model.value);
     }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
@@ -10160,6 +10360,7 @@ class JournalDayStoriesCompanion extends UpdateCompanion<JournalDayStoryRow> {
           ..write('entryCount: $entryCount, ')
           ..write('sourceFingerprint: $sourceFingerprint, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -10209,6 +10410,12 @@ class $TransitReadingsTable extends TransitReadings
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('provider'));
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
   static const VerificationMeta _syncedAtMeta =
       const VerificationMeta('syncedAt');
   @override
@@ -10216,8 +10423,16 @@ class $TransitReadingsTable extends TransitReadings
       'synced_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
   @override
-  List<GeneratedColumn> get $columns =>
-      [date, inputHash, generatedAt, contactsJson, passage, model, syncedAt];
+  List<GeneratedColumn> get $columns => [
+        date,
+        inputHash,
+        generatedAt,
+        contactsJson,
+        passage,
+        model,
+        promptVersion,
+        syncedAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -10266,6 +10481,12 @@ class $TransitReadingsTable extends TransitReadings
       context.handle(
           _modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
     }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
     if (data.containsKey('synced_at')) {
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
@@ -10291,6 +10512,8 @@ class $TransitReadingsTable extends TransitReadings
           .read(DriftSqlType.string, data['${effectivePrefix}passage'])!,
       model: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}model'])!,
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
     );
@@ -10315,6 +10538,9 @@ class TransitReadingRow extends DataClass
   final String contactsJson;
   final String passage;
   final String model;
+
+  /// See [JournalDayStories.promptVersion].
+  final int? promptVersion;
   final DateTime? syncedAt;
   const TransitReadingRow(
       {required this.date,
@@ -10323,6 +10549,7 @@ class TransitReadingRow extends DataClass
       required this.contactsJson,
       required this.passage,
       required this.model,
+      this.promptVersion,
       this.syncedAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -10333,6 +10560,9 @@ class TransitReadingRow extends DataClass
     map['contacts_json'] = Variable<String>(contactsJson);
     map['passage'] = Variable<String>(passage);
     map['model'] = Variable<String>(model);
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
@@ -10347,6 +10577,9 @@ class TransitReadingRow extends DataClass
       contactsJson: Value(contactsJson),
       passage: Value(passage),
       model: Value(model),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
@@ -10363,6 +10596,7 @@ class TransitReadingRow extends DataClass
       contactsJson: serializer.fromJson<String>(json['contactsJson']),
       passage: serializer.fromJson<String>(json['passage']),
       model: serializer.fromJson<String>(json['model']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
     );
   }
@@ -10376,6 +10610,7 @@ class TransitReadingRow extends DataClass
       'contactsJson': serializer.toJson<String>(contactsJson),
       'passage': serializer.toJson<String>(passage),
       'model': serializer.toJson<String>(model),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
     };
   }
@@ -10387,6 +10622,7 @@ class TransitReadingRow extends DataClass
           String? contactsJson,
           String? passage,
           String? model,
+          Value<int?> promptVersion = const Value.absent(),
           Value<DateTime?> syncedAt = const Value.absent()}) =>
       TransitReadingRow(
         date: date ?? this.date,
@@ -10395,6 +10631,8 @@ class TransitReadingRow extends DataClass
         contactsJson: contactsJson ?? this.contactsJson,
         passage: passage ?? this.passage,
         model: model ?? this.model,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
       );
   TransitReadingRow copyWithCompanion(TransitReadingsCompanion data) {
@@ -10408,6 +10646,9 @@ class TransitReadingRow extends DataClass
           : this.contactsJson,
       passage: data.passage.present ? data.passage.value : this.passage,
       model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
     );
   }
@@ -10421,14 +10662,15 @@ class TransitReadingRow extends DataClass
           ..write('contactsJson: $contactsJson, ')
           ..write('passage: $passage, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      date, inputHash, generatedAt, contactsJson, passage, model, syncedAt);
+  int get hashCode => Object.hash(date, inputHash, generatedAt, contactsJson,
+      passage, model, promptVersion, syncedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -10439,6 +10681,7 @@ class TransitReadingRow extends DataClass
           other.contactsJson == this.contactsJson &&
           other.passage == this.passage &&
           other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
           other.syncedAt == this.syncedAt);
 }
 
@@ -10449,6 +10692,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
   final Value<String> contactsJson;
   final Value<String> passage;
   final Value<String> model;
+  final Value<int?> promptVersion;
   final Value<DateTime?> syncedAt;
   final Value<int> rowid;
   const TransitReadingsCompanion({
@@ -10458,6 +10702,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
     this.contactsJson = const Value.absent(),
     this.passage = const Value.absent(),
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -10468,6 +10713,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
     required String contactsJson,
     required String passage,
     this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
     this.syncedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : date = Value(date),
@@ -10482,6 +10728,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
     Expression<String>? contactsJson,
     Expression<String>? passage,
     Expression<String>? model,
+    Expression<int>? promptVersion,
     Expression<DateTime>? syncedAt,
     Expression<int>? rowid,
   }) {
@@ -10492,6 +10739,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
       if (contactsJson != null) 'contacts_json': contactsJson,
       if (passage != null) 'passage': passage,
       if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
       if (syncedAt != null) 'synced_at': syncedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -10504,6 +10752,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
       Value<String>? contactsJson,
       Value<String>? passage,
       Value<String>? model,
+      Value<int?>? promptVersion,
       Value<DateTime?>? syncedAt,
       Value<int>? rowid}) {
     return TransitReadingsCompanion(
@@ -10513,6 +10762,7 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
       contactsJson: contactsJson ?? this.contactsJson,
       passage: passage ?? this.passage,
       model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
       syncedAt: syncedAt ?? this.syncedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -10539,6 +10789,9 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
     if (model.present) {
       map['model'] = Variable<String>(model.value);
     }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
@@ -10557,7 +10810,382 @@ class TransitReadingsCompanion extends UpdateCompanion<TransitReadingRow> {
           ..write('contactsJson: $contactsJson, ')
           ..write('passage: $passage, ')
           ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GuidanceRecallsTable extends GuidanceRecalls
+    with TableInfo<$GuidanceRecallsTable, GuidanceRecallRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GuidanceRecallsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<String> date = GeneratedColumn<String>(
+      'date', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _generatedAtMeta =
+      const VerificationMeta('generatedAt');
+  @override
+  late final GeneratedColumn<DateTime> generatedAt = GeneratedColumn<DateTime>(
+      'generated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+      'action', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _usedJournalMeta =
+      const VerificationMeta('usedJournal');
+  @override
+  late final GeneratedColumn<bool> usedJournal = GeneratedColumn<bool>(
+      'used_journal', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("used_journal" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [date, generatedAt, note, action, usedJournal, promptVersion];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'guidance_recalls';
+  @override
+  VerificationContext validateIntegrity(Insertable<GuidanceRecallRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('date')) {
+      context.handle(
+          _dateMeta, date.isAcceptableOrUnknown(data['date']!, _dateMeta));
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('generated_at')) {
+      context.handle(
+          _generatedAtMeta,
+          generatedAt.isAcceptableOrUnknown(
+              data['generated_at']!, _generatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_generatedAtMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    } else if (isInserting) {
+      context.missing(_noteMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(_actionMeta,
+          action.isAcceptableOrUnknown(data['action']!, _actionMeta));
+    }
+    if (data.containsKey('used_journal')) {
+      context.handle(
+          _usedJournalMeta,
+          usedJournal.isAcceptableOrUnknown(
+              data['used_journal']!, _usedJournalMeta));
+    }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {date};
+  @override
+  GuidanceRecallRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GuidanceRecallRow(
+      date: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}date'])!,
+      generatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}generated_at'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note'])!,
+      action: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}action']),
+      usedJournal: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}used_journal'])!,
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
+    );
+  }
+
+  @override
+  $GuidanceRecallsTable createAlias(String alias) {
+    return $GuidanceRecallsTable(attachedDatabase, alias);
+  }
+}
+
+class GuidanceRecallRow extends DataClass
+    implements Insertable<GuidanceRecallRow> {
+  /// Local `yyyy-MM-dd`.
+  final String date;
+  final DateTime generatedAt;
+
+  /// The substance of that day's synthesis, in as few words as carry it.
+  final String note;
+
+  /// The action that day offered, so tomorrow does not offer it again.
+  final String? action;
+
+  /// Whether the composition this came from could see journal material.
+  ///
+  /// A note written while journal consent was on may paraphrase a page. If that
+  /// consent is later withdrawn, the note must stop travelling with it —
+  /// otherwise revoking would leave last week's pages still reaching the model,
+  /// laundered through Eter's own prose.
+  final bool usedJournal;
+
+  /// Which `EterPrompts.version` wrote it.
+  final int? promptVersion;
+  const GuidanceRecallRow(
+      {required this.date,
+      required this.generatedAt,
+      required this.note,
+      this.action,
+      required this.usedJournal,
+      this.promptVersion});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['date'] = Variable<String>(date);
+    map['generated_at'] = Variable<DateTime>(generatedAt);
+    map['note'] = Variable<String>(note);
+    if (!nullToAbsent || action != null) {
+      map['action'] = Variable<String>(action);
+    }
+    map['used_journal'] = Variable<bool>(usedJournal);
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
+    return map;
+  }
+
+  GuidanceRecallsCompanion toCompanion(bool nullToAbsent) {
+    return GuidanceRecallsCompanion(
+      date: Value(date),
+      generatedAt: Value(generatedAt),
+      note: Value(note),
+      action:
+          action == null && nullToAbsent ? const Value.absent() : Value(action),
+      usedJournal: Value(usedJournal),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
+    );
+  }
+
+  factory GuidanceRecallRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GuidanceRecallRow(
+      date: serializer.fromJson<String>(json['date']),
+      generatedAt: serializer.fromJson<DateTime>(json['generatedAt']),
+      note: serializer.fromJson<String>(json['note']),
+      action: serializer.fromJson<String?>(json['action']),
+      usedJournal: serializer.fromJson<bool>(json['usedJournal']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'date': serializer.toJson<String>(date),
+      'generatedAt': serializer.toJson<DateTime>(generatedAt),
+      'note': serializer.toJson<String>(note),
+      'action': serializer.toJson<String?>(action),
+      'usedJournal': serializer.toJson<bool>(usedJournal),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
+    };
+  }
+
+  GuidanceRecallRow copyWith(
+          {String? date,
+          DateTime? generatedAt,
+          String? note,
+          Value<String?> action = const Value.absent(),
+          bool? usedJournal,
+          Value<int?> promptVersion = const Value.absent()}) =>
+      GuidanceRecallRow(
+        date: date ?? this.date,
+        generatedAt: generatedAt ?? this.generatedAt,
+        note: note ?? this.note,
+        action: action.present ? action.value : this.action,
+        usedJournal: usedJournal ?? this.usedJournal,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
+      );
+  GuidanceRecallRow copyWithCompanion(GuidanceRecallsCompanion data) {
+    return GuidanceRecallRow(
+      date: data.date.present ? data.date.value : this.date,
+      generatedAt:
+          data.generatedAt.present ? data.generatedAt.value : this.generatedAt,
+      note: data.note.present ? data.note.value : this.note,
+      action: data.action.present ? data.action.value : this.action,
+      usedJournal:
+          data.usedJournal.present ? data.usedJournal.value : this.usedJournal,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GuidanceRecallRow(')
+          ..write('date: $date, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('note: $note, ')
+          ..write('action: $action, ')
+          ..write('usedJournal: $usedJournal, ')
+          ..write('promptVersion: $promptVersion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(date, generatedAt, note, action, usedJournal, promptVersion);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GuidanceRecallRow &&
+          other.date == this.date &&
+          other.generatedAt == this.generatedAt &&
+          other.note == this.note &&
+          other.action == this.action &&
+          other.usedJournal == this.usedJournal &&
+          other.promptVersion == this.promptVersion);
+}
+
+class GuidanceRecallsCompanion extends UpdateCompanion<GuidanceRecallRow> {
+  final Value<String> date;
+  final Value<DateTime> generatedAt;
+  final Value<String> note;
+  final Value<String?> action;
+  final Value<bool> usedJournal;
+  final Value<int?> promptVersion;
+  final Value<int> rowid;
+  const GuidanceRecallsCompanion({
+    this.date = const Value.absent(),
+    this.generatedAt = const Value.absent(),
+    this.note = const Value.absent(),
+    this.action = const Value.absent(),
+    this.usedJournal = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  GuidanceRecallsCompanion.insert({
+    required String date,
+    required DateTime generatedAt,
+    required String note,
+    this.action = const Value.absent(),
+    this.usedJournal = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : date = Value(date),
+        generatedAt = Value(generatedAt),
+        note = Value(note);
+  static Insertable<GuidanceRecallRow> custom({
+    Expression<String>? date,
+    Expression<DateTime>? generatedAt,
+    Expression<String>? note,
+    Expression<String>? action,
+    Expression<bool>? usedJournal,
+    Expression<int>? promptVersion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (date != null) 'date': date,
+      if (generatedAt != null) 'generated_at': generatedAt,
+      if (note != null) 'note': note,
+      if (action != null) 'action': action,
+      if (usedJournal != null) 'used_journal': usedJournal,
+      if (promptVersion != null) 'prompt_version': promptVersion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  GuidanceRecallsCompanion copyWith(
+      {Value<String>? date,
+      Value<DateTime>? generatedAt,
+      Value<String>? note,
+      Value<String?>? action,
+      Value<bool>? usedJournal,
+      Value<int?>? promptVersion,
+      Value<int>? rowid}) {
+    return GuidanceRecallsCompanion(
+      date: date ?? this.date,
+      generatedAt: generatedAt ?? this.generatedAt,
+      note: note ?? this.note,
+      action: action ?? this.action,
+      usedJournal: usedJournal ?? this.usedJournal,
+      promptVersion: promptVersion ?? this.promptVersion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (date.present) {
+      map['date'] = Variable<String>(date.value);
+    }
+    if (generatedAt.present) {
+      map['generated_at'] = Variable<DateTime>(generatedAt.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (usedJournal.present) {
+      map['used_journal'] = Variable<bool>(usedJournal.value);
+    }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GuidanceRecallsCompanion(')
+          ..write('date: $date, ')
+          ..write('generatedAt: $generatedAt, ')
+          ..write('note: $note, ')
+          ..write('action: $action, ')
+          ..write('usedJournal: $usedJournal, ')
+          ..write('promptVersion: $promptVersion, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -10599,6 +11227,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $JournalDayStoriesTable(this);
   late final $TransitReadingsTable transitReadings =
       $TransitReadingsTable(this);
+  late final $GuidanceRecallsTable guidanceRecalls =
+      $GuidanceRecallsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10626,7 +11256,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         retrospectives,
         intakeAnswers,
         journalDayStories,
-        transitReadings
+        transitReadings,
+        guidanceRecalls
       ];
 }
 
@@ -13947,6 +14578,7 @@ typedef $$JournalEntriesTableCreateCompanionBuilder = JournalEntriesCompanion
   Value<String> status,
   Value<String?> extractionJson,
   Value<String?> model,
+  Value<int?> promptVersion,
   Value<DateTime?> appliedAt,
   Value<bool> excludedFromAi,
   Value<DateTime?> syncedAt,
@@ -13960,6 +14592,7 @@ typedef $$JournalEntriesTableUpdateCompanionBuilder = JournalEntriesCompanion
   Value<String> status,
   Value<String?> extractionJson,
   Value<String?> model,
+  Value<int?> promptVersion,
   Value<DateTime?> appliedAt,
   Value<bool> excludedFromAi,
   Value<DateTime?> syncedAt,
@@ -13995,6 +14628,9 @@ class $$JournalEntriesTableFilterComposer
 
   ColumnFilters<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get appliedAt => $composableBuilder(
       column: $table.appliedAt, builder: (column) => ColumnFilters(column));
@@ -14038,6 +14674,10 @@ class $$JournalEntriesTableOrderingComposer
   ColumnOrderings<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get appliedAt => $composableBuilder(
       column: $table.appliedAt, builder: (column) => ColumnOrderings(column));
 
@@ -14078,6 +14718,9 @@ class $$JournalEntriesTableAnnotationComposer
 
   GeneratedColumn<String> get model =>
       $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
 
   GeneratedColumn<DateTime> get appliedAt =>
       $composableBuilder(column: $table.appliedAt, builder: (column) => column);
@@ -14123,6 +14766,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<String?> extractionJson = const Value.absent(),
             Value<String?> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> appliedAt = const Value.absent(),
             Value<bool> excludedFromAi = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
@@ -14135,6 +14779,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             status: status,
             extractionJson: extractionJson,
             model: model,
+            promptVersion: promptVersion,
             appliedAt: appliedAt,
             excludedFromAi: excludedFromAi,
             syncedAt: syncedAt,
@@ -14147,6 +14792,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<String?> extractionJson = const Value.absent(),
             Value<String?> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> appliedAt = const Value.absent(),
             Value<bool> excludedFromAi = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
@@ -14159,6 +14805,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             status: status,
             extractionJson: extractionJson,
             model: model,
+            promptVersion: promptVersion,
             appliedAt: appliedAt,
             excludedFromAi: excludedFromAi,
             syncedAt: syncedAt,
@@ -14195,6 +14842,7 @@ typedef $$GuidanceHistoryTableCreateCompanionBuilder = GuidanceHistoryCompanion
   Value<String?> evidenceJson,
   required String contextFingerprint,
   required String source,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
 });
 typedef $$GuidanceHistoryTableUpdateCompanionBuilder = GuidanceHistoryCompanion
@@ -14207,6 +14855,7 @@ typedef $$GuidanceHistoryTableUpdateCompanionBuilder = GuidanceHistoryCompanion
   Value<String?> evidenceJson,
   Value<String> contextFingerprint,
   Value<String> source,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
 });
 
@@ -14243,6 +14892,9 @@ class $$GuidanceHistoryTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
       column: $table.source, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
@@ -14283,6 +14935,10 @@ class $$GuidanceHistoryTableOrderingComposer
   ColumnOrderings<String> get source => $composableBuilder(
       column: $table.source, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -14319,6 +14975,9 @@ class $$GuidanceHistoryTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
@@ -14359,6 +15018,7 @@ class $$GuidanceHistoryTableTableManager extends RootTableManager<
             Value<String?> evidenceJson = const Value.absent(),
             Value<String> contextFingerprint = const Value.absent(),
             Value<String> source = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
           }) =>
               GuidanceHistoryCompanion(
@@ -14370,6 +15030,7 @@ class $$GuidanceHistoryTableTableManager extends RootTableManager<
             evidenceJson: evidenceJson,
             contextFingerprint: contextFingerprint,
             source: source,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
           ),
           createCompanionCallback: ({
@@ -14381,6 +15042,7 @@ class $$GuidanceHistoryTableTableManager extends RootTableManager<
             Value<String?> evidenceJson = const Value.absent(),
             required String contextFingerprint,
             required String source,
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
           }) =>
               GuidanceHistoryCompanion.insert(
@@ -14392,6 +15054,7 @@ class $$GuidanceHistoryTableTableManager extends RootTableManager<
             evidenceJson: evidenceJson,
             contextFingerprint: contextFingerprint,
             source: source,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
           ),
           withReferenceMapper: (p0) => p0
@@ -14423,6 +15086,7 @@ typedef $$VesselReadingsTableCreateCompanionBuilder = VesselReadingsCompanion
   required DateTime createdAt,
   required String contentJson,
   required String model,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
 });
@@ -14433,6 +15097,7 @@ typedef $$VesselReadingsTableUpdateCompanionBuilder = VesselReadingsCompanion
   Value<DateTime> createdAt,
   Value<String> contentJson,
   Value<String> model,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
 });
@@ -14460,6 +15125,9 @@ class $$VesselReadingsTableFilterComposer
 
   ColumnFilters<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
@@ -14489,6 +15157,10 @@ class $$VesselReadingsTableOrderingComposer
   ColumnOrderings<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -14516,6 +15188,9 @@ class $$VesselReadingsTableAnnotationComposer
 
   GeneratedColumn<String> get model =>
       $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
@@ -14553,6 +15228,7 @@ class $$VesselReadingsTableTableManager extends RootTableManager<
             Value<DateTime> createdAt = const Value.absent(),
             Value<String> contentJson = const Value.absent(),
             Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -14562,6 +15238,7 @@ class $$VesselReadingsTableTableManager extends RootTableManager<
             createdAt: createdAt,
             contentJson: contentJson,
             model: model,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
             rowid: rowid,
           ),
@@ -14571,6 +15248,7 @@ class $$VesselReadingsTableTableManager extends RootTableManager<
             required DateTime createdAt,
             required String contentJson,
             required String model,
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -14580,6 +15258,7 @@ class $$VesselReadingsTableTableManager extends RootTableManager<
             createdAt: createdAt,
             contentJson: contentJson,
             model: model,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
             rowid: rowid,
           ),
@@ -15386,6 +16065,7 @@ typedef $$JournalDayStoriesTableCreateCompanionBuilder
   Value<int> entryCount,
   required String sourceFingerprint,
   Value<String> model,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
 });
@@ -15398,6 +16078,7 @@ typedef $$JournalDayStoriesTableUpdateCompanionBuilder
   Value<int> entryCount,
   Value<String> sourceFingerprint,
   Value<String> model,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
 });
@@ -15432,6 +16113,9 @@ class $$JournalDayStoriesTableFilterComposer
 
   ColumnFilters<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
@@ -15468,6 +16152,10 @@ class $$JournalDayStoriesTableOrderingComposer
   ColumnOrderings<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -15501,6 +16189,9 @@ class $$JournalDayStoriesTableAnnotationComposer
 
   GeneratedColumn<String> get model =>
       $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
@@ -15541,6 +16232,7 @@ class $$JournalDayStoriesTableTableManager extends RootTableManager<
             Value<int> entryCount = const Value.absent(),
             Value<String> sourceFingerprint = const Value.absent(),
             Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -15552,6 +16244,7 @@ class $$JournalDayStoriesTableTableManager extends RootTableManager<
             entryCount: entryCount,
             sourceFingerprint: sourceFingerprint,
             model: model,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
             rowid: rowid,
           ),
@@ -15563,6 +16256,7 @@ class $$JournalDayStoriesTableTableManager extends RootTableManager<
             Value<int> entryCount = const Value.absent(),
             required String sourceFingerprint,
             Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -15574,6 +16268,7 @@ class $$JournalDayStoriesTableTableManager extends RootTableManager<
             entryCount: entryCount,
             sourceFingerprint: sourceFingerprint,
             model: model,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
             rowid: rowid,
           ),
@@ -15607,6 +16302,7 @@ typedef $$TransitReadingsTableCreateCompanionBuilder = TransitReadingsCompanion
   required String contactsJson,
   required String passage,
   Value<String> model,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
 });
@@ -15618,6 +16314,7 @@ typedef $$TransitReadingsTableUpdateCompanionBuilder = TransitReadingsCompanion
   Value<String> contactsJson,
   Value<String> passage,
   Value<String> model,
+  Value<int?> promptVersion,
   Value<DateTime?> syncedAt,
   Value<int> rowid,
 });
@@ -15648,6 +16345,9 @@ class $$TransitReadingsTableFilterComposer
 
   ColumnFilters<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
@@ -15681,6 +16381,10 @@ class $$TransitReadingsTableOrderingComposer
   ColumnOrderings<String> get model => $composableBuilder(
       column: $table.model, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
 }
@@ -15711,6 +16415,9 @@ class $$TransitReadingsTableAnnotationComposer
 
   GeneratedColumn<String> get model =>
       $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
@@ -15749,6 +16456,7 @@ class $$TransitReadingsTableTableManager extends RootTableManager<
             Value<String> contactsJson = const Value.absent(),
             Value<String> passage = const Value.absent(),
             Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -15759,6 +16467,7 @@ class $$TransitReadingsTableTableManager extends RootTableManager<
             contactsJson: contactsJson,
             passage: passage,
             model: model,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
             rowid: rowid,
           ),
@@ -15769,6 +16478,7 @@ class $$TransitReadingsTableTableManager extends RootTableManager<
             required String contactsJson,
             required String passage,
             Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
@@ -15779,6 +16489,7 @@ class $$TransitReadingsTableTableManager extends RootTableManager<
             contactsJson: contactsJson,
             passage: passage,
             model: model,
+            promptVersion: promptVersion,
             syncedAt: syncedAt,
             rowid: rowid,
           ),
@@ -15803,6 +16514,196 @@ typedef $$TransitReadingsTableProcessedTableManager = ProcessedTableManager<
       BaseReferences<_$AppDatabase, $TransitReadingsTable, TransitReadingRow>
     ),
     TransitReadingRow,
+    PrefetchHooks Function()>;
+typedef $$GuidanceRecallsTableCreateCompanionBuilder = GuidanceRecallsCompanion
+    Function({
+  required String date,
+  required DateTime generatedAt,
+  required String note,
+  Value<String?> action,
+  Value<bool> usedJournal,
+  Value<int?> promptVersion,
+  Value<int> rowid,
+});
+typedef $$GuidanceRecallsTableUpdateCompanionBuilder = GuidanceRecallsCompanion
+    Function({
+  Value<String> date,
+  Value<DateTime> generatedAt,
+  Value<String> note,
+  Value<String?> action,
+  Value<bool> usedJournal,
+  Value<int?> promptVersion,
+  Value<int> rowid,
+});
+
+class $$GuidanceRecallsTableFilterComposer
+    extends Composer<_$AppDatabase, $GuidanceRecallsTable> {
+  $$GuidanceRecallsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get action => $composableBuilder(
+      column: $table.action, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get usedJournal => $composableBuilder(
+      column: $table.usedJournal, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
+}
+
+class $$GuidanceRecallsTableOrderingComposer
+    extends Composer<_$AppDatabase, $GuidanceRecallsTable> {
+  $$GuidanceRecallsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get date => $composableBuilder(
+      column: $table.date, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get action => $composableBuilder(
+      column: $table.action, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get usedJournal => $composableBuilder(
+      column: $table.usedJournal, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+}
+
+class $$GuidanceRecallsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $GuidanceRecallsTable> {
+  $$GuidanceRecallsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get generatedAt => $composableBuilder(
+      column: $table.generatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<bool> get usedJournal => $composableBuilder(
+      column: $table.usedJournal, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
+}
+
+class $$GuidanceRecallsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $GuidanceRecallsTable,
+    GuidanceRecallRow,
+    $$GuidanceRecallsTableFilterComposer,
+    $$GuidanceRecallsTableOrderingComposer,
+    $$GuidanceRecallsTableAnnotationComposer,
+    $$GuidanceRecallsTableCreateCompanionBuilder,
+    $$GuidanceRecallsTableUpdateCompanionBuilder,
+    (
+      GuidanceRecallRow,
+      BaseReferences<_$AppDatabase, $GuidanceRecallsTable, GuidanceRecallRow>
+    ),
+    GuidanceRecallRow,
+    PrefetchHooks Function()> {
+  $$GuidanceRecallsTableTableManager(
+      _$AppDatabase db, $GuidanceRecallsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GuidanceRecallsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GuidanceRecallsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GuidanceRecallsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> date = const Value.absent(),
+            Value<DateTime> generatedAt = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            Value<String?> action = const Value.absent(),
+            Value<bool> usedJournal = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GuidanceRecallsCompanion(
+            date: date,
+            generatedAt: generatedAt,
+            note: note,
+            action: action,
+            usedJournal: usedJournal,
+            promptVersion: promptVersion,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String date,
+            required DateTime generatedAt,
+            required String note,
+            Value<String?> action = const Value.absent(),
+            Value<bool> usedJournal = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              GuidanceRecallsCompanion.insert(
+            date: date,
+            generatedAt: generatedAt,
+            note: note,
+            action: action,
+            usedJournal: usedJournal,
+            promptVersion: promptVersion,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$GuidanceRecallsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $GuidanceRecallsTable,
+    GuidanceRecallRow,
+    $$GuidanceRecallsTableFilterComposer,
+    $$GuidanceRecallsTableOrderingComposer,
+    $$GuidanceRecallsTableAnnotationComposer,
+    $$GuidanceRecallsTableCreateCompanionBuilder,
+    $$GuidanceRecallsTableUpdateCompanionBuilder,
+    (
+      GuidanceRecallRow,
+      BaseReferences<_$AppDatabase, $GuidanceRecallsTable, GuidanceRecallRow>
+    ),
+    GuidanceRecallRow,
     PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
@@ -15854,4 +16755,6 @@ class $AppDatabaseManager {
       $$JournalDayStoriesTableTableManager(_db, _db.journalDayStories);
   $$TransitReadingsTableTableManager get transitReadings =>
       $$TransitReadingsTableTableManager(_db, _db.transitReadings);
+  $$GuidanceRecallsTableTableManager get guidanceRecalls =>
+      $$GuidanceRecallsTableTableManager(_db, _db.guidanceRecalls);
 }

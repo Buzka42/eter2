@@ -371,6 +371,10 @@ class JournalDayStories extends Table {
   /// the story is current and no provider call is needed.
   TextColumn get sourceFingerprint => text()();
   TextColumn get model => text().withDefault(const Constant('provider'))();
+
+  /// Which `EterPrompts.version` composed this. Null on rows written before
+  /// the column existed — an honest "we no longer know" rather than a guess.
+  IntColumn get promptVersion => integer().nullable()();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
   @override
@@ -396,6 +400,9 @@ class TransitReadings extends Table {
   TextColumn get contactsJson => text()();
   TextColumn get passage => text()();
   TextColumn get model => text().withDefault(const Constant('provider'))();
+
+  /// See [JournalDayStories.promptVersion].
+  IntColumn get promptVersion => integer().nullable()();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
   @override
@@ -432,6 +439,9 @@ class JournalEntries extends Table {
   TextColumn get status => text().withDefault(const Constant('pending'))();
   TextColumn get extractionJson => text().nullable()();
   TextColumn get model => text().nullable()();
+
+  /// See [JournalDayStories.promptVersion].
+  IntColumn get promptVersion => integer().nullable()();
 
   /// Set once the derived rows exist, so a retry cannot double-log the same
   /// meal into NutritionEntries.
@@ -478,7 +488,54 @@ class GuidanceHistory extends Table {
   /// The model, or `local` for the offline composition. The surface tells the
   /// user which they are reading.
   TextColumn get source => text()();
+
+  /// See [JournalDayStories.promptVersion].
+  IntColumn get promptVersion => integer().nullable()();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+}
+
+/// What Aether said on a day, compressed to the substance of it.
+///
+/// Guidance was composing every morning as though it had never spoken to this
+/// person. It could repeat yesterday's observation word for word, contradict
+/// what it said on Tuesday, and re-offer a walk that had been declined four
+/// times — and the 365 days of [GuidanceHistory] sitting beside it were only
+/// ever read as a cache, keyed by fingerprint.
+///
+/// So each composition also writes one telegraphic line here, and the next
+/// fortnight of them travels with the request. Telegraphic on purpose: the
+/// prose is already in [GuidanceHistory] and sending fourteen days of it would
+/// cost more of the budget than the records the day is actually about. What is
+/// wanted is the thread, not the writing.
+///
+/// One row per local day, replaced when the day is recomposed. Fourteen rows
+/// is the whole of what guidance ever reads.
+@DataClassName('GuidanceRecallRow')
+class GuidanceRecalls extends Table {
+  /// Local `yyyy-MM-dd`.
+  TextColumn get date => text()();
+  DateTimeColumn get generatedAt => dateTime()();
+
+  /// The substance of that day's synthesis, in as few words as carry it.
+  TextColumn get note => text()();
+
+  /// The action that day offered, so tomorrow does not offer it again.
+  TextColumn get action => text().nullable()();
+
+  /// Whether the composition this came from could see journal material.
+  ///
+  /// A note written while journal consent was on may paraphrase a page. If that
+  /// consent is later withdrawn, the note must stop travelling with it —
+  /// otherwise revoking would leave last week's pages still reaching the model,
+  /// laundered through Eter's own prose.
+  BoolColumn get usedJournal =>
+      boolean().withDefault(const Constant(false))();
+
+  /// Which `EterPrompts.version` wrote it.
+  IntColumn get promptVersion => integer().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {date};
 }
 
 /// A long-form interpretation, composed once against this user's chart.
@@ -496,6 +553,9 @@ class VesselReadings extends Table {
   DateTimeColumn get createdAt => dateTime()();
   TextColumn get contentJson => text()();
   TextColumn get model => text()();
+
+  /// See [JournalDayStories.promptVersion].
+  IntColumn get promptVersion => integer().nullable()();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
   @override

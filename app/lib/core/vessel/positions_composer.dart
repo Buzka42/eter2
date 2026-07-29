@@ -156,6 +156,7 @@ class PositionsComposer {
       contactsJson: jsonEncode(reading.toJson()),
       passage: jsonEncode(parsed.toJson()),
       model: Value(model),
+      promptVersion: const Value(EterPrompts.version),
     ));
     return PositionsResult(
       reading: reading,

@@ -21,12 +21,20 @@
 // substitute a fallback, or log a payload. See §3 of AI_ENDPOINT.md for why
 // each of those would break something the app depends on.
 
-const CALLS = new Set([
-  'guidance',
-  'journalDayStory',
-  'journalInterpretation',
-  'vesselReadings',
-  'positions',
+// Each call, and how much room it gets to choose its words.
+//
+// Not one setting for all five. Guidance, readings and positions are writing,
+// and writing at 0.2 reads like a form letter. Interpretation is not writing:
+// it derives kcal, grams, reps and kilograms from prose, and the same page
+// must produce the same numbers today and on a retry tomorrow — at 0.7 it did
+// not. The day story sits between: it is prose, but prose that must stay close
+// to what someone actually wrote.
+const CALLS = new Map([
+  ['guidance', 0.7],
+  ['journalDayStory', 0.5],
+  ['journalInterpretation', 0.1],
+  ['vesselReadings', 0.7],
+  ['positions', 0.7],
 ]);
 
 const MODEL = 'gemini-3.5-flash-lite';
@@ -34,6 +42,29 @@ const MODEL = 'gemini-3.5-flash-lite';
 // Free-tier ceilings, enforced here as well as by Google, so a runaway client
 // cannot burn the day's quota in a minute. Raise deliberately.
 const DAILY_CAP = 500;
+
+// The daily cap is shared by everyone on a deployment, so on its own one
+// looping install can spend the whole day's budget before anyone else opens
+// the app. This is the per-caller half: a short window, keyed by a salted
+// hash of the connecting address.
+//
+// The address is what we have — the client sends no identifier, by design,
+// and it is not going to start. Hashed with the client token as salt and kept
+// only for the length of the window, so the KV store never holds an address.
+const CALLER_WINDOW_SECONDS = 60;
+const CALLER_CAP = 12;
+
+async function callerKey(request, salt) {
+  const address = request.headers.get('cf-connecting-ip') || 'unknown';
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    new TextEncoder().encode(`${salt}:${address}`),
+  );
+  return [...new Uint8Array(digest)]
+    .slice(0, 8)
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+}
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -61,6 +92,7 @@ export default {
 
     const { call, system, user, responseSchema } = body || {};
     if (!CALLS.has(call)) return json({ error: `Unknown call: ${call}` }, 400);
+    const temperature = CALLS.get(call);
     if (typeof system !== 'string' || !system || typeof user !== 'object') {
       return json({ error: 'Missing system or user' }, 400);
     }
@@ -68,7 +100,23 @@ export default {
     // A day counter in KV when one is bound; without it the Google-side free
     // tier is the only ceiling, which is still a ceiling and still not a bill.
     if (env.ETER_USAGE) {
-      const day = new Date().toISOString().slice(0, 10);
+      const now = Date.now();
+      const window = Math.floor(now / (CALLER_WINDOW_SECONDS * 1000));
+      const caller = `c:${window}:${await callerKey(
+        request,
+        env.ETER_CLIENT_TOKEN,
+      )}`;
+      const burst = Number((await env.ETER_USAGE.get(caller)) || 0);
+      if (burst >= CALLER_CAP) {
+        return json({ error: 'Too many requests. Try again shortly.' }, 429);
+      }
+      // Written before the day counter, so a caller that is being throttled
+      // still counts against itself rather than against everyone.
+      await env.ETER_USAGE.put(caller, String(burst + 1), {
+        expirationTtl: CALLER_WINDOW_SECONDS * 2,
+      });
+
+      const day = new Date(now).toISOString().slice(0, 10);
       const used = Number((await env.ETER_USAGE.get(day)) || 0);
       if (used >= DAILY_CAP) {
         return json({ error: 'Daily cap reached. Try again tomorrow.' }, 429);
@@ -96,7 +144,7 @@ export default {
             // it the model invents field names and the app's parsers refuse
             // the answer -- which is correct of them, and useless to everyone.
             ...(responseSchema ? { responseJsonSchema: responseSchema } : {}),
-            temperature: 0.7,
+            temperature,
           },
         }),
       },

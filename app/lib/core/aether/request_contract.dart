@@ -34,6 +34,106 @@ class AetherHealthContext {
       };
 }
 
+/// One self-reported reading or practice, as guidance is allowed to see it.
+///
+/// The margin's check-in, and anything a page said about mood, energy, focus,
+/// meaning or what the person is carrying. These are the only statements in
+/// the payload about the inside of a day: everything else is a sensor or a
+/// derived placement.
+class AetherLifestyleContext {
+  const AetherLifestyleContext({
+    required this.localDate,
+    required this.kind,
+    this.value,
+    this.durationMinutes,
+    this.note,
+    this.fromJournal = false,
+  });
+
+  final String localDate;
+  final String kind;
+
+  /// 0..10 where the kind is a rating. Absent where it is not.
+  final double? value;
+  final double? durationMinutes;
+
+  /// The person's own words about it, when they wrote any.
+  final String? note;
+
+  /// Derived from a journal page rather than the margin's check-in. Journal
+  /// consent gates these separately, because prose is what they came from.
+  final bool fromJournal;
+
+  Map<String, Object> toJson() => {
+        'localDate': localDate,
+        'kind': kind,
+        if (value != null) 'value': value!,
+        if (durationMinutes != null) 'durationMinutes': durationMinutes!,
+        if (note != null) 'note': note!,
+      };
+}
+
+/// A locally discovered correlation, with the strength of the finding beside
+/// it.
+///
+/// The summary travelled alone until now, which meant a finding at 55%
+/// confidence over nine days read exactly like one at 95% over thirty. The
+/// model cannot weigh what it cannot see.
+class AetherPatternContext {
+  const AetherPatternContext({
+    required this.summary,
+    required this.confidence,
+    this.observations,
+    this.window,
+  });
+
+  final String summary;
+
+  /// 0..1, as `LocalPatternDiscovery` computed it.
+  final double confidence;
+
+  /// How many days the comparison rested on.
+  final int? observations;
+
+  /// The span it was computed over, e.g. `28 days`.
+  final String? window;
+
+  Map<String, Object> toJson() => {
+        'summary': summary,
+        'confidence': double.parse(confidence.toStringAsFixed(2)),
+        if (observations != null) 'observations': observations!,
+        if (window != null) 'window': window!,
+      };
+}
+
+/// What Aether said on an earlier day, compressed to the substance of it.
+///
+/// The only thing in the payload that is Eter's own prior output rather than a
+/// record of the person. That distinction is stated to the model in the prompt,
+/// because a note about what *it* said reads exactly like a note about what
+/// *they* said, and confusing the two would put words in someone's mouth.
+class AetherRecallContext {
+  const AetherRecallContext({
+    required this.localDate,
+    required this.note,
+    this.action,
+  });
+
+  final String localDate;
+
+  /// Telegraphic. The prose it came from stays on the device.
+  final String note;
+
+  /// What that day offered to do, so today does not offer it again.
+  final String? action;
+
+  Map<String, Object> toJson() => {
+        'localDate': localDate,
+        'note': note,
+        if (action != null) 'action': action!,
+      };
+}
+
 class AetherJournalContext {
   const AetherJournalContext({
     required this.createdAt,
@@ -114,7 +214,10 @@ class AetherRequest {
     this.symbolic,
     this.digests = const [],
     this.patterns = const [],
+    this.lifestyle = const [],
+    this.recalled = const [],
     this.bodyFatPercent,
+    this.journalTruncated = false,
   });
 
   final int schemaVersion;
@@ -142,7 +245,26 @@ class AetherRequest {
   ///
   /// Dismissed patterns are not here: the person said the observation was
   /// wrong, and repeating it to a model would be arguing with them.
-  final List<String> patterns;
+  final List<AetherPatternContext> patterns;
+
+  /// What the person said about the inside of their days — the margin's
+  /// check-in, and whatever their pages reported about mood, energy, focus,
+  /// meaning or what they are carrying.
+  final List<AetherLifestyleContext> lifestyle;
+
+  /// The fortnight behind today, as Aether's own compressed notes, oldest
+  /// first and never including today.
+  ///
+  /// Guidance composed every morning as though it had never spoken to this
+  /// person: it could repeat yesterday's observation, contradict Tuesday, and
+  /// re-offer an action already declined four times. This is the thread.
+  final List<AetherRecallContext> recalled;
+
+  /// At least one journal passage was cut to fit the character budget.
+  ///
+  /// Stated to the model rather than hidden, because a passage that stops
+  /// mid-sentence reads as a complete thought that trailed off, and it is not.
+  final bool journalTruncated;
 
   /// Optional, 5–40. Present only when the person supplied it.
   final double? bodyFatPercent;
@@ -156,8 +278,14 @@ class AetherRequest {
         if (symbolic != null) 'symbolic': symbolic!.toJson(),
         if (digests.isNotEmpty)
           'journalDigests': digests.map((item) => item.toJson()).toList(),
-        if (patterns.isNotEmpty) 'patterns': patterns,
+        if (patterns.isNotEmpty)
+          'patterns': patterns.map((item) => item.toJson()).toList(),
+        if (lifestyle.isNotEmpty)
+          'selfReports': lifestyle.map((item) => item.toJson()).toList(),
+        if (recalled.isNotEmpty)
+          'recalled': recalled.map((item) => item.toJson()).toList(),
         'journal': journal,
+        if (journalTruncated) 'journalTruncated': true,
         'contextFingerprint': contextFingerprint,
       };
 }
@@ -171,10 +299,17 @@ class AetherRequestBuilder {
   const AetherRequestBuilder({
     this.maxJournalEntries = 5,
     this.maxJournalCharacters = 1200,
+    this.maxRecalledDays = 14,
+    this.maxRecallCharacters = 160,
   });
 
   final int maxJournalEntries;
   final int maxJournalCharacters;
+
+  /// A fortnight. Long enough to hold a stretch of days rather than a mood,
+  /// short enough that the notes never outweigh the records they are about.
+  final int maxRecalledDays;
+  final int maxRecallCharacters;
 
   AetherRequest build({
     required bool aiConsented,
@@ -185,7 +320,9 @@ class AetherRequestBuilder {
     List<AetherJournalContext> journal = const [],
     AetherSymbolicContext? symbolic,
     List<AetherJournalDigest> digests = const [],
-    List<String> patterns = const [],
+    List<AetherPatternContext> patterns = const [],
+    List<AetherLifestyleContext> lifestyle = const [],
+    List<AetherRecallContext> recalled = const [],
     double? bodyFatPercent,
   }) {
     if (!aiConsented) {
@@ -196,32 +333,67 @@ class AetherRequestBuilder {
     }
 
     final prose = <Map<String, Object>>[];
+    var truncated = false;
     if (journalConsented) {
       var remaining = maxJournalCharacters;
       for (final entry in journal.where((item) => !item.excludedFromAi)) {
         if (prose.length >= maxJournalEntries || remaining <= 0) break;
         final normalized = entry.text.trim().replaceAll(RegExp(r'\s+'), ' ');
         if (normalized.isEmpty) continue;
-        final length =
-            normalized.length < remaining ? normalized.length : remaining;
+        final cut = _fit(normalized, remaining);
+        if (cut.text.isEmpty) break;
+        if (cut.truncated) truncated = true;
         prose.add({
           'createdAt': entry.createdAt.toUtc().toIso8601String(),
-          'text': normalized.substring(0, length),
+          'text': cut.text,
+          if (cut.truncated) 'truncated': true,
         });
-        remaining -= length;
+        remaining -= cut.text.length;
       }
     }
 
-    // Four at most, and short. A finding that needs a paragraph is not a
-    // finding.
-    final bounded = [
-      for (final pattern in patterns.take(4))
-        if (pattern.trim().isNotEmpty) pattern.trim(),
-    ];
+    // Four at most, strongest first, and short. A finding that needs a
+    // paragraph is not a finding.
+    final bounded = ([
+      for (final pattern in patterns)
+        if (pattern.summary.trim().isNotEmpty)
+          AetherPatternContext(
+            summary: pattern.summary.trim(),
+            confidence: pattern.confidence,
+            observations: pattern.observations,
+            window: pattern.window,
+          ),
+    ]..sort((a, b) => b.confidence.compareTo(a.confidence)))
+        .take(4)
+        .toList();
 
     // Digests are journal-derived, so they cross only under the same consent
     // the prose itself needs.
     final digestPayload = journalConsented ? digests : const <AetherJournalDigest>[];
+
+    // A margin check-in is a self-report the person entered directly; one
+    // derived from a page is prose in another shape. Only the first crosses
+    // on general AI consent.
+    final reports = [
+      for (final item in lifestyle)
+        if (journalConsented || !item.fromJournal) item,
+    ];
+
+    // A fortnight, newest last, each line short. The store already withholds
+    // notes that journal consent no longer covers; this bounds what is left.
+    final memory = [
+      for (final item in recalled.length > maxRecalledDays
+          ? recalled.sublist(recalled.length - maxRecalledDays)
+          : recalled)
+        if (item.note.trim().isNotEmpty)
+          AetherRecallContext(
+            localDate: item.localDate,
+            note: _clip(item.note.trim(), maxRecallCharacters),
+            action: item.action?.trim().isEmpty ?? true
+                ? null
+                : _clip(item.action!.trim(), maxRecallCharacters),
+          ),
+    ];
 
     final stableContext = <String, Object>{
       'schemaVersion': 2,
@@ -234,7 +406,13 @@ class AetherRequestBuilder {
       'journal': prose,
       // In the fingerprint, so a newly discovered pattern is itself a reason
       // to recompose rather than something guidance learns about tomorrow.
-      'patterns': bounded,
+      'patterns': bounded.map((item) => item.toJson()).toList(),
+      // Likewise a check-in: answering the margin should change the day's
+      // reading, not wait for tomorrow's.
+      'selfReports': reports.map((item) => item.toJson()).toList(),
+      // In the fingerprint too: yesterday's note is a reason to say something
+      // different today, which is the entire point of keeping it.
+      'recalled': memory.map((item) => item.toJson()).toList(),
     };
     return AetherRequest(
       schemaVersion: 2,
@@ -245,9 +423,38 @@ class AetherRequestBuilder {
       symbolic: symbolic,
       digests: List.unmodifiable(digestPayload),
       patterns: List.unmodifiable(bounded),
+      lifestyle: List.unmodifiable(reports),
+      recalled: List.unmodifiable(memory),
       bodyFatPercent: bodyFatPercent,
+      journalTruncated: truncated,
       contextFingerprint: _fnv1a64(jsonEncode(stableContext)),
     );
+  }
+
+  /// A hard ceiling on a stored line, in case an older row predates the
+  /// schema's own bound.
+  String _clip(String text, int limit) =>
+      text.length <= limit ? text : text.substring(0, limit);
+
+  /// Fits [text] into [budget] characters without cutting a word in half.
+  ///
+  /// The old behaviour was `substring(0, budget)`, which handed the model a
+  /// passage ending mid-word and told it nothing — so a sentence that was cut
+  /// read as a thought the person had abandoned. This backs up to the last
+  /// space and marks the cut, and the prompt says a marked passage is
+  /// incomplete.
+  ({String text, bool truncated}) _fit(String text, int budget) {
+    if (text.length <= budget) return (text: text, truncated: false);
+    // One character for the marker, which has to fit inside the budget too.
+    final room = budget - 1;
+    if (room <= 0) return (text: '', truncated: false);
+    final head = text.substring(0, room);
+    final lastSpace = head.lastIndexOf(' ');
+    // Roughly a clause. Below that the remnant says nothing and reads as
+    // though the person trailed off, so the entry is dropped instead — and
+    // the caller stops adding entries rather than sending shards of them.
+    if (lastSpace < 40) return (text: '', truncated: false);
+    return (text: '${head.substring(0, lastSpace)}…', truncated: true);
   }
 
   String _fnv1a64(String input) {

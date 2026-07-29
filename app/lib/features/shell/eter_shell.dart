@@ -78,24 +78,6 @@ class _EterShellState extends State<EterShell> {
                 child: Column(
                   children: [
                     const SizedBox(height: EterSpace.s8),
-                    // The way into the Sanctum, named and out of the lockup.
-                    //
-                    // The mark alone was undiscoverable; a label under the
-                    // mark read as part of the wordmark, which is worse —
-                    // ornament that looks like a caption. It sits in the
-                    // corner instead, where a way out of a screen belongs,
-                    // and the mark stays tappable for anyone who learned it.
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(right: EterSpace.gutter),
-                        child: EterAction(
-                          label: 'Sanctum',
-                          emphasis: EterActionEmphasis.quiet,
-                          onPressed: _openSanctum,
-                        ),
-                      ),
-                    ),
                     EterShellHeader(onOpenSanctum: _openSanctum),
                     DestinationSwitch(activeIndex: _active, onSelect: _goTo),
                     Expanded(
@@ -112,6 +94,36 @@ class _EterShellState extends State<EterShell> {
                         ],
                       ),
                     ),
+                    // The way into the Sanctum, named and out of the lockup.
+                    //
+                    // The mark alone was undiscoverable; a label under the mark
+                    // read as part of the wordmark, which is worse — ornament
+                    // that looks like a caption. It spent a while in the top
+                    // corner, which cost a whole row above the wordmark and put
+                    // the settings door in the first thing anyone looked at.
+                    // It belongs at the foot of the screen, under the day, out
+                    // of the way until it is wanted. The mark stays tappable
+                    // for anyone who learned it.
+                    //
+                    // Withdrawn while the keyboard is up: the journal's field
+                    // is the one place a person is deliberately at the bottom
+                    // of the screen, and a settings button pinned above the
+                    // keyboard is a mis-tap waiting to happen.
+                    if (MediaQuery.viewInsetsOf(context).bottom == 0)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            right: EterSpace.gutter,
+                            bottom: EterSpace.s4,
+                          ),
+                          child: EterAction(
+                            label: 'Sanctum',
+                            emphasis: EterActionEmphasis.quiet,
+                            onPressed: _openSanctum,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),

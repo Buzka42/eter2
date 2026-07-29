@@ -560,6 +560,7 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
   late Future<List<RetrospectiveRow>> _retrospectives =
       widget.database.loadRetrospectives(limit: 1);
   bool _confirmReset = false;
+  bool _confirmPrune = false;
   bool _busy = false;
   String? _message;
 
@@ -610,6 +611,36 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
         _message = 'Pattern dismissed. Aether will not use it.';
       });
     }
+  }
+
+  /// Clears the prose of every page older than a year, keeping what those
+  /// pages produced.
+  ///
+  /// The retention control that existed in the database and nowhere else. What
+  /// a person wrote two years ago is the most personal thing this app holds
+  /// and the least likely to be read again; what they ate that day is a fact
+  /// about their history and stays.
+  Future<void> _pruneProse() async {
+    if (!_confirmPrune) {
+      setState(() {
+        _confirmPrune = true;
+        _message = 'This clears the text of journal pages older than a year. '
+            'Meals, workouts and check-ins derived from them stay.';
+      });
+      return;
+    }
+    setState(() => _busy = true);
+    final cleared = await widget.database.pruneJournalProse(
+      DateTime.now().toUtc().subtract(const Duration(days: 365)),
+    );
+    if (!mounted) return;
+    setState(() {
+      _busy = false;
+      _confirmPrune = false;
+      _message = cleared == 0
+          ? 'No pages are older than a year.'
+          : 'Cleared the text of $cleared page${cleared == 1 ? '' : 's'}.';
+    });
   }
 
   Future<void> _reset() async {
@@ -766,6 +797,22 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
           label: _confirmReset ? 'Clear now' : 'Reset',
           busy: _busy,
           onPressed: _busy ? null : _reset,
+        ),
+        const SizedBox(height: EterSpace.s16),
+        Text('OLD PAGES', style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          'Journal text older than a year can be cleared while the meals, '
+          'workouts and check-ins it produced stay.',
+          style: text.bodyMedium,
+        ),
+        EterAction(
+          // Two words at most: the section heading above already says which
+          // pages, and a longer label overflows at 320 dp with text doubled.
+          label: _confirmPrune ? 'Clear now' : 'Clear',
+          emphasis: EterActionEmphasis.quiet,
+          busy: _busy,
+          onPressed: _busy ? null : _pruneProse,
         ),
         if (_message != null)
           Semantics(

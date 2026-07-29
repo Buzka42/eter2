@@ -28,8 +28,115 @@ class AetherGuidanceDimension {
 }
 
 class AetherGuidance {
-  const AetherGuidance({required this.dimensions});
+  const AetherGuidance({required this.dimensions, this.recall});
   final List<AetherGuidanceDimension> dimensions;
+
+  /// The telegraphic note this composition leaves for the days after it.
+  ///
+  /// Never shown to anyone. It is stored so tomorrow's request can carry it,
+  /// which is the whole of how guidance stops repeating itself.
+  final String? recall;
+}
+
+/// Everything the model was actually given, flattened, so its citations can be
+/// checked against it.
+///
+/// The prompt has always told the model not to put a number in `evidence` that
+/// was not in the context. Nothing checked, and `evidence` is rendered as
+/// receipts — so an invented figure appeared on the surface wearing the
+/// clothes of a measurement. This is the missing half of that pair: every
+/// other rule stated in a prompt has an enforcement behind it, and this one
+/// now does too.
+class AetherEvidenceScope {
+  const AetherEvidenceScope({
+    required this.keys,
+    required this.numbers,
+    required this.strings,
+  });
+
+  /// Field names that appeared anywhere in the payload.
+  final Set<String> keys;
+  final Set<double> numbers;
+  final Set<String> strings;
+
+  /// Walks the encoded context and collects every key and leaf value.
+  factory AetherEvidenceScope.fromContext(Map<String, Object?> context) {
+    final keys = <String>{};
+    final numbers = <double>{};
+    final strings = <String>{};
+
+    void walk(Object? node) {
+      switch (node) {
+        case Map<String, Object?> map:
+          for (final entry in map.entries) {
+            keys.add(entry.key);
+            walk(entry.value);
+          }
+        case Iterable<Object?> list:
+          list.forEach(walk);
+        case num value:
+          numbers.add(value.toDouble());
+        case String value:
+          strings.add(value);
+        default:
+          return;
+      }
+    }
+
+    walk(context);
+    return AetherEvidenceScope(keys: keys, numbers: numbers, strings: strings);
+  }
+
+  /// Throws unless every key and leaf value in [evidence] came from the
+  /// context.
+  ///
+  /// Deliberately exact on numbers: 402 is a citation, 400 is a paraphrase of
+  /// one, and a paraphrased measurement is the thing this exists to catch. The
+  /// prompt tells the model to copy digit for digit and that a composition
+  /// failing this is discarded, so a rejection here is the model ignoring an
+  /// instruction rather than a near miss.
+  void validate(String dimension, Map<String, Object?> evidence) {
+    void check(Object? node, String path) {
+      switch (node) {
+        case Map<String, Object?> map:
+          for (final entry in map.entries) {
+            _requireKey(dimension, entry.key);
+            check(entry.value, entry.key);
+          }
+        case Iterable<Object?> list:
+          for (final item in list) {
+            check(item, path);
+          }
+        case num value:
+          if (!numbers.contains(value.toDouble())) {
+            throw AetherContractException(
+              '$dimension cites $path = $value, which is not in the context',
+            );
+          }
+        case String value:
+          if (value.trim().isEmpty) return;
+          if (!strings.contains(value)) {
+            throw AetherContractException(
+              '$dimension cites $path = "$value", which is not in the context',
+            );
+          }
+        default:
+          return;
+      }
+    }
+
+    for (final entry in evidence.entries) {
+      _requireKey(dimension, entry.key);
+      check(entry.value, entry.key);
+    }
+  }
+
+  void _requireKey(String dimension, String key) {
+    if (keys.contains(key)) return;
+    throw AetherContractException(
+      '$dimension cites a field that was not in the context: $key',
+    );
+  }
 }
 
 /// Accepts provider output only after strict shape and safety validation.
@@ -39,7 +146,20 @@ class AetherGuidanceParser {
   final AetherSafetyPolicy safetyPolicy;
   static const dimensionKeys = {'synthesis', 'health', 'mind', 'spirit'};
 
-  AetherGuidance parse(String raw, {required GuidanceMode mode}) {
+  /// The note field, which is not a dimension and is not rendered.
+  static const recallKey = 'recall';
+
+  /// The ceiling the prompt states. A note longer than this is not a note.
+  static const maxRecallCharacters = 160;
+
+  /// [evidence] is the context the model was given. When it is supplied, every
+  /// citation is checked against it; when it is not, shape validation runs
+  /// alone — which is what the offline composition and the older tests need.
+  AetherGuidance parse(
+    String raw, {
+    required GuidanceMode mode,
+    AetherEvidenceScope? evidence,
+  }) {
     final Object? decoded;
     try {
       decoded = jsonDecode(raw);
@@ -47,10 +167,30 @@ class AetherGuidanceParser {
       throw const AetherContractException('Provider response is not JSON');
     }
     if (decoded is! Map<String, dynamic> ||
-        decoded.keys.toSet().difference(dimensionKeys).isNotEmpty ||
+        decoded.keys
+            .toSet()
+            .difference({...dimensionKeys, recallKey})
+            .isNotEmpty ||
         !decoded.keys.toSet().containsAll(dimensionKeys)) {
       throw const AetherContractException(
         'Provider response must contain exactly four guidance dimensions',
+      );
+    }
+
+    // Optional in the parser and required in the schema, deliberately. A note
+    // is for the days after this one; a day that arrives without one is a day
+    // with no memory of itself, which is a smaller loss than no guidance at
+    // all. Older stored responses have none either.
+    final rawRecall = decoded[recallKey];
+    if (rawRecall != null && rawRecall is! String) {
+      throw const AetherContractException('The recall note must be text');
+    }
+    final recall = (rawRecall as String?)?.trim();
+    if (recall != null &&
+        recall.isNotEmpty &&
+        recall.length > maxRecallCharacters) {
+      throw const AetherContractException(
+        'The recall note must be at most $maxRecallCharacters characters',
       );
     }
 
@@ -79,20 +219,37 @@ class AetherGuidanceParser {
         primaryAction: action,
         mode: mode,
       );
-      final evidence = value['evidence'];
-      if (evidence != null && evidence is! Map<String, dynamic>) {
+      final cited = value['evidence'];
+      if (cited != null && cited is! Map<String, dynamic>) {
         throw AetherContractException('$key evidence must be an object');
+      }
+      if (cited is Map<String, dynamic>) {
+        evidence?.validate(key, cited);
       }
       dimensions.add(AetherGuidanceDimension(
         key: key,
         sentences: List.unmodifiable(sentences),
         primaryAction: action,
-        evidence: evidence == null
+        evidence: cited == null
             ? null
-            : Map<String, Object?>.unmodifiable(evidence),
+            : Map<String, Object?>.unmodifiable(cited as Map<String, dynamic>),
       ));
     }
-    return AetherGuidance(dimensions: List.unmodifiable(dimensions));
+    if (recall != null && recall.isNotEmpty) {
+      // Held to the same phrase list as anything else composed here. It is
+      // never shown, but it is read back into the next request, so an unsafe
+      // note would seed the next composition.
+      safetyPolicy.validateGuidance(
+        sentences: [recall],
+        primaryAction: recall,
+        mode: mode,
+      );
+    }
+
+    return AetherGuidance(
+      dimensions: List.unmodifiable(dimensions),
+      recall: recall == null || recall.isEmpty ? null : recall,
+    );
   }
 }
 

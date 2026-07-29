@@ -55,7 +55,14 @@ class AetherComposer {
       // inventing plausible neighbours like `healthAction`.
       responseSchema: prompt.responseSchema.cast<String, Object>(),
     ));
-    final guidance = parser.parse(raw, mode: request.mode);
+    // Checked against the payload the model was actually sent, not against the
+    // records — a number that is true but was not in this request is still a
+    // citation of something the model could not have seen.
+    final guidance = parser.parse(
+      raw,
+      mode: request.mode,
+      evidence: AetherEvidenceScope.fromContext(prompt.user),
+    );
     final instant = now ?? DateTime.now();
     final generatedAt = instant.toUtc();
     // The seven-day context is ordered oldest→newest; it must never choose the
@@ -65,6 +72,26 @@ class AetherComposer {
         : request.health.isEmpty
             ? _localDate(instant)
             : request.health.last.localDate;
+
+    // The note for the days after this one, written before the composition is
+    // reported as done so a reader on the next day cannot see guidance without
+    // the memory of it.
+    if (guidance.recall != null) {
+      final synthesis = guidance.dimensions
+          .firstWhere((dimension) => dimension.key == 'synthesis');
+      await database.saveGuidanceRecall(GuidanceRecallsCompanion.insert(
+        date: date,
+        generatedAt: generatedAt,
+        note: guidance.recall!,
+        action: Value(synthesis.primaryAction),
+        // What this note could have been written from. If journal consent is
+        // later withdrawn, a note that saw a page stops travelling.
+        usedJournal: Value(request.journal.isNotEmpty ||
+            request.digests.isNotEmpty ||
+            request.lifestyle.any((item) => item.fromJournal)),
+        promptVersion: const Value(EterPrompts.version),
+      ));
+    }
 
     await database.recordGuidanceSet([
       for (final dimension in guidance.dimensions)
@@ -78,6 +105,7 @@ class AetherComposer {
           ),
           contextFingerprint: request.contextFingerprint,
           source: source,
+          promptVersion: const Value(EterPrompts.version),
         ),
     ]);
     return AetherComposition(

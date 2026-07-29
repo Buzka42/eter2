@@ -163,10 +163,26 @@ class JournalClassificationParser {
   const JournalClassificationParser();
 
   static const _statuses = {'classified', 'needsDetail'};
+  /// What a page may report about the inside of a day.
+  ///
+  /// Deliberately wider than the margin's check-in, which offers three
+  /// readings and two practices. A page is where someone says the week is
+  /// heavy, that they felt adrift, that a conversation went badly — and a
+  /// companion that could only record mood, stress and recovery threw all of
+  /// that away at the point of reading it.
+  ///
+  /// `carrying` is the open one: whatever is weighing on them. It is stored as
+  /// context and never as a problem the product then tries to solve.
   static const _lifestyleKinds = {
     'mood',
     'stress',
     'recovery',
+    'energy',
+    'focus',
+    'motivation',
+    'social',
+    'spirit',
+    'carrying',
     'sleep',
     'meditation',
     'breathwork',
@@ -371,11 +387,22 @@ class JournalClassificationParser {
         (note != null && note is! String)) {
       throw const JournalClassificationException('Invalid lifestyle estimate');
     }
+    final text = note is String ? note.trim() : null;
+    // A report with no rating, no duration and no words is not a report. The
+    // wider vocabulary makes this reachable: `carrying` and `spirit` have no
+    // natural number, so an empty one would be a kind with nothing in it.
+    if (value == null &&
+        duration == null &&
+        (text == null || text.isEmpty)) {
+      throw const JournalClassificationException(
+        'A lifestyle report needs a rating, a duration or the words it came from',
+      );
+    }
     return LifestyleEstimate(
       kind: kind,
       value: value,
       durationMinutes: duration,
-      note: note is String ? note.trim() : null,
+      note: text,
     );
   }
 
@@ -416,6 +443,12 @@ const journalClassificationSchema = <String, Object>{
     'mood',
     'stress',
     'recovery',
+    'energy',
+    'focus',
+    'motivation',
+    'social',
+    'spirit',
+    'carrying',
     'sleep',
     'meditation',
     'breathwork',

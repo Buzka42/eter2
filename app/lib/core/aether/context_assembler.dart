@@ -70,6 +70,19 @@ class AetherContextAssembler {
         await PatternSweep(database).run(now: now);
         return database.loadActivePatterns();
       }),
+      // What the person said about the inside of the week — the margin's
+      // check-in and whatever their pages reported. Guidance reasoned from
+      // sensors and prose and never saw these at all, so a day someone marked
+      // as heavy read exactly like a day they had not answered.
+      database.loadLifestyleRange(firstDay.toUtc(), afterWindow.toUtc()),
+      // A fortnight of what Aether itself said, so today is not composed as
+      // though nothing was ever said to this person. Journal consent is read
+      // here rather than trusted from when the note was written: a note that
+      // saw a page must stop travelling if that permission is withdrawn.
+      database.loadGuidanceRecalls(
+        today: toDate,
+        journalAllowed: profile.journalAiConsentAt != null,
+      ),
     ]);
     final summaries = results[0] as List<DaySummaryRow>;
     final vitals = results[1] as List<DailyVitalsRow>;
@@ -77,6 +90,8 @@ class AetherContextAssembler {
     final journal = results[3] as List<JournalEntryRow>;
     final stories = results[4] as List<JournalDayStoryRow>;
     final patterns = results[5] as List<PatternCandidateRow>;
+    final lifestyle = results[6] as List<LifestyleEntryRow>;
+    final recalled = results[7] as List<GuidanceRecallRow>;
 
     final summariesByDate = {for (final row in summaries) row.date: row};
     final vitalsByDate = {for (final row in vitals) row.date: row};
@@ -128,7 +143,27 @@ class AetherContextAssembler {
       ageYears: _ageAt(profile.dob, localNow),
       mode: _mode(profile.guidanceMode),
       health: health,
-      patterns: [for (final row in patterns) row.summary],
+      patterns: [for (final row in patterns) _pattern(row)],
+      lifestyle: [
+        for (final row in lifestyle)
+          AetherLifestyleContext(
+            localDate: eterIsoDate(row.recordedAt.toLocal()),
+            kind: row.kind,
+            value: row.value,
+            durationMinutes: row.durationMinutes,
+            note: row.note,
+            // `journal:<id>` is what `applyJournalClassification` writes.
+            fromJournal: row.source.startsWith('journal:'),
+          ),
+      ],
+      recalled: [
+        for (final row in recalled)
+          AetherRecallContext(
+            localDate: row.date,
+            note: row.note,
+            action: row.action,
+          ),
+      ],
       bodyFatPercent: profile.bodyFatPercent,
       symbolic: await _symbolic(profile, localNow),
       digests: digests,
@@ -141,6 +176,31 @@ class AetherContextAssembler {
               excludedFromAi: row.excludedFromAi,
             ),
       ],
+    );
+  }
+
+  /// A finding with the strength of the finding attached.
+  ///
+  /// `evidenceJson` is written by `LocalPatternDiscovery` and carries `n` and
+  /// the window it compared. Both are optional here: a malformed or older row
+  /// still travels as a summary and a confidence, which is what it always did.
+  AetherPatternContext _pattern(PatternCandidateRow row) {
+    int? observations;
+    String? window;
+    try {
+      final decoded = jsonDecode(row.evidenceJson);
+      if (decoded is Map<String, dynamic>) {
+        if (decoded['n'] case final num count) observations = count.round();
+        if (decoded['window'] case final String span) window = span;
+      }
+    } on FormatException {
+      // The summary and the confidence are enough.
+    }
+    return AetherPatternContext(
+      summary: row.summary,
+      confidence: row.confidence,
+      observations: observations,
+      window: window,
     );
   }
 

@@ -264,6 +264,7 @@ class JournalDayStoryComposer {
       entryCount: Value(usable.length),
       sourceFingerprint: fingerprint,
       model: Value(model),
+      promptVersion: const Value(EterPrompts.version),
     ));
     return JournalDayStoryResult(
       row: await database.loadDayStory(date),

@@ -150,6 +150,72 @@ void main() {
     );
     expect((await database.loadJournalEntry(id))!.status, 'pending');
   });
+
+  group('what a page may report about the inside of a day', () {
+    const parser = JournalClassificationParser();
+
+    String pageReporting(List<Map<String, Object?>> lifestyle) => jsonEncode({
+          'status': 'classified',
+          'food': <Object?>[],
+          'lifestyle': lifestyle,
+        });
+
+    test('a felt state can arrive without a rating', () {
+      // A page can say the week is heavy without placing it on a scale, and
+      // demanding a number would mean inventing one.
+      final result = parser.parse(pageReporting([
+        {'kind': 'carrying', 'note': 'the redundancy consultation at work'},
+        {'kind': 'spirit', 'note': 'felt adrift most of the afternoon'},
+        {'kind': 'social', 'note': 'long call with my sister, first in weeks'},
+      ]));
+
+      expect(result.lifestyle, hasLength(3));
+      expect(result.lifestyle.first.kind, 'carrying');
+      expect(result.lifestyle.first.value, isNull);
+      expect(result.lifestyle.first.note, contains('redundancy'));
+    });
+
+    test('the felt states that do take a rating still bound it', () {
+      expect(
+        parser.parse(pageReporting([
+          {'kind': 'energy', 'value': 3},
+          {'kind': 'focus', 'value': 7, 'note': 'good until about three'},
+          {'kind': 'motivation', 'value': 0},
+        ])).lifestyle,
+        hasLength(3),
+      );
+      expect(
+        () => parser.parse(pageReporting([
+          {'kind': 'energy', 'value': 11},
+        ])),
+        throwsA(isA<JournalClassificationException>()),
+      );
+    });
+
+    test('a kind with nothing in it is not a report', () {
+      expect(
+        () => parser.parse(pageReporting([
+          {'kind': 'spirit'},
+        ])),
+        throwsA(isA<JournalClassificationException>()),
+      );
+      expect(
+        () => parser.parse(pageReporting([
+          {'kind': 'carrying', 'note': '   '},
+        ])),
+        throwsA(isA<JournalClassificationException>()),
+      );
+    });
+
+    test('a kind outside the vocabulary is still refused', () {
+      expect(
+        () => parser.parse(pageReporting([
+          {'kind': 'diagnosis', 'note': 'probably burnout'},
+        ])),
+        throwsA(isA<JournalClassificationException>()),
+      );
+    });
+  });
 }
 
 String _classifiedResponse({double kcal = 440}) => jsonEncode({

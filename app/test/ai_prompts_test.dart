@@ -149,14 +149,24 @@ void main() {
   });
 
   group('the response schema is the one the parser enforces', () {
-    test('guidance schema names exactly the four dimensions', () {
+    test('guidance schema names the four dimensions and the note', () {
       final schema = EterPrompts.guidance(buildRequest()).responseSchema;
 
       expect(
         (schema['required'] as List).toSet(),
-        AetherGuidanceParser.dimensionKeys,
+        {
+          ...AetherGuidanceParser.dimensionKeys,
+          AetherGuidanceParser.recallKey,
+        },
       );
       expect(schema['additionalProperties'], isFalse);
+
+      // The note is a string with the ceiling the instruction states, not a
+      // fifth dimension.
+      final recall = (schema['properties'] as Map)[
+          AetherGuidanceParser.recallKey] as Map<String, Object?>;
+      expect(recall['type'], 'string');
+      expect(recall['maxLength'], AetherGuidanceParser.maxRecallCharacters);
 
       final synthesis =
           (schema['properties'] as Map)['synthesis'] as Map<String, Object?>;
@@ -166,7 +176,8 @@ void main() {
       expect(sentences['maxItems'], 3);
     });
 
-    test('journal schema allows only the six canonical lifestyle kinds', () {
+    test('journal schema allows exactly the lifestyle kinds the parser takes',
+        () {
       final schema = EterPrompts.journalInterpretation(
         entryText: 'anything',
       ).responseSchema;
@@ -175,9 +186,26 @@ void main() {
       final item = lifestyle['items'] as Map<String, Object?>;
       final kind = (item['properties'] as Map)['kind'] as Map<String, Object?>;
 
+      // The wider vocabulary a page can report: felt states, connection,
+      // meaning, and whatever the person is carrying. The margin's check-in
+      // still offers only three readings and two practices — this is what
+      // prose is allowed to say, and the two are not the same list.
       expect(
         (kind['enum'] as List).toSet(),
-        {'mood', 'stress', 'recovery', 'sleep', 'meditation', 'breathwork'},
+        {
+          'mood',
+          'stress',
+          'recovery',
+          'energy',
+          'focus',
+          'motivation',
+          'social',
+          'spirit',
+          'carrying',
+          'sleep',
+          'meditation',
+          'breathwork',
+        },
       );
     });
 
@@ -256,4 +284,124 @@ void main() {
       isNot(contains('kcal')),
     );
   });
+  group('what a reading is drawn from', () {
+    AetherRequest requestFor(GuidanceMode mode, {bool journal = true}) =>
+        const AetherRequestBuilder().build(
+          aiConsented: true,
+          journalConsented: journal,
+          ageYears: 30,
+          mode: mode,
+          health: const [AetherHealthContext(localDate: '2026-07-27')],
+          digests: journal
+              ? const [
+                  AetherJournalDigest(
+                    localDate: '2026-07-27',
+                    points: {'mood': 'flat'},
+                  ),
+                ]
+              : const [],
+        );
+
+    test('three shares, and the journal has the largest', () {
+      for (final mode in GuidanceMode.values) {
+        final weights = EterPrompts.weightsFor(mode);
+        expect(
+          weights.journal + weights.symbolic + weights.measured,
+          100,
+          reason: '${mode.name} must add up',
+        );
+        expect(
+          weights.journal,
+          greaterThanOrEqualTo(weights.symbolic),
+          reason: 'what someone wrote is never the smaller voice',
+        );
+      }
+
+      expect(
+        EterPrompts.weightsFor(GuidanceMode.balanced),
+        (journal: 50, symbolic: 25, measured: 25),
+      );
+      expect(
+        EterPrompts.weightsFor(GuidanceMode.grounded),
+        (journal: 40, symbolic: 20, measured: 40),
+      );
+      expect(
+        EterPrompts.weightsFor(GuidanceMode.immersive),
+        (journal: 40, symbolic: 40, measured: 20),
+      );
+    });
+
+    test('the proportions reach the instruction', () {
+      final system = EterPrompts.guidance(requestFor(GuidanceMode.balanced)).system;
+      expect(system, contains('50% from what the person wrote'));
+      expect(system, contains('25% from the symbolic context'));
+      expect(system, contains('25% from the measured records'));
+    });
+
+    test('with no journal material the share is redistributed, not left open',
+        () {
+      final system =
+          EterPrompts.guidance(requestFor(GuidanceMode.balanced, journal: false))
+              .system;
+      // Naming a 50% share of something absent invites the model to fill it.
+      expect(system, contains('no journal material'));
+      expect(system, isNot(contains('50% from what the person wrote')));
+      expect(
+        EterPrompts.weightsWithoutJournal(GuidanceMode.balanced),
+        (symbolic: 50, measured: 50),
+      );
+      expect(
+        EterPrompts.weightsWithoutJournal(GuidanceMode.immersive),
+        (symbolic: 67, measured: 33),
+      );
+    });
+
+    test('absence is stated in all five instructions, not just guidance', () {
+      const marker = 'Missing data is information';
+      expect(EterPrompts.guidance(requestFor(GuidanceMode.balanced)).system,
+          contains(marker));
+      expect(
+        EterPrompts.journalDayStory(date: '2026-07-27', entries: const [])
+            .system,
+        contains(marker),
+      );
+      expect(
+        EterPrompts.journalInterpretation(entryText: 'anything').system,
+        contains(marker),
+      );
+      expect(
+        EterPrompts.positions(
+          mode: GuidanceMode.balanced,
+          transits: const {},
+          ascendantReliable: true,
+        ).system,
+        contains(marker),
+      );
+      expect(
+        EterPrompts.vesselReading(const VesselReadingRequest(
+          mode: GuidanceMode.balanced,
+          positions: [
+            VesselReadingPosition(
+              key: 'sun',
+              label: 'Sun',
+              card: 'Strength',
+              keywords: ['courage'],
+            ),
+          ],
+          approximateTime: false,
+          approximatePlace: false,
+        )).system,
+        contains(marker),
+      );
+    });
+
+    test('the deficit rule is gone and the floor is not', () {
+      final system = EterPrompts.guidance(requestFor(GuidanceMode.balanced)).system;
+      // Someone choosing to lose weight is not someone to be talked out of it.
+      expect(system, isNot(contains('under-eating')));
+      expect(system, contains('Never recommend eating under 1200 kcal'));
+      expect(system, contains('never frame food as punishment'));
+    });
+  });
+
 }

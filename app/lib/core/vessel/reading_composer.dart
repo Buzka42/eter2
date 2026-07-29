@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart' show Value;
+
 import '../aether/guidance_mode.dart';
 import '../aether/safety_policy.dart';
 import '../ai/prompts.dart';
@@ -158,6 +160,7 @@ class VesselReadingComposer {
           createdAt: createdAt,
           contentJson: jsonEncode({'passage': entry.value}),
           model: model,
+          promptVersion: const Value(EterPrompts.version),
         ),
     ]);
     for (final position in missing) {

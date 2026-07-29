@@ -1,6 +1,7 @@
 # Eter · how the AI flow works
 
-Current as of 29 July 2026. Supersedes `archive/AI_FLOW-2026-07-28.md`.
+Current as of 30 July 2026, prompt v3. Supersedes
+`archive/AI_FLOW-2026-07-28.md`.
 
 What leaves the device, what is asked of the model, what is done with the
 answer, and what happens when any of it fails.
@@ -17,7 +18,7 @@ streaming, no background poll.
 
 | Call | Trigger | Consent required | Writes |
 |---|---|---|---|
-| **guidance** | Dashboard composes for the day (`AetherComposer`) | `aiConsentAt`; journal material additionally needs `journalAiConsentAt` | 4 `GuidanceHistory` rows (one per dimension) |
+| **guidance** | Dashboard composes for the day (`AetherComposer`) | `aiConsentAt`; journal material additionally needs `journalAiConsentAt` | 4 `GuidanceHistory` rows + 1 `GuidanceRecalls` row |
 | **journalInterpretation** | **Automatic**, on every kept entry — `JournalAutoInterpreter`, max 5 per pass, when the Journal opens | `aiConsentAt` | `JournalEntries.extractionJson` + unconfirmed `NutritionEntries` + `LifestyleEntries` |
 | **journalDayStory** | Journal opens, and after each entry saves | `aiConsentAt` **and** `journalAiConsentAt` | One `JournalDayStories` row (story + digest) |
 | **vesselReadings** | Once at account creation, then `COMPOSE READINGS` | `aiConsentAt` | One `VesselReadings` row per position |
@@ -63,10 +64,24 @@ sun card) — never the inputs they came from.
 - **guidance** — up to 7 days of `{localDate, steps, activeKcal, sleepMinutes,
   restingHeartRate, hrvMs}` (days with no records are omitted, never
   zero-filled); derived age; optional body-fat %; the mode; optional symbolic
-  block; up to 4 locally-derived pattern sentences; and — only under journal
-  consent — per-day journal digests plus up to **5 raw entries inside a
-  1200-character budget**, whitespace-normalised, excluding anything marked
-  `KEEP LOCAL`. Days already reduced to a digest do not also travel as prose.
+  block; up to 4 patterns as `{summary, confidence, observations, window}`,
+  strongest first; self-reports as `{localDate, kind, value?,
+  durationMinutes?, note?}`; and — only under journal consent — per-day
+  digests plus up to **5 raw entries inside a 1200-character budget**,
+  whitespace-normalised, excluding anything marked `KEEP LOCAL`. Days already
+  reduced to a digest do not also travel as prose.
+
+  A passage that does not fit is cut **at a word boundary**, marked with `…`
+  and `"truncated": true`, and the instruction gains a paragraph saying a
+  marked passage is incomplete. A remnant shorter than about a clause is
+  dropped rather than sent.
+
+  Self-reports split by origin: a margin check-in (`source: 'self-report'`)
+  crosses on general AI consent; one derived from a page (`source:
+  'journal:<id>'`) is prose in another shape and crosses only under journal
+  consent.
+
+  Plus `recalled` — a fortnight of Aether's own compressed notes. See §1a.
 - **journalInterpretation** — one entry's text, plus one clarification string
   if the model previously asked for one. Nothing else: not the day's other
   entries, not the health context.
@@ -77,6 +92,71 @@ sun card) — never the inputs they came from.
   card, that card's shipped keywords, and the two reliability booleans.
 - **positions** — today's date, moon phase and sign, sun sign, and the list of
   contacts already computed on device with aspect, orb and applying/separating.
+
+### 1a. Memory
+
+Each composition returns a fifth field alongside the four dimensions:
+`recall`, at most 160 characters, telegraphic. It is never shown to anyone. It
+is written to `GuidanceRecalls` (one row per local day, replaced on recompose)
+together with that day's `primaryAction`.
+
+The next fourteen days of those notes travel with every request, oldest first,
+**never including today** — a note in its own request's fingerprint would make a
+day want recomposing the moment it finished.
+
+The instruction tells the model to write like a telegram: no articles, no
+hedges, no complete sentences. `"third short night. hrv still down. work
+deadline friday. offered early wind-down."` — not the prose it came from, which
+is already in `GuidanceHistory`.
+
+Reading them back, three limits are stated and all three are load-bearing:
+
+- **They are the model's words, never the person's.** Handed a note about a hard
+  week, a model will otherwise write "you told me the week was hard", and nobody
+  told it anything.
+- **A note is not evidence.** It cannot support a claim about a body and can
+  never appear in `evidence` — `AetherEvidenceScope` would reject it anyway,
+  since notes carry no numbers from the payload.
+- **Today outranks the thread.** If the records disagree with a note, the records
+  are what happened.
+
+Referring back explicitly *is* wanted: "the third short night this week", "the
+same stretch you were in on Monday". The prompt says so — "a companion that
+cannot say 'again' is not one."
+
+Consent: each row records `usedJournal`, true when the composition could see
+journal material. Withdrawing `journalAiConsentAt` stops those notes travelling,
+so revoking cannot leave last week's pages reaching the model laundered through
+Eter's own prose.
+
+The note is validated by `AetherSafetyPolicy` like anything else composed here —
+it is never displayed, but it seeds the next request.
+
+### How the shares are stated
+
+Guidance names three proportions explicitly, because a vaguer instruction
+("blend them") produces whichever the model finds easiest, which is always the
+numbers:
+
+| Register | Journal & self-reports | Chart | Measured |
+|---|---|---|---|
+| Grounded | 40% | 20% | 40% |
+| Balanced | 50% | 25% | 25% |
+| Immersive | 40% | 40% | 20% |
+
+The journal is the largest share in every register — it is the only input that
+says *why* a day went the way it did. In grounded the symbolic share is
+emphasis only and never reaches the words.
+
+With no journal material at all, that share is redistributed proportionally
+between the other two and the model is told the material is absent
+(`weightsWithoutJournal`). Naming a 50% share of something not in the payload
+invites the model to fill it.
+
+The shares are described as *where a reading draws from, not a quota to fill*:
+"If a share has nothing behind it today, that share is simply smaller and you
+say less."
+
 
 ### Consent
 
@@ -114,7 +194,9 @@ owner-controlled endpoint and returns the response body as a string.
 
 `server/worker.js` — see `AI_ENDPOINT.md` — authenticates the caller, checks
 the call name is one of the five, enforces a daily cap in KV, forwards to
-Gemini with `responseJsonSchema` constrained decoding, and returns
+Gemini with `responseJsonSchema` constrained decoding at a **per-call
+temperature** (interpretation 0.1, day story 0.5, the three writing calls
+0.7), and returns
 `{"raw": text}` unparsed. It logs `call=<name> <status>` and **never the
 payload**.
 
@@ -126,8 +208,8 @@ Each contract owns its own parser; the transport is forbidden to help.
 
 | Contract | Parser | Rejects |
 |---|---|---|
-| `aether/guidance_contract.dart` | `AetherGuidanceParser` | missing dimension, empty sentences, >3 sentences, `AetherSafetyPolicy` violation |
-| `journal/classification_contract.dart` | classification parser | out-of-range kcal/ratings, unknown lifestyle kind, missing assumptions |
+| `aether/guidance_contract.dart` | `AetherGuidanceParser` | missing dimension, empty sentences, >3 sentences, `AetherSafetyPolicy` violation, **evidence not present in the payload** (`AetherEvidenceScope`) |
+| `journal/classification_contract.dart` | classification parser | out-of-range kcal/ratings, unknown lifestyle kind, a report with no rating/duration/words, missing assumptions |
 | `journal/day_story.dart` | `JournalDayStoryParser` | story >700 chars, digest field >160 chars, >3 notable phrases |
 | `vessel/reading_composer.dart` | reading parser | unrequested key, passage >1800 chars |
 | `vessel/positions_composer.dart` | positions parser | passage >1200, note >140 chars |
@@ -172,21 +254,59 @@ excluded from totals until the person reviews it.
 
 ---
 
-## 6. Known gaps
+## 6. Provenance and retention (schema 7)
 
-Carried here so they are not rediscovered:
+Every row of model output records the `EterPrompts.version` that composed it,
+in a nullable `promptVersion` column. Null means the row predates the column —
+an honest "we no longer know" rather than a backfilled guess. Bumping
+`EterPrompts.version` therefore makes stale output identifiable.
 
-1. **`promptVersion` is sent but not stored.** Rows record
-   `model: 'provider'`, not which instruction produced the passage, so
-   `EterPrompts.version` cannot be used to invalidate stale output.
-2. **`GuidanceHistory` and `TransitReadings` have no retention bound.** They
-   grow forever until `resetPersonalization()` is run by hand from the Sanctum.
-3. **`pruneJournalProse` still has no caller.** The retention control it exists
-   for is not exposed anywhere.
-4. **Discarding a journal entry does not remove its cloud copy.**
-   `discardJournalEntry` blanks the local text and nulls `syncedAt`, but the
-   mirrored document keeps the original prose until `deleteEverything`.
-5. **`extractionJson` retains the full model reading** on the entry
-   indefinitely, including for entries whose derived rows were later reverted.
-6. **The endpoint has no per-user metering** — the daily cap is global across
-   every installation sharing one deployment.
+Model output expires on its own rather than when someone remembers to clear it
+(`AppDatabase.runLocalRetention`):
+
+| Table | Bound |
+|---|---|
+| `GuidanceHistory` | 365 days |
+| `TransitReadings` | 90 days |
+| `JournalEntries.extractionJson` | 90 days (the derived records stay) |
+| `RawBuckets` | 90 days |
+| `LiveSessions.hrSeriesJson` | 180 days |
+
+`extractionJson` is also cleared immediately by `revertJournalEntryRows` — the
+model's account of a page goes with the rows the person just rejected.
+
+`server/worker.js` enforces a per-caller burst limit (12 requests / 60 s)
+alongside the global `DAILY_CAP`, keyed by a salted truncated SHA-256 of the
+connecting address so no address is stored. The client still sends no
+identifier.
+
+## 7. What a page may report about a day
+
+`journalInterpretation` derives lifestyle records from twelve kinds, wider than
+the margin's check-in (three readings, two practices) because a page is where
+someone says the week is heavy:
+
+`mood` · `stress` · `recovery` · `energy` · `focus` · `motivation` — felt
+states, with an optional 0–10 rating
+`social` — connection or its absence · `spirit` — meaning, purpose, feeling
+adrift · `carrying` — a pressure, a worry, a conflict, a loss, something
+unresolved
+`sleep` — what they *said* about sleeping · `meditation` · `breathwork` — a
+practice with a duration
+
+A report needs a rating, a duration, or the words it came from; a kind with
+nothing in it is refused. `carrying` is stored as context and never treated as
+a problem the product then tries to solve — the prompt says so explicitly:
+"Do not advise on it, do not resolve it, and do not moralise about it."
+
+## 8. Open questions
+
+- `journalDayStory` sends *every* kept entry for a date, uncapped. It exists so
+  guidance can send bounded digests instead, but the story pass itself has no
+  character budget.
+- `AetherSafetyPolicy` is an exact-substring blocklist. It catches the literal
+  phrasings and nothing adjacent to them.
+- Each call is stateless. There is no model-side memory: continuity exists only
+  because the device re-sends digests, patterns, self-reports and the fortnight
+  of `recalled` notes. The other four calls have no memory at all — a Vessel
+  reading does not know what last week's reading said.

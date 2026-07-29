@@ -6,6 +6,7 @@ import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../ai/prompts.dart';
 import '../clock.dart';
 import '../energy/energy.dart' as energy;
 import '../journal/classification_contract.dart';
@@ -39,6 +40,7 @@ part 'app_database.g.dart';
     IntakeAnswers,
     JournalDayStories,
     TransitReadings,
+    GuidanceRecalls,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -50,9 +52,11 @@ class AppDatabase extends _$AppDatabase {
   /// digest, and the cached transit reading. v3 added the separate consent for
   /// mirroring journal prose; v4 added the crash-report consent; v5 adds how
   /// precisely the birth time is known; v6 repairs nights that were stored
-  /// twice, once as stages and once as the session containing them.
+  /// twice, once as stages and once as the session containing them; v7 records
+  /// which prompt version composed each piece of model output; v8 adds the
+  /// fortnight of compressed notes guidance reads so it stops repeating itself.
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 8;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -108,6 +112,23 @@ class AppDatabase extends _$AppDatabase {
               r"ELSE 'exact' END",
             );
           }
+          // Null on every existing row, deliberately. A passage composed
+          // before the column existed was composed by an instruction nobody
+          // recorded, and stamping it with today's version would be a claim
+          // about history rather than a fact about it.
+          await _addColumnIfMissing(m, guidanceHistory, guidanceHistory.promptVersion);
+          await _addColumnIfMissing(m, vesselReadings, vesselReadings.promptVersion);
+          await _addColumnIfMissing(m, transitReadings, transitReadings.promptVersion);
+          await _addColumnIfMissing(
+              m, journalDayStories, journalDayStories.promptVersion);
+          await _addColumnIfMissing(m, journalEntries, journalEntries.promptVersion);
+
+          // New in v8. Empty on an existing install: there is no way to write
+          // a note about a day whose composition has already happened, and
+          // inventing one from the stored prose would be Eter paraphrasing
+          // itself. Memory starts the day the column does.
+          await _createTableIfMissing(m, guidanceRecalls);
+
           await _repairDoubleCountedSleep();
           await _createIndexes();
         },
@@ -159,6 +180,23 @@ class AppDatabase extends _$AppDatabase {
     if (names.contains(column.name)) return false;
     await m.addColumn(table, column);
     return true;
+  }
+
+  /// Creates [table] only if the schema does not already have it.
+  ///
+  /// The same reasoning as [_addColumnIfMissing]: a migration that cannot be
+  /// re-run has to be perfect on the first attempt on every device forever, and
+  /// one of them already was not.
+  Future<void> _createTableIfMissing(
+    Migrator m,
+    TableInfo<Table, dynamic> table,
+  ) async {
+    final existing = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+      variables: [Variable<String>(table.actualTableName)],
+    ).get();
+    if (existing.isNotEmpty) return;
+    await m.createTable(table);
   }
 
   Future<void> _createIndexes() async {
@@ -847,6 +885,7 @@ class AppDatabase extends _$AppDatabase {
           status: Value(status),
           extractionJson: Value(extractionJson),
           model: Value(model),
+          promptVersion: const Value(EterPrompts.version),
           appliedAt: Value(appliedAt),
           syncedAt: const Value(null),
         ),
@@ -939,6 +978,10 @@ class AppDatabase extends _$AppDatabase {
         const JournalEntriesCompanion(
           status: Value('pending'),
           appliedAt: Value(null),
+          // The reading is dropped with the rows it produced. Keeping it would
+          // leave the model's account of a page the person has just rejected,
+          // and the next pass would re-read the prose anyway.
+          extractionJson: Value(null),
           syncedAt: Value(null),
         ),
       );
@@ -1017,6 +1060,46 @@ class AppDatabase extends _$AppDatabase {
     return (select(guidanceHistory)
           ..where((row) => row.date.isBiggerOrEqualValue(from))
           ..orderBy([(row) => OrderingTerm.desc(row.generatedAt)]))
+        .get();
+  }
+
+  /// Records what a day said, replacing any earlier note for that day.
+  ///
+  /// Replaced rather than appended: a day that recomposes has one current
+  /// account of itself, and keeping both would let guidance read two versions
+  /// of the same Tuesday and treat the pair as two separate days.
+  Future<void> saveGuidanceRecall(GuidanceRecallsCompanion recall) =>
+      into(guidanceRecalls).insertOnConflictUpdate(recall);
+
+  /// The fortnight guidance reads, oldest first, never including [today].
+  ///
+  /// [today] is excluded so that composing cannot invalidate its own cache: a
+  /// composition writes a note, and if that note were in the next request's
+  /// fingerprint the same day would want recomposing the moment it finished.
+  ///
+  /// [journalAllowed] false drops notes written from journal material. A note
+  /// composed while that consent was on may paraphrase a page, so withdrawing
+  /// the consent has to withdraw the note with it.
+  Future<List<GuidanceRecallRow>> loadGuidanceRecalls({
+    required String today,
+    int days = 14,
+    bool journalAllowed = true,
+  }) {
+    final cutoff = _isoDate(
+      DateTime.parse(today).subtract(Duration(days: days)),
+    );
+    return (select(guidanceRecalls)
+          ..where((row) {
+            // Inclusive of the cutoff and exclusive of today, so [days] means
+            // exactly that many calendar days behind the current one.
+            var predicate = row.date.isBiggerOrEqualValue(cutoff) &
+                row.date.isSmallerThanValue(today);
+            if (!journalAllowed) {
+              predicate = predicate & row.usedJournal.equals(false);
+            }
+            return predicate;
+          })
+          ..orderBy([(row) => OrderingTerm.asc(row.date)]))
         .get();
   }
 
@@ -1119,6 +1202,9 @@ class AppDatabase extends _$AppDatabase {
   Future<PersonalizationResetResult> resetPersonalization() async {
     return transaction(() async {
       final guidanceCount = await delete(guidanceHistory).go();
+      // The notes go with the compositions they describe. Clearing the memory
+      // and leaving the summary of it would be the worst of both.
+      await delete(guidanceRecalls).go();
       final patternCount = await delete(patternCandidates).go();
       final retrospectiveCount = await delete(retrospectives).go();
       return PersonalizationResetResult(
@@ -1238,10 +1324,78 @@ class AppDatabase extends _$AppDatabase {
         .write(const LiveSessionsCompanion(hrSeriesJson: Value('[]')));
   }
 
-  Future<({int rawBuckets, int heartRateSeries})> runLocalRetention() async {
+  /// Compositions older than a year.
+  ///
+  /// History is what lets guidance avoid repeating itself and refer back to a
+  /// stretch of days, and a year is longer than any window that reads it. Past
+  /// that it is model output nobody will ever open again, kept about a person's
+  /// health, which is the kind of thing that should expire on its own rather
+  /// than when someone remembers to clear it.
+  Future<int> pruneGuidanceHistory({int retainDays = 365}) {
+    final cutoff = DateTime.now().toUtc().subtract(Duration(days: retainDays));
+    return (delete(guidanceHistory)
+          ..where((row) => row.generatedAt.isSmallerThanValue(cutoff)))
+        .go();
+  }
+
+  /// Notes outside the window guidance can read.
+  ///
+  /// A generous margin on the fourteen days actually sent, so a gap in use does
+  /// not silently erase the thread; past that it is a summary of prose that has
+  /// itself expired.
+  Future<int> pruneGuidanceRecalls({int retainDays = 60}) {
+    final cutoff = _isoDate(
+      DateTime.now().toUtc().subtract(Duration(days: retainDays)),
+    );
+    return (delete(guidanceRecalls)
+          ..where((row) => row.date.isSmallerThanValue(cutoff)))
+        .go();
+  }
+
+  /// A transit passage is about one day. Ninety days after that day it is a
+  /// cache entry for a sky that will not return.
+  Future<int> pruneTransitReadings({int retainDays = 90}) {
+    final cutoff = DateTime.now().toUtc().subtract(Duration(days: retainDays));
+    return (delete(transitReadings)
+          ..where((row) => row.generatedAt.isSmallerThanValue(cutoff)))
+        .go();
+  }
+
+  /// The model's raw reading of a page, after the page itself is long past.
+  ///
+  /// The records it produced are kept — those are facts about a day. What
+  /// expires is the interpretation, which is only useful while someone might
+  /// still review or revert it.
+  Future<int> pruneJournalExtractions({int retainDays = 90}) {
+    final cutoff = DateTime.now().toUtc().subtract(Duration(days: retainDays));
+    return (update(journalEntries)
+          ..where((row) =>
+              row.createdAt.isSmallerThanValue(cutoff) &
+              row.extractionJson.isNull().not()))
+        .write(const JournalEntriesCompanion(extractionJson: Value(null)));
+  }
+
+  Future<
+      ({
+        int rawBuckets,
+        int heartRateSeries,
+        int guidance,
+        int transits,
+        int extractions,
+      })> runLocalRetention() async {
     final raw = await pruneRawBuckets();
     final heartRate = await pruneLiveHeartRateSeries();
-    return (rawBuckets: raw, heartRateSeries: heartRate);
+    final guidance = await pruneGuidanceHistory();
+    await pruneGuidanceRecalls();
+    final transits = await pruneTransitReadings();
+    final extractions = await pruneJournalExtractions();
+    return (
+      rawBuckets: raw,
+      heartRateSeries: heartRate,
+      guidance: guidance,
+      transits: transits,
+      extractions: extractions,
+    );
   }
 
   /// Complete, inspectable local snapshot for the Art. 15 export surface.
