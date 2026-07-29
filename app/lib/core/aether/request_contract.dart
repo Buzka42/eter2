@@ -113,6 +113,7 @@ class AetherRequest {
     required this.contextFingerprint,
     this.symbolic,
     this.digests = const [],
+    this.patterns = const [],
     this.bodyFatPercent,
   });
 
@@ -130,6 +131,19 @@ class AetherRequest {
   /// Bounded per-day journal digests, newest last.
   final List<AetherJournalDigest> digests;
 
+  /// What the device noticed about this person, in its own words.
+  ///
+  /// Correlations found locally over the last four weeks — "you sleep 40
+  /// minutes less after training past nine" — computed by
+  /// `LocalPatternDiscovery` from records that never left. Guidance was
+  /// reasoning from seven days at a time and could not see a habit; these are
+  /// the only long-range statements it gets, and they arrive as findings
+  /// rather than as raw history.
+  ///
+  /// Dismissed patterns are not here: the person said the observation was
+  /// wrong, and repeating it to a model would be arguing with them.
+  final List<String> patterns;
+
   /// Optional, 5–40. Present only when the person supplied it.
   final double? bodyFatPercent;
 
@@ -142,6 +156,7 @@ class AetherRequest {
         if (symbolic != null) 'symbolic': symbolic!.toJson(),
         if (digests.isNotEmpty)
           'journalDigests': digests.map((item) => item.toJson()).toList(),
+        if (patterns.isNotEmpty) 'patterns': patterns,
         'journal': journal,
         'contextFingerprint': contextFingerprint,
       };
@@ -170,6 +185,7 @@ class AetherRequestBuilder {
     List<AetherJournalContext> journal = const [],
     AetherSymbolicContext? symbolic,
     List<AetherJournalDigest> digests = const [],
+    List<String> patterns = const [],
     double? bodyFatPercent,
   }) {
     if (!aiConsented) {
@@ -196,6 +212,13 @@ class AetherRequestBuilder {
       }
     }
 
+    // Four at most, and short. A finding that needs a paragraph is not a
+    // finding.
+    final bounded = [
+      for (final pattern in patterns.take(4))
+        if (pattern.trim().isNotEmpty) pattern.trim(),
+    ];
+
     // Digests are journal-derived, so they cross only under the same consent
     // the prose itself needs.
     final digestPayload = journalConsented ? digests : const <AetherJournalDigest>[];
@@ -209,6 +232,9 @@ class AetherRequestBuilder {
       if (symbolic != null) 'symbolic': symbolic.toJson(),
       'journalDigests': digestPayload.map((item) => item.toJson()).toList(),
       'journal': prose,
+      // In the fingerprint, so a newly discovered pattern is itself a reason
+      // to recompose rather than something guidance learns about tomorrow.
+      'patterns': bounded,
     };
     return AetherRequest(
       schemaVersion: 2,
@@ -218,6 +244,7 @@ class AetherRequestBuilder {
       journal: List.unmodifiable(prose),
       symbolic: symbolic,
       digests: List.unmodifiable(digestPayload),
+      patterns: List.unmodifiable(bounded),
       bodyFatPercent: bodyFatPercent,
       contextFingerprint: _fnv1a64(jsonEncode(stableContext)),
     );

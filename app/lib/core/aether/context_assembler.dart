@@ -4,6 +4,7 @@ import '../arcana/major_arcana.dart';
 import '../arcana/zodiac.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
+import '../patterns/local_pattern_discovery.dart';
 import '../symbolic/natal_chart.dart';
 import '../symbolic/numerology.dart';
 import 'guidance_mode.dart';
@@ -55,12 +56,24 @@ class AetherContextAssembler {
         aiEligibleOnly: true,
       ),
       database.loadDayStoryRange(fromDate, toDate),
+      // Findings, not history: what four weeks of records said about this
+      // person that seven days of them cannot show.
+      //
+      // Reviewed here rather than only when the Sanctum is opened. Discovery
+      // was reachable from one screen most people never visit, so guidance
+      // could only ever have seen a pattern belonging to someone who had gone
+      // looking for it. It is local arithmetic over rows already loaded —
+      // nothing leaves, and nothing waits on a network.
+      LocalPatternDiscovery(database)
+          .review(now: now)
+          .then((_) => database.loadActivePatterns()),
     ]);
     final summaries = results[0] as List<DaySummaryRow>;
     final vitals = results[1] as List<DailyVitalsRow>;
     final sleep = results[2] as List<SleepSegmentRow>;
     final journal = results[3] as List<JournalEntryRow>;
     final stories = results[4] as List<JournalDayStoryRow>;
+    final patterns = results[5] as List<PatternCandidateRow>;
 
     final summariesByDate = {for (final row in summaries) row.date: row};
     final vitalsByDate = {for (final row in vitals) row.date: row};
@@ -112,6 +125,7 @@ class AetherContextAssembler {
       ageYears: _ageAt(profile.dob, localNow),
       mode: _mode(profile.guidanceMode),
       health: health,
+      patterns: [for (final row in patterns) row.summary],
       bodyFatPercent: profile.bodyFatPercent,
       symbolic: await _symbolic(profile, localNow),
       digests: digests,

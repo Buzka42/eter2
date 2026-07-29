@@ -154,10 +154,24 @@ class HealthHubSyncService {
     }
     for (final entry in groups.entries) {
       final (night, source) = entry.key;
+      // A session and its own stages describe the same minutes.
+      //
+      // Health Connect stores the night as a session that *contains* the
+      // stages, so a source that provides both hands us the whole night twice
+      // — once broken down, once as a single undifferentiated block. Keeping
+      // both put an "unknown 505m" beside a light/deep/REM breakdown summing
+      // to the same 505, and doubled every average built on it.
+      //
+      // The stages win when they exist. The session is the fallback for a
+      // source that only ever says how long someone slept.
+      final staged = entry.value
+          .where((sample) => _sleepStage(sample.metric) != 'unknown')
+          .toList();
+      final segments = staged.isEmpty ? entry.value : staged;
       await database.replaceSleepForNight(
         nightOf: night,
         source: '${gateway.vendor}:$source',
-        segments: entry.value.map(
+        segments: segments.map(
           (sample) => SleepSegmentsCompanion.insert(
             startUtc: sample.start.toUtc(),
             endUtc: sample.end.toUtc(),

@@ -547,7 +547,10 @@ class EngravedSleepHistory extends StatelessWidget {
       label: '$windowDays day sleep history, ${nights.length} nights. '
           'Average ${(average / 60).toStringAsFixed(1)} hours. $summary.',
       child: ExcludeSemantics(
-        child: SizedBox(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+        SizedBox(
           height: 132,
           child: CustomPaint(
             painter: _SleepHistoryPainter(
@@ -563,6 +566,47 @@ class EngravedSleepHistory extends StatelessWidget {
               ),
             ),
           ),
+        ),
+            const SizedBox(height: EterSpace.s8),
+            // A key for the bars.
+            //
+            // The stacked segments were unlabelled, so the only way to know
+            // which band was deep sleep was to already know. It reads bottom
+            // upward, in the order the painter stacks them, and carries no
+            // numbers: the values belong to the night above, not to a
+            // seven-night chart.
+            Wrap(
+              spacing: EterSpace.s12,
+              runSpacing: EterSpace.s4,
+              children: [
+                for (final entry in const [
+                  (label: 'Deep', stage: 'deep'),
+                  (label: 'Light', stage: 'light'),
+                  (label: 'REM', stage: 'rem'),
+                  (label: 'Awake', stage: 'awake'),
+                ])
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 6,
+                        color: switch (entry.stage) {
+                          'deep' => ink.lineStrong,
+                          'rem' => ink.lineStrong.withValues(alpha: .65),
+                          _ => ink.line,
+                        },
+                      ),
+                      const SizedBox(width: EterSpace.s4),
+                      Text(
+                        entry.label,
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

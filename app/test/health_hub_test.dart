@@ -201,6 +201,79 @@ void main() {
     expect(summary?.activeKcal, 10);
     expect(summary?.recalibrated, isTrue);
   });
+
+  test('a night with stages does not also count its containing session',
+      () async {
+    // The real shape of a Garmin night as Health Connect stores it: the
+    // session spans the whole sleep, and the stages break the same minutes
+    // down. Counting both reported 8h21m of stages plus 8h25m of "unknown",
+    // and doubled every average built on it.
+    HubSample stage(String id, HubMetric metric, int fromMinute, int minutes) =>
+        HubSample(
+          id: id,
+          metric: metric,
+          start: DateTime.utc(2026, 7, 29, 0, 44).add(
+            Duration(minutes: fromMinute),
+          ),
+          end: DateTime.utc(2026, 7, 29, 0, 44).add(
+            Duration(minutes: fromMinute + minutes),
+          ),
+          value: minutes.toDouble(),
+          source: 'Garmin',
+        );
+
+    final gateway = _FakeGateway(samples: [
+      // The session: 00:44 to 09:09.
+      stage('session', HubMetric.sleepUnknown, 0, 505),
+      stage('light', HubMetric.sleepLight, 0, 296),
+      stage('rem', HubMetric.sleepRem, 296, 165),
+      stage('deep', HubMetric.sleepDeep, 461, 40),
+      stage('awake', HubMetric.sleepAwake, 501, 4),
+    ]);
+    final service = HealthHubSyncService(database: database, gateway: gateway);
+    await service.sync(
+      start: DateTime.utc(2026, 7, 28),
+      end: DateTime.utc(2026, 7, 30),
+    );
+
+    final sleep = await database.loadSleepForNights('2026-07-29', '2026-07-29');
+    expect(
+      sleep.map((row) => row.stage).toSet(),
+      {'light', 'rem', 'deep', 'awake'},
+      reason: 'the undifferentiated session must not survive beside stages',
+    );
+    final total = sleep.fold<int>(
+      0,
+      (sum, row) => sum + row.endUtc.difference(row.startUtc).inMinutes,
+    );
+    expect(total, 505);
+  });
+
+  test('a source that only reports a session still records the night',
+      () async {
+    // The other half of the same rule: a watch that says how long someone
+    // slept and nothing more must not be discarded for lack of detail.
+    final gateway = _FakeGateway(samples: [
+      HubSample(
+        id: 'session-only',
+        metric: HubMetric.sleepUnknown,
+        start: DateTime.utc(2026, 7, 29, 1),
+        end: DateTime.utc(2026, 7, 29, 7),
+        value: 360,
+        source: 'Some watch',
+      ),
+    ]);
+    final service = HealthHubSyncService(database: database, gateway: gateway);
+    await service.sync(
+      start: DateTime.utc(2026, 7, 28),
+      end: DateTime.utc(2026, 7, 30),
+    );
+
+    final sleep = await database.loadSleepForNights('2026-07-29', '2026-07-29');
+    expect(sleep, hasLength(1));
+    expect(sleep.single.stage, 'unknown');
+    expect(sleep.single.endUtc.difference(sleep.single.startUtc).inMinutes, 360);
+  });
 }
 
 HubSample _sample(HubMetric metric, double value) => HubSample(

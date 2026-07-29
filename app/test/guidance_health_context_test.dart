@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:eter/core/aether/context_assembler.dart';
+import 'package:eter/core/aether/guidance_mode.dart';
+import 'package:eter/core/aether/request_contract.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -167,5 +169,70 @@ void main() {
     expect(request.health, hasLength(1));
     expect(request.health.single.sleepMinutes, 360);
     expect(request.health.single.steps, isNull);
+  });
+
+  group('patterns', () {
+    test('a finding reaches the model, bounded and trimmed', () {
+      final request = const AetherRequestBuilder().build(
+        aiConsented: true,
+        journalConsented: false,
+        ageYears: 36,
+        mode: GuidanceMode.balanced,
+        health: const [],
+        patterns: const [
+          '  You sleep about 40 minutes less after training past nine.  ',
+          'A second finding.',
+          'A third.',
+          'A fourth.',
+          'A fifth that will not fit.',
+          '   ',
+        ],
+      );
+
+      // Four at most, trimmed, empties dropped: a finding that needs a
+      // paragraph is not a finding.
+      expect(request.patterns, hasLength(4));
+      expect(request.patterns.first, startsWith('You sleep'));
+      expect(jsonEncode(request.toJson()), contains('40 minutes less'));
+    });
+
+    test('a dismissed pattern does not', () async {
+      await database.upsertPattern(
+        PatternCandidatesCompanion.insert(
+          key: 'sleep-after-late-activity-v1',
+          computedAt: DateTime.utc(2026, 7, 28),
+          summary: 'A finding the person rejected.',
+          evidenceJson: '{}',
+          confidence: 0.7,
+          status: const Value('dismissed'),
+        ),
+      );
+
+      final request =
+          await AetherContextAssembler(database: database).assemble(now: now);
+
+      // Repeating an observation someone has explicitly rejected would be
+      // arguing with them through a model.
+      expect(request.patterns, isEmpty);
+    });
+
+    test('a new finding moves the fingerprint', () {
+      AetherRequest requestWith(List<String> patterns) =>
+          const AetherRequestBuilder().build(
+            aiConsented: true,
+            journalConsented: false,
+            ageYears: 36,
+            mode: GuidanceMode.balanced,
+            health: const [],
+            patterns: patterns,
+          );
+
+      // Otherwise a finding would sit unused until something else changed.
+      expect(
+        requestWith(const ['You sleep less after training past nine.'])
+            .contextFingerprint,
+        isNot(requestWith(const []).contextFingerprint),
+      );
+    });
   });
 }
