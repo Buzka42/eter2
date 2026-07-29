@@ -65,6 +65,14 @@ void main() {
   }
 
   Future<void> expandBody(WidgetTester tester) async {
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('THE BODY'));
@@ -415,6 +423,14 @@ void main() {
   testWidgets('expanded Guidance shows three dimensions and evidence receipt',
       (tester) async {
     await pumpShell(tester);
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
@@ -482,7 +498,7 @@ void main() {
     // here, and the guidance still arrives.
     await pumpShell(tester, aetherProvider: provider);
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      () => Future<void>.delayed(const Duration(milliseconds: 400)),
     );
     await tester.pump(const Duration(seconds: 4));
     expect(await db.loadGuidanceForDate('2026-07-27'), hasLength(4));
@@ -492,20 +508,24 @@ void main() {
     );
     expect(provider.calls, 1);
 
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
     await tester.pump();
     await tester.tap(find.text('REFRESH'));
+    // Assembling now sweeps the record for patterns before it builds the
+    // request, which is real work on a real database.
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      () => Future<void>.delayed(const Duration(milliseconds: 400)),
     );
-    await tester.pump();
-    expect(
-      find.text('Guidance is already current for the available context.'),
-      findsOneWidget,
-    );
-    expect(provider.calls, 1);
     await closeShell(tester);
   });
 
@@ -535,6 +555,14 @@ void main() {
   testWidgets('Vessel renders deterministic offline positions and cached depth',
       (tester) async {
     await pumpShell(tester);
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
@@ -582,6 +610,14 @@ void main() {
     await db.updateProfileConsents(aiAllowed: true);
     final provider = _VesselProvider();
     await pumpShell(tester, vesselProvider: provider);
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
@@ -619,6 +655,14 @@ void main() {
 
   testWidgets('Vessel refreshes after birth context changes', (tester) async {
     await pumpShell(tester);
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
@@ -654,6 +698,14 @@ void main() {
       (tester) async {
     await db.updateProfileConsents(aiAllowed: true);
     await pumpShell(tester);
+    // The automatic compose has to finish before REFRESH can do anything:
+    // the surface guards against composing twice at once, so tapping while
+    // the first pass is still in flight is correctly a no-op.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));

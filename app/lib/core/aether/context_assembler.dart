@@ -5,6 +5,7 @@ import '../arcana/zodiac.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
 import '../patterns/local_pattern_discovery.dart';
+import '../patterns/pattern_sweep.dart';
 import '../symbolic/natal_chart.dart';
 import '../symbolic/numerology.dart';
 import 'guidance_mode.dart';
@@ -64,9 +65,11 @@ class AetherContextAssembler {
       // could only ever have seen a pattern belonging to someone who had gone
       // looking for it. It is local arithmetic over rows already loaded —
       // nothing leaves, and nothing waits on a network.
-      LocalPatternDiscovery(database)
-          .review(now: now)
-          .then((_) => database.loadActivePatterns()),
+      Future(() async {
+        await LocalPatternDiscovery(database).review(now: now);
+        await PatternSweep(database).run(now: now);
+        return database.loadActivePatterns();
+      }),
     ]);
     final summaries = results[0] as List<DaySummaryRow>;
     final vitals = results[1] as List<DailyVitalsRow>;

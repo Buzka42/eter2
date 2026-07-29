@@ -628,6 +628,15 @@ class AppDatabase extends _$AppDatabase {
         return id;
       });
 
+  /// A one-off read, for callers that want the rows rather than a
+  /// subscription to them. The pattern sweep used `watchWeightEntries().first`
+  /// and inherited stream semantics it had no use for.
+  Future<List<WeightEntryRow>> loadWeightEntries({int limit = 365}) =>
+      (select(weightEntries)
+            ..orderBy([(row) => OrderingTerm.desc(row.recordedAt)])
+            ..limit(limit))
+          .get();
+
   Stream<List<WeightEntryRow>> watchWeightEntries({int limit = 365}) =>
       (select(weightEntries)
             ..orderBy([(row) => OrderingTerm.desc(row.recordedAt)])
