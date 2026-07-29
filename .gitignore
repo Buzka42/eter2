@@ -31,3 +31,8 @@ Thumbs.db
 # The local dev endpoint holds the model key; it must never enter history.
 /app/tool/dev_endpoint.secret
 /app/tool/.dev_endpoint_usage.json
+
+# Wrangler local state: account id, cache, build output. Not secret, not
+# ours to publish, and not useful to anyone cloning this.
+/server/.wrangler/
+/server/node_modules/
