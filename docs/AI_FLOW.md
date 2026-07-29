@@ -1,238 +1,192 @@
 # Eter · how the AI flow works
 
-Pass 3 of three, 28 July 2026. What leaves the device, what is asked of the
-model, what is done with the answer, and what happens when any of it fails.
+Current as of 29 July 2026. Supersedes `archive/AI_FLOW-2026-07-28.md`.
+
+What leaves the device, what is asked of the model, what is done with the
+answer, and what happens when any of it fails.
 
 This document is the authority for the AI boundary. Where it and a code comment
 disagree, the code is wrong.
 
 ---
 
-## 0. The shape of the whole thing
+## 0. The five calls
 
-Eter makes exactly **five** calls to a model. There are no others, there is no
-chat, and nothing is sent in the background.
+Eter makes exactly **five** kinds of model call. There is no chat, no
+streaming, no background poll.
 
 | Call | Trigger | Consent required | Writes |
 |---|---|---|---|
-| **Guidance** | The day's first look at the Dashboard, or `COMPOSE NOW` | AI; journal prose additionally gated | 4 `GuidanceHistory` rows |
-| **Journal interpretation** | Explicit `INTERPRET` on one entry | AI | Unconfirmed `NutritionEntries` + `LifestyleEntries` |
-| **Vessel readings** | Once at account creation, then `COMPOSE READINGS` | AI | `VesselReadings` rows, one per position |
-| **The day's story** | Journal opens, and after each entry saves | AI **and** journal prose | One `JournalDayStories` row: the story and its digest |
-| **Positions** | Explicit `READ TODAY` in the Vessel | AI | One `TransitReadings` row per day and chart |
+| **guidance** | Dashboard composes for the day (`AetherComposer`) | `aiConsentAt`; journal material additionally needs `journalAiConsentAt` | 4 `GuidanceHistory` rows (one per dimension) |
+| **journalInterpretation** | **Automatic**, on every kept entry — `JournalAutoInterpreter`, max 5 per pass, when the Journal opens | `aiConsentAt` | `JournalEntries.extractionJson` + unconfirmed `NutritionEntries` + `LifestyleEntries` |
+| **journalDayStory** | Journal opens, and after each entry saves | `aiConsentAt` **and** `journalAiConsentAt` | One `JournalDayStories` row (story + digest) |
+| **vesselReadings** | Once at account creation, then `COMPOSE READINGS` | `aiConsentAt` | One `VesselReadings` row per position |
+| **positions** | `READ TODAY` in the Vessel | `aiConsentAt` | One `TransitReadings` row per (date, chart hash) |
 
-Every one of them is:
+The chart, the Life Path, the Arcana and the daily card involve **no model at
+all** — they are device arithmetic (`core/symbolic`, `core/arcana`).
 
-- **user-initiated or once-daily**, never a poll, never a stream;
-- **bounded** — a fixed window, a character budget, a position list;
-- **provider-independent** — the contracts know nothing about any vendor;
-- **fail-closed** — a refusal, a malformed answer or an unsafe one writes
-  nothing at all, and says so on the surface.
+Every call is bounded, provider-independent, and fail-closed: a refusal, a
+malformed answer, or an unsafe one writes nothing and says so on the surface.
 
-The chart, the Life Path and the daily card are **not** in that table, because
-no model is involved in them at all. See §4.
+Code map:
+
+```
+core/ai/prompts.dart        the system instruction + JSON Schema for all five
+core/ai/transport.dart      the only network call in the app; five thin adapters
+server/worker.js            the owner-controlled endpoint (Cloudflare Worker)
+core/aether/*               guidance: assemble → request → prompt → parse → store
+core/journal/*              interpretation and the day story
+core/vessel/*               readings and positions
+```
 
 ---
 
 ## 1. The trust boundary
 
-### What is never sent, by construction
+### Never assembled, therefore never sent
 
-Not filtered out — never assembled in the first place. `AetherRequest`,
-`VesselReadingRequest` and the journal payload have no field for any of it:
+`AetherRequest`, `VesselReadingRequest` and the journal payloads have no field
+for any of this:
 
 name · date of birth · birth time · birth place · coordinates · timezone ·
-device or account identifiers · row ids · vendor or source names · the local
-chart hash · anything at all from a day outside the requested window.
+account or device identifiers · row ids · vendor/source names · the chart
+input hash · anything from a day outside the requested window.
 
-Age crosses as **derived years**, not a birthday. The register crosses as a
-mode name. Reliability crosses as two booleans.
+Age crosses as **derived years**. The register crosses as a mode name.
+Reliability crosses as two booleans. The chart crosses as *already-computed
+placements* (sun sign, moon sign, optional ascendant, Life Path, personal year,
+sun card) — never the inputs they came from.
 
-`test/ai_prompts_test.dart` asserts this against the encoded payload rather
-than trusting the comment.
+### What each call actually sends
 
-### What is sent
+- **guidance** — up to 7 days of `{localDate, steps, activeKcal, sleepMinutes,
+  restingHeartRate, hrvMs}` (days with no records are omitted, never
+  zero-filled); derived age; optional body-fat %; the mode; optional symbolic
+  block; up to 4 locally-derived pattern sentences; and — only under journal
+  consent — per-day journal digests plus up to **5 raw entries inside a
+  1200-character budget**, whitespace-normalised, excluding anything marked
+  `KEEP LOCAL`. Days already reduced to a digest do not also travel as prose.
+- **journalInterpretation** — one entry's text, plus one clarification string
+  if the model previously asked for one. Nothing else: not the day's other
+  entries, not the health context.
+- **journalDayStory** — every kept, non-excluded entry for one local date, with
+  timestamps. This is the widest payload in the app; it exists so that guidance
+  can send a bounded digest instead of raw prose.
+- **vesselReadings** — for each *missing* position only: key, label, resolved
+  card, that card's shipped keywords, and the two reliability booleans.
+- **positions** — today's date, moon phase and sign, sun sign, and the list of
+  contacts already computed on device with aspect, orb and applying/separating.
 
-**Guidance** — up to seven days, each `{localDate, steps, activeKcal,
-sleepMinutes, restingHeartRate, hrvMs}`, days with no records omitted entirely
-rather than zero-filled; derived age; the mode; and, only when journal-prose
-consent is separately given, up to **5 entries within a 1200-character total**,
-normalized whitespace, skipping any entry the user marked `KEEP LOCAL`.
+### Consent
 
-**Journal interpretation** — one entry's text, plus one clarification string if
-the model previously asked for one. Nothing else. Not the day's other entries,
-not the health context.
+Two independent flags on the profile row, both nullable timestamps, both
+re-read on every pass rather than cached:
 
-**Vessel readings** — for each *missing* position only: key, label, the card it
-resolved to, that card's shipped keywords, an optional degree detail, and the
-two reliability booleans. Already-composed positions are never re-sent.
+- `aiConsentAt` — gates all five calls.
+- `journalAiConsentAt` — additionally gates journal *prose and digests*
+  reaching guidance, and gates the day story entirely.
 
-### Consent, exactly
+Revoking `aiConsentAt` also nulls `journalAiConsentAt`
+(`AppDatabase.updateProfileConsents`). `AetherRequestBuilder.build` throws
+`AetherConsentException` without consent, and again under age 16.
 
-Three independent switches, all off by default, all revocable
-(`Profiles.aiConsentAt`, `journalAiConsentAt`, `cloudSyncConsentAt`):
-
-- **AI off** → all three calls raise before any payload is built.
-- **AI on, journal prose off** → guidance runs with health only, and the prompt
-  is told, in words, that no prose was included so it cannot imply otherwise.
-- **Revoking AI** also immediately revokes journal-prose consent.
-- Age under 16 raises, independently of consent.
-
----
-
-## 2. What the model is actually asked
-
-`lib/core/ai/prompts.dart`, versioned as `EterPrompts.version`. Before it
-existed, the contracts defined a payload and a loose shape hint and **nothing
-said what the model should do** — which meant the product's voice and its
-safety posture would have been set by whoever wired the transport.
-
-Each prompt returns three things: a system instruction, the payload, and a real
-**JSON Schema** for structured output. Providers that support schema-
-constrained decoding should pass the schema through; the parsers validate
-regardless, because the schema is an optimisation and the parser is the rule.
-
-### The shared language
-
-- **Voice** — one of three blocks, chosen by mode. Grounded forbids symbolic
-  language outright ("no stars, no charts, no destiny"). Balanced allows
-  symbolism to colour a framing but never to be a reason. Immersive allows it
-  to open or close a passage, and still requires every recommendation to rest
-  on the records. This mirrors the brief: the modes differ in tone and framing;
-  the health reasoning underneath is identical.
-- **Safety** — no diagnosis, no medication, no sub-1200-kcal recommendation, no
-  deficit for someone whose records suggest under-eating, no "push through the
-  pain", no symbolism presented as medical fact, no streaks or scores, and
-  "refuse nothing silently: if you cannot say something safely, say less".
-- **Absence** — missing data is information. Say it is absent, reason without
-  it, never estimate an unrecorded number, never treat a gap as a zero.
-
-### Per call
-
-**Guidance** asks for exactly four dimensions. `synthesis` is the sentence the
-app opens with — at most two sentences, no greeting, begins with the
-observation. `health`, `mind` and `spirit` follow. Each has 1–3 sentences and
-exactly one `primaryAction` phrased as an invitation, plus optional `evidence`
-naming the records used — with the rule that no number may appear in
-`evidence` that was not in the context.
-
-**Journal interpretation** is deliberately narrow: derive food and the six
-lifestyle kinds, and nothing else. It is told explicitly not to derive anything
-the page did not say, not to read another day's events, not to touch weight,
-workouts or heart rate, and to produce records rather than commentary. When
-something material is unknown it must return `needsDetail` with exactly one
-question and no derived rows — *"an unanswered question costs nothing, and a
-wrong meal costs trust"*. An empty result is stated as normal and frequent.
-
-**Vessel readings** are told the calculation already happened on the device and
-they are not casting anything. Provisional positions must be named as
-provisional in the passage. Symbolism describes a tendency, never a fate and
-never a fact about the body; nothing in a reading may instruct anyone about
-health, eating or medication.
+Per-entry, `excludedFromAi` (`KEEP LOCAL`) holds a single page back from every
+call while leaving it in the record and in the cloud mirror.
 
 ---
 
-## 3. What happens to the answer
+## 2. Transport
 
-Two independent layers, and the prompt is neither of them.
+`core/ai/transport.dart` is the only file that opens a socket. It posts
+`{call, promptVersion, system, user, responseSchema}` to an
+owner-controlled endpoint and returns the response body as a string.
 
-**Shape.** `AetherGuidanceParser` requires exactly the four dimension keys and
-no others, 1–3 non-empty sentences each, a non-empty action, and an object for
-evidence if present. `JournalClassificationParser` bounds kcal to (0, 5000],
-macros to [0, 1000], confidence to [0, 1], lifestyle values to [0, 10],
-durations to (0, 1440], and rejects any `needsDetail` that also carries derived
-rows. `VesselReadingComposer` requires exactly the requested keys back —
-no extras, no omissions — and caps a passage at 1800 characters.
+- **No model credential ships in the app.** The client authenticates to *the
+  owner's* endpoint with `ETER_AI_TOKEN`; the endpoint holds the model key.
+- **No parsing, no repair, no fallback.** Every failure throws. A day with no
+  guidance is a correct outcome; a day with invented guidance is not.
+- **HTTPS, or loopback.** `isTransportSecure` permits `https`, plus `http` to
+  `localhost`/`127.0.0.1`/`::1`/`10.0.2.2`, plus an explicit
+  `ETER_AI_ALLOW_INSECURE` debug define that release builds cannot use.
+- Configured entirely at build time via `--dart-define`; with no defines the
+  app runs with no transport and every AI surface says so.
 
-**Safety.** `AetherSafetyPolicy` runs over guidance and vessel prose: a blocked
-phrase, output over 3000 characters, or fated phrasing while in grounded mode
-raises and the write is abandoned.
-
-**Then, and only then, the write.**
-
-- Guidance writes four rows in one set, keyed by `contextFingerprint` (FNV-1a
-  over the stable payload). An unchanged fingerprint returns the cached set
-  without calling the provider at all — which is what makes `REFRESH` free when
-  nothing has happened since.
-- Interpretation commits its derived rows atomically with the entry's status,
-  and is replay-safe: a retry cannot double-log. Food arrives **unconfirmed**
-  and cannot affect any total until the person reviews it — the estimate's
-  `assumptions` are shown so the review is possible. `UNDO INTERPRETATION`
-  removes the derived rows and leaves the prose untouched.
-- Readings are cached per `(inputHash, positionKey)`. Changing birth context
-  changes the hash, which retires the old readings rather than editing them.
-
-**Every failure path writes nothing** and says so plainly on the surface:
-consent missing, no transport configured, malformed JSON, unsafe content,
-network error. None of them leaves a half-composed day.
+`server/worker.js` — see `AI_ENDPOINT.md` — authenticates the caller, checks
+the call name is one of the five, enforces a daily cap in KV, forwards to
+Gemini with `responseJsonSchema` constrained decoding, and returns
+`{"raw": text}` unparsed. It logs `call=<name> <status>` and **never the
+payload**.
 
 ---
 
-## 4. The parts with no AI in them at all
+## 3. What comes back, and what is done with it
 
-Worth stating clearly, because they look like the places a model would be used
-and are the places it must not be.
+Each contract owns its own parser; the transport is forbidden to help.
 
-- **The natal chart** (`core/symbolic/natal_chart.dart`) is computed locally
-  from birth inputs with `astronomia`. Sun, Moon, Ascendant and house
-  placements are arithmetic.
-- **The Life Path** (`core/symbolic/numerology.dart`) is digit reduction over
-  the birth date. It is deterministic and testable, and it is tested.
-- **The daily card** is a deterministic selection stored with the reason it was
-  chosen, so the same day always yields the same card and the reason can be
-  read back.
-- **The keyword layer** (`core/arcana/symbol_content.dart`) ships with the app.
-  Every position has meaning available offline, before any model is involved.
+| Contract | Parser | Rejects |
+|---|---|---|
+| `aether/guidance_contract.dart` | `AetherGuidanceParser` | missing dimension, empty sentences, >3 sentences, `AetherSafetyPolicy` violation |
+| `journal/classification_contract.dart` | classification parser | out-of-range kcal/ratings, unknown lifestyle kind, missing assumptions |
+| `journal/day_story.dart` | `JournalDayStoryParser` | story >700 chars, digest field >160 chars, >3 notable phrases |
+| `vessel/reading_composer.dart` | reading parser | unrequested key, passage >1800 chars |
+| `vessel/positions_composer.dart` | positions parser | passage >1200, note >140 chars |
 
-This is the load-bearing decision of the symbolic half: **the model never
-decides what is true about the chart, only how to say it.** A composition
-failure costs prose, never meaning — which is why the Vessel is fully usable
-with no transport at all.
+`AetherSafetyPolicy` (`aether/safety_policy.dart`) is the post-hoc half of the
+prompt's SAFETY block: a blocklist of medication/diagnosis/1200-kcal/punishment
+phrasings, a 3000-character ceiling, and a grounded-mode ban on fated phrasing.
+Prevention (prompt) and defence (policy) are deliberately separate — the prompt
+is not a security boundary.
 
----
-
-## 5. What is still missing
-
-1. ~~**A transport.**~~ Built: `core/ai/transport.dart` posts the bounded
-   `{system, user, responseSchema}` triple to one owner-controlled endpoint and
-   returns the raw string, with five thin adapters and no parsing. All five
-   providers in `main.dart` resolve through it. A build compiled without
-   `ETER_AI_ENDPOINT` still has no transport, states that honestly on each
-   surface, and writes nothing — which remains a shippable configuration.
-2. **A server.** *The remaining blocker.* The client must never hold a model
-   key — the steering brief is explicit and so is `RELEASE.md`. The call
-   belongs behind an owner-controlled endpoint that authenticates the caller,
-   holds the credential, and forwards the already-bounded payload. The exact
-   wire contract it has to satisfy is [`AI_ENDPOINT.md`](AI_ENDPOINT.md).
-3. **Rate and cost policy.** Nothing today limits how often `COMPOSE NOW` may
-   be pressed. The fingerprint cache makes a repeat free when context is
-   unchanged, which covers the common case and not a determined one.
-4. ~~**The input rule's other half.**~~ Done. Weight, activity and strength
-   have bounded shapes in `classification_contract.dart` and commit through
-   the services that already existed, so a run written in the Journal lands
-   where a run entered by hand lands.
-5. **Prompt evaluation.** The prompts are asserted structurally (voice by mode,
-   safety present, schema matching the parser) but never evaluated against real
-   output, because there is no provider to produce any. A small fixture set of
-   recorded responses — good, malformed, unsafe, empty — should exist before
-   the first real call ships.
+Model estimates never silently become facts: food derived from a journal page
+is written with `confirmed: false` and `source: 'aether-estimate'`, carrying
+`journalEntryId`, `confidence` and `assumptions` in `metadataJson`, and is
+excluded from totals until the person reviews it.
+`revertJournalEntryRows` deletes everything one entry produced.
 
 ---
 
-## 6. If you are wiring the transport
+## 4. Caching, so the same day is not paid for twice
 
-Steps 2 and 3 are done. What is left:
+| Call | Cache key | Effect |
+|---|---|---|
+| guidance | `contextFingerprint` — FNV-1a over the whole stable payload | Identical context returns the stored 4-row set, no network |
+| day story | `sourceFingerprint` — FNV-1a over the day's prose in order | Unedited day, no network |
+| vessel readings | `inputHash` over birth inputs | Only *missing* positions are requested |
+| positions | `(date, inputHash)` | One call per day per chart |
+| interpretation | `appliedAt != null` | An applied entry is never sent twice; `needsDetail` is not retried unprompted |
 
-1. Build the endpoint to the contract in [`AI_ENDPOINT.md`](AI_ENDPOINT.md). It
-   authenticates, holds the key, and forwards `{system, user, responseSchema}`
-   unchanged. It must not add context of its own — the payload's boundedness is
-   the privacy guarantee.
-2. ~~Implement the providers as thin clients.~~ Done: five adapters in
-   `core/ai/transport.dart`, each three lines, none of which parses. **The
-   parsers are the contract**; a transport that "helpfully" repaired JSON would
-   defeat them, so a malformed answer is forwarded malformed.
-3. ~~Override the providers in `main.dart`.~~ Done: all five resolve from
-   `aiTransportProvider`, which is null unless the build carries an endpoint.
-4. Build with the defines, and record the fixture set from §5.5 before shipping.
-5. Every failure path returns an error rather than a fallback string. A day
-   with no guidance is a correct outcome; a day with invented guidance is not.
+---
+
+## 5. Failure
+
+- No transport configured → every surface reports it; nothing is written.
+- Network/timeout → `EterTransportException` with a sentence written for a
+  human, not a stack trace. Nothing changed.
+- Endpoint 4xx/5xx → same, with status. The Worker's daily cap answers 429.
+- Malformed or unsafe answer → parser/policy throws; nothing is written; the
+  cache is untouched so a retry is a real retry.
+- Auto-interpretation is best-effort per entry: one unreadable page is logged
+  via `debugPrint` and leaves the entry `pending` for the next pass. It never
+  surfaces as an error, because nothing was asked for.
+
+---
+
+## 6. Known gaps
+
+Carried here so they are not rediscovered:
+
+1. **`promptVersion` is sent but not stored.** Rows record
+   `model: 'provider'`, not which instruction produced the passage, so
+   `EterPrompts.version` cannot be used to invalidate stale output.
+2. **`GuidanceHistory` and `TransitReadings` have no retention bound.** They
+   grow forever until `resetPersonalization()` is run by hand from the Sanctum.
+3. **`pruneJournalProse` still has no caller.** The retention control it exists
+   for is not exposed anywhere.
+4. **Discarding a journal entry does not remove its cloud copy.**
+   `discardJournalEntry` blanks the local text and nulls `syncedAt`, but the
+   mirrored document keeps the original prose until `deleteEverything`.
+5. **`extractionJson` retains the full model reading** on the entry
+   indefinitely, including for entries whose derived rows were later reverted.
+6. **The endpoint has no per-user metering** — the daily cap is global across
+   every installation sharing one deployment.

@@ -531,9 +531,13 @@ class EngravedSleepHistory extends StatelessWidget {
   Widget build(BuildContext context) {
     if (nights.isEmpty) return const SizedBox.shrink();
     final ink = EterInk.of(context);
+    // Asleep, not in bed: the average and the bars both exclude the awake
+    // minutes, so the figure here agrees with the watch that produced it.
     final totals = [
       for (final night in nights)
-        night.values.fold<int>(0, (sum, minutes) => sum + minutes),
+        night.entries
+            .where((stage) => stage.key != 'awake')
+            .fold<int>(0, (sum, stage) => sum + stage.value),
     ];
     final average = totals.fold<int>(0, (a, b) => a + b) / totals.length;
     final summary = nights.indexed.map((entry) {
@@ -583,7 +587,6 @@ class EngravedSleepHistory extends StatelessWidget {
                   (label: 'Deep', stage: 'deep'),
                   (label: 'Light', stage: 'light'),
                   (label: 'REM', stage: 'rem'),
-                  (label: 'Awake', stage: 'awake'),
                 ])
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -632,7 +635,11 @@ class _SleepHistoryPainter extends CustomPainter {
     final maxMinutes = math.max(
       480,
       nights
-          .map((night) => night.values.fold<int>(0, (a, b) => a + b))
+          .map(
+            (night) => night.entries
+                .where((stage) => stage.key != 'awake')
+                .fold<int>(0, (a, b) => a + b.value),
+          )
           .reduce(math.max),
     );
     final axis = Paint()
@@ -641,7 +648,9 @@ class _SleepHistoryPainter extends CustomPainter {
     canvas.drawLine(Offset(0, bottom), Offset(size.width, bottom), axis);
     final slot = size.width / nights.length;
     final barWidth = math.min(12.0, slot * .42);
-    const order = ['awake', 'rem', 'light', 'deep', 'unknown'];
+    // Awake is not drawn: a bar whose height is slept time cannot also stack
+    // a band that is not slept time.
+    const order = ['rem', 'light', 'deep', 'unknown'];
     for (var i = 0; i < nights.length; i++) {
       var y = bottom;
       for (final stage in order) {

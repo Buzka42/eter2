@@ -366,6 +366,31 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
     );
   }
 
+  /// "7h 41m asleep · 00:44 to 09:09".
+  ///
+  /// Time awake in the night is shown in the breakdown but is not slept time,
+  /// which is what every watch reports and what a person means. The range
+  /// comes from the segments themselves rather than a stored bed time, so it
+  /// says what was actually measured: first stage to last.
+  String _sleptSummary(List<SleepSegmentRow> rows, Map<String, int> minutes) {
+    final asleep = minutes.entries
+        .where((entry) => entry.key != 'awake')
+        .fold<int>(0, (sum, entry) => sum + entry.value);
+    final start = rows
+        .map((row) => row.startUtc)
+        .reduce((a, b) => a.isBefore(b) ? a : b)
+        .toLocal();
+    final end = rows
+        .map((row) => row.endUtc)
+        .reduce((a, b) => a.isAfter(b) ? a : b)
+        .toLocal();
+    String clock(DateTime at) =>
+        '${at.hour.toString().padLeft(2, '0')}:'
+        '${at.minute.toString().padLeft(2, '0')}';
+    return '${asleep ~/ 60}h ${asleep % 60}m asleep · '
+        '${clock(start)} to ${clock(end)}';
+  }
+
   void _selectSleepWindow(int days) {
     if (_sleepWindow == days) return;
     setState(() {
@@ -480,6 +505,14 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
                       )
                     else ...[
                       Text('LAST NIGHT', style: text.labelSmall),
+                      const SizedBox(height: EterSpace.s4),
+                      // Asleep, and between when. Time awake in the night is
+                      // shown in the breakdown but is not slept time, which
+                      // is what every watch reports and what a person means.
+                      Text(
+                        _sleptSummary(rows, minutes),
+                        style: EterProse.of(context),
+                      ),
                       const SizedBox(height: EterSpace.s8),
                       EngravedSleepStages(minutesByStage: minutes),
                     ],

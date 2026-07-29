@@ -42,6 +42,7 @@ const dailySeriesDefinitions = <SeriesDefinition>[
     label: 'how much you moved',
     unit: 'kcal',
   ),
+  // Asleep, not in bed: the awake minutes are their own series below.
   SeriesDefinition(key: 'sleep', label: 'how long you slept', unit: 'minutes'),
   SeriesDefinition(key: 'deep', label: 'deep sleep', unit: 'minutes'),
   SeriesDefinition(key: 'rem', label: 'REM sleep', unit: 'minutes'),
@@ -108,11 +109,16 @@ class DailySeriesReader {
       final minutes =
           row.endUtc.difference(row.startUtc).inMinutes.toDouble();
       if (minutes <= 0) continue;
-      series['sleep']!.update(
-        row.nightOf,
-        (value) => value + minutes,
-        ifAbsent: () => minutes,
-      );
+      // Time awake in the night is not time slept. Health Connect reports the
+      // two separately and so does everyone's watch; summing them gave a
+      // night four minutes longer than the person had.
+      if (row.stage != 'awake') {
+        series['sleep']!.update(
+          row.nightOf,
+          (value) => value + minutes,
+          ifAbsent: () => minutes,
+        );
+      }
       final stage = switch (row.stage) {
         'deep' => 'deep',
         'rem' => 'rem',
