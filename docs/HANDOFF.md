@@ -62,23 +62,31 @@ member whose comment sits between `@override` and the signature.
 but it is not what Polish astronomy says, and every alternative reads worse inside
 `Księżyc w fazie …`. A decision, not an oversight.
 
-### 2 · The Long View surface · *no device*
+### 2 · The Long View surface · *built; wants a look on a real device*
 
-Half done. `ed52c47` committed `LongViewComposer` — day/week/month/year cells
-folded from records already on the device, no model call, 12 tests pinning the rule
-that a period nobody recorded is **absent, not zero**.
+`LongViewSource` loads a window, `EngravedLongView` draws it, and the History
+sheet widens on its own as you turn back. No charting package, no model call, no
+new destination.
 
-What remains is the surface:
+The parts worth knowing before changing any of it:
 
-- Reached by **extending the Journal's existing bead-and-thread date affordance** —
-  keep turning back and the day widens to week, month, year. Not a new
-  destination; see `DECISIONS.md`.
-- Charts in the `EngravedBalance` `CustomPainter` idiom. **No charting package** —
-  `UI_BRIEF.md` §7.2 explains what importing one costs.
-- Recall notes as marginalia on day and week cells only. The composer already
-  returns none for a month, deliberately.
-- Add a named Sanctum entry for it, per `DECISIONS.md` — extension is the primary
-  route, the Sanctum is the index so nothing lives only behind a gesture.
+- **There is no zoom control, on purpose.** `longViewSpanFor` turns
+  distance-from-today into a scale — under a fortnight a day, then week, month,
+  year — and the beads step by whatever scale you are on. A zoom button would
+  have been the menu `DECISIONS.md` rejected.
+- **An unrecorded period is an open tick below the baseline**, not a bar of no
+  height. That is the absent-not-zero rule made visible, and it is the one thing
+  in the painter that must not be "simplified". Pages written is the exception
+  and draws a real zero: Eter knows for certain that nothing was written.
+- **Marginalia only on a week.** Thirty recall notes is a wall of text, which is
+  the same reason `LongViewComposer` returns none for a month cell.
+- A week ends on the anchor day; a year is the twelve months ending with the
+  anchor's month. Both are in `long_view_source.dart` with the reasoning.
+
+**Not done:** no golden covers a widened sheet. The panel is behind fourteen taps
+of a bead, and the capture harness drives the shell rather than the sheet. Worth
+adding if the sheet changes again; worth *looking at on a phone* either way,
+because a twelve-cell year axis at 320 dp with 200 % text has never been rendered.
 
 ### 3 · The Letter · *no device*
 
