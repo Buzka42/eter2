@@ -4,11 +4,12 @@ Written 30 July 2026, at the end of a long session on branch `eter-audit-fixes`.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** 20 commits ahead of `main`, nothing uncommitted.
-`flutter analyze` clean. **681 tests pass, 7 skipped** — the seven are live-provider
-tests that need a deployed endpoint. Release APK 80.1 MB. Schema is at **12**, and
-all three migrations in this branch were verified on a real Android device with
-real data.
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **707 tests
+pass, 7 skipped** — the seven are live-provider tests that need a deployed
+endpoint. Schema is at **13**; the twelve migrations were verified on a real
+Android device with real data, but **13 was not** — `Letters` is created through
+`_createTableIfMissing`, so it repairs itself, and it still wants one upgrade run
+on a device with existing data before release.
 
 ---
 
@@ -16,7 +17,7 @@ real data.
 
 ```bash
 cd app
-flutter test          # expect 681 pass, 7 skipped
+flutter test          # expect 707 pass, 7 skipped
 flutter analyze       # expect clean
 ```
 
@@ -88,27 +89,32 @@ of a bead, and the capture harness drives the shell rather than the sheet. Worth
 adding if the sheet changes again; worth *looking at on a phone* either way,
 because a twelve-cell year axis at 320 dp with 200 % text has never been rendered.
 
-### 3 · The Letter · *no device*
+### 3 · The Letter · *built; never run against a real model*
 
-Not started. A sixth model call, so it is the largest single piece here.
+`core/aether/letter.dart`, schema 13's `Letters` table, `letter` in `CALLS` at
+0.7, and `EterPrompts.version` at 5. `AI_FLOW.md` now documents six calls.
 
-Once a month, one page composed **to** the person, second person, from the
-fortnight of `GuidanceRecalls` plus the retrospective. It arrives **as a Journal
-page** using the existing `EterArrival` reveal, and can be answered by writing
-under it.
+- **The cache key is the month.** One request per person per month, and a month
+  already written is never composed again. There is a test for that specifically,
+  because a monthly page that quietly re-bills is the worst kind of cost.
+- **Below five recall notes Eter does not ask at all.** The instruction already
+  keeps a thin month short; this is the floor below which the request is not
+  worth making, since paying a model to say "there is not much here yet" is
+  worse than not writing.
+- Recalls that saw the journal stop travelling when `journalAiConsentAt` is
+  withdrawn, so revoking cannot leave last month's pages reaching the model
+  laundered through Eter's own prose.
+- It arrives on the Journal page where Aether's prose always stands, scrolls
+  rather than shrinking to fit, and is answered by the writing field below.
+  Composition is attempted when the Journal opens — the only moment Eter has,
+  since there is no background poll — and is best-effort.
+- `Letters` has **no retention expiry**, deliberately. `AI_FLOW.md` §6 says why.
 
-Follow the shape of the five existing calls exactly — `docs/AI_FLOW.md` is the
-authority and where it and a code comment disagree, the code is wrong:
-
-- an instruction and JSON Schema in `core/ai/prompts.dart`, with
-  `EterPrompts.version` bumped
-- a thin adapter in `core/ai/transport.dart`
-- its own parser with explicit bounds, and `AetherSafetyPolicy` applied
-- a cache key so the same month is not paid for twice
-- the call name added to `CALLS` in `server/worker.js` with a temperature
-
-**Do not** let it reach the model without `aiConsentAt`, and treat the recall notes
-as the model's own words rather than the person's — `AI_FLOW.md` §1a.
+**Not proven:** no recorded model output has ever been run through
+`LetterParser`, because the endpoint is not deployed. It is the sixth entry for
+the prompt-fixture work in item 5, and the first one worth capturing — a letter
+is the longest thing Aether writes and the likeliest to drift past 2400
+characters or into the phrasing `AetherSafetyPolicy` blocks.
 
 ### 4 · The evening invitation · *needs a device to verify delivery*
 

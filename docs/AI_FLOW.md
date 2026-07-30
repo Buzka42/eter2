@@ -11,9 +11,9 @@ disagree, the code is wrong.
 
 ---
 
-## 0. The five calls
+## 0. The six calls
 
-Eter makes exactly **five** kinds of model call. There is no chat, no
+Eter makes exactly **six** kinds of model call. There is no chat, no
 streaming, no background poll.
 
 | Call | Trigger | Consent required | Writes |
@@ -23,6 +23,7 @@ streaming, no background poll.
 | **journalDayStory** | Journal opens, and after each entry saves | `aiConsentAt` **and** `journalAiConsentAt` | One `JournalDayStories` row (story + digest) |
 | **vesselReadings** | Once at account creation, then `COMPOSE READINGS` | `aiConsentAt` | One `VesselReadings` row per position |
 | **positions** | `READ TODAY` in the Vessel | `aiConsentAt` | One `TransitReadings` row per (date, chart hash) |
+| **letter** | The Journal opens in a new month (`LetterComposer`) | `aiConsentAt`; journal-derived recalls additionally need `journalAiConsentAt` | One `Letters` row per month |
 
 The chart, the Life Path, the Arcana and the daily card involve **no model at
 all** — they are device arithmetic (`core/symbolic`, `core/arcana`).
@@ -33,8 +34,8 @@ malformed answer, or an unsafe one writes nothing and says so on the surface.
 Code map:
 
 ```
-core/ai/prompts.dart        the system instruction + JSON Schema for all five
-core/ai/transport.dart      the only network call in the app; five thin adapters
+core/ai/prompts.dart        the system instruction + JSON Schema for all six
+core/ai/transport.dart      the only network call in the app; six thin adapters
 server/worker.js            the owner-controlled endpoint (Cloudflare Worker)
 core/aether/*               guidance: assemble → request → prompt → parse → store
 core/journal/*              interpretation and the day story
@@ -187,7 +188,7 @@ say less."
 Two independent flags on the profile row, both nullable timestamps, both
 re-read on every pass rather than cached:
 
-- `aiConsentAt` — gates all five calls.
+- `aiConsentAt` — gates all six calls.
 - `journalAiConsentAt` — additionally gates journal *prose and digests*
   reaching guidance, and gates the day story entirely.
 
@@ -217,7 +218,7 @@ owner-controlled endpoint and returns the response body as a string.
   app runs with no transport and every AI surface says so.
 
 `server/worker.js` — see `AI_ENDPOINT.md` — authenticates the caller, checks
-the call name is one of the five, enforces a daily cap in KV, forwards to
+the call name is one of the six, enforces a daily cap in KV, forwards to
 Gemini with `responseJsonSchema` constrained decoding at a **per-call
 temperature** (interpretation 0.1, day story 0.5, the three writing calls
 0.7), and returns
@@ -237,6 +238,7 @@ Each contract owns its own parser; the transport is forbidden to help.
 | `journal/day_story.dart` | `JournalDayStoryParser` | story >700 chars, digest field >160 chars, >3 notable phrases |
 | `vessel/reading_composer.dart` | reading parser | unrequested key, passage >1800 chars |
 | `vessel/positions_composer.dart` | positions parser | passage >1200, note >140 chars |
+| `aether/letter.dart` | `LetterParser` | missing or empty letter, >2400 chars, `AetherSafetyPolicy` violation |
 
 `AetherSafetyPolicy` (`aether/safety_policy.dart`) is the post-hoc half of the
 prompt's SAFETY block: a blocklist of medication/diagnosis/1200-kcal/punishment
@@ -261,6 +263,7 @@ excluded from totals until the person reviews it.
 | vessel readings | `inputHash` over birth inputs | Only *missing* positions are requested |
 | positions | `(date, inputHash)` | One call per day per chart |
 | interpretation | `appliedAt != null` | An applied entry is never sent twice; `needsDetail` is not retried unprompted |
+| letter | the month, `YYYY-MM` | A month already written is never composed again — one request per person per month |
 
 ---
 
@@ -292,12 +295,19 @@ Model output expires on its own rather than when someone remembers to clear it
 |---|---|
 | `GuidanceHistory` | 365 days |
 | `TransitReadings` | 90 days |
+| `Letters` | kept — see below |
 | `JournalEntries.extractionJson` | 90 days (the derived records stay) |
 | `RawBuckets` | 90 days |
 | `LiveSessions.hrSeriesJson` | 180 days |
 
 `extractionJson` is also cleared immediately by `revertJournalEntryRows` — the
 model's account of a page goes with the rows the person just rejected.
+
+`Letters` is the one table of model output with **no expiry**, and that is a
+decision rather than an omission. Twelve short pages a year is not a retention
+problem, and a letter is addressed correspondence: deleting one on a timer
+because it happens to have been composed rather than typed would treat it as
+cache. It goes with everything else on `DELETE FROM THIS DEVICE`.
 
 `server/worker.js` meters **per install first** — a 12-request burst window and 60
 calls a day — and treats the deployment-wide cap as a cost backstop rather than the
