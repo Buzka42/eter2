@@ -802,10 +802,22 @@ abstract class EterStrings {
 /// One passage of the tutorial: an eyebrow in caps and the lines beneath it.
 @immutable
 class TutorialPassage {
-  const TutorialPassage({required this.eyebrow, required this.lines});
+  const TutorialPassage({
+    required this.eyebrow,
+    required this.lines,
+    this.showsSanctumMark = false,
+  });
 
   final String eyebrow;
   final List<String> lines;
+
+  /// Draws the Sanctum's own mark beside the passage.
+  ///
+  /// The one symbol in the product a person has to recognise before they can use
+  /// it, so the tutorial shows it rather than describing it. `UI_BRIEF.md`
+  /// non-negotiable 7 forbids *unexplained* symbols; this is the explanation, and
+  /// without it a glyph-only affordance would not be allowed to exist.
+  final bool showsSanctumMark;
 }
 
 /// Publishes the active [EterStrings] to the whole tree.

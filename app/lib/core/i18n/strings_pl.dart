@@ -1351,9 +1351,10 @@ class EterStringsPl extends EterStrings {
           ],
         ),
         TutorialPassage(
+          showsSanctumMark: true,
           eyebrow: 'SANKTUARIUM',
           lines: [
-            'Dotknij sygnatury ETER na górze, żeby je otworzyć.',
+            'Ten znak, na górze każdego ekranu, je otwiera.',
             'Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde '
                 'pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby '
                 'zabrać to wszystko z powrotem.',

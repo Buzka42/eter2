@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'controls.dart';
+import 'tokens.dart';
 
 /// Eter's quiet "there is depth beyond this line" mark.
 ///
@@ -165,4 +166,104 @@ class _MicPainter extends CustomPainter {
   @override
   bool shouldRepaint(_MicPainter old) =>
       old.color != color || old.active != active;
+}
+
+/// The way into the Sanctum: an astrolabe's mater, seen face on.
+///
+/// Two concentric rings, a centre point, and one short index line at the upper
+/// right — the instrument reduced to the least that still reads as an instrument.
+///
+/// Deliberately *not* the eight-pointed [StarOrnament], which is Eter's signature
+/// mark and already appears as ornament in five places; a control that shares its
+/// glyph with decoration teaches nobody anything. Deliberately not a cog either:
+/// the whole point of drawing these is that Material's tray would be the only
+/// imported vocabulary left on a production surface.
+///
+/// The parent control owns semantics and the 48 dp target; this is 22 dp of ink.
+class EterSanctumMark extends StatelessWidget {
+  const EterSanctumMark({
+    super.key,
+    this.size = 22,
+    this.color,
+    this.glow = false,
+  });
+
+  final double size;
+  final Color? color;
+
+  /// A soft aura behind the ink, to say the mark is a control rather than
+  /// ornament.
+  ///
+  /// Static. Not a pulse: a breathing control on a contemplative surface is the
+  /// kind of motion `UI_BRIEF.md` calls excessive, and it would need a
+  /// reduced-motion branch to earn nothing. Two stops at low alpha, no ring, no
+  /// bloom — the point is that the eye registers something behind the line, not
+  /// that it sees a light.
+  final bool glow;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolved = color ?? EterColors.aura500;
+    final mark = CustomPaint(
+      size: Size.square(size),
+      painter: _SanctumPainter(resolved),
+    );
+    if (!glow) return mark;
+    return SizedBox(
+      width: size * 2.1,
+      height: size * 2.1,
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                resolved.withValues(alpha: 0.20),
+                resolved.withValues(alpha: 0.06),
+                resolved.withValues(alpha: 0),
+              ],
+              stops: const [0, 0.55, 1],
+            ),
+          ),
+          child: SizedBox(
+            width: size * 2.1,
+            height: size * 2.1,
+            child: Center(child: mark),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SanctumPainter extends CustomPainter {
+  const _SanctumPainter(this.color);
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = Offset(size.width / 2, size.height / 2);
+    final outer = size.width / 2 - 0.75;
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      // One hairline at every size: the engraved language is a drawn line, not a
+      // scaled shape, and a thickening ring would read as a filled disc.
+      ..strokeWidth = 1
+      ..isAntiAlias = true;
+
+    canvas.drawCircle(centre, outer, stroke);
+    canvas.drawCircle(centre, outer * 0.52, stroke);
+    // The index, at the ascending angle the header's own arc rises through.
+    canvas.drawLine(
+      centre + Offset(outer * 0.37, -outer * 0.37),
+      centre + Offset(outer * 0.86, -outer * 0.86),
+      stroke,
+    );
+    canvas.drawCircle(centre, 1, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_SanctumPainter old) => old.color != color;
 }

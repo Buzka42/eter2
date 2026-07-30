@@ -4,6 +4,7 @@ import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/icons.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
@@ -109,6 +110,20 @@ class _EterTutorialState extends State<EterTutorial> {
                                 ),
                             ],
                           ),
+                          if (passage.showsSanctumMark) ...[
+                            const SizedBox(height: EterSpace.s32),
+                            // Shown, not described. It is the only symbol in the
+                            // product somebody has to recognise before they can
+                            // use it, and a sentence about "a ringed mark" is a
+                            // riddle where the mark itself is an answer.
+                            ExcludeSemantics(
+                              child: EterSanctumMark(
+                                size: 26,
+                                glow: true,
+                                color: ink.lineStrong,
+                              ),
+                            ),
+                          ],
                           if (_index == 0) ...[
                             const SizedBox(height: EterSpace.s32),
                             const EterMotto(textAlign: TextAlign.start),

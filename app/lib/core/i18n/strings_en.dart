@@ -1285,9 +1285,10 @@ class EterStringsEn extends EterStrings {
           ],
         ),
         TutorialPassage(
+          showsSanctumMark: true,
           eyebrow: 'THE SANCTUM',
           lines: [
-            'Tap the ETER signature at the top to open it.',
+            'This mark, at the top of every screen, opens it.',
             'Settings, your birth details, the health connection, and every '
                 'permission — each one independent, each one revocable, and a '
                 'way to take all of it back out again.',
