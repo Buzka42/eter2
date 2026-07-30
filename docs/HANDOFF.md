@@ -29,33 +29,38 @@ fix that before starting anything below.
 
 Nothing here is blocked on anything above it except where stated.
 
-### 1 · Finish the Polish sentences · *no device, no decisions needed*
+### 1 · The Polish sentences · *done, and read once more if you like*
 
-The **vocabulary** is settled and applied (`docs/POLISH.md`). The **sentences**
-are not: roughly 380 of the 411 strings in `docs/TRANSLATIONS.md` are still
-translated English rather than written Polish.
+All fifteen sections of `docs/TRANSLATIONS.md` were read against the two tests in
+`POLISH.md`, in six slices, and everything that failed one was rewritten. What was
+actually wrong, in descending order of how badly it read:
 
-Two commits show the method. `80553c5` replaced four nouns that meant the wrong
-thing; `4304b4a` replaced the *komponować* calque with **powstać** across nineteen
-strings. Both followed the same two tests, which are in `POLISH.md`:
+- **Gender agreement in assembled sentences.** The sweep summary put one fixed
+  adjective ending after fifteen nouns of two genders, and fed it clauses where a
+  noun belongs. The retrospective left a participle in the wrong case above four.
+  `POLISH.md` now has a section on both shapes.
+- **Gendered verbs addressing the reader** — *chciałabyś lub chciałbyś*, and
+  *Potwierdziłem* on a button. There are none left in the file; the grep that
+  finds them is in that same section.
+- **Vocabulary the lexicon had already retired**, still in place: `SANKTUARIUM`
+  titled the Sanctum, `Pulpit` was an opening page, `CIĄGŁOŚĆ` was a consent, and
+  *komponować* survived in three strings.
+- **Words that mean something else here** — the food estimate stayed out of *the
+  weight*, and the first matrix cell was called *Dane*.
+- **Aether now declines**, because it is a name. See `POLISH.md`.
 
-- **Read the Polish alone.** Cover the English column. If it only makes sense once
-  you know what it was, it is not finished.
-- **Ask whether the word belongs to the product or to software.** `EKSPORT`,
-  `CIĄGŁOŚĆ`, `PULPIT` belong to an application. `GŁĘBIA`, `ZACISZE`, `KRĄG`,
-  `WGLĄD` belong to this one.
-
-Work in slices by surface, regenerate `TRANSLATIONS.md` with
-`python tool/pair_translations.py`, re-record Polish goldens, commit per slice.
+`EKSPORT LOKALNY` was kept and `POLISH.md` records why: the native word is *kopia*
+and the cloud section owns it. `WGLĄD` still does two jobs; leave it until use
+says otherwise, and change the *section* rather than the destination.
 
 **Watch for:** no test reads Polish for sense, so a spliced or ungrammatical
-sentence passes everything. One shipped mid-edit in this branch and was caught by
-rereading, not by CI. Read every string you touch, out loud if it helps.
+sentence passes everything. Read every string you touch, out loud if it helps.
+`python tool/pair_translations.py` regenerates the pairing — and note it drops any
+member whose comment sits between `@override` and the signature.
 
-**Still open by name:** `EKSPORT LOKALNY` is software vocabulary. `WSKAZANIA` was
-replaced by `WGLĄD` at the owner's request — see the note in `POLISH.md` about the
-one word now doing two jobs, and change the *section* rather than the destination
-if it grates in use.
+**Left deliberately:** *rosnący garb* for a waxing gibbous moon. It is transparent
+but it is not what Polish astronomy says, and every alternative reads worse inside
+`Księżyc w fazie …`. A decision, not an oversight.
 
 ### 2 · The Long View surface · *no device*
 
