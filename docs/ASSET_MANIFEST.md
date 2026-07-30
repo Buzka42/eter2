@@ -163,7 +163,7 @@ Generated with Higgsfield (`nano_banana_pro` / nano_banana_2, 2K). All assets sh
 | `app-icon.png` | 2048² | App icon source (iOS AppIcon set / Android adaptive foreground) | Crop to the inner rounded square; export icon sizes; for Android adaptive, separate cloud (foreground) from gradient (background) |
 | `bg-onboarding.png` | 1536×2752 | Onboarding + Arcana reveal background (05) | Compress to WebP ~500 KB; keep center negative space clear of UI |
 | `cloud-hero.png` | 2048² | Source for Cloud shader-fallback layers (04 §1) | Use the cutout below; derive 3 opacity/scale variants `cloud-hero-{1,2,3}.png` |
-| `cloud-hero-cutout.png` | 2048² | Transparent-background cloud (fallback layers, empty states, watch tile art) | Ready to use |
+| `cloud-hero-cutout.png` | 2048² | Transparent-background cloud (fallback layers, empty states, watch tile art) | **Removed from the app 30 Jul 2026** — 4.1 MB, declared in `pubspec.yaml`, drawn by nothing. Master in the v1 tree and in history; re-add it if a surface ever wants it, through `compress_assets.py`. |
 | `tarot-card-back.png` | 1696×2528 | Card back for Arcana reveal (04 §4), placeholder for unshipped sign cards | Crop to card edges (remove outer margin), round corners 4% in-app |
 | `tarot-the-star.png` | 1696×2528 | Aquarius Arcana card art (05) + style template for the other 11 | **Crop to card edges** (it rendered as a mockup on a gray backdrop); round corners in-app |
 | `sigil-loading.png` | 2048² | Reference for the animated loading sigil (04 §5) | Trace to SVG paths for the stroke-draw animation; PNG itself only as static fallback |

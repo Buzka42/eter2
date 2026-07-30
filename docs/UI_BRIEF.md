@@ -129,8 +129,12 @@ equivalents.
 
 ### `core/widgets.dart`
 `EterPlate` (flat, sharp-edged, hairline top rule — the surface primitive),
-`ElementMedallion`, `EmptyStateOrnament`, `AuraRing`, `CountUpText`,
-`StarOrnament` (the eight-pointed signature mark), `OrnamentDivider`.
+`ElementMedallion`, `AuraRing`, `CountUpText`, `StarOrnament` (the eight-pointed
+signature mark), `OrnamentDivider`.
+
+`EmptyStateOrnament` was here and is gone: nothing ever constructed it, and it was
+the only consumer of three shipped PNGs. Every empty state Eter ships states its
+absence in words, which this brief prefers anyway — *say what you cannot see*.
 
 ### `core/instruments.dart`
 `EngravedBalance` — a real beam balance with an elastic settle. This is the
@@ -147,9 +151,12 @@ gone; do not reintroduce them.
 
 ### `core/arcana/`
 `Zodiac`, `MajorArcana` (22 cards, `assetFor(brightness)`,
-`nightLoopFor(brightness)`), `AnimatedArcanaCard` (flip reveal; static art is
-mandatory and video only ever composites on top), and **`SymbolContent`** — the
-static keyword layer, see §8.
+`nightLoopFor(brightness)`), `ArcanaCardMedia` (static art with an optional loop
+composited on top; the still is mandatory and any decode failure silently leaves it
+in place), and **`SymbolContent`** — the static keyword layer, see §8.
+
+`AnimatedArcanaCard`, the flip-reveal card, is gone — `EterArcanaPlate` in the
+Vessel supersedes it and reaches all 22 night loops through `ArcanaCardMedia`.
 
 ---
 
@@ -171,10 +178,23 @@ Three destinations. Not five, not a tab bar.
   with a travelling gold hairline beneath the active one, not a Material tab bar
   and not a dot indicator.
 - Centre the small `ETER` mark in a shallow celestial engraving. This approved
-  astrological flavor is the shell's main ornamental signature and the visible
-  Sanctum threshold. Keep it identical on Journal and Dashboard; exclude the
-  engraving from semantics while exposing the complete 300×72 mark as the
-  `Open Sanctum` button.
+  astrological flavor is the shell's main ornamental signature. Keep it identical
+  on Journal and Dashboard; exclude the engraving from semantics while exposing the
+  complete 300×72 mark as an `Open Sanctum` button.
+- **The mark is not the only way into the Sanctum, and must not be.** This brief
+  once said it was, and that made the settings door an unexplained symbol —
+  precisely what non-negotiable 7 forbids. A named, borderless, letterspaced
+  `SANCTUM` word sits at the foot of the screen, right-aligned, out of the reading
+  path; the mark stays tappable for anyone who learned it. It is withdrawn while
+  the keyboard is up, because the Journal's field is the one place a person is
+  deliberately at the bottom of the screen and a settings button pinned above the
+  keyboard is a mis-tap waiting to happen. Earlier placements — under the wordmark,
+  and in the top corner — both failed: one read as a caption on the ornament, the
+  other put the settings door in the first thing anyone looked at.
+- **The Sanctum is also the index.** Anything reached by extension rather than by
+  navigation — the Long View, Letters, the Correspondence — carries a named entry
+  there too, so no feature exists only behind a gesture. See
+  [`DECISIONS.md`](DECISIONS.md).
 - **The signature is register-dependent** (steering decision, 28 July 2026).
   Day is the sparse register: the wordmark and the lower plumb-and-star
   colophon only — no arc, no solar or lunar mark above the name. Night is the
@@ -207,10 +227,12 @@ Two consequences, both binding:
 
 - **Do not add a capture control to a reading surface**, however small or
   quiet, and however obviously useful. The rule is the point.
-- **Journal classification is now the only route into the record**, so its
-  contract has to grow beyond food and lifestyle to cover weight, activity and
-  strength. Until it does, those tables can only be written by the health hub.
-  This is tracked in `ROADMAP.md`.
+- **Journal classification is the only route into the record**, so its contract
+  covers weight, activity and strength as well as food and lifestyle. Done:
+  `classification_contract.dart` holds the shapes and `journal/body_commit.dart`
+  commits them *through* `ManualWeightService`, `ManualActivityService` and
+  `StrengthWorkoutService` rather than around them, so a run written in the Journal
+  lands where a run entered by hand lands.
 
 Lifestyle self-reports are not an exception to this and no longer have a
 control: mood, energy and sleep are derived from what the page says, like

@@ -254,7 +254,7 @@ excluded from totals until the person reviews it.
 
 ---
 
-## 6. Provenance and retention (schema 7)
+## 6. Provenance and retention (schema 12)
 
 Every row of model output records the `EterPrompts.version` that composed it,
 in a nullable `promptVersion` column. Null means the row predates the column —

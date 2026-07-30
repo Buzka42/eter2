@@ -81,7 +81,7 @@ content, never between text and reader. The fine solar/lunar engraving around
 the Eter name is approved and should become a restrained shared-header motif.
 
 What not to copy literally: the generated card illustration. Use the shipped
-Arcana assets and `AnimatedArcanaCard`. Do not add ornamental glyphs merely to
+Arcana assets and `ArcanaCardMedia`. Do not add ornamental glyphs merely to
 fill space.
 
 ### Capture → arrival → extension

@@ -22,15 +22,18 @@ account, a credential or a deployment that only the product owner can create.
 | minSdk / target | 26 (Health Connect floor) / Flutter default |
 | Permissions | Declared and justified: activity recognition and the seven Health Connect read scopes; HealthKit entitlement on iOS. |
 | Privacy policy | `PRIVACY_POLICY.md` — needs a public URL before submission. |
-| Tests | 400 passing, 31 golden captures, `flutter analyze` clean. Seven live tests drive all five model calls against a real provider. |
-| Release build | `flutter build apk --release` produces an **83.2 MB** APK, under Play's 150 MB ceiling. |
+| Tests | **645 passing, 7 skipped**, 58 golden captures, `flutter analyze` clean. The seven skipped are live tests driving all five model calls against a real provider. |
+| Release build | `flutter build apk --release` produces an **80.1 MB** APK, under Play's 150 MB ceiling. |
+| Account deletion | In-app, two-tap, in the Sanctum. Clears the mirror **then** the account — see `DATA_STORAGE.md` §2 for why that order is not optional. Required by Apple 5.1.1(v) and Play's data-deletion policy for any app offering account creation. |
+| Health write-back | Weights and confirmed meals only, and only what Eter originated. See `DATA_STORAGE.md` §5. |
 | AI transport | `core/ai/transport.dart` posts one bounded payload to an owner-controlled endpoint. No model key in the client. `server/worker.js` is the deployable endpoint; `docs/AI_ENDPOINT.md` is its contract. |
 | Accounts | Optional. Email with confirmation, and Google. Firebase project `eter-39165`, billing disabled. Apple sign-in is one provider away and needs a membership. |
 | Cloud mirror | `core/sync/`. Measured record under one consent, journal prose under its own. Restore refuses on a device with history. |
 | Crash reporting | Consent-gated, off by default, and structurally unable to carry user content. |
 
-**The ordered plan from here — including the AI transport, the recording gap it
-unblocks, and the tests still missing — is [`RELEASE_PLAN.md`](RELEASE_PLAN.md).**
+**Product decisions — pricing, navigation, what was descoped — are in
+[`DECISIONS.md`](DECISIONS.md). The historical ordered plan is
+[`archive/RELEASE_PLAN.md`](archive/RELEASE_PLAN.md); most of it has landed.**
 
 ## 2. Blocked on the product owner
 
@@ -81,7 +84,15 @@ unused dependencies came out at the same time, removing `BLUETOOTH`,
 `USE_BIOMETRIC`, `USE_FINGERPRINT`, `FOREGROUND_SERVICE` and `WAKE_LOCK` from
 the merged manifest.
 
-Re-run the script after adding art. See `ROADMAP.md` §0.1 and §0.4.
+A later pass took it to **80.1 MB** by deleting 5.3 MB of art that was declared
+in `pubspec.yaml` and referenced by no Dart file — `cloud-hero-cutout.png` alone
+was 4.1 MB and had escaped the WebP pass entirely. The APK saving is smaller than
+the on-disk figure because it was already compressing that PNG.
+
+Re-run the script after adding art. Verify unreferenced assets by extracting
+`assets/…` literals from `lib/` rather than by eye, and remember that some paths
+are *composed* — `Zodiac.medallionAsset` builds its own, so the element medallions
+look unreferenced and are not. See `archive/ROADMAP.md` §0.1 and §0.4.
 
 ## 4. Corrections worth remembering
 
@@ -101,7 +112,31 @@ because the *method* is the lesson.
 
 ## 5. Not blockers, deliberately deferred
 
-- The 24-glyph icon set in `ICON_SYSTEM_PLAN.md`. The two production
+Reasons, where they exist, are in [`DECISIONS.md`](DECISIONS.md).
+
+- The 24-glyph icon set in `archive/ICON_SYSTEM_PLAN.md`. The two production
   disclosure marks are already code-native; the rest is a menu, not a gap.
-- Vendor OAuth, BLE sessions and background health refresh.
+- Vendor OAuth and background health refresh.
+- BLE straps — deferred *to* breathwork rather than dropped, because live RR
+  intervals are the one thing a hub cannot give and the only way to show somebody
+  what a breathing practice did to them.
+- Sign in with Apple. Blocked on a paid membership, and an iOS listing offering
+  Google must offer Apple too.
 - Any surface that would need a placeholder to exist.
+
+## 6. Known gaps in what has been proven
+
+Not defects — things believed correct on reasoning and tests, without a device run
+behind them. Recorded so they are not mistaken for verified.
+
+- **Nutrition write-back.** The Health Connect permission sheet opened and offered
+  Weight; the permission was not granted, so no write has ever landed.
+  `Health.writeMeal` has never run against a real hub.
+- **The push-to-talk race.** `_holding` guards a release that arrives before the
+  recogniser is ready. Verified by a device run and by reading; it lives in async
+  widget state and has no automated test.
+- **Prompt fixtures.** The five parsers are tested against hand-written JSON, never
+  against recorded real model output — good, malformed, unsafe and empty.
+- **Firestore rules.** Committed and covering every mirrored collection, but the
+  live project's rules predate the mirror and would deny it. Deploying them is in
+  §2.
