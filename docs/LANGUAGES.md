@@ -101,7 +101,7 @@ Provider-supplied strings — a Firestore error, a parser's refusal reason — a
 passed through untranslated. Inventing Polish for an arbitrary backend error
 would be inventing a diagnosis.
 
-## 5. Content, dates, dictation
+## 5. Content, dates, numbers
 
 * **Symbolic attributes** live in `assets/content/<code>/` — one directory per
   language, both listed in `pubspec.yaml` because Flutter's asset directories are
@@ -114,12 +114,55 @@ would be inventing a diagnosis.
   `eterInitializeFormatting()`.
 * **Numbers** go through `NumberFormat('#,##0', language.code)`: `1,870` in
   English, `1 870` in Polish.
-* **Dictation** is the one place the app's language is a claim about the
-  *device*. `speech_to_text` gets `AppLanguage.speechLocaleId` (`pl_PL` — a
-  plugin id, not a BCP 47 tag), and the Journal checks the recogniser actually
-  has it. Passing a locale the phone has never heard of transcribes Polish speech
-  as English words, which looks like a bug in Eter and cannot be diagnosed from
-  the page — so it says which language is missing instead.
+* **Dictation** has its own section below — it is the only part that depends on
+  the device rather than on Eter.
+
+## 5a. Dictation
+
+The one place Eter's language is a claim about the **device**. Every other
+surface is Polish because Eter says so; dictation is Polish only if the phone
+carries a Polish acoustic model, and no application code installs one.
+
+Getting it wrong is quiet. A recogniser handed a locale it does not have will
+*not* refuse — it falls back to its own default and transcribes Polish speech as
+English words. The page fills with nonsense that reads as though Eter mangled the
+dictation, with nothing on screen or in the transcript to say otherwise.
+
+So two decisions live in `core/i18n/dictation.dart`, both pure and both tested:
+
+* `DictationLocale.resolve` picks the id to ask for — exact match, then any
+  region of the same language (so `en_GB` serves an `en_US` request, and `pl-PL`
+  matches `pl_PL` across the separator difference between Android and iOS), then
+  null. An **empty** list is the one case that does not mean "not installed":
+  some Android recognisers decline to enumerate while dictating perfectly well,
+  so the request goes through unchanged.
+* `DictationFailure.fromRecogniserCode` turns the recogniser's own codes into
+  one of five outcomes, because the advice differs completely between them.
+  `error_language_not_supported` must never become "tap to try again" — tapping
+  again will fail identically until a language pack is installed.
+
+Both were originally inline in `_JournalPageState`, which held its own
+`SpeechToText` and so could not be tested at all. `test/dictation_locale_test.dart`
+covers 20 cases including the prefix trap (`ben_IN` must not satisfy a request
+for `en`).
+
+Platform requirements, both already in place:
+
+* **Android** — `RECORD_AUDIO`, plus `<queries>` entries for
+  `android.speech.RecognitionService` and `android.speech.action.RECOGNIZE_SPEECH`.
+  Without the queries, Android 11+ package visibility hides the recogniser
+  entirely, `initialize()` returns false, and dictation reports itself
+  unavailable on a phone that supports it perfectly well.
+* **iOS** — `NSMicrophoneUsageDescription` and
+  `NSSpeechRecognitionUsageDescription`, translated in
+  `ios/Runner/{en,pl}.lproj/InfoPlist.strings`.
+
+The iOS prompts have a limit worth knowing: **iOS picks the localisation by
+device language, not by the language chosen inside Eter.** A Polish reader who
+manually switched Eter to Polish on an English phone still sees the English
+sentence in the system dialog, and no Info.plist arrangement changes that. It is
+correct for the default case, which is the overwhelming majority — Eter follows
+the phone unless somebody overrides it.
 
 ## 6. Choosing, and what it costs
 

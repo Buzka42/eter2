@@ -1,0 +1,5 @@
+/* Patrz en.lproj/InfoPlist.strings. iOS wybiera tę wersję według języka
+   urządzenia, a nie według języka ustawionego w Eterze. */
+
+"NSMicrophoneUsageDescription" = "Eter korzysta z mikrofonu tylko wtedy, gdy mówisz wpis do dziennika, i tylko wtedy, gdy sama lub sam to zaczniesz.";
+"NSSpeechRecognitionUsageDescription" = "Mowa jest zamieniana na tekst, żebyś mogła lub mógł mówić wpis do dziennika zamiast go pisać. Zachowywany jest tylko zapis tekstowy.";

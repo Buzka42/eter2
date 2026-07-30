@@ -9,6 +9,7 @@ import '../arcana/zodiac.dart';
 import '../profile/birth_context.dart';
 import '../sync/cloud_mirror.dart';
 import '../profile/birth_time.dart';
+import 'dictation.dart';
 import 'language.dart';
 import 'strings_en.dart';
 import 'strings_pl.dart';
@@ -342,6 +343,17 @@ abstract class EterStrings {
   /// language. Names the language, because "dictation is unavailable" sends
   /// somebody to the microphone permission they have already granted.
   String dictationLanguageUnavailable(String languageName);
+
+  /// The sentence for a [DictationFailure]. Composed from the five above rather
+  /// than written again, so there is exactly one wording per outcome.
+  String dictationFailure(DictationFailure failure) => switch (failure) {
+        DictationFailure.microphone => dictationNeedsMicrophone,
+        DictationFailure.nothingHeard => dictationNothingHeard,
+        DictationFailure.connection => dictationNeedsConnection,
+        DictationFailure.languageMissing =>
+          dictationLanguageUnavailable(language.endonym),
+        DictationFailure.stopped => dictationStopped,
+      };
 
   String get keptFromAether;
   String get allowAether;

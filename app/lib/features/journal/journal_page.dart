@@ -13,6 +13,8 @@ import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
 import '../../core/health/record_error.dart';
+import '../../core/i18n/dictation.dart';
+import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/icons.dart';
 import '../../core/journal/classification_contract.dart';
@@ -146,33 +148,16 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   }
 
   /// Which locale the recogniser should listen in, or null when it has nothing
-  /// installed for Eter's language.
+  /// for Eter's language.
   ///
-  /// Dictation is the one place where the app's language is a claim about the
-  /// *device*, not about Eter: the phone either has a Polish acoustic model or
-  /// it does not, and passing `pl_PL` to a recogniser that has never heard of it
-  /// gets you English words transcribed from Polish speech — which looks like a
-  /// bug in Eter and is impossible to diagnose from the page.
-  ///
-  /// Matched on the language subtag so `pl_PL`, `pl-PL` and a bare `pl` all
-  /// count, because the plugin normalises differently on Android and iOS.
-  Future<String?> _dictationLocaleId(String wanted) async {
+  /// The decision itself is [DictationLocale.resolve], which is pure and tested.
+  /// This is only the part that has to talk to the plugin.
+  Future<String?> _dictationLocaleId(AppLanguage language) async {
     final available = await _speech.locales();
-    final subtag = wanted.split(RegExp('[_-]')).first.toLowerCase();
-    for (final locale in available) {
-      if (locale.localeId.toLowerCase() == wanted.toLowerCase()) {
-        return locale.localeId;
-      }
-    }
-    for (final locale in available) {
-      if (locale.localeId.split(RegExp('[_-]')).first.toLowerCase() == subtag) {
-        return locale.localeId;
-      }
-    }
-    // An empty list means the plugin declined to enumerate rather than that
-    // nothing is installed — some Android recognisers do this. Fall back to
-    // asking for what we wanted rather than refusing to listen.
-    return available.isEmpty ? wanted : null;
+    return DictationLocale.resolve(
+      language: language,
+      available: [for (final locale in available) locale.localeId],
+    );
   }
 
   Future<void> _toggleDictation() async {
@@ -201,18 +186,13 @@ class _JournalPageState extends ConsumerState<JournalPage> {
           if (!mounted) return;
           setState(() {
             _listening = false;
-            // The recogniser's own codes are useless to a person, and the
-            // three that actually happen mean very different things: try
-            // again, grant something, or give up on this phone.
-            _dictationNote = switch (error.errorMsg) {
-              'error_permission' || 'error_audio_error' =>
-                strings.dictationNeedsMicrophone,
-              'error_no_match' || 'error_speech_timeout' =>
-                strings.dictationNothingHeard,
-              'error_network' || 'error_network_timeout' =>
-                strings.dictationNeedsConnection,
-              _ => strings.dictationStopped,
-            };
+            // The recogniser's codes are useless to a person and differ by
+            // platform, so `DictationFailure` names the outcome and the string
+            // table words it. Both halves are tested; a `switch` inlined here
+            // was not.
+            _dictationNote = strings.dictationFailure(
+              DictationFailure.fromRecogniserCode(error.errorMsg),
+            );
           });
           // Words spoken before the failure are still words. Ending this way
           // must keep them exactly as ending normally does.
@@ -234,8 +214,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
         }
         return;
       }
-      final localeId =
-          await _dictationLocaleId(strings.language.speechLocaleId);
+      final localeId = await _dictationLocaleId(strings.language);
       debugPrint('Eter dictation: locale $localeId');
       if (localeId == null) {
         if (mounted) {
