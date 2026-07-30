@@ -149,6 +149,7 @@ class FirebaseAccountService implements AccountService {
           'user-not-found' => AccountFailure.noSuchAccount,
           'network-request-failed' => AccountFailure.network,
           'too-many-requests' => AccountFailure.tooManyAttempts,
+          'requires-recent-login' => AccountFailure.requiresRecentLogin,
           _ => AccountFailure.unknown,
         },
         error.code,

@@ -268,9 +268,45 @@ void main() {
       await second.push(confirmed);
 
       // The restore must not bounce the whole record back up again. The one
-      // extra write is the profile: restoring sets cloud consent on the new
-      // device, which is a genuine local change and belongs in the mirror.
+      // extra write is the profile, and it is the `updateProfileConsents` call
+      // above that earns it — a real local change on this device. The restore
+      // itself grants nothing.
       expect(mirror.writeCount, afterFirstDevice + 1);
+    });
+
+    test('a restored device does not inherit cloud continuity', () async {
+      await profile();
+      await someRecords();
+      await sync.push(confirmed);
+
+      final fresh = AppDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await SyncService(database: fresh, mirror: mirror).restore(confirmed);
+
+      // Consent is given on a device, by a person. A restore that switched
+      // copying on would start mirroring a record to the cloud without anyone
+      // on this phone having agreed to it — and the code did exactly that,
+      // immediately beneath a comment promising it did not.
+      expect((await fresh.loadProfile())?.cloudSyncConsentAt, isNull);
+    });
+
+    test('a restore sends nothing back on its own', () async {
+      await profile();
+      await someRecords();
+      await sync.push(confirmed);
+      final afterFirstDevice = mirror.writeCount;
+
+      final fresh = AppDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      final second = SyncService(database: fresh, mirror: mirror);
+      await second.restore(confirmed);
+      // No consent was granted by the restore, so this refuses rather than
+      // pushing — which is the same fact as the test above, seen from the
+      // outside.
+      final outcome = await second.push(confirmed);
+
+      expect(outcome.refusal, SyncRefusal.cloudContinuityOff);
+      expect(mirror.writeCount, afterFirstDevice);
     });
   });
 
@@ -290,6 +326,90 @@ void main() {
     expect(outcome.refusal, SyncRefusal.nothingToSync);
     expect(mirror.writes, isEmpty);
   });
+
+  /// Withdrawing: the copy, then the account, and never the other way round.
+  ///
+  /// The order is the only thing these tests are really about. Deleting the
+  /// account first would leave the mirror standing under a uid nobody can ever
+  /// present again — `firestore.rules` authorises every delete by
+  /// `request.auth.uid` — so the copy would be permanently unreachable and
+  /// permanently undeleted. That is the worst outcome the deletion path has,
+  /// and nothing about it is visible from the outside, so it is asserted here.
+  group('withdraw', () {
+    test('clears the copy before deleting the account', () async {
+      await profile();
+      await someRecords();
+      await sync.push(confirmed);
+      expect(mirror.writes, isNotEmpty);
+
+      // Fails the test from inside the account service if the copy is still
+      // there when the account is deleted. Asserting afterwards could not tell
+      // the two orderings apart: both end with an empty mirror and no account.
+      final accounts = _FakeAccounts(
+        onDelete: () => expect(
+          mirror.writes,
+          isEmpty,
+          reason: 'the mirror must be cleared while the credential still works',
+        ),
+      );
+
+      await sync.withdraw(account: confirmed, service: accounts);
+      expect(accounts.deleted, isTrue);
+      expect(mirror.writes, isEmpty);
+    });
+
+    test('a mirror that will not clear leaves the account alone', () async {
+      await profile();
+      await someRecords();
+      await sync.push(confirmed);
+
+      mirror.failOnDelete = true;
+      final accounts = _FakeAccounts();
+
+      await expectLater(
+        sync.withdraw(account: confirmed, service: accounts),
+        throwsA(isA<MirrorException>()),
+      );
+      // Still deletable. Had the account gone first, the retry would have no
+      // authority left to clear the copy with.
+      expect(accounts.deleted, isFalse);
+      expect(mirror.writes, isNotEmpty);
+    });
+
+    test('local records survive a withdrawal', () async {
+      await profile();
+      await someRecords();
+      await sync.push(confirmed);
+
+      await sync.withdraw(account: confirmed, service: _FakeAccounts());
+
+      // Withdrawing from the mirror is not asking Eter to forget you. Erasing
+      // the local record is the Sanctum's other, separately confirmed action.
+      expect(await database.loadProfile(), isNotNull);
+      expect(await sync.isEmpty(), isFalse);
+    });
+  });
+}
+
+/// Just enough account service to observe when deletion happens.
+class _FakeAccounts implements AccountService {
+  _FakeAccounts({this.onDelete});
+
+  /// Run inside [deleteAccount], so a test can assert the state of the world at
+  /// the exact moment the account goes.
+  final void Function()? onDelete;
+
+  bool deleted = false;
+
+  @override
+  Future<void> deleteAccount() async {
+    onDelete?.call();
+    deleted = true;
+  }
+
+  @override
+  Object? noSuchMethod(Invocation invocation) =>
+      throw UnsupportedError('withdraw must not reach ${invocation.memberName}');
 }
 
 /// A complete in-memory mirror. Its existence is the proof that nothing in
@@ -297,6 +417,7 @@ void main() {
 class _FakeMirror implements CloudMirror {
   final Map<String, Map<String, MirrorDocument>> writes = {};
   String? failOn;
+  bool failOnDelete = false;
   int writeCount = 0;
 
   Iterable<String> get collections => writes.keys;
@@ -338,5 +459,10 @@ class _FakeMirror implements CloudMirror {
       writes[collection]?.values.toList() ?? const [];
 
   @override
-  Future<void> deleteEverything(String userId) async => writes.clear();
+  Future<void> deleteEverything(String userId) async {
+    if (failOnDelete) {
+      throw const MirrorException('The mirror could not be reached.');
+    }
+    writes.clear();
+  }
 }

@@ -259,6 +259,14 @@ class SanctumOverlay extends ConsumerWidget {
                     _LocalDeletion(
                       database: db,
                       onDeleted: onClose,
+                      // A copy exists only when an account could actually hold
+                      // one: signed in, confirmed, and cloud continuity on.
+                      // Any of the three missing and the plain warning is the
+                      // accurate one.
+                      copyRemains:
+                          (ref.watch(accountProvider).value?.canSync ??
+                                  false) &&
+                              profile?.cloudSyncConsentAt != null,
                     ),
                     const SizedBox(height: EterSpace.s64),
                   ],
@@ -1042,10 +1050,18 @@ class _LocalDeletion extends StatefulWidget {
   const _LocalDeletion({
     required this.database,
     required this.onDeleted,
+    required this.copyRemains,
   });
 
   final AppDatabase database;
   final VoidCallback onDeleted;
+
+  /// True when an account holds a copy that this action will not touch.
+  ///
+  /// The warning has to say so. Wiping the device while a full copy sits in the
+  /// mirror — restorable by a button a few centimetres up the same screen — is
+  /// not the permanent deletion the old single sentence promised.
+  final bool copyRemains;
 
   @override
   State<_LocalDeletion> createState() => _LocalDeletionState();
@@ -1075,7 +1091,11 @@ class _LocalDeletionState extends State<_LocalDeletion> {
         Text(strings.headingDeleteFromThisDevice, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         Text(
-          _confirming ? strings.deleteLocalWarning : strings.deleteLocalIntro,
+          switch ((_confirming, widget.copyRemains)) {
+            (false, _) => strings.deleteLocalIntro,
+            (true, true) => strings.deleteLocalWarningCopyRemains,
+            (true, false) => strings.deleteLocalWarning,
+          },
           style: text.bodyMedium,
         ),
         const SizedBox(height: EterSpace.s8),

@@ -44,6 +44,12 @@ class _AccountSectionState extends State<AccountSection> {
   bool _busy = false;
   String? _message;
 
+  /// Deletion reveals its consequence before it offers to happen, like every
+  /// other destructive action in the Sanctum. Reset whenever the section
+  /// rebuilds into a different state, so a half-armed confirmation cannot
+  /// survive a sign-out and fire against the next account.
+  bool _confirmingDelete = false;
+
   @override
   void dispose() {
     _email.dispose();
@@ -67,6 +73,13 @@ class _AccountSectionState extends State<AccountSection> {
     } on AccountException catch (error) {
       if (!mounted) return;
       setState(() => _message = strings.accountFailure(error.failure));
+    } on MirrorException catch (error) {
+      // The mirror's own sentence, already written for a human. Named before
+      // the catch-all so a failed withdrawal says the copy could not be
+      // cleared, rather than "something went wrong" about an account that is
+      // still there — with its copy — and needs asking again.
+      if (!mounted) return;
+      setState(() => _message = error.reason);
     } catch (_) {
       if (!mounted) return;
       setState(() => _message = strings.somethingWentWrong);
@@ -251,6 +264,35 @@ class _AccountSectionState extends State<AccountSection> {
     });
   }
 
+  /// Withdraws from the mirror entirely: the copy, then the account.
+  ///
+  /// Two taps, like local deletion and the memory reset — the first reveals
+  /// what happens, the second does it. The ordering that makes this safe lives
+  /// in [SyncService.withdraw], not here.
+  ///
+  /// Without a mirror there is still an account to delete, so this does not
+  /// refuse on a build with no sync; it just has nothing to clear first.
+  Future<void> _delete(AccountService service, EterAccount account) {
+    final strings = EterStrings.of(context);
+    if (!_confirmingDelete) {
+      setState(() {
+        _confirmingDelete = true;
+        _message = null;
+      });
+      return Future.value();
+    }
+    return _run(() async {
+      final sync = widget.sync;
+      if (sync == null) {
+        await service.deleteAccount();
+      } else {
+        await sync.withdraw(account: account, service: service);
+      }
+      if (mounted) setState(() => _confirmingDelete = false);
+      return strings.accountDeletedRecordKept;
+    });
+  }
+
   List<Widget> _signedIn(
     TextTheme text,
     EterInk ink,
@@ -335,6 +377,26 @@ class _AccountSectionState extends State<AccountSection> {
                     // people reasonably fear it might be.
                     return strings.signedOutNothingRemoved;
                   }),
+        ),
+        // Deletion last, and set apart by a rule: it is the only action in this
+        // section that cannot be undone, and both stores require it to exist
+        // in-app for any app that lets someone create an account.
+        const SizedBox(height: EterSpace.s24),
+        const EterRule(),
+        const SizedBox(height: EterSpace.s16),
+        Text(strings.headingDeleteAccount, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          _confirmingDelete
+              ? strings.deleteAccountWarning
+              : strings.deleteAccountIntro,
+          style: text.bodyMedium,
+        ),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: _confirmingDelete ? strings.deleteNow : strings.deleteAccount,
+          busy: _busy,
+          onPressed: _busy ? null : () => _delete(service, account),
         ),
       ];
 

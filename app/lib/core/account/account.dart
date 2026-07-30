@@ -55,6 +55,15 @@ enum AccountFailure {
   network,
   tooManyAttempts,
   notVerified,
+
+  /// The provider will not delete an account on an old session.
+  ///
+  /// Its own name for this is `requires-recent-login`, and it is the ordinary
+  /// outcome rather than an edge case: anyone who signed in weeks ago and then
+  /// asks to be deleted lands here. It has to say "sign in again, then ask
+  /// again", because "something went wrong" leaves a person believing their
+  /// account is gone when it is not.
+  requiresRecentLogin,
   unknown,
 }
 
@@ -112,11 +121,14 @@ abstract interface class AccountService {
 
   Future<void> signOut();
 
-  /// Deletes the account and everything mirrored under it.
+  /// Deletes the account itself. Does **not** clear the mirror.
   ///
-  /// The local database is untouched: deleting an account is withdrawing from
-  /// the mirror, not asking Eter to forget you. Erasing the local record is a
-  /// separate, equally explicit action in the Sanctum.
+  /// Call [SyncService.withdraw] instead of calling this directly — it clears
+  /// the copy first, and the order is load-bearing. See that method for why.
+  ///
+  /// The local database is untouched either way: deleting an account is
+  /// withdrawing from the mirror, not asking Eter to forget you. Erasing the
+  /// local record is a separate, equally explicit action in the Sanctum.
   Future<void> deleteAccount();
 }
 

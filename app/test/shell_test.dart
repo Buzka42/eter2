@@ -1089,7 +1089,11 @@ void main() {
     await tester.pump();
 
     expect(find.text('DELETE NOW'), findsOneWidget);
-    expect(find.textContaining('future cloud account copy'), findsOneWidget);
+    // This harness has no account system, so no copy exists anywhere and the
+    // unqualified warning is the accurate one. The other branch — a signed-in
+    // device whose account still holds a restorable copy — says so instead, and
+    // is covered in `account_section_test.dart`.
+    expect(find.textContaining('Nothing here is recoverable'), findsOneWidget);
     expect(await db.loadProfile(), isNotNull);
     await closeShell(tester);
   });

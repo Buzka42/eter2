@@ -507,6 +507,15 @@ abstract class EterStrings {
   String get deleteLocalIntro;
   String get deleteLocalWarning;
 
+  /// The same warning, for a device whose records also exist in an account.
+  ///
+  /// Two sentences instead of one, because the single-sentence version was a
+  /// lie by omission: it called the deletion permanent while a full copy sat in
+  /// the mirror, restorable by the button directly above it. Saying so is not a
+  /// caveat — it is the difference between an accurate destructive action and an
+  /// inaccurate one.
+  String get deleteLocalWarningCopyRemains;
+
   String get headingHealthHistory;
   String get healthConnectedReconnect;
   String get healthOffer;
@@ -554,6 +563,14 @@ abstract class EterStrings {
   String get signOut;
   String get signedOutNothingRemoved;
   String get somethingWentWrong;
+
+  /// Deleting the account, and the copy under it. Both stores require this to
+  /// exist in-app for any app that lets someone create an account.
+  String get headingDeleteAccount;
+  String get deleteAccount;
+  String get deleteAccountIntro;
+  String get deleteAccountWarning;
+  String get accountDeletedRecordKept;
 
   String get syncNotAvailableOnBuild;
   String get everythingAlreadyCopied;

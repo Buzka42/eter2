@@ -148,6 +148,37 @@ class SyncService {
   /// Removes the copy. Called when consent is withdrawn or an account deleted.
   Future<void> forget(String userId) => mirror.deleteEverything(userId);
 
+  /// Removes the copy, then the account itself — in that order, always.
+  ///
+  /// **The order is the whole method.** `firestore.rules` authorises every read
+  /// and delete with `request.auth.uid == userId`. An account deleted first
+  /// takes the only credential that could ever satisfy that rule with it, and
+  /// leaves the entire mirror standing under a uid nobody can present again:
+  /// unreachable, unbilled, and undeleted. A person who asked to be erased
+  /// would have their journal sitting in Firestore permanently, with no
+  /// remaining mechanism — in the app or out of it — to remove it.
+  ///
+  /// So the copy goes while the credential still works, and only then the
+  /// account. The two failure directions are deliberately asymmetric:
+  ///
+  /// - The mirror fails to clear → the account is left alone, and a retry still
+  ///   holds the authority to finish. Nothing has been half-deleted.
+  /// - The mirror clears, the account deletion fails → the copy is already
+  ///   gone. `requiresRecentLogin` is the ordinary case here, and the person is
+  ///   told to sign in again; asking twice removes an already-empty mirror,
+  ///   which costs nothing.
+  ///
+  /// Local data is untouched. This is withdrawal from the mirror, not erasure
+  /// of the record, and the Sanctum presents them as two separate actions with
+  /// two different consequences.
+  Future<void> withdraw({
+    required EterAccount account,
+    required AccountService service,
+  }) async {
+    await mirror.deleteEverything(account.id);
+    await service.deleteAccount();
+  }
+
   // -------------------------------------------------------------------------
   // Push
   // -------------------------------------------------------------------------
@@ -422,7 +453,13 @@ class SyncService {
       birthLongitude: Value((data['birthLongitude'] as num?)?.toDouble()),
       // Restoring the record does not restore the permissions. Consent is
       // given on a device, by a person, and a new phone has to ask again.
-      cloudSyncConsentAt: Value(DateTime.now().toUtc()),
+      //
+      // This line used to grant `cloudSyncConsentAt` — directly beneath the
+      // comment saying it does not, which is how it survived review. It made a
+      // restore silently switch cloud continuity on, so a new phone began
+      // copying a record to the mirror without anyone on that phone having
+      // agreed to it. Every other consent already arrived null here; this one
+      // was the exception, and there was no reason for it to be.
     ));
     return 1;
   }

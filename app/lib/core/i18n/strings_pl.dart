@@ -699,7 +699,9 @@ class EterStringsPl extends EterStrings {
   @override
   String get localOnly => 'Tylko lokalnie';
   @override
-  String get cloudOffDetail => 'Żadna kopia na koncie nie powstaje.';
+  String get cloudOffDetail =>
+      'Nowe kopie nie powstają. Kopia, która już jest na Twoim koncie, zostaje '
+      'do momentu usunięcia konta.';
   @override
   String get cloudAllowedDetail =>
       'Kwalifikujące się dokumenty mogą trafiać na twoje konto, gdy '
@@ -896,7 +898,12 @@ class EterStringsPl extends EterStrings {
   @override
   String get deleteLocalWarning =>
       'To trwale usuwa lokalny profil, dziennik, historię zdrowia i wyliczone '
-      'odczytania. Nie obiecuje usunięcia przyszłej kopii na koncie w chmurze.';
+      'odczytania. Nic z tego nie da się potem odzyskać.';
+  @override
+  String get deleteLocalWarningCopyRemains =>
+      'To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i '
+      'wyliczone odczytania. Kopia na Twoim koncie zostaje, a Przywróć wróciłoby '
+      'z nią — usuń konto poniżej, żeby usunąć i ją.';
 
   @override
   String get headingHealthHistory => 'HISTORIA ZDROWIA';
@@ -1026,6 +1033,22 @@ class EterStringsPl extends EterStrings {
   @override
   String get signedOutNothingRemoved =>
       'Wylogowano. Wszystko na tym urządzeniu nadal tu jest.';
+
+  @override
+  String get headingDeleteAccount => 'USUŃ KONTO';
+  @override
+  String get deleteAccount => 'USUŃ KONTO';
+  @override
+  String get deleteAccountIntro =>
+      'Usuń konto i kopię Twojego zapisu, którą pod nim trzyma.';
+  @override
+  String get deleteAccountWarning =>
+      'To usuwa kopię na koncie, a potem samo konto. Wszystko na tym urządzeniu '
+      'zostaje i działa dalej — usunięcie konta to wycofanie się z kopii, a nie '
+      'prośba, żeby Eter o Tobie zapomniał.';
+  @override
+  String get accountDeletedRecordKept =>
+      'Konto usunięte razem z kopią. Twój zapis nadal jest na tym urządzeniu.';
   @override
   String get somethingWentWrong =>
       'Coś poszło nie tak. Nic nie zostało zmienione.';
@@ -1078,6 +1101,9 @@ class EterStringsPl extends EterStrings {
           'Za dużo prób. Spróbuj ponownie za kilka minut.',
         AccountFailure.notVerified =>
           'Najpierw potwierdź e-mail — poszukaj linku, który wysłaliśmy.',
+        AccountFailure.requiresRecentLogin =>
+          'Zaloguj się ponownie, a potem poproś jeszcze raz. Nic nie zostało '
+              'usunięte.',
         AccountFailure.unknown =>
           'Logowanie się nie udało. Nic nie zostało zmienione.',
       };

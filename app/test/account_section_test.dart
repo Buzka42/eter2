@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:eter/core/account/account.dart';
+import 'package:eter/core/controls.dart';
 import 'package:eter/core/theme.dart';
 import 'package:eter/features/sanctum/account_section.dart';
 import 'package:flutter/material.dart';
@@ -183,6 +184,78 @@ void main() {
 
     expect(find.textContaining('Eter works offline'), findsOneWidget);
   });
+
+  /// Deletion. Both stores require this to exist in-app, and for a long while
+  /// it did not: `deleteAccount()` was implemented and called from nowhere.
+  group('deleting the account', () {
+    const signedIn = EterAccount(
+      id: 'uid',
+      email: 'someone@example.com',
+      emailVerified: true,
+      provider: 'password',
+    );
+
+    testWidgets('is offered to anyone signed in', (tester) async {
+      await pump(tester, service: _FakeAccountService(), account: signedIn);
+
+      expect(find.text('DELETE ACCOUNT'), findsWidgets);
+      expect(find.textContaining('Remove the account'), findsOneWidget);
+    });
+
+    testWidgets('is never offered to someone signed out', (tester) async {
+      await pump(tester, service: _FakeAccountService());
+
+      expect(find.text('DELETE ACCOUNT'), findsNothing);
+    });
+
+    testWidgets('reveals the consequence before it will act', (tester) async {
+      final service = _FakeAccountService();
+      await pump(tester, service: service, account: signedIn);
+
+      await tester.tap(find.widgetWithText(EterAction, 'DELETE ACCOUNT'));
+      await tester.pump();
+
+      // The first tap only speaks. What it says is the part that matters: the
+      // local record survives, so a person deleting an account is not also
+      // silently deleting their journal.
+      expect(service.deleteAttempts, 0);
+      expect(find.textContaining('Everything on this device stays'),
+          findsOneWidget);
+      expect(find.text('DELETE NOW'), findsOneWidget);
+    });
+
+    testWidgets('acts on the second tap and says what survived',
+        (tester) async {
+      final service = _FakeAccountService();
+      await pump(tester, service: service, account: signedIn);
+
+      await tester.tap(find.widgetWithText(EterAction, 'DELETE ACCOUNT'));
+      await tester.pump();
+      await tester.tap(find.text('DELETE NOW'));
+      await tester.pump();
+
+      expect(service.deleteAttempts, 1);
+      expect(find.textContaining('still on this device'), findsOneWidget);
+    });
+
+    testWidgets('a stale session is told to sign in again, not that it failed',
+        (tester) async {
+      final service =
+          _FakeAccountService(failWith: AccountFailure.requiresRecentLogin);
+      await pump(tester, service: service, account: signedIn);
+
+      await tester.tap(find.widgetWithText(EterAction, 'DELETE ACCOUNT'));
+      await tester.pump();
+      await tester.tap(find.text('DELETE NOW'));
+      await tester.pump();
+
+      // The provider refuses to delete on an old session, which is the ordinary
+      // outcome rather than an edge case. "Something went wrong" would leave a
+      // person believing the account is gone when it is not.
+      expect(find.textContaining('Sign in again'), findsOneWidget);
+      expect(find.textContaining('Nothing was deleted'), findsOneWidget);
+    });
+  });
 }
 
 class _FakeAccountService implements AccountService {
@@ -191,6 +264,7 @@ class _FakeAccountService implements AccountService {
   final AccountFailure? failWith;
   int signInAttempts = 0;
   int registerAttempts = 0;
+  int deleteAttempts = 0;
 
   @override
   EterAccount? current;
@@ -261,5 +335,8 @@ class _FakeAccountService implements AccountService {
   Future<void> signOut() async => _maybeFail();
 
   @override
-  Future<void> deleteAccount() async => _maybeFail();
+  Future<void> deleteAccount() async {
+    _maybeFail();
+    deleteAttempts += 1;
+  }
 }

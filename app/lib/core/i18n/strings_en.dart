@@ -671,7 +671,9 @@ class EterStringsEn extends EterStrings {
   @override
   String get localOnly => 'Local only';
   @override
-  String get cloudOffDetail => 'No account copy is created.';
+  String get cloudOffDetail =>
+      'No new copies are made. Any copy already in your account stays until you '
+      'delete the account.';
   @override
   String get cloudAllowedDetail =>
       'Eligible documents may mirror to your account when sync is connected.';
@@ -851,8 +853,12 @@ class EterStringsEn extends EterStrings {
   @override
   String get deleteLocalWarning =>
       'This permanently removes the local profile, journal, health history, '
-      'and derived readings. It does not claim to delete a future cloud '
-      'account copy.';
+      'and derived readings. Nothing here is recoverable afterwards.';
+  @override
+  String get deleteLocalWarningCopyRemains =>
+      'This removes the local profile, journal, health history, and derived '
+      'readings from this device. Your account copy stays, and Restore would '
+      'bring it back — delete the account below to remove that too.';
 
   @override
   String get headingHealthHistory => 'HEALTH HISTORY';
@@ -976,6 +982,23 @@ class EterStringsEn extends EterStrings {
   @override
   String get signedOutNothingRemoved =>
       'Signed out. Everything on this device is still here.';
+
+  @override
+  String get headingDeleteAccount => 'DELETE ACCOUNT';
+  @override
+  String get deleteAccount => 'DELETE ACCOUNT';
+  @override
+  String get deleteAccountIntro =>
+      'Remove the account and the copy of your record held under it.';
+  @override
+  String get deleteAccountWarning =>
+      'This deletes the account copy and then the account itself. Everything on '
+      'this device stays, and keeps working — deleting the account is '
+      'withdrawing from the mirror, not asking Eter to forget you.';
+  @override
+  String get accountDeletedRecordKept =>
+      'Account deleted, along with its copy. Your record is still on this '
+      'device.';
   @override
   String get somethingWentWrong => 'Something went wrong. Nothing was changed.';
 
@@ -1025,6 +1048,8 @@ class EterStringsEn extends EterStrings {
           'Too many attempts. Try again in a few minutes.',
         AccountFailure.notVerified =>
           'Confirm your email first — check for the link we sent.',
+        AccountFailure.requiresRecentLogin =>
+          'Sign in again first, then ask again. Nothing was deleted.',
         AccountFailure.unknown => 'Sign-in failed. Nothing was changed.',
       };
 
