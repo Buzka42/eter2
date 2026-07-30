@@ -81,6 +81,12 @@ class $ProfilesTable extends Profiles
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('dashboard'));
+  static const VerificationMeta _languageMeta =
+      const VerificationMeta('language');
+  @override
+  late final GeneratedColumn<String> language = GeneratedColumn<String>(
+      'language', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _birthTimeMinutesMeta =
       const VerificationMeta('birthTimeMinutes');
   @override
@@ -177,6 +183,7 @@ class $ProfilesTable extends Profiles
         hapticsEnabled,
         guidanceMode,
         startSurface,
+        language,
         birthTimeMinutes,
         birthTimePrecision,
         birthUtcOffsetMinutes,
@@ -259,6 +266,10 @@ class $ProfilesTable extends Profiles
           _startSurfaceMeta,
           startSurface.isAcceptableOrUnknown(
               data['start_surface']!, _startSurfaceMeta));
+    }
+    if (data.containsKey('language')) {
+      context.handle(_languageMeta,
+          language.isAcceptableOrUnknown(data['language']!, _languageMeta));
     }
     if (data.containsKey('birth_time_minutes')) {
       context.handle(
@@ -368,6 +379,8 @@ class $ProfilesTable extends Profiles
           .read(DriftSqlType.string, data['${effectivePrefix}guidance_mode'])!,
       startSurface: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}start_surface'])!,
+      language: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}language']),
       birthTimeMinutes: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}birth_time_minutes']),
       birthTimePrecision: attachedDatabase.typeMapping.read(
@@ -439,6 +452,16 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   /// `journal` | `dashboard`. Which surface the app opens on.
   final String startSurface;
 
+  /// `en` | `pl`. Which language Eter speaks — see `core/i18n/language.dart`.
+  ///
+  /// Nullable, and null means "nobody has chosen", which is a different fact
+  /// from "chose English". An unchosen language follows the phone on every
+  /// launch, so somebody who switches their OS to Polish is met in Polish; a
+  /// chosen one is theirs and stops following anything. Defaulting the column to
+  /// `'en'` would have quietly converted the first launch into a choice and
+  /// stranded every Polish-speaking install in English.
+  final String? language;
+
   /// Birth data. Nullable because only the date is required; the chart
   /// degrades gracefully without a time or place.
   final int? birthTimeMinutes;
@@ -499,6 +522,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       required this.hapticsEnabled,
       required this.guidanceMode,
       required this.startSurface,
+      this.language,
       this.birthTimeMinutes,
       required this.birthTimePrecision,
       this.birthUtcOffsetMinutes,
@@ -532,6 +556,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     map['haptics_enabled'] = Variable<bool>(hapticsEnabled);
     map['guidance_mode'] = Variable<String>(guidanceMode);
     map['start_surface'] = Variable<String>(startSurface);
+    if (!nullToAbsent || language != null) {
+      map['language'] = Variable<String>(language);
+    }
     if (!nullToAbsent || birthTimeMinutes != null) {
       map['birth_time_minutes'] = Variable<int>(birthTimeMinutes);
     }
@@ -590,6 +617,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       hapticsEnabled: Value(hapticsEnabled),
       guidanceMode: Value(guidanceMode),
       startSurface: Value(startSurface),
+      language: language == null && nullToAbsent
+          ? const Value.absent()
+          : Value(language),
       birthTimeMinutes: birthTimeMinutes == null && nullToAbsent
           ? const Value.absent()
           : Value(birthTimeMinutes),
@@ -644,6 +674,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       hapticsEnabled: serializer.fromJson<bool>(json['hapticsEnabled']),
       guidanceMode: serializer.fromJson<String>(json['guidanceMode']),
       startSurface: serializer.fromJson<String>(json['startSurface']),
+      language: serializer.fromJson<String?>(json['language']),
       birthTimeMinutes: serializer.fromJson<int?>(json['birthTimeMinutes']),
       birthTimePrecision:
           serializer.fromJson<String>(json['birthTimePrecision']),
@@ -681,6 +712,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'hapticsEnabled': serializer.toJson<bool>(hapticsEnabled),
       'guidanceMode': serializer.toJson<String>(guidanceMode),
       'startSurface': serializer.toJson<String>(startSurface),
+      'language': serializer.toJson<String?>(language),
       'birthTimeMinutes': serializer.toJson<int?>(birthTimeMinutes),
       'birthTimePrecision': serializer.toJson<String>(birthTimePrecision),
       'birthUtcOffsetMinutes': serializer.toJson<int?>(birthUtcOffsetMinutes),
@@ -711,6 +743,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           bool? hapticsEnabled,
           String? guidanceMode,
           String? startSurface,
+          Value<String?> language = const Value.absent(),
           Value<int?> birthTimeMinutes = const Value.absent(),
           String? birthTimePrecision,
           Value<int?> birthUtcOffsetMinutes = const Value.absent(),
@@ -737,6 +770,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
         guidanceMode: guidanceMode ?? this.guidanceMode,
         startSurface: startSurface ?? this.startSurface,
+        language: language.present ? language.value : this.language,
         birthTimeMinutes: birthTimeMinutes.present
             ? birthTimeMinutes.value
             : this.birthTimeMinutes,
@@ -786,6 +820,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       startSurface: data.startSurface.present
           ? data.startSurface.value
           : this.startSurface,
+      language: data.language.present ? data.language.value : this.language,
       birthTimeMinutes: data.birthTimeMinutes.present
           ? data.birthTimeMinutes.value
           : this.birthTimeMinutes,
@@ -838,6 +873,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('hapticsEnabled: $hapticsEnabled, ')
           ..write('guidanceMode: $guidanceMode, ')
           ..write('startSurface: $startSurface, ')
+          ..write('language: $language, ')
           ..write('birthTimeMinutes: $birthTimeMinutes, ')
           ..write('birthTimePrecision: $birthTimePrecision, ')
           ..write('birthUtcOffsetMinutes: $birthUtcOffsetMinutes, ')
@@ -868,6 +904,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         hapticsEnabled,
         guidanceMode,
         startSurface,
+        language,
         birthTimeMinutes,
         birthTimePrecision,
         birthUtcOffsetMinutes,
@@ -897,6 +934,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.hapticsEnabled == this.hapticsEnabled &&
           other.guidanceMode == this.guidanceMode &&
           other.startSurface == this.startSurface &&
+          other.language == this.language &&
           other.birthTimeMinutes == this.birthTimeMinutes &&
           other.birthTimePrecision == this.birthTimePrecision &&
           other.birthUtcOffsetMinutes == this.birthUtcOffsetMinutes &&
@@ -924,6 +962,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<bool> hapticsEnabled;
   final Value<String> guidanceMode;
   final Value<String> startSurface;
+  final Value<String?> language;
   final Value<int?> birthTimeMinutes;
   final Value<String> birthTimePrecision;
   final Value<int?> birthUtcOffsetMinutes;
@@ -949,6 +988,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.hapticsEnabled = const Value.absent(),
     this.guidanceMode = const Value.absent(),
     this.startSurface = const Value.absent(),
+    this.language = const Value.absent(),
     this.birthTimeMinutes = const Value.absent(),
     this.birthTimePrecision = const Value.absent(),
     this.birthUtcOffsetMinutes = const Value.absent(),
@@ -975,6 +1015,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.hapticsEnabled = const Value.absent(),
     this.guidanceMode = const Value.absent(),
     this.startSurface = const Value.absent(),
+    this.language = const Value.absent(),
     this.birthTimeMinutes = const Value.absent(),
     this.birthTimePrecision = const Value.absent(),
     this.birthUtcOffsetMinutes = const Value.absent(),
@@ -1004,6 +1045,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<bool>? hapticsEnabled,
     Expression<String>? guidanceMode,
     Expression<String>? startSurface,
+    Expression<String>? language,
     Expression<int>? birthTimeMinutes,
     Expression<String>? birthTimePrecision,
     Expression<int>? birthUtcOffsetMinutes,
@@ -1030,6 +1072,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (hapticsEnabled != null) 'haptics_enabled': hapticsEnabled,
       if (guidanceMode != null) 'guidance_mode': guidanceMode,
       if (startSurface != null) 'start_surface': startSurface,
+      if (language != null) 'language': language,
       if (birthTimeMinutes != null) 'birth_time_minutes': birthTimeMinutes,
       if (birthTimePrecision != null)
         'birth_time_precision': birthTimePrecision,
@@ -1065,6 +1108,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       Value<bool>? hapticsEnabled,
       Value<String>? guidanceMode,
       Value<String>? startSurface,
+      Value<String?>? language,
       Value<int?>? birthTimeMinutes,
       Value<String>? birthTimePrecision,
       Value<int?>? birthUtcOffsetMinutes,
@@ -1090,6 +1134,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
       guidanceMode: guidanceMode ?? this.guidanceMode,
       startSurface: startSurface ?? this.startSurface,
+      language: language ?? this.language,
       birthTimeMinutes: birthTimeMinutes ?? this.birthTimeMinutes,
       birthTimePrecision: birthTimePrecision ?? this.birthTimePrecision,
       birthUtcOffsetMinutes:
@@ -1143,6 +1188,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     }
     if (startSurface.present) {
       map['start_surface'] = Variable<String>(startSurface.value);
+    }
+    if (language.present) {
+      map['language'] = Variable<String>(language.value);
     }
     if (birthTimeMinutes.present) {
       map['birth_time_minutes'] = Variable<int>(birthTimeMinutes.value);
@@ -1206,6 +1254,7 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('hapticsEnabled: $hapticsEnabled, ')
           ..write('guidanceMode: $guidanceMode, ')
           ..write('startSurface: $startSurface, ')
+          ..write('language: $language, ')
           ..write('birthTimeMinutes: $birthTimeMinutes, ')
           ..write('birthTimePrecision: $birthTimePrecision, ')
           ..write('birthUtcOffsetMinutes: $birthUtcOffsetMinutes, ')
@@ -11273,6 +11322,7 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   Value<bool> hapticsEnabled,
   Value<String> guidanceMode,
   Value<String> startSurface,
+  Value<String?> language,
   Value<int?> birthTimeMinutes,
   Value<String> birthTimePrecision,
   Value<int?> birthUtcOffsetMinutes,
@@ -11299,6 +11349,7 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<bool> hapticsEnabled,
   Value<String> guidanceMode,
   Value<String> startSurface,
+  Value<String?> language,
   Value<int?> birthTimeMinutes,
   Value<String> birthTimePrecision,
   Value<int?> birthUtcOffsetMinutes,
@@ -11357,6 +11408,9 @@ class $$ProfilesTableFilterComposer
 
   ColumnFilters<String> get startSurface => $composableBuilder(
       column: $table.startSurface, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get language => $composableBuilder(
+      column: $table.language, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get birthTimeMinutes => $composableBuilder(
       column: $table.birthTimeMinutes,
@@ -11453,6 +11507,9 @@ class $$ProfilesTableOrderingComposer
       column: $table.startSurface,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get language => $composableBuilder(
+      column: $table.language, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get birthTimeMinutes => $composableBuilder(
       column: $table.birthTimeMinutes,
       builder: (column) => ColumnOrderings(column));
@@ -11545,6 +11602,9 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<String> get startSurface => $composableBuilder(
       column: $table.startSurface, builder: (column) => column);
 
+  GeneratedColumn<String> get language =>
+      $composableBuilder(column: $table.language, builder: (column) => column);
+
   GeneratedColumn<int> get birthTimeMinutes => $composableBuilder(
       column: $table.birthTimeMinutes, builder: (column) => column);
 
@@ -11619,6 +11679,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<bool> hapticsEnabled = const Value.absent(),
             Value<String> guidanceMode = const Value.absent(),
             Value<String> startSurface = const Value.absent(),
+            Value<String?> language = const Value.absent(),
             Value<int?> birthTimeMinutes = const Value.absent(),
             Value<String> birthTimePrecision = const Value.absent(),
             Value<int?> birthUtcOffsetMinutes = const Value.absent(),
@@ -11645,6 +11706,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             hapticsEnabled: hapticsEnabled,
             guidanceMode: guidanceMode,
             startSurface: startSurface,
+            language: language,
             birthTimeMinutes: birthTimeMinutes,
             birthTimePrecision: birthTimePrecision,
             birthUtcOffsetMinutes: birthUtcOffsetMinutes,
@@ -11671,6 +11733,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<bool> hapticsEnabled = const Value.absent(),
             Value<String> guidanceMode = const Value.absent(),
             Value<String> startSurface = const Value.absent(),
+            Value<String?> language = const Value.absent(),
             Value<int?> birthTimeMinutes = const Value.absent(),
             Value<String> birthTimePrecision = const Value.absent(),
             Value<int?> birthUtcOffsetMinutes = const Value.absent(),
@@ -11697,6 +11760,7 @@ class $$ProfilesTableTableManager extends RootTableManager<
             hapticsEnabled: hapticsEnabled,
             guidanceMode: guidanceMode,
             startSurface: startSurface,
+            language: language,
             birthTimeMinutes: birthTimeMinutes,
             birthTimePrecision: birthTimePrecision,
             birthUtcOffsetMinutes: birthUtcOffsetMinutes,

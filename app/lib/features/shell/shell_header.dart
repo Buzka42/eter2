@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/tokens.dart';
 
 /// The shared shell header: the ETER wordmark inside the shell's celestial
@@ -78,7 +79,9 @@ class _EterShellHeaderState extends State<EterShellHeader>
     final text = Theme.of(context).textTheme;
     return Semantics(
       button: widget.onOpenSanctum != null,
-      label: widget.onOpenSanctum == null ? null : 'Open Sanctum',
+      label: widget.onOpenSanctum == null
+          ? null
+          : EterStrings.of(context).openSanctumSemantic,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -110,7 +113,7 @@ class _EterShellHeaderState extends State<EterShellHeader>
                 // reading content. Keep the lockup intact when body text grows.
                 child: MediaQuery.withNoTextScaling(
                   child: Text(
-                    'ETER',
+                    EterStrings.of(context).wordmark,
                     style: text.displaySmall?.copyWith(
                       fontSize: 22,
                       fontWeight: FontWeight.w500,
@@ -275,24 +278,50 @@ class DestinationSwitch extends StatelessWidget {
   final int activeIndex;
   final ValueChanged<int> onSelect;
 
-  static const _labels = ['JOURNAL', 'DASHBOARD'];
-  static const _hairlineWidths = [66.0, 84.0];
+  /// The rule spans the word it underlines, so its width is measured from the
+  /// rendered text rather than tabulated.
+  ///
+  /// It used to be `[66.0, 84.0]` — the pixel widths of JOURNAL and DASHBOARD,
+  /// in Inter, at one text scale. Those two numbers were three assumptions:
+  /// that the words never change, that the face never changes, and that nobody
+  /// enlarges their type. PULPIT is a third narrower than DASHBOARD, which under
+  /// the old constants would have left the gold rule hanging past the end of the
+  /// word by a visible margin. A [TextPainter] against the real style answers
+  /// the question the constants were guessing at.
+  static double _ruleWidth(String label, TextStyle? style, TextScaler scaler) {
+    final painter = TextPainter(
+      text: TextSpan(text: label, style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: scaler,
+    )..layout();
+    // The trailing letterspace is added after the last glyph and is not part of
+    // the word's ink; leaving it in made every rule overhang to the right.
+    return painter.width - (style?.letterSpacing ?? 0);
+  }
 
   @override
   Widget build(BuildContext context) {
     final night = Theme.of(context).brightness == Brightness.dark;
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     final gold = night ? EterColors.aura500 : EterColors.aura700;
     final activeInk = night ? EterColors.nightText : EterColors.ink900;
     final quietInk = night ? EterColors.nightText3 : EterColors.ink400;
+    final labels = [strings.destinationJournal, strings.destinationDashboard];
 
     return SizedBox(
       width: EterShellHeader.compositionSize.width,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final half = constraints.maxWidth / 2;
-          final lineWidth = _hairlineWidths[activeIndex];
+          // Measured in the weight the active label actually renders in, which
+          // is heavier than the resting one.
+          final lineWidth = _ruleWidth(
+            labels[activeIndex],
+            text.labelMedium?.copyWith(fontWeight: FontWeight.w700),
+            MediaQuery.textScalerOf(context),
+          );
           final targetLeft = activeIndex == 0
               ? (half - lineWidth) / 2
               : half + (half - lineWidth) / 2;
@@ -301,10 +330,10 @@ class DestinationSwitch extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  for (var i = 0; i < _labels.length; i++)
+                  for (var i = 0; i < labels.length; i++)
                     Expanded(
                       child: _SwitchLabel(
-                        label: _labels[i],
+                        label: labels[i],
                         active: i == activeIndex,
                         style: text.labelMedium?.copyWith(
                           color: i == activeIndex ? activeInk : quietInk,

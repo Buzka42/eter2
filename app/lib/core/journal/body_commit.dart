@@ -3,6 +3,7 @@ import '../health/manual_activity.dart';
 import '../health/manual_weight.dart';
 import '../strength/strength_workout.dart';
 import 'classification_contract.dart';
+import '../health/record_error.dart';
 
 /// The route from a journal page to the body log.
 ///
@@ -37,7 +38,7 @@ class JournalBodyCommitter {
     required JournalClassification classification,
     required DateTime recordedAt,
   }) async {
-    final failures = <String>[];
+    final failures = <BodyRecordError>[];
     var weights = 0;
     var activities = 0;
     var workouts = 0;
@@ -49,8 +50,8 @@ class JournalBodyCommitter {
           recordedAt: recordedAt,
         );
         weights += 1;
-      } on FormatException catch (error) {
-        failures.add(error.message);
+      } on ManualWeightException catch (error) {
+        failures.add(error.error);
       }
     }
 
@@ -64,7 +65,7 @@ class JournalBodyCommitter {
         );
         activities += 1;
       } on ManualActivityException catch (error) {
-        failures.add(error.message);
+        failures.add(error.error);
       }
     }
 
@@ -85,7 +86,7 @@ class JournalBodyCommitter {
         );
         workouts = 1;
       } on StrengthWorkoutException catch (error) {
-        failures.add(error.message);
+        failures.add(error.error);
       }
     }
 
@@ -112,7 +113,9 @@ class JournalBodyCommitResult {
 
   /// Human-readable reasons, in the services' own words, for anything the
   /// page described that could not be committed.
-  final List<String> failures;
+  /// Bounds that were exceeded, in the order they were hit. Worded by the
+  /// surface — see `EterStrings.bodyRecordError`.
+  final List<BodyRecordError> failures;
 
   bool get wroteNothing => weights == 0 && activities == 0 && workouts == 0;
 }

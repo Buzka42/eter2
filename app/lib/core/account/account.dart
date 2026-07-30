@@ -64,28 +64,14 @@ class AccountException implements Exception {
   final AccountFailure failure;
   final String? detail;
 
-  /// What the person is told. One sentence, no jargon, and never a hint about
-  /// whether an address exists — that is an account-enumeration leak.
-  String get message => switch (failure) {
-        AccountFailure.invalidEmail => 'That does not look like an email '
-            'address.',
-        AccountFailure.weakPassword =>
-          'Choose a password of at least eight characters.',
-        AccountFailure.emailInUse => 'That address is already registered. '
-            'Sign in instead, or reset the password.',
-        AccountFailure.wrongPassword ||
-        AccountFailure.noSuchAccount =>
-          'That email and password do not match.',
-        AccountFailure.cancelled => 'Sign-in was cancelled.',
-        AccountFailure.network =>
-          'No connection. Eter works offline; sync will wait.',
-        AccountFailure.tooManyAttempts =>
-          'Too many attempts. Try again in a few minutes.',
-        AccountFailure.notVerified =>
-          'Confirm your email first — check for the link we sent.',
-        AccountFailure.unknown => 'Sign-in failed. Nothing was changed.',
-      };
-
+  /// What the person is told lives in `EterStrings.accountFailure`, not here.
+  ///
+  /// It was a getter on this class, which meant the one sentence a person reads
+  /// when signing in fails was written in a file that has no idea who is
+  /// reading. The enum is the contract — one value per way this can fail, and
+  /// `wrongPassword` and `noSuchAccount` deliberately share a sentence so the
+  /// interface never leaks whether an address is registered. Every language
+  /// table has to keep that pairing.
   @override
   String toString() => 'AccountException(${failure.name}${
       detail == null ? '' : ': $detail'})';

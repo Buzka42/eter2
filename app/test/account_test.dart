@@ -1,5 +1,9 @@
 import 'dart:async';
 
+import 'package:eter/core/i18n/language.dart';
+import 'package:eter/core/i18n/strings.dart';
+import 'package:eter/core/i18n/strings_en.dart';
+import 'package:eter/core/i18n/strings_pl.dart';
 import 'package:eter/core/account/account.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -72,29 +76,43 @@ void main() {
   });
 
   group('what the person is told', () {
-    test('every failure has a sentence, and none of them is a code', () {
-      for (final failure in AccountFailure.values) {
-        final message = AccountException(failure).message;
-        expect(message, isNotEmpty, reason: failure.name);
-        expect(message, isNot(contains('auth/')), reason: failure.name);
-        expect(message, isNot(contains('_')), reason: failure.name);
-        expect(message.endsWith('.'), isTrue, reason: failure.name);
-      }
-    });
+    // Every language, not just the one the copy was written in. The sentences
+    // moved out of `AccountException` and into the string tables, so these
+    // invariants have to hold for each table — a Polish reader who mistypes a
+    // password must get a sentence, not a provider code, and must not be able
+    // to learn which addresses are registered either.
+    for (final language in AppLanguage.values) {
+      final strings = EterStrings.forLanguage(language);
 
-    test('a wrong password never reveals whether the account exists', () {
-      // Account enumeration: if these differed, an attacker could learn which
-      // addresses are registered by trying them.
-      expect(
-        const AccountException(AccountFailure.wrongPassword).message,
-        const AccountException(AccountFailure.noSuchAccount).message,
-      );
-    });
+      test('${language.code}: every failure has a sentence, not a code', () {
+        for (final failure in AccountFailure.values) {
+          final message = strings.accountFailure(failure);
+          expect(message, isNotEmpty, reason: failure.name);
+          expect(message, isNot(contains('auth/')), reason: failure.name);
+          expect(message, isNot(contains('_')), reason: failure.name);
+          expect(message.endsWith('.'), isTrue, reason: failure.name);
+        }
+      });
 
-    test('offline says the app still works', () {
+      test('${language.code}: a wrong password reveals nothing about the '
+          'account', () {
+        // Account enumeration: if these differed, an attacker could learn which
+        // addresses are registered by trying them.
+        expect(
+          strings.accountFailure(AccountFailure.wrongPassword),
+          strings.accountFailure(AccountFailure.noSuchAccount),
+        );
+      });
+    }
+
+    test('offline says the app still works, in both languages', () {
       expect(
-        const AccountException(AccountFailure.network).message,
+        const EterStringsEn().accountFailure(AccountFailure.network),
         contains('offline'),
+      );
+      expect(
+        const EterStringsPl().accountFailure(AccountFailure.network),
+        contains('bez sieci'),
       );
     });
   });

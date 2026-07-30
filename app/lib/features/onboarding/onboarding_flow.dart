@@ -7,6 +7,8 @@ import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
+import '../../core/i18n/language.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/profile/body_fat.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
@@ -46,10 +48,24 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   var _saving = false;
   String? _birthError;
 
+  /// Chosen on the first step, and pre-filled from the phone.
+  ///
+  /// Held in local state and written with the profile at the end, like every
+  /// other answer here — but applied to the *interface* immediately, because a
+  /// language choice that does not take effect until you finish setup is a
+  /// language choice made in a language you may not read.
+  AppLanguage? _language;
+
+  /// The number of steps, in one place. Adding the language step made this a
+  /// literal `4` in four unrelated expressions, one of which was the
+  /// `AnimatedSwitcher` default branch.
+  static const _steps = 5;
+
   @override
   void initState() {
     super.initState();
     final profile = widget.profile;
+    _language = AppLanguage.forProfile(profile?.language);
     _name.text = profile?.firstName ?? '';
     _birthPlace.text = profile?.birthPlace ?? '';
     _sex = profile?.sex ?? 'other';
@@ -101,6 +117,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
             journalAiConsentAt: Value(_ai && _journalAi ? now : null),
             cloudSyncConsentAt: Value(_cloud ? now : null),
             guidanceMode: Value(_register),
+            language: Value(_language?.code),
           )
         : existing.toCompanion(true).copyWith(
               dob: Value(dob),
@@ -117,6 +134,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               journalAiConsentAt: Value(_ai && _journalAi ? now : null),
               cloudSyncConsentAt: Value(_cloud ? now : null),
               guidanceMode: Value(_register),
+              language: Value(_language?.code),
             );
     await widget.database.saveProfile(profile);
     await widget.database.saveIntakeAnswer(
@@ -132,13 +150,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     if (mounted) widget.onComplete();
   }
 
-  bool _validateBirth() {
+  bool _validateBirth(EterStrings strings) {
     final dob = DateTime.tryParse(_dob.text.trim());
     final weight = double.tryParse(_weight.text.trim());
     final height = double.tryParse(_height.text.trim());
     String? error;
     if (dob == null || dob.isAfter(DateTime.now())) {
-      error = 'Enter a valid birth date as YYYY-MM-DD.';
+      error = strings.errorEnterValidBirthDate;
     } else {
       final today = DateTime.now();
       var age = today.year - dob.year;
@@ -146,15 +164,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
           (today.month == dob.month && today.day < dob.day)) {
         age--;
       }
-      if (age < 16) {
-        error = 'Eter is currently available to people aged 16 and over.';
-      }
+      if (age < 16) error = strings.errorMinimumAge;
     }
     if (error == null && (weight == null || weight < 20 || weight > 500)) {
-      error = 'Enter your current weight between 20 and 500 kg.';
+      error = strings.errorEnterWeightRange;
     }
     if (error == null && (height == null || height < 100 || height > 250)) {
-      error = 'Enter your current height between 100 and 250 cm.';
+      error = strings.errorEnterHeightRange;
     }
     setState(() => _birthError = error);
     return error == null;
@@ -162,6 +178,20 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
 
   @override
   Widget build(BuildContext context) {
+    // The chosen language, not the ambient one: the rest of the tree is still
+    // under the root scope, which reads the profile — and the profile has no
+    // language until this flow finishes. Re-scoping here is what makes the
+    // choice on step one visible on step one.
+    final strings = EterStrings.forLanguage(
+      _language ?? AppLanguage.resolveFromPlatform(),
+    );
+    return EterStringsScope(
+      strings: strings,
+      child: _build(context, strings),
+    );
+  }
+
+  Widget _build(BuildContext context, EterStrings strings) {
     return Scaffold(
       body: SkyBackground(
         child: SafeArea(
@@ -180,9 +210,15 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                       const EterMotto(),
                       const SizedBox(height: EterSpace.s32),
                       Semantics(
-                        label: 'Onboarding step ${_step + 1} of 4',
+                        label: strings.onboardingStepSemantic(
+                          step: _step + 1,
+                          total: _steps,
+                        ),
                         child: Text(
-                          '${_step + 1} / 4',
+                          strings.onboardingStepMark(
+                            step: _step + 1,
+                            total: _steps,
+                          ),
                           style: Theme.of(context).textTheme.labelSmall,
                         ),
                       ),
@@ -192,13 +228,22 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                             ? Duration.zero
                             : EterMotion.durStandard,
                         child: switch (_step) {
-                          0 => _WelcomeStep(
+                          // First, because it decides what every step after it
+                          // is written in.
+                          0 => _LanguageStep(
                               key: const ValueKey(0),
+                              value: _language ??
+                                  AppLanguage.resolveFromPlatform(),
+                              onChanged: (value) =>
+                                  setState(() => _language = value),
+                            ),
+                          1 => _WelcomeStep(
+                              key: const ValueKey(1),
                               name: _name,
                               intention: _intention,
                             ),
-                          1 => _BirthStep(
-                              key: const ValueKey(1),
+                          2 => _BirthStep(
+                              key: const ValueKey(2),
                               dob: _dob,
                               weight: _weight,
                               height: _height,
@@ -210,14 +255,14 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                               place: _birthPlace,
                               error: _birthError,
                             ),
-                          2 => _RegisterStep(
-                              key: const ValueKey(2),
+                          3 => _RegisterStep(
+                              key: const ValueKey(3),
                               value: _register,
                               onChanged: (value) =>
                                   setState(() => _register = value),
                             ),
                           _ => _ConsentStep(
-                              key: const ValueKey(3),
+                              key: const ValueKey(4),
                               database: widget.database,
                               ai: _ai,
                               journalAi: _journalAi,
@@ -241,22 +286,25 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                         children: [
                           if (_step > 0)
                             EterAction(
-                              label: 'Back',
+                              label: strings.back,
                               emphasis: EterActionEmphasis.quiet,
                               onPressed: () => setState(() => _step--),
                             )
                           else
                             const SizedBox(width: 64),
                           EterAction(
-                            label: _step == 3 ? 'Enter Eter' : 'Continue',
+                            label: _step == _steps - 1
+                                ? strings.enterEter
+                                : strings.continueLabel,
                             emphasis: EterActionEmphasis.primary,
                             busy: _saving,
                             onPressed: _saving
                                 ? null
                                 : () {
                                     FocusScope.of(context).unfocus();
-                                    if (_step < 3) {
-                                      if (_step == 1 && !_validateBirth()) {
+                                    if (_step < _steps - 1) {
+                                      if (_step == 2 &&
+                                          !_validateBirth(strings)) {
                                         return;
                                       }
                                       setState(() => _step++);
@@ -297,7 +345,7 @@ class _OnboardingMark extends StatelessWidget {
               // of Cormorant. Onboarding is where the name is met first; it
               // has to be the same name.
               child: Text(
-                'ETER',
+                EterStrings.of(context).wordmark,
                 style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       fontWeight: FontWeight.w500,
                       letterSpacing: 8,
@@ -320,13 +368,11 @@ class _OnboardingMark extends StatelessWidget {
 class EterMotto extends StatelessWidget {
   const EterMotto({super.key, this.textAlign = TextAlign.center});
 
-  static const text = 'Anima Sana In Corpore Sano';
-
   final TextAlign textAlign;
 
   @override
   Widget build(BuildContext context) => Text(
-        text,
+        EterStrings.of(context).motto,
         textAlign: textAlign,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontFamily: 'Cormorant Garamond',
@@ -344,21 +390,27 @@ class _WelcomeStep extends StatelessWidget {
   final TextEditingController intention;
 
   @override
-  Widget build(BuildContext context) => _StepBody(
-        title: 'Begin with what matters',
-        intro:
-            'A few words are enough. You can change or remove any of this later.',
-        children: [
-          _LineField(controller: name, label: 'What should Eter call you?'),
-          const SizedBox(height: EterSpace.s24),
-          _LineField(
-            controller: intention,
-            label: 'What would you like more of?',
-            hint: 'Steadier energy, deeper sleep, a clearer mind…',
-            lines: 3,
-          ),
-        ],
-      );
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    return _StepBody(
+      id: 'welcome',
+      title: strings.welcomeTitle,
+      intro: strings.welcomeIntro,
+      children: [
+        _LineField(
+          controller: name,
+          label: strings.fieldWhatShouldEterCallYou,
+        ),
+        const SizedBox(height: EterSpace.s24),
+        _LineField(
+          controller: intention,
+          label: strings.fieldWhatWouldYouLikeMoreOf,
+          hint: strings.hintWhatWouldYouLikeMoreOf,
+          lines: 3,
+        ),
+      ],
+    );
+  }
 }
 
 class _BirthStep extends StatelessWidget {
@@ -385,76 +437,82 @@ class _BirthStep extends StatelessWidget {
   final String? error;
 
   @override
-  Widget build(BuildContext context) => _StepBody(
-        title: 'Your point of origin',
-        intro:
-            'Date supports health context and symbolic calculations. Place and exact time are optional; without them, Eter labels the chart provisional.',
-        children: [
-          _LineField(
-            controller: dob,
-            label: 'Birth date',
-            hint: 'YYYY-MM-DD',
-            keyboardType: TextInputType.datetime,
-          ),
-          // The message belongs under the field that raised it. It used to sit
-          // at the foot of the step, below the optional birth place, several
-          // fields away from the input it was about.
-          if (error != null) ...[
-            const SizedBox(height: EterSpace.s8),
-            Semantics(
-              liveRegion: true,
-              child: Text(
-                error!,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ),
-          ],
-          const SizedBox(height: EterSpace.s24),
-          _LineField(
-            controller: weight,
-            label: 'Current weight in kilograms',
-            hint: '70',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: EterSpace.s24),
-          _LineField(
-            controller: height,
-            label: 'Current height in centimetres',
-            hint: '170',
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          ),
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    return _StepBody(
+      id: 'birth',
+      title: strings.birthStepTitle,
+      intro: strings.birthStepIntro,
+      children: [
+        _LineField(
+          controller: dob,
+          label: strings.fieldBirthDate,
+          hint: strings.hintBirthDateFormat,
+          keyboardType: TextInputType.datetime,
+        ),
+        // The message belongs under the field that raised it. It used to sit
+        // at the foot of the step, below the optional birth place, several
+        // fields away from the input it was about.
+        if (error != null) ...[
           const SizedBox(height: EterSpace.s8),
-          BodyFatField(value: bodyFat, onChanged: onBodyFat),
-          const SizedBox(height: EterSpace.s16),
-          Text('BODY CONTEXT', style: Theme.of(context).textTheme.labelSmall),
-          Wrap(
-            spacing: EterSpace.s16,
-            children: [
-              for (final option in const {
-                'female': 'Female',
-                'male': 'Male',
-                'other': 'Another / prefer not to say',
-              }.entries)
-                _TextChoice(
-                  label: option.value,
-                  selected: sex == option.key,
-                  onTap: () => onSex(option.key),
-                ),
-            ],
-          ),
-          const SizedBox(height: EterSpace.s16),
-          _LineField(
-            controller: place,
-            label: 'Birth place — optional',
-            hint: 'City or region',
-          ),
-          const SizedBox(height: EterSpace.s16),
-          Text(
-            'Exact birth time can be added later in the Sanctum.',
-            style: Theme.of(context).textTheme.bodySmall,
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              error!,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         ],
-      );
+        const SizedBox(height: EterSpace.s24),
+        _LineField(
+          controller: weight,
+          label: strings.fieldCurrentWeightKg,
+          hint: '70',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: EterSpace.s24),
+        _LineField(
+          controller: height,
+          label: strings.fieldCurrentHeightCm,
+          hint: '170',
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        ),
+        const SizedBox(height: EterSpace.s8),
+        BodyFatField(value: bodyFat, onChanged: onBodyFat),
+        const SizedBox(height: EterSpace.s16),
+        Text(
+          strings.headingBodyContext,
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+        Wrap(
+          spacing: EterSpace.s16,
+          children: [
+            for (final option in {
+              'female': strings.sexFemale,
+              'male': strings.sexMale,
+              'other': strings.sexOther,
+            }.entries)
+              _TextChoice(
+                label: option.value,
+                selected: sex == option.key,
+                onTap: () => onSex(option.key),
+              ),
+          ],
+        ),
+        const SizedBox(height: EterSpace.s16),
+        _LineField(
+          controller: place,
+          label: strings.fieldBirthPlaceOptional,
+          hint: strings.hintCityOrRegion,
+        ),
+        const SizedBox(height: EterSpace.s16),
+        Text(
+          strings.exactBirthTimeLater,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
 }
 
 class _ConsentStep extends StatelessWidget {
@@ -477,34 +535,73 @@ class _ConsentStep extends StatelessWidget {
   final AppDatabase database;
 
   @override
-  Widget build(BuildContext context) => _StepBody(
-        title: 'Choose what may leave this device',
-        intro:
-            'All of these are optional. Core journaling and local calculations still work if you decline.',
-        children: [
-          _HealthConnectStep(database: database),
-          const SizedBox(height: EterSpace.s24),
-          _PlainChoice(
-            title: 'AI guidance',
-            detail: 'Send selected health context to compose guidance.',
-            value: ai,
-            onChanged: onAi,
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    return _StepBody(
+      id: 'consent',
+      title: strings.consentStepTitle,
+      intro: strings.consentStepIntro,
+      children: [
+        _HealthConnectStep(database: database),
+        const SizedBox(height: EterSpace.s24),
+        _PlainChoice(
+          title: strings.consentAiTitle,
+          detail: strings.consentAiDetail,
+          value: ai,
+          onChanged: onAi,
+        ),
+        _PlainChoice(
+          title: strings.consentJournalAiTitle,
+          detail: strings.consentJournalAiDetail,
+          value: journalAi,
+          enabled: ai,
+          onChanged: onJournalAi,
+        ),
+        _PlainChoice(
+          title: strings.consentCloudTitle,
+          detail: strings.consentCloudDetail,
+          value: cloud,
+          onChanged: onCloud,
+        ),
+      ],
+    );
+  }
+}
+
+/// The first thing anyone is asked, and the only one that has to be readable
+/// before it is answered.
+///
+/// Pre-selected from the phone, so the overwhelming majority of people see their
+/// own language already chosen and simply continue. Each option names itself in
+/// itself — a row reading "Polish" is no use to somebody who needs it.
+class _LanguageStep extends StatelessWidget {
+  const _LanguageStep({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final AppLanguage value;
+  final ValueChanged<AppLanguage> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    return _StepBody(
+      id: 'language',
+      title: strings.languageStepTitle,
+      intro: strings.languageStepIntro,
+      children: [
+        for (final language in AppLanguage.values)
+          _TextChoice(
+            key: ValueKey('onboarding-language-${language.code}'),
+            label: language.endonym,
+            selected: language == value,
+            onTap: () => onChanged(language),
           ),
-          _PlainChoice(
-            title: 'Journal-aware guidance',
-            detail: 'Allow included journal prose to be sent for reflection.',
-            value: journalAi,
-            enabled: ai,
-            onChanged: onJournalAi,
-          ),
-          _PlainChoice(
-            title: 'Cloud continuity',
-            detail: 'Keep an encrypted account copy for a future phone.',
-            value: cloud,
-            onChanged: onCloud,
-          ),
-        ],
-      );
+      ],
+    );
+  }
 }
 
 /// Choosing the register at the start, rather than discovering it later.
@@ -523,30 +620,30 @@ class _RegisterStep extends StatelessWidget {
   final String value;
   final ValueChanged<String> onChanged;
 
-  static const _choices = {
-    'grounded': (
-      'Grounded',
-      'Daylight clarity at every hour. Plain, practical, unadorned.',
-    ),
-    'balanced': (
-      'Balanced',
-      'Changes with sunrise and sunset, as the day does.',
-    ),
-    'immersive': (
-      'Immersive',
-      'The deeper night register, symbolic and unhurried.',
-    ),
-  };
-
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
+    final choices = {
+      'grounded': (
+        strings.registerGrounded,
+        strings.registerGroundedOnboardingDetail,
+      ),
+      'balanced': (
+        strings.registerBalanced,
+        strings.registerBalancedOnboardingDetail,
+      ),
+      'immersive': (
+        strings.registerImmersive,
+        strings.registerImmersiveOnboardingDetail,
+      ),
+    };
     return _StepBody(
-      title: 'How Eter should speak',
-      intro: 'This sets the voice, not the facts. You can change it any time '
-          'in the Sanctum.',
+      id: 'register',
+      title: strings.registerStepTitle,
+      intro: strings.registerStepIntro,
       children: [
-        for (final entry in _choices.entries)
+        for (final entry in choices.entries)
           Padding(
             padding: const EdgeInsets.only(bottom: EterSpace.s12),
             child: Semantics(
@@ -612,6 +709,7 @@ class _HealthConnectStepState extends State<_HealthConnectStep> {
   String? _message;
 
   Future<void> _connect() async {
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
       _message = null;
@@ -625,17 +723,12 @@ class _HealthConnectStepState extends State<_HealthConnectStep> {
       if (!mounted) return;
       setState(() {
         _message = result.authorized
-            ? '${result.records} records read. Eter kept one source per '
-                'minute.'
-            : 'Access was not granted. Nothing was imported, and you can '
-                'connect later in the Sanctum.';
+            ? strings.healthRecordsRead(result.records)
+            : strings.healthAccessNotGrantedOnboarding;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _message = 'Health data could not be read. You can try again later '
-            'in the Sanctum.';
-      });
+      setState(() => _message = strings.healthCouldNotBeReadOnboarding);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -644,22 +737,22 @@ class _HealthConnectStepState extends State<_HealthConnectStep> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     final supported = Platform.isAndroid || Platform.isIOS;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Health history', style: text.bodyLarge),
+        Text(strings.healthHistoryTitle, style: text.bodyLarge),
         const SizedBox(height: EterSpace.s4),
         Text(
           supported
-              ? 'Read movement, sleep and recovery from your phone’s health '
-                  'store, so the Body has something to show from the start.'
-              : 'Health connection is available on iPhone and Android.',
+              ? strings.healthOnboardingOffer
+              : strings.healthUnsupportedPlatform,
           style: text.bodySmall,
         ),
         const SizedBox(height: EterSpace.s8),
         EterAction(
-          label: 'Connect',
+          label: strings.connect,
           busy: _busy,
           onPressed: supported && !_busy ? _connect : null,
         ),
@@ -675,17 +768,23 @@ class _HealthConnectStepState extends State<_HealthConnectStep> {
 
 class _StepBody extends StatelessWidget {
   const _StepBody({
+    required this.id,
     required this.title,
-    required this.intro,
     required this.children,
+    required this.intro,
   });
+
+  /// Identity for the switcher's transition, and untranslated: keying on
+  /// [title] meant changing language mid-flow read as a step change.
+  final String id;
+
   final String title;
   final String intro;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) => Column(
-        key: ValueKey(title),
+        key: ValueKey(id),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(title, style: Theme.of(context).textTheme.displaySmall),
@@ -735,6 +834,7 @@ class _LineField extends StatelessWidget {
 
 class _TextChoice extends StatelessWidget {
   const _TextChoice({
+    super.key,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -805,11 +905,12 @@ class _PlainChoice extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     return Semantics(
       button: true,
       toggled: value,
       enabled: enabled,
-      label: '$title, ${value ? 'allowed' : 'kept off'}',
+      label: strings.consentSemantic(title: title, allowed: value),
       child: InkWell(
         onTap: enabled ? () => onChanged(!value) : null,
         child: ConstrainedBox(
@@ -832,7 +933,7 @@ class _PlainChoice extends StatelessWidget {
                 ),
                 const SizedBox(width: EterSpace.s16),
                 Text(
-                  value ? 'ALLOW' : 'OFF',
+                  value ? strings.allowMark : strings.offMark,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: enabled ? ink.lineStrong : ink.labelMuted,
                       ),

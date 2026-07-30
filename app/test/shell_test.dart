@@ -932,7 +932,7 @@ void main() {
     await tester.pump();
 
     final journalAllowed =
-        find.byKey(const ValueKey('JOURNAL-AWARE GUIDANCE-allowed'));
+        find.byKey(const ValueKey('journal-aware-guidance-allowed'));
     await tester.ensureVisible(journalAllowed);
     tester.widget<GestureDetector>(journalAllowed).onTap!();
     await tester.runAsync(
@@ -944,7 +944,7 @@ void main() {
     expect(profile?.journalAiConsentAt, isNotNull);
     expect(profile?.cloudSyncConsentAt, isNull);
 
-    final aiOff = find.byKey(const ValueKey('AI GUIDANCE-off'));
+    final aiOff = find.byKey(const ValueKey('ai-guidance-off'));
     await tester.ensureVisible(aiOff);
     tester.widget<GestureDetector>(aiOff).onTap!();
     await tester.runAsync(
@@ -1132,7 +1132,10 @@ void main() {
       'journal',
       'dashboard',
       'Open Sanctum',
-      'Look deeper',
+      // Lower-cased like the two destinations above it: all three are drawn in
+      // letterspaced caps, and a screen reader should be given the word rather
+      // than the typography. It used to be a separate sentence-case literal.
+      'look deeper',
     ]) {
       final node = tester.getSemantics(find.bySemanticsLabel(label));
       expect(node.rect.height, greaterThanOrEqualTo(48), reason: label);

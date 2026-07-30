@@ -1,0 +1,141 @@
+{
+  "_comment": "Polski. Wartości liczbowe są kluczami złączenia.",
+  "schemaVersion": 1,
+  "paths": [
+    {
+      "value": 1,
+      "title": "Inicjator",
+      "keywords": [
+        "niezależność",
+        "początek",
+        "napęd",
+        "samodzielność",
+        "przywództwo"
+      ]
+    },
+    {
+      "value": 2,
+      "title": "Mediator",
+      "keywords": [
+        "wrażliwość",
+        "partnerstwo",
+        "dyplomacja",
+        "cierpliwość",
+        "otwartość"
+      ]
+    },
+    {
+      "value": 3,
+      "title": "Wyraziciel",
+      "keywords": [
+        "wyrażanie",
+        "wyobraźnia",
+        "towarzyskość",
+        "zachwyt",
+        "komunikacja"
+      ]
+    },
+    {
+      "value": 4,
+      "title": "Budowniczy",
+      "keywords": [
+        "porządek",
+        "dyscyplina",
+        "fundament",
+        "wytrzymałość",
+        "rzemiosło"
+      ]
+    },
+    {
+      "value": 5,
+      "title": "Poszukiwacz",
+      "keywords": [
+        "wolność",
+        "zmiana",
+        "ciekawość",
+        "ruch",
+        "zdolność przystosowania"
+      ]
+    },
+    {
+      "value": 6,
+      "title": "Opiekun",
+      "keywords": [
+        "odpowiedzialność",
+        "opieka",
+        "harmonia",
+        "służba",
+        "oddanie"
+      ]
+    },
+    {
+      "value": 7,
+      "title": "Kontemplator",
+      "keywords": [
+        "analiza",
+        "samotność",
+        "głębia",
+        "dociekanie",
+        "rozeznanie"
+      ]
+    },
+    {
+      "value": 8,
+      "title": "Zarządca",
+      "keywords": [
+        "władza",
+        "zdolność",
+        "następstwo",
+        "ambicja",
+        "biegłość w rzeczach materialnych"
+      ]
+    },
+    {
+      "value": 9,
+      "title": "Humanista",
+      "keywords": [
+        "współczucie",
+        "dopełnienie",
+        "szerokość",
+        "uwolnienie",
+        "hojność"
+      ]
+    },
+    {
+      "value": 11,
+      "title": "Rozświetlający",
+      "keywords": [
+        "intuicja",
+        "wizja",
+        "wrażliwość",
+        "inspiracja",
+        "objawienie"
+      ],
+      "master": true
+    },
+    {
+      "value": 22,
+      "title": "Wielki Budowniczy",
+      "keywords": [
+        "wizja wcielona",
+        "skala",
+        "wytrzymałość",
+        "struktura",
+        "dziedzictwo"
+      ],
+      "master": true
+    },
+    {
+      "value": 33,
+      "title": "Wielki Nauczyciel",
+      "keywords": [
+        "oddanie",
+        "przewodnictwo",
+        "współczucie na wielką skalę",
+        "odpowiedzialność",
+        "podnoszenie"
+      ],
+      "master": true
+    }
+  ]
+}

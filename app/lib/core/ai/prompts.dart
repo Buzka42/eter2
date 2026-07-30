@@ -26,6 +26,7 @@ library;
 
 import '../aether/guidance_mode.dart';
 import '../aether/request_contract.dart';
+import '../i18n/language.dart';
 import '../vessel/reading_composer.dart';
 
 /// One prepared call: an instruction, a payload and the schema the answer must
@@ -59,7 +60,10 @@ abstract final class EterPrompts {
   ///
   /// v3 (29 July 2026): guidance remembers. It reads a fortnight of its own
   /// compressed notes and writes one for the day it just composed.
-  static const version = 3;
+  ///
+  /// v4 (30 July 2026): every instruction states which language to write in,
+  /// and states that the contract values are not part of what gets translated.
+  static const version = 4;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -289,6 +293,42 @@ SAFETY — these hold in every mode
   nothing to win here.
 - Refuse nothing silently: if you cannot say something safely, say less.''';
 
+  /// Which language to write in, and — the part that matters — what is not
+  /// writing.
+  ///
+  /// Included in every prompt, English ones too. It would be cheaper to append
+  /// this only when the language is not English, but then the English prompt and
+  /// the Polish prompt would differ in two ways instead of one, and a difference
+  /// in output could not be attributed. It is one instruction, parameterised.
+  ///
+  /// The second half is the load-bearing half. Every contract in this product
+  /// validates against fixed English values — `'synthesis'`, `'needsDetail'`,
+  /// `'mood'`, `'breakfast'`, the dimension names, the position keys, and every
+  /// field name inside `evidence`, which is compared key-for-key against the
+  /// payload. A model told to "answer in Polish" will helpfully translate
+  /// `"sleepMinutes"` to `"minutySnu"`, and `AetherSafetyPolicy` will then
+  /// discard the entire composition — correctly, and invisibly, so the Dashboard
+  /// simply never fills in. Saying which strings are prose and which are wiring
+  /// is what makes a translated product possible at all.
+  ///
+  /// The instruction itself stays in English regardless: an English directive
+  /// inside an otherwise-English system prompt is followed far more reliably
+  /// than the same directive written in the target language.
+  static String languageFor(AppLanguage language) => '''
+LANGUAGE
+Write every word a person will read in ${language.modelName}. That is all
+prose: passages, sentences, actions, stories, questions, assumptions, names of
+foods and activities you derive, and the note you write to yourself.
+
+Do not translate the structure. Every JSON key, and every value that comes from
+a fixed set named in these instructions, stays exactly as written here, in
+English, character for character — the dimension names, the status values, the
+category names, the position keys, and every field name and number inside
+"evidence". Those are wiring, not writing. A single translated key causes the
+whole composition to be rejected and nothing to be shown.
+
+Numbers, dates, times and units are never translated or reformatted.''';
+
   /// The rule that keeps the product honest.
   static const absence = '''
 ABSENCE
@@ -307,7 +347,10 @@ a day with no steps recorded is not a day of no movement.''';
   /// register, up to seven days of canonical summaries and vitals, and — only
   /// with its own separate consent — up to five recent journal passages inside
   /// a 1200-character budget.
-  static EterPrompt guidance(AetherRequest request) {
+  static EterPrompt guidance(
+    AetherRequest request, {
+    required AppLanguage language,
+  }) {
     final hasJournal = request.journal.isNotEmpty;
     // The journal's share of the weighting is earned by any of the three
     // journal-derived inputs, not by raw passages alone: a week of digests is
@@ -383,6 +426,8 @@ Alongside the four dimensions, one more field:
 
 $safety
 
+${languageFor(language)}
+
 STYLE
 Complete sentences. No lists, no bullets, no headings, no emoji, no markdown,
 no second-person imperatives stacked in a row. Prefer the concrete to the
@@ -437,6 +482,7 @@ dimensions with the same word. Do not name yourself or refer to being an AI.''',
   static EterPrompt journalDayStory({
     required String date,
     required List<({DateTime at, String text})> entries,
+    required AppLanguage language,
   }) {
     return EterPrompt(
       system: '''
@@ -478,6 +524,8 @@ is not evidence about sleep.
 $absence
 
 $safety
+
+${languageFor(language)}
 
 Return JSON only: {"story": ..., "digest": {...}}''',
       user: {
@@ -532,6 +580,7 @@ Return JSON only: {"story": ..., "digest": {...}}''',
     required GuidanceMode mode,
     required Map<String, Object?> transits,
     required bool ascendantReliable,
+    required AppLanguage language,
   }) {
     final provisional = ascendantReliable
         ? ''
@@ -576,6 +625,8 @@ reaching for a contact that is not there.
 
 $safety
 
+${languageFor(language)}
+
 Return JSON only: {"passage": ..., "guidanceNote": ...}''',
       user: transits,
       responseSchema: _positionsSchema,
@@ -605,6 +656,7 @@ Return JSON only: {"passage": ..., "guidanceNote": ...}''',
   static EterPrompt journalInterpretation({
     required String entryText,
     String? clarification,
+    required AppLanguage language,
   }) {
     return EterPrompt(
       system: '''
@@ -688,6 +740,8 @@ list empty. That is a normal and frequent answer.
 $absence
 
 $safety
+
+${languageFor(language)}
 
 Return JSON only, with no text around it.''',
       user: {
@@ -845,7 +899,10 @@ Return JSON only, with no text around it.''',
   /// the card it resolved to, that card's shipped keywords, and how reliable
   /// the calculation is. No birth date, no time, no coordinates, no place name,
   /// no chart hash.
-  static EterPrompt vesselReading(VesselReadingRequest request) {
+  static EterPrompt vesselReading(
+    VesselReadingRequest request, {
+    required AppLanguage language,
+  }) {
     return EterPrompt(
       system: '''
 You are writing the personal readings inside Eter's Vessel — the symbolic half
@@ -883,6 +940,8 @@ not their circumstances, not how their week has gone. Write the position, not
 a person you have imagined around it.
 
 $safety
+
+${languageFor(language)}
 
 Return JSON only: {"readings": [{"key": ..., "passage": ...}]}''',
       user: request.toJson(),

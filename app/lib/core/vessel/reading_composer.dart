@@ -6,6 +6,7 @@ import '../aether/guidance_mode.dart';
 import '../aether/safety_policy.dart';
 import '../ai/prompts.dart';
 import '../db/app_database.dart';
+import '../i18n/language.dart';
 
 class VesselReadingException implements Exception {
   const VesselReadingException(this.reason);
@@ -133,12 +134,17 @@ class VesselReadingComposer {
       return VesselReadingComposition(rows: existing, fromCache: true);
     }
 
-    final prompt = EterPrompts.vesselReading(VesselReadingRequest(
-      mode: request.mode,
-      positions: missing,
-      approximateTime: request.approximateTime,
-      approximatePlace: request.approximatePlace,
-    ));
+    final prompt = EterPrompts.vesselReading(
+      VesselReadingRequest(
+        mode: request.mode,
+        positions: missing,
+        approximateTime: request.approximateTime,
+        approximatePlace: request.approximatePlace,
+      ),
+      language: AppLanguage.forProfile(
+        (await database.loadProfile())?.language,
+      ),
+    );
     final raw = await provider.compose(
       VesselReadingProviderRequest(
         system: prompt.system,

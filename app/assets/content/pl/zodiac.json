@@ -1,0 +1,138 @@
+{
+  "_comment": "Polski. Klucz odpowiada nazwie w enumie Zodiac i nigdy nie jest tłumaczony.",
+  "schemaVersion": 1,
+  "signs": [
+    {
+      "key": "aries",
+      "modality": "kardynalny",
+      "ruler": "Mars",
+      "keywords": [
+        "inicjatywa",
+        "odwaga",
+        "pilność",
+        "asertywność"
+      ]
+    },
+    {
+      "key": "taurus",
+      "modality": "stały",
+      "ruler": "Wenus",
+      "keywords": [
+        "stałość",
+        "przyjemność",
+        "wytrwałość",
+        "bezpieczeństwo"
+      ]
+    },
+    {
+      "key": "gemini",
+      "modality": "zmienny",
+      "ruler": "Merkury",
+      "keywords": [
+        "ciekawość",
+        "wymiana",
+        "wszechstronność",
+        "dowcip"
+      ]
+    },
+    {
+      "key": "cancer",
+      "modality": "kardynalny",
+      "ruler": "Księżyc",
+      "keywords": [
+        "ochrona",
+        "pamięć",
+        "uczucie",
+        "przynależność"
+      ]
+    },
+    {
+      "key": "leo",
+      "modality": "stały",
+      "ruler": "Słońce",
+      "keywords": [
+        "ciepło",
+        "wyrażanie",
+        "duma",
+        "hojność"
+      ]
+    },
+    {
+      "key": "virgo",
+      "modality": "zmienny",
+      "ruler": "Merkury",
+      "keywords": [
+        "precyzja",
+        "służba",
+        "wysubtelnienie",
+        "analiza"
+      ]
+    },
+    {
+      "key": "libra",
+      "modality": "kardynalny",
+      "ruler": "Wenus",
+      "keywords": [
+        "równowaga",
+        "relacja",
+        "sprawiedliwość",
+        "wdzięk"
+      ]
+    },
+    {
+      "key": "scorpio",
+      "modality": "stały",
+      "ruler": "Pluton",
+      "keywords": [
+        "intensywność",
+        "głębia",
+        "stanowczość",
+        "przemiana"
+      ]
+    },
+    {
+      "key": "sagittarius",
+      "modality": "zmienny",
+      "ruler": "Jowisz",
+      "keywords": [
+        "rozszerzenie",
+        "szczerość",
+        "poszukiwanie",
+        "wolność"
+      ]
+    },
+    {
+      "key": "capricorn",
+      "modality": "kardynalny",
+      "ruler": "Saturn",
+      "keywords": [
+        "ambicja",
+        "wytrzymałość",
+        "struktura",
+        "odpowiedzialność"
+      ]
+    },
+    {
+      "key": "aquarius",
+      "modality": "stały",
+      "ruler": "Uran",
+      "keywords": [
+        "niezależność",
+        "wizja",
+        "zdystansowanie",
+        "wspólnota"
+      ]
+    },
+    {
+      "key": "pisces",
+      "modality": "zmienny",
+      "ruler": "Neptun",
+      "keywords": [
+        "empatia",
+        "wyobraźnia",
+        "rozpuszczenie",
+        "współczucie"
+      ]
+    }
+  ]
+}

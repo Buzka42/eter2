@@ -11,6 +11,13 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Polish for the parts of the interface Eter does not draw itself: the text
+  # field's cut/copy/paste menu, the scrollbar's semantics, the date picker.
+  # Eter's own words live in `core/i18n/`, not in an ARB file — see
+  # `core/i18n/strings.dart` for why the analyzer is the completeness check.
+  flutter_localizations:
+    sdk: flutter
+
   # Symbolic. Deterministic natal chart, transits, and the sunrise/sunset the
   # automatic register switches on. Never the language model's job.
   astronomia: ^1.0.0
@@ -36,7 +43,10 @@ dependencies:
   # Shell and presentation.
   flutter_riverpod: ^2.5.1
   video_player: ^2.9.5
-  intl: ^0.19.0
+  # Pinned to what `flutter_localizations` resolves against on this SDK. It is
+  # not a free choice: the two share `intl`, and the framework's own
+  # localisations decide the floor.
+  intl: ^0.20.2
 
   # Birthplace geocoding; vendor OAuth hands off to a custom tab.
   geocoding: ^4.0.0
@@ -126,4 +136,10 @@ flutter:
     - assets/art/animations/
     # Static symbolic attributes only. Long-form interpretations are composed
     # per user against their actual chart and cached, never shipped generic.
-    - assets/content/
+    #
+    # One directory per language, and both listed explicitly: Flutter's asset
+    # directories are not recursive, so `assets/content/` alone stopped
+    # bundling anything the moment the files moved into subdirectories. Adding a
+    # language means adding a line here as well as an `AppLanguage` value.
+    - assets/content/en/
+    - assets/content/pl/

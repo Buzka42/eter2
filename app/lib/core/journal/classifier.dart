@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import '../db/app_database.dart';
+import '../i18n/language.dart';
 import 'body_commit.dart';
 import 'classification_contract.dart';
 
@@ -48,6 +49,9 @@ class JournalClassifier {
       text: entry.entryText,
       source: entry.source,
       responseSchema: journalClassificationSchema,
+      language: AppLanguage.forProfile(
+        (await database.loadProfile())?.language,
+      ),
       clarification:
           clarification?.trim().isEmpty == true ? null : clarification?.trim(),
     ));

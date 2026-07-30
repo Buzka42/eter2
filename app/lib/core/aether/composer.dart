@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../ai/prompts.dart';
 import '../db/app_database.dart';
+import '../i18n/language.dart';
 import 'guidance_contract.dart';
 import 'request_contract.dart';
 
@@ -45,7 +46,12 @@ class AetherComposer {
       return AetherComposition(rows: existing, fromCache: true);
     }
 
-    final prompt = EterPrompts.guidance(request);
+    // From the profile rather than from the caller: guidance composes itself
+    // on the day's first look, with no surface involved to pass anything in.
+    final language = AppLanguage.forProfile(
+      (await database.loadProfile())?.language,
+    );
+    final prompt = EterPrompts.guidance(request, language: language);
     final raw = await provider.compose(AetherProviderRequest(
       system: prompt.system,
       context: prompt.user.cast<String, Object>(),

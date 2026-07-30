@@ -1,6 +1,6 @@
 # Eter · what is stored, where, and for how long
 
-Current as of 30 July 2026, schema 8. Supersedes
+Current as of 30 July 2026, schema 9. Supersedes
 `archive/14-data-models-firebase.md` and `archive/16-privacy-compliance.md`.
 
 Principle: **the device is canonical.** Every surface reads local SQLite.
@@ -18,7 +18,7 @@ Drift/SQLite at `<app documents>/eter.sqlite`, defined in
 
 | Table | Holds |
 |---|---|
-| `Profiles` (single row, id=1) | first name, DOB, sex, weight, height, body fat, units, guidance mode, start surface, **birth time / UTC offset / place / lat / lon**, and five consent timestamps: `aiConsentAt`, `journalAiConsentAt`, `crashReportConsentAt`, `cloudSyncConsentAt`, `journalCloudSyncConsentAt` |
+| `Profiles` (single row, id=1) | first name, DOB, sex, weight, height, body fat, units, guidance mode, start surface, `language`, **birth time / UTC offset / place / lat / lon**, and five consent timestamps: `aiConsentAt`, `journalAiConsentAt`, `crashReportConsentAt`, `cloudSyncConsentAt`, `journalCloudSyncConsentAt` |
 
 This is the only place birth time and coordinates exist. They never enter an
 AI payload; they are used on-device by `NatalChartEngine` and as the
@@ -123,7 +123,7 @@ every path not explicitly named.
 
 ---
 
-## 4. Retention, as of schema 8
+## 4. Retention, as of schema 9
 
 `runLocalRetention()` bounds everything that is a cache or an interpretation
 rather than a fact:
@@ -144,6 +144,26 @@ output is still never mirrored at all.
 `revertJournalEntryRows` clears `extractionJson` with the rows it produced.
 The Sanctum exposes **Old pages → Clear**, which runs `pruneJournalProse` over
 anything older than a year behind a second confirmation.
+
+### Changing language discards composed prose
+
+`Profile.language` is `en` | `pl` | null, and null means *nobody has chosen* —
+that install follows the phone on every launch, so moving the OS to Polish is
+met in Polish. A stored code is the person's and stops following anything.
+
+`chooseLanguage()` writes the code and then deletes `GuidanceHistory`,
+`GuidanceRecalls`, `VesselReadings`, `TransitReadings`, `JournalDayStories` and
+`Retrospectives`. This is not tidiness: every composer keys its cache on a
+fingerprint of its *inputs*, none of which change when the language does, so a
+Polish Dashboard would open on an English paragraph that every composer
+considered current and would never replace. Clearing is what makes the switch
+take effect.
+
+Nothing measured moves. Journal pages, weights, meals, sleep, day totals,
+consents and the whole symbolic chart are untouched, and learned patterns
+survive because a pattern stores structured evidence and is *worded at display
+time* rather than kept as a sentence. The count of discarded rows is returned so
+the Sanctum can say what actually happened.
 
 ## 5. Still open
 

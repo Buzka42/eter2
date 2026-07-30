@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:eter/core/i18n/language.dart';
 import 'package:eter/core/ai/prompts.dart';
 import 'package:eter/core/ai/transport.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
@@ -34,7 +35,11 @@ void main() {
     });
 
     test('loopback is allowed, because nothing leaves the device', () async {
-      for (final host in ['127.0.0.1:8787', 'localhost:8787', '10.0.2.2:8787']) {
+      for (final host in [
+        '127.0.0.1:8787',
+        'localhost:8787',
+        '10.0.2.2:8787'
+      ]) {
         final record = recorder();
         await transportWith(
           record,
@@ -218,11 +223,13 @@ void main() {
     test('malformed model output is forwarded, not repaired', () async {
       // The parsers are the contract. A transport that fixed this would be
       // deciding what the model said.
-      expect(await answering('{"dimensions": [ oh dear'), '{"dimensions": [ oh dear');
+      expect(await answering('{"dimensions": [ oh dear'),
+          '{"dimensions": [ oh dear');
     });
 
     test('an empty answer is a failure, not an empty composition', () async {
-      await expectLater(answering('   '), throwsA(isA<EterTransportException>()));
+      await expectLater(
+          answering('   '), throwsA(isA<EterTransportException>()));
     });
 
     test('an endpoint error is surfaced as one', () async {
@@ -338,6 +345,7 @@ void main() {
         text: 'Two eggs and a slice of rye.',
         source: 'typed',
         responseSchema: {'shape': 'food'},
+        language: AppLanguage.english,
       ));
 
       final body = jsonDecode(record.lastBody!) as Map<String, Object?>;
@@ -347,6 +355,7 @@ void main() {
         body['system'],
         EterPrompts.journalInterpretation(
           entryText: 'Two eggs and a slice of rye.',
+          language: AppLanguage.english,
         ).system,
       );
       expect(jsonEncode(body['user']), contains('Two eggs'));
@@ -360,6 +369,7 @@ void main() {
         source: 'spoken',
         responseSchema: {},
         clarification: 'porridge with milk',
+        language: AppLanguage.english,
       ));
 
       expect(record.lastBody, contains('porridge with milk'));

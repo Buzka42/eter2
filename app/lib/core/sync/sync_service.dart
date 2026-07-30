@@ -57,15 +57,15 @@ class SyncService {
   Future<SyncOutcome> push(EterAccount account) async {
     final profile = await database.loadProfile();
     if (profile == null) {
-      return const SyncOutcome(failure: 'There is nothing to sync yet.');
+      return const SyncOutcome(refusal: SyncRefusal.nothingToSync);
     }
     if (!account.canSync) {
       return const SyncOutcome(
-        failure: 'Confirm your email before anything is copied.',
+        refusal: SyncRefusal.confirmEmailBeforeCopying,
       );
     }
     if (profile.cloudSyncConsentAt == null) {
-      return const SyncOutcome(failure: 'Cloud continuity is off.');
+      return const SyncOutcome(refusal: SyncRefusal.cloudContinuityOff);
     }
 
     final journalAllowed = profile.journalCloudSyncConsentAt != null;
@@ -104,11 +104,11 @@ class SyncService {
   /// guessing at one would silently rewrite what someone actually did.
   Future<SyncOutcome> restore(EterAccount account) async {
     if (!account.canSync) {
-      return const SyncOutcome(failure: 'Confirm your email first.');
+      return const SyncOutcome(refusal: SyncRefusal.confirmEmailFirst);
     }
     if (!await isEmpty()) {
       return const SyncOutcome(
-        failure: 'This device already has history, so nothing was restored.',
+        refusal: SyncRefusal.deviceAlreadyHasHistory,
       );
     }
 
@@ -169,6 +169,11 @@ class SyncService {
         'bodyFatPercent': profile.bodyFatPercent,
         'units': profile.units,
         'guidanceMode': profile.guidanceMode,
+        // Null when nobody has chosen. Mirrored so a chosen language follows
+        // the person to a new phone, and stays null if it was never a choice —
+        // a fresh phone in a different language should then follow that phone
+        // rather than the old one.
+        'language': profile.language,
         'birthTimeMinutes': profile.birthTimeMinutes,
         'birthUtcOffsetMinutes': profile.birthUtcOffsetMinutes,
         'birthPlace': profile.birthPlace,
@@ -409,6 +414,7 @@ class SyncService {
       heightCm: Value((data['heightCm'] as num?)?.toDouble()),
       bodyFatPercent: Value((data['bodyFatPercent'] as num?)?.toDouble()),
       guidanceMode: Value(data['guidanceMode'] as String? ?? 'balanced'),
+      language: Value(data['language'] as String?),
       birthTimeMinutes: Value(data['birthTimeMinutes'] as int?),
       birthUtcOffsetMinutes: Value(data['birthUtcOffsetMinutes'] as int?),
       birthPlace: Value(data['birthPlace'] as String?),

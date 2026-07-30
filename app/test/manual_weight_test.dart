@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
+import 'package:eter/core/health/record_error.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/health/manual_weight.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,7 +41,13 @@ void main() {
   test('implausible manual weight changes nothing', () async {
     expect(
       () => ManualWeightService(db).record(kg: 10),
-      throwsFormatException,
+      // Its own type, not a bare FormatException: the caller that reports this
+      // has to tell a rejected weight from a malformed payload.
+      throwsA(isA<ManualWeightException>().having(
+        (error) => error.error,
+        'error',
+        BodyRecordError.weightRange,
+      )),
     );
 
     expect(await db.watchWeightEntries().first, isEmpty);

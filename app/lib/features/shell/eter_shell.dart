@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/controls.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
 import '../dashboard/dashboard_page.dart';
@@ -118,7 +119,7 @@ class _EterShellState extends State<EterShell> {
                             bottom: EterSpace.s4,
                           ),
                           child: EterAction(
-                            label: 'Sanctum',
+                            label: EterStrings.of(context).sanctum,
                             emphasis: EterActionEmphasis.quiet,
                             onPressed: _openSanctum,
                           ),

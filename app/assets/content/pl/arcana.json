@@ -1,0 +1,270 @@
+{
+  "_comment": "Polski. Tylko atrybuty statyczne; slug jest kluczem złączenia i nigdy nie jest tłumaczony.",
+  "schemaVersion": 1,
+  "cards": [
+    {
+      "slug": "the-fool",
+      "subtitle": "Karta Początków",
+      "correspondence": "Powietrze",
+      "keywords": [
+        "początek",
+        "niewinność",
+        "skok",
+        "spontaniczność",
+        "zaufanie"
+      ]
+    },
+    {
+      "slug": "the-magician",
+      "subtitle": "Karta Woli",
+      "correspondence": "Merkury",
+      "keywords": [
+        "wola",
+        "umiejętność",
+        "skupienie",
+        "urzeczywistnienie",
+        "zaradność"
+      ]
+    },
+    {
+      "slug": "the-high-priestess",
+      "subtitle": "Karta Wewnętrznej Wiedzy",
+      "correspondence": "Księżyc",
+      "keywords": [
+        "intuicja",
+        "tajemnica",
+        "bezruch",
+        "to, czego nie widać",
+        "cierpliwość"
+      ]
+    },
+    {
+      "slug": "the-empress",
+      "subtitle": "Karta Obfitości",
+      "correspondence": "Wenus",
+      "keywords": [
+        "obfitość",
+        "troska",
+        "płodność",
+        "piękno",
+        "wzrost"
+      ]
+    },
+    {
+      "slug": "the-emperor",
+      "subtitle": "Karta Władzy",
+      "correspondence": "Baran",
+      "keywords": [
+        "władza",
+        "struktura",
+        "porządek",
+        "ochrona",
+        "stanowczość"
+      ]
+    },
+    {
+      "slug": "the-hierophant",
+      "subtitle": "Karta Fundamentów",
+      "correspondence": "Byk",
+      "keywords": [
+        "tradycja",
+        "nauczanie",
+        "rada",
+        "przynależność",
+        "doktryna"
+      ]
+    },
+    {
+      "slug": "the-lovers",
+      "subtitle": "Karta Zjednoczenia",
+      "correspondence": "Bliźnięta",
+      "keywords": [
+        "zjednoczenie",
+        "wybór",
+        "przyciąganie",
+        "zgodność",
+        "rozeznanie"
+      ]
+    },
+    {
+      "slug": "the-chariot",
+      "subtitle": "Karta Rozpędu",
+      "correspondence": "Rak",
+      "keywords": [
+        "rozpęd",
+        "kierunek",
+        "biegłość",
+        "posuwanie się",
+        "kontrola"
+      ]
+    },
+    {
+      "slug": "strength",
+      "subtitle": "Karta Wewnętrznego Ognia",
+      "correspondence": "Lew",
+      "keywords": [
+        "moc",
+        "energia",
+        "działanie",
+        "odwaga",
+        "wielkoduszność"
+      ]
+    },
+    {
+      "slug": "the-hermit",
+      "subtitle": "Karta Skupienia",
+      "correspondence": "Panna",
+      "keywords": [
+        "samotność",
+        "poszukiwanie",
+        "wewnętrzne światło",
+        "roztropność",
+        "wycofanie"
+      ]
+    },
+    {
+      "slug": "wheel-of-fortune",
+      "subtitle": "Karta Obrotu",
+      "correspondence": "Jowisz",
+      "keywords": [
+        "cykle",
+        "obrót",
+        "los",
+        "moment",
+        "zmiana"
+      ]
+    },
+    {
+      "slug": "justice",
+      "subtitle": "Karta Równowagi",
+      "correspondence": "Waga",
+      "keywords": [
+        "równowaga",
+        "sąd",
+        "prawda",
+        "odpowiedzialność",
+        "zrównoważenie"
+      ]
+    },
+    {
+      "slug": "the-hanged-man",
+      "subtitle": "Karta Perspektywy",
+      "correspondence": "Woda",
+      "keywords": [
+        "zawieszenie",
+        "poddanie się",
+        "odwrócenie",
+        "perspektywa",
+        "czekanie"
+      ]
+    },
+    {
+      "slug": "death",
+      "subtitle": "Karta Przemiany",
+      "correspondence": "Skorpion",
+      "keywords": [
+        "przemiana",
+        "uwolnienie",
+        "przejście",
+        "odnowa",
+        "próg"
+      ]
+    },
+    {
+      "slug": "temperance",
+      "subtitle": "Karta Przepływu",
+      "correspondence": "Strzelec",
+      "keywords": [
+        "umiar",
+        "mieszanie",
+        "przepływ",
+        "synteza",
+        "miara"
+      ]
+    },
+    {
+      "slug": "the-devil",
+      "subtitle": "Karta Ambicji",
+      "correspondence": "Koziorożec",
+      "keywords": [
+        "apetyt",
+        "przywiązanie",
+        "napęd",
+        "cień",
+        "materialność"
+      ]
+    },
+    {
+      "slug": "the-tower",
+      "subtitle": "Karta Objawienia",
+      "correspondence": "Mars",
+      "keywords": [
+        "wstrząs",
+        "objawienie",
+        "załamanie",
+        "przebudzenie",
+        "nagła zmiana"
+      ]
+    },
+    {
+      "slug": "the-star",
+      "subtitle": "Karta Nadziei",
+      "correspondence": "Wodnik",
+      "keywords": [
+        "nadzieja",
+        "jasność",
+        "odnowa",
+        "przewodnictwo",
+        "pogoda ducha"
+      ]
+    },
+    {
+      "slug": "the-moon",
+      "subtitle": "Karta Intuicji",
+      "correspondence": "Ryby",
+      "keywords": [
+        "sen",
+        "instynkt",
+        "przypływ",
+        "niepewność",
+        "to, co widać na wpół"
+      ]
+    },
+    {
+      "slug": "the-sun",
+      "subtitle": "Karta Witalności",
+      "correspondence": "Słońce",
+      "keywords": [
+        "witalność",
+        "jasność",
+        "radość",
+        "powodzenie",
+        "rozświetlenie"
+      ]
+    },
+    {
+      "slug": "judgement",
+      "subtitle": "Karta Przebudzenia",
+      "correspondence": "Ogień",
+      "keywords": [
+        "przebudzenie",
+        "rozliczenie",
+        "powołanie",
+        "odrodzenie",
+        "rozgrzeszenie"
+      ]
+    },
+    {
+      "slug": "the-world",
+      "subtitle": "Karta Dopełnienia",
+      "correspondence": "Saturn",
+      "keywords": [
+        "dopełnienie",
+        "pełnia",
+        "scalenie",
+        "przybycie",
+        "spełnienie"
+      ]
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'i18n/strings.dart';
 import 'tokens.dart';
 
 // The cadence, tuned against the 1200 ms per-sentence budget.
@@ -205,7 +206,9 @@ class _EterArrivalState extends State<EterArrival>
       container: true,
       liveRegion: true,
       label: fullText,
-      hint: _controller.value < 1 ? 'Tap to reveal immediately' : null,
+      hint: _controller.value < 1
+          ? EterStrings.of(context).tapToRevealImmediately
+          : null,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _complete,

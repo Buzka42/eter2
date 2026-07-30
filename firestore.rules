@@ -42,7 +42,12 @@ service cloud.firestore {
           && request.resource.data.dob is string
           && request.resource.data.sex in ['female', 'male', 'other']
           && request.resource.data.weightKg is number
-          && request.resource.data.units in ['metric', 'imperial'];
+          && request.resource.data.units in ['metric', 'imperial']
+          // Null is a value here: it means nobody has chosen, and a device
+          // restoring a null follows its own phone. Keep in step with
+          // `AppLanguage` -- adding a language means adding it here too.
+          && (request.resource.data.language == null
+              || request.resource.data.language in ['en', 'pl']);
       }
 
       match /weights/{document} {

@@ -12,6 +12,8 @@ import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
+import '../../core/health/record_error.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/icons.dart';
 import '../../core/journal/classification_contract.dart';
 import '../../core/journal/auto_interpret.dart';
@@ -143,12 +145,43 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     ).run(start: start.toUtc(), end: end.toUtc());
   }
 
+  /// Which locale the recogniser should listen in, or null when it has nothing
+  /// installed for Eter's language.
+  ///
+  /// Dictation is the one place where the app's language is a claim about the
+  /// *device*, not about Eter: the phone either has a Polish acoustic model or
+  /// it does not, and passing `pl_PL` to a recogniser that has never heard of it
+  /// gets you English words transcribed from Polish speech — which looks like a
+  /// bug in Eter and is impossible to diagnose from the page.
+  ///
+  /// Matched on the language subtag so `pl_PL`, `pl-PL` and a bare `pl` all
+  /// count, because the plugin normalises differently on Android and iOS.
+  Future<String?> _dictationLocaleId(String wanted) async {
+    final available = await _speech.locales();
+    final subtag = wanted.split(RegExp('[_-]')).first.toLowerCase();
+    for (final locale in available) {
+      if (locale.localeId.toLowerCase() == wanted.toLowerCase()) {
+        return locale.localeId;
+      }
+    }
+    for (final locale in available) {
+      if (locale.localeId.split(RegExp('[_-]')).first.toLowerCase() == subtag) {
+        return locale.localeId;
+      }
+    }
+    // An empty list means the plugin declined to enumerate rather than that
+    // nothing is installed — some Android recognisers do this. Fall back to
+    // asking for what we wanted rather than refusing to listen.
+    return available.isEmpty ? wanted : null;
+  }
+
   Future<void> _toggleDictation() async {
     if (_listening) {
       await _speech.stop();
       _finishDictation();
       return;
     }
+    final strings = EterStrings.of(context);
     try {
       // Logged because the on-screen sentence has to stay short, and the
       // reason dictation failed is exactly what a short sentence loses.
@@ -173,14 +206,12 @@ class _JournalPageState extends ConsumerState<JournalPage> {
             // again, grant something, or give up on this phone.
             _dictationNote = switch (error.errorMsg) {
               'error_permission' || 'error_audio_error' =>
-                'Eter needs microphone access to take dictation. You can '
-                    'grant it in your phone’s settings.',
+                strings.dictationNeedsMicrophone,
               'error_no_match' || 'error_speech_timeout' =>
-                'Nothing was heard. Tap to try again.',
+                strings.dictationNothingHeard,
               'error_network' || 'error_network_timeout' =>
-                'Dictation needs a connection on this phone. You can still '
-                    'type.',
-              _ => 'Dictation stopped. You can tap to try again, or type.',
+                strings.dictationNeedsConnection,
+              _ => strings.dictationStopped,
             };
           });
           // Words spoken before the failure are still words. Ending this way
@@ -191,9 +222,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       debugPrint('Eter dictation: initialize returned $available');
       if (!available) {
         if (mounted) {
-          setState(() => _dictationNote =
-              'This phone has no speech recogniser Eter can use. You can '
-              'still type.');
+          setState(() => _dictationNote = strings.dictationNoRecogniser);
         }
         return;
       }
@@ -201,12 +230,22 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       debugPrint('Eter dictation: hasPermission $permitted');
       if (!permitted) {
         if (mounted) {
-          setState(() => _dictationNote =
-              'Eter needs microphone access to take dictation. You can grant '
-              'it in your phone’s settings.');
+          setState(() => _dictationNote = strings.dictationNeedsMicrophone);
         }
         return;
       }
+      final localeId =
+          await _dictationLocaleId(strings.language.speechLocaleId);
+      debugPrint('Eter dictation: locale $localeId');
+      if (localeId == null) {
+        if (mounted) {
+          setState(() => _dictationNote = strings.dictationLanguageUnavailable(
+                strings.language.endonym,
+              ));
+        }
+        return;
+      }
+      if (!mounted) return;
       setState(() {
         _listening = true;
         _dictationNote = null;
@@ -214,6 +253,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       });
       await _speech.listen(
         listenOptions: stt.SpeechListenOptions(
+          localeId: localeId,
           listenFor: const Duration(minutes: 5),
           pauseFor: const Duration(seconds: 30),
         ),
@@ -239,7 +279,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       if (mounted) {
         setState(() {
           _listening = false;
-          _dictationNote = 'Dictation is unavailable right now.';
+          _dictationNote = strings.dictationUnavailable;
         });
       }
     }
@@ -278,6 +318,8 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     final isToday = _selectedDay == null;
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+    final locale = strings.language.code;
 
     final proseStyle = text.headlineSmall?.copyWith(
       fontSize: 19,
@@ -320,22 +362,23 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              DateFormat('EEEE')
+                              DateFormat('EEEE', locale)
                                   .format(selectedDay)
                                   .toUpperCase(),
                               style: text.labelSmall,
                             ),
                             const SizedBox(height: EterSpace.s4),
                             Text(
-                              DateFormat('d MMMM').format(selectedDay),
+                              DateFormat('d MMMM', locale)
+                                  .format(selectedDay),
                               style: text.headlineSmall,
                             ),
                           ],
                         ),
                       ),
                       _GlyphAction(
-                        label: 'History',
-                        semanticLabel: 'Open journal history',
+                        label: strings.journalHistory,
+                        semanticLabel: strings.openJournalHistorySemantic,
                         color: ink.labelMuted,
                         onTap: () => _openHistory(selectedDay, now),
                         compact: true,
@@ -376,7 +419,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                           keyboardType: TextInputType.multiline,
                           textCapitalization: TextCapitalization.sentences,
                           decoration: InputDecoration.collapsed(
-                            hintText: 'What is asking for your attention?',
+                            hintText: strings.writingFieldHint,
                             hintStyle: proseStyle?.copyWith(
                               fontStyle: FontStyle.italic,
                               color: ink.labelMuted.withValues(alpha: 0.75),
@@ -392,16 +435,17 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                     Row(
                       children: [
                         if (_listening)
-                          Text('Listening…', style: text.bodySmall)
+                          Text(strings.listening, style: text.bodySmall)
                         else if (_dictationNote != null)
                           Expanded(
                             child: Text(_dictationNote!, style: text.bodySmall),
                           ),
                         const Spacer(),
                         _GlyphAction(
-                          label: _listening ? 'Stop' : 'Dictate',
-                          semanticLabel:
-                              _listening ? 'Stop dictation' : 'Dictate',
+                          label: _listening ? strings.stop : strings.dictate,
+                          semanticLabel: _listening
+                              ? strings.stopDictationSemantic
+                              : strings.dictateSemantic,
                           color: _listening ? ink.lineStrong : ink.labelMuted,
                           onTap: _toggleDictation,
                           compact: true,
@@ -414,8 +458,7 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: EterSpace.s16),
                       child: Text(
-                        'This page is closed. Today’s page is the one you can '
-                        'write on.',
+                        strings.thisPageIsClosed,
                         style: text.bodySmall,
                       ),
                     ),
@@ -532,6 +575,11 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   Stream<List<JournalEntryRow>>? _entries;
   String? _streamedDay;
 
+  /// A 24-hour clock in both languages: Polish never uses am/pm, and English
+  /// Eter already showed 24-hour time everywhere else. Left as an explicit
+  /// pattern rather than `DateFormat.jm(locale)`, which would put an English
+  /// reader on a 12-hour clock and disagree with the sleep summary two screens
+  /// away.
   static final _marginal = DateFormat('HH:mm');
 
   Stream<List<JournalEntryRow>> _entriesFor(DateTime day) {
@@ -554,6 +602,7 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final night = Theme.of(context).brightness == Brightness.dark;
     final proseStyle = text.headlineSmall?.copyWith(
       fontSize: 18,
@@ -586,11 +635,12 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                 Row(
                   children: [
                     Expanded(
-                      child: Text('HISTORY', style: text.labelSmall),
+                      child: Text(strings.headingHistory,
+                          style: text.labelSmall),
                     ),
                     _GlyphAction(
-                      label: 'Close',
-                      semanticLabel: 'Close history',
+                      label: strings.close,
+                      semanticLabel: strings.closeHistorySemantic,
                       color: ink.labelMuted,
                       onTap: () => Navigator.of(context).pop(),
                       compact: true,
@@ -602,7 +652,8 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                   children: [
                     Expanded(
                       child: Text(
-                        DateFormat('EEEE d MMMM').format(_day),
+                        DateFormat('EEEE d MMMM', strings.language.code)
+                            .format(_day),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: text.headlineSmall,
@@ -610,14 +661,14 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                     ),
                     _DayTurn(
                       direction: _DayTurnDirection.earlier,
-                      semanticLabel: 'Previous journal day',
+                      semanticLabel: strings.previousJournalDay,
                       onTap: () => _move(-1),
                     ),
                     _DayTurn(
                       direction: _DayTurnDirection.later,
                       semanticLabel: isToday
-                          ? 'Next journal day unavailable'
-                          : 'Next journal day',
+                          ? strings.nextJournalDayUnavailable
+                          : strings.nextJournalDay,
                       onTap: isToday ? null : () => _move(1),
                     ),
                   ],
@@ -631,7 +682,7 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                           snapshot.data ?? const <JournalEntryRow>[];
                       if (entries.isEmpty) {
                         return Text(
-                          'Nothing was written on this page.',
+                          strings.nothingWrittenOnThisPage,
                           style: proseStyle?.copyWith(
                             fontStyle: FontStyle.italic,
                             color: ink.labelMuted,
@@ -763,7 +814,8 @@ class _DayStoryState extends ConsumerState<_DayStory> {
               // Everything Aether writes is attributed. Unlabelled italic
               // prose above someone's own journal reads as their own writing,
               // which is the one thing it must never be mistaken for.
-              Text('THE DAY SO FAR', style: text.labelSmall),
+              Text(EterStrings.of(context).headingTheDaySoFar,
+                  style: text.labelSmall),
               const SizedBox(height: EterSpace.s8),
               Expanded(
                 child: _FittedProse(
@@ -835,16 +887,17 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
 
   Future<void> _interpret() async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     final provider = ref.read(journalClassificationProvider);
     if (provider == null) {
       setState(() {
-        _message = 'Journal interpretation is not connected on this build yet.';
+        _message = strings.journalInterpretationNotConnected;
       });
       return;
     }
     final answer = _question == null ? null : _clarification.text.trim();
     if (_question != null && (answer == null || answer.isEmpty)) {
-      setState(() => _message = 'Add a little more detail first.');
+      setState(() => _message = strings.addMoreDetailFirst);
       return;
     }
     setState(() {
@@ -860,81 +913,84 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
       _clarification.clear();
       setState(() {
         _busy = false;
-        _message = _outcomeMessage(outcome);
+        _message = _outcomeMessage(outcome, strings);
       });
     } on JournalClassificationConsentException {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _message =
-            'Enable AI guidance in the Sanctum before sending this entry.';
+        _message = strings.enableAiBeforeSendingEntry;
       });
     } on JournalClassificationException {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _message = 'This entry could not be interpreted safely. Try again.';
+        _message = strings.entryNotInterpretedSafely;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _message = 'Interpretation is unavailable right now. Nothing changed.';
+        _message = strings.interpretationUnavailable;
       });
     }
   }
 
   /// Says what actually happened, in the order the person cares about: what
   /// still needs them, then what was written, then what could not be.
-  String _outcomeMessage(JournalClassificationOutcome outcome) {
+  String _outcomeMessage(
+    JournalClassificationOutcome outcome,
+    EterStrings strings,
+  ) {
     final result = outcome.classification;
-    if (result.status == 'needsDetail') {
-      return 'Aether needs one detail before applying anything.';
-    }
+    if (result.status == 'needsDetail') return strings.aetherNeedsOneDetail;
 
     final written = <String>[];
     final body = outcome.body;
     if (body != null) {
-      if (body.weights > 0) written.add('a weight');
+      if (body.weights > 0) written.add(strings.derivedWeight);
       if (body.activities > 0) {
-        written.add(body.activities == 1 ? 'an activity' : 'activities');
+        written.add(body.activities == 1
+            ? strings.derivedActivity
+            : strings.derivedActivities);
       }
-      if (body.workouts > 0) written.add('a workout');
+      if (body.workouts > 0) written.add(strings.derivedWorkout);
     }
-    if (result.food.isNotEmpty) written.add('food waiting for review in Body');
+    if (result.food.isNotEmpty) {
+      written.add(strings.derivedFoodAwaitingReview);
+    }
 
-    final sentence = switch (written.length) {
-      0 => result.lifestyle.isEmpty
-          ? 'The entry was interpreted.'
-          : 'The entry was interpreted and logged.',
-      1 => 'Recorded ${written.first}.',
-      _ =>
-        'Recorded ${written.take(written.length - 1).join(', ')} and ${written.last}.',
-    };
+    final sentence = written.isEmpty
+        ? (result.lifestyle.isEmpty
+            ? strings.entryWasInterpreted
+            : strings.entryWasInterpretedAndLogged)
+        : strings.recordedItems(written);
 
-    final failures = body?.failures ?? const <String>[];
-    return failures.isEmpty ? sentence : '$sentence ${failures.first}';
+    // The commit layer reports which bound was exceeded; the sentence is made
+    // here, where the language is known.
+    final failures = body?.failures ?? const <BodyRecordError>[];
+    return failures.isEmpty
+        ? sentence
+        : '$sentence ${strings.bodyRecordError(failures.first)}';
   }
 
   /// Deleting asks once, because it removes prose nobody else has a copy of.
   Future<void> _confirmDelete() async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete this entry?'),
-        content: const Text(
-          'The page and anything derived from it are removed from this '
-          'device. This cannot be undone.',
-        ),
+        title: Text(strings.deleteEntryTitle),
+        content: Text(strings.deleteEntryBody),
         actions: [
           EterAction(
-            label: 'Keep',
+            label: strings.keep,
             emphasis: EterActionEmphasis.quiet,
             onPressed: () => Navigator.of(context).pop(false),
           ),
           EterAction(
-            label: 'Delete',
+            label: strings.delete,
             onPressed: () => Navigator.of(context).pop(true),
           ),
         ],
@@ -951,6 +1007,7 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
 
   Future<void> _undo() async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
       _message = null;
@@ -959,7 +1016,7 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
     if (!mounted) return;
     setState(() {
       _busy = false;
-      _message = 'The interpretation and its derived records were removed.';
+      _message = strings.interpretationAndDerivedRemoved;
     });
   }
 
@@ -967,6 +1024,7 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final interpreted = widget.entry.status == 'classified';
     final question = _question;
     return Padding(
@@ -976,7 +1034,9 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
         children: [
           Text(
             widget.time +
-                (widget.entry.excludedFromAi ? '  ·  Kept from Aether' : ''),
+                (widget.entry.excludedFromAi
+                    ? '  ·  ${strings.keptFromAether}'
+                    : ''),
             style: text.labelSmall,
           ),
           const SizedBox(height: EterSpace.s4),
@@ -990,11 +1050,12 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
             spacing: EterSpace.s8,
             children: [
               _GlyphAction(
-                label:
-                    widget.entry.excludedFromAi ? 'Allow Aether' : 'Keep local',
+                label: widget.entry.excludedFromAi
+                    ? strings.allowAether
+                    : strings.keepLocal,
                 semanticLabel: widget.entry.excludedFromAi
-                    ? 'Allow this journal entry in Aether guidance'
-                    : 'Keep this journal entry out of Aether guidance',
+                    ? strings.allowAetherSemantic
+                    : strings.keepLocalSemantic,
                 color: ink.labelMuted,
                 onTap: () => widget.db.setJournalExcludedFromAi(
                   widget.entry.id,
@@ -1006,15 +1067,14 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
               // it, and the way to remove the page entirely.
               if (interpreted)
                 _GlyphAction(
-                  label: 'Undo interpretation',
-                  semanticLabel: 'Remove interpretation and derived records',
+                  label: strings.undoInterpretation,
+                  semanticLabel: strings.undoInterpretationSemantic,
                   color: ink.labelMuted,
                   onTap: _undo,
                 ),
               _GlyphAction(
-                label: 'Delete',
-                semanticLabel: 'Delete this journal entry and anything '
-                    'derived from it',
+                label: strings.delete,
+                semanticLabel: strings.deleteEntrySemantic,
                 color: ink.labelMuted,
                 onTap: _confirmDelete,
               ),
@@ -1029,8 +1089,9 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
               enabled: !_busy,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _interpret(),
-              decoration:
-                  const InputDecoration(labelText: 'Add the missing detail'),
+              decoration: InputDecoration(
+                labelText: strings.fieldAddMissingDetail,
+              ),
             ),
           ],
           if (_message != null) ...[

@@ -19,6 +19,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
+import 'package:eter/core/i18n/language.dart';
 import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
@@ -58,7 +59,8 @@ void main() {
   group('live · $_endpoint', () {
     test('guidance composes and parses', () => _guidance(transport));
     test('the day story composes and parses', () => _dayStory(transport));
-    test('interpretation composes and parses', () => _interpretation(transport));
+    test(
+        'interpretation composes and parses', () => _interpretation(transport));
     test('interpretation reads weight, a run and lifted work',
         () => _bodyInterpretation(transport));
     test('vessel readings compose and parse', () => _vesselReadings(transport));
@@ -113,12 +115,17 @@ Future<String> _guidance(EterAiTransport transport) async {
   );
   final raw = await TransportAetherProvider(transport).compose(
     AetherProviderRequest(
-      system: EterPrompts.guidance(request).system,
+      system:
+          EterPrompts.guidance(request, language: AppLanguage.english).system,
       context: request.toJson(),
-      responseSchema: EterPrompts.guidance(request).responseSchema.cast<String, Object>(),
+      responseSchema:
+          EterPrompts.guidance(request, language: AppLanguage.english)
+              .responseSchema
+              .cast<String, Object>(),
     ),
   );
-  _parsed(raw, () => const AetherGuidanceParser().parse(raw, mode: request.mode));
+  _parsed(
+      raw, () => const AetherGuidanceParser().parse(raw, mode: request.mode));
   return raw;
 }
 
@@ -135,6 +142,7 @@ Future<String> _dayStory(EterAiTransport transport) async {
         text: 'Ran six kilometres along the river. Legs heavy, head clear.'
       ),
     ],
+    language: AppLanguage.english,
   );
   final raw = await TransportJournalDayStoryProvider(transport).compose(
     JournalDayStoryProviderRequest(
@@ -154,6 +162,7 @@ Future<String> _interpretation(EterAiTransport transport) async {
           'Slept about seven hours, woke twice.',
       source: 'typed',
       responseSchema: journalClassificationSchema,
+      language: AppLanguage.english,
     ),
   );
   _parsed(raw, () => const JournalClassificationParser().parse(raw));
@@ -172,6 +181,7 @@ Future<String> _bodyInterpretation(EterAiTransport transport) async {
           'and pull-ups until they ran out.',
       source: 'typed',
       responseSchema: journalClassificationSchema,
+      language: AppLanguage.english,
     ),
   );
   final parsed =
@@ -212,9 +222,13 @@ Future<String> _vesselReadings(EterAiTransport transport) async {
   );
   final raw = await TransportVesselReadingProvider(transport).compose(
     VesselReadingProviderRequest(
-      system: EterPrompts.vesselReading(request).system,
+      system: EterPrompts.vesselReading(request, language: AppLanguage.english)
+          .system,
       context: request.toJson(),
-      responseSchema: EterPrompts.vesselReading(request).responseSchema.cast<String, Object>(),
+      responseSchema:
+          EterPrompts.vesselReading(request, language: AppLanguage.english)
+              .responseSchema
+              .cast<String, Object>(),
     ),
   );
   final decoded = jsonDecode(raw);
@@ -274,6 +288,7 @@ Future<String> _positions(EterAiTransport transport) async {
     mode: GuidanceMode.balanced,
     transits: reading.toJson(),
     ascendantReliable: true,
+    language: AppLanguage.english,
   );
   final raw = await TransportPositionsProvider(transport).compose(
     PositionsProviderRequest(

@@ -12,6 +12,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers/prototype_harness.dart';
 
 void main() {
+  // The Journal's date needs `intl`'s locale data, and no test runs `main()`.
+  setUpAll(eterInitializeFormatting);
+
   late AppDatabase db;
   late AppDatabase emptyDb;
   late ProfileRow profile;
@@ -42,6 +45,15 @@ void main() {
       ),
     );
     await tester.pump();
+
+    // Step one is the language, because every step after it is written in
+    // whatever this chooses. It arrives pre-selected from the device, so the
+    // ordinary path is to read it and continue.
+    expect(find.text('What language should Eter speak?'), findsOneWidget);
+    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Polski'), findsOneWidget);
+    await tester.tap(find.text('CONTINUE'));
+    await tester.pump(const Duration(milliseconds: 500));
 
     expect(find.text('Begin with what matters'), findsOneWidget);
     expect(find.byType(Checkbox), findsNothing);
@@ -152,8 +164,13 @@ void main() {
       ),
     );
     await tester.pump();
-    await tester.tap(find.text('CONTINUE'));
-    await tester.pump(const Duration(milliseconds: 500));
+    // Past the language step, then past the welcome step. Both are skippable —
+    // neither has a required field — which is what this walks over to reach the
+    // one step that validates.
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.text('CONTINUE'));
+      await tester.pump(const Duration(milliseconds: 500));
+    }
 
     final dob = find.widgetWithText(TextField, 'Birth date');
     final weight =
@@ -215,7 +232,7 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 30)),
     );
     await tester.pump();
-    expect(find.text('Begin with what matters'), findsOneWidget);
+    expect(find.text('What language should Eter speak?'), findsOneWidget);
     expect(await emptyDb.loadProfile(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));

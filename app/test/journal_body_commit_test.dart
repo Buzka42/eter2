@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
+import 'package:eter/core/health/record_error.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/journal/body_commit.dart';
 import 'package:eter/core/journal/classification_contract.dart';
@@ -284,8 +285,7 @@ void main() {
       expect(day!.activeKcal, greaterThan(0));
     });
 
-    test('strength is estimated from body weight, not from the page',
-        () async {
+    test('strength is estimated from body weight, not from the page', () async {
       await profile();
       final result = await JournalBodyCommitter(database).commit(
         classification: const JournalClassification(
@@ -334,7 +334,13 @@ void main() {
       expect(result.weights, 1);
       expect(result.workouts, 0);
       expect(result.failures, hasLength(1));
-      expect(result.failures.single, contains('body weight'));
+      // The bound that was hit, not a sentence about it: the sentence lives in
+      // the string tables now, so the commit layer reports a code and the
+      // Journal words it.
+      expect(
+        result.failures.single,
+        BodyRecordError.strengthNeedsBodyWeight,
+      );
       expect((await database.watchWeightEntries().first).single.kg, 84.2);
     });
 

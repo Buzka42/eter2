@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../controls.dart';
+import '../i18n/strings.dart';
 import '../tokens.dart';
 
 /// Optional body composition, on the scale people actually estimate in.
@@ -63,6 +64,7 @@ class _BodyFatFieldState extends State<BodyFatField> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final value = EterBodyFat.normalize(widget.value);
 
     return Column(
@@ -72,8 +74,8 @@ class _BodyFatFieldState extends State<BodyFatField> {
           button: true,
           expanded: _open,
           label: value == null
-              ? 'Body fat, optional, not given'
-              : 'Body fat ${EterBodyFat.format(value)}',
+              ? strings.bodyFatSemanticNotGiven
+              : strings.bodyFatSemantic(EterBodyFat.format(value)),
           excludeSemantics: true,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -86,7 +88,7 @@ class _BodyFatFieldState extends State<BodyFatField> {
                     // Sentence case, like the fields it sits among. In caps it
                     // read as a section heading for whatever followed it.
                     child: Text(
-                      'Body fat — optional',
+                      strings.fieldBodyFatOptional,
                       style: text.bodyMedium?.copyWith(color: ink.label),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -117,16 +119,11 @@ class _BodyFatFieldState extends State<BodyFatField> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  'Only if you know it. Eter never estimates this from your '
-                  'weight, and leaves it out of every calculation when it is '
-                  'absent.',
-                  style: text.bodySmall,
-                ),
+                child: Text(strings.bodyFatNote, style: text.bodySmall),
               ),
               if (value != null)
                 EterAction(
-                  label: 'Not given',
+                  label: strings.bodyFatNotGiven,
                   emphasis: EterActionEmphasis.quiet,
                   onPressed: () => widget.onChanged(null),
                 ),

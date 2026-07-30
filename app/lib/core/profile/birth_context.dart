@@ -13,7 +13,7 @@ class PlatformBirthplaceResolver implements BirthplaceResolver {
     final results = await geocoding.locationFromAddress(place);
     if (results.isEmpty) {
       throw const BirthContextException(
-        'That place could not be located. Try a city and country.',
+        BirthContextError.placeNotLocated,
       );
     }
     final first = results.first;
@@ -52,7 +52,9 @@ class BirthContextService {
   }) async {
     final profile = await database.loadProfile();
     if (profile == null) {
-      throw const BirthContextException('The local profile is unavailable.');
+      throw const BirthContextException(
+        BirthContextError.profileUnavailable,
+      );
     }
     // An approximate time is a chosen period, not a typed clock value: the
     // representative minute comes from the period so the two can never
@@ -64,7 +66,7 @@ class BirthContextService {
     };
     if (precision == BirthTimePrecision.approximate && period == null) {
       throw const BirthContextException(
-        'Choose which part of the day you were born in.',
+        BirthContextError.choosePartOfDay,
       );
     }
     final offsetMinutes = parseUtcOffsetMinutes(utcOffset);
@@ -73,9 +75,7 @@ class BirthContextService {
     // which made "I do not know the time" impossible to answer once an offset
     // had been typed.
     if (timeMinutes != null && offsetMinutes == null) {
-      throw const BirthContextException(
-        'Add the UTC offset at birth, so the time can be placed.',
-      );
+      throw const BirthContextException(BirthContextError.addUtcOffset);
     }
     final normalizedPlace = place.trim();
     BirthplaceCoordinates? coordinates;
@@ -86,7 +86,7 @@ class BirthContextService {
         rethrow;
       } catch (_) {
         throw const BirthContextException(
-          'That place could not be located right now. Nothing changed.',
+          BirthContextError.placeNotLocatedNow,
         );
       }
     }
@@ -105,9 +105,7 @@ class BirthContextService {
     if (trimmed.isEmpty) return null;
     final match = RegExp(r'^([01]?\d|2[0-3]):([0-5]\d)$').firstMatch(trimmed);
     if (match == null) {
-      throw const BirthContextException(
-        'Enter birth time as HH:MM, or leave it blank.',
-      );
+      throw const BirthContextException(BirthContextError.timeFormat);
     }
     return int.parse(match.group(1)!) * 60 + int.parse(match.group(2)!);
   }
@@ -117,27 +115,43 @@ class BirthContextService {
     if (trimmed.isEmpty) return null;
     final match = RegExp(r'^([+-])(\d{1,2}):([0-5]\d)$').firstMatch(trimmed);
     if (match == null) {
-      throw const BirthContextException(
-        'Enter the birth-place UTC offset like +01:00.',
-      );
+      throw const BirthContextException(BirthContextError.utcOffsetFormat);
     }
     final hours = int.parse(match.group(2)!);
     final minutes = int.parse(match.group(3)!);
     if (hours > 14 || (hours == 14 && minutes != 0)) {
-      throw const BirthContextException(
-        'UTC offset must be between −14:00 and +14:00.',
-      );
+      throw const BirthContextException(BirthContextError.utcOffsetRange);
     }
     final total = hours * 60 + minutes;
     return match.group(1) == '-' ? -total : total;
   }
 }
 
+/// Why saving a birth context was refused.
+///
+/// A code rather than a sentence. These are thrown from `static` parsers that
+/// have no access to a widget tree and no business holding a language table, and
+/// the same failure has to be sayable in every language Eter speaks — so the
+/// layer that knows what went wrong names it, and the layer that knows who is
+/// reading words it. See `EterStrings.birthContextError`.
+enum BirthContextError {
+  placeNotLocated,
+  profileUnavailable,
+  choosePartOfDay,
+  addUtcOffset,
+  placeNotLocatedNow,
+  timeFormat,
+  utcOffsetFormat,
+  utcOffsetRange,
+}
+
 class BirthContextException implements Exception {
-  const BirthContextException(this.message);
+  const BirthContextException(this.error);
 
-  final String message;
+  final BirthContextError error;
 
+  /// Diagnostic only — never shown. The surface renders [error] through the
+  /// active string table.
   @override
-  String toString() => message;
+  String toString() => 'BirthContextException(${error.name})';
 }

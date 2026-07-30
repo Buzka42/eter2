@@ -7,6 +7,8 @@ import '../arcana/symbol_content.dart';
 import '../arcana/zodiac.dart';
 import '../profile/birth_time.dart';
 import '../db/app_database.dart';
+import '../i18n/language.dart';
+import '../i18n/strings.dart';
 import '../symbolic/natal_chart.dart';
 import '../symbolic/numerology.dart';
 import 'reading_composer.dart';
@@ -39,7 +41,13 @@ class InitialVesselReadings {
     if (profile == null || profile.aiConsentAt == null) return false;
 
     try {
-      final content = await SymbolContent.load();
+      // The chart's passages are written once and cached for life, so they have
+      // to be written in the language that is actually in force — not in
+      // whichever one the asset cache happened to hold. Same resolution the
+      // shell uses, so the two cannot disagree.
+      final language = AppLanguage.forProfile(profile.language);
+      final strings = EterStrings.forLanguage(language);
+      final content = await SymbolContent.load(language: language);
       final minutes = profile.birthTimeMinutes ?? 12 * 60;
       final chart = NatalChartEngine().calculate(NatalInput(
         localDateTime: DateTime(
@@ -61,18 +69,23 @@ class InitialVesselReadings {
 
       VesselReadingPosition forSign(
         String key,
-        String label,
+        String bodyCanonical,
         ZodiacPosition point,
       ) {
+        final label = strings.bodyName(bodyCanonical);
         final sign =
             Zodiac.values.firstWhere((value) => value.label == point.sign);
         final card = MajorArcana.forZodiac(sign);
         return VesselReadingPosition(
           key: key,
           label: label,
-          card: card.title,
+          card: strings.arcanaTitle(card.assetSlug),
           keywords: content.card(card)?.keywords ?? const [],
-          detail: '${point.sign} ${point.degreeInSign.toStringAsFixed(1)}°',
+          detail: strings.positionDetail(
+            signName: strings.signName(point.sign),
+            degrees: point.degreeInSign.toStringAsFixed(1),
+            retrograde: point.retrograde,
+          ),
         );
       }
 
@@ -105,8 +118,8 @@ class InitialVesselReadings {
           positions: [
             VesselReadingPosition(
               key: 'lifePath',
-              label: 'Life Path $lifePath',
-              card: lifeCard.title,
+              label: strings.lifePathLabel(lifePath),
+              card: strings.arcanaTitle(lifeCard.assetSlug),
               keywords: lifeContent.keywords,
             ),
             forSign('sun', 'Sun', chart.sun),

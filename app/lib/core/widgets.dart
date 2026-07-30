@@ -4,6 +4,7 @@ import 'package:flutter/material.dart' hide Element;
 
 import 'arcana/zodiac.dart';
 import 'controls.dart';
+import 'i18n/strings.dart';
 import 'tokens.dart';
 
 /// A flat, sharp-edged plate — Eter's surface where a group must be lifted
@@ -56,7 +57,7 @@ class ElementMedallion extends StatelessWidget {
       width: size,
       height: size,
       filterQuality: FilterQuality.high,
-      semanticLabel: '${element.label} element',
+      semanticLabel: EterStrings.of(context).elementMedallionSemantic(element),
     );
   }
 }

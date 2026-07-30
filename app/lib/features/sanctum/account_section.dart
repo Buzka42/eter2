@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../core/account/account.dart';
+import '../../core/i18n/strings.dart';
+import '../../core/sync/cloud_mirror.dart';
 import '../../core/sync/sync_service.dart';
 import '../../core/controls.dart';
 import '../../core/tokens.dart';
@@ -53,6 +55,7 @@ class _AccountSectionState extends State<AccountSection> {
   /// section spinning, and so the message a person sees is always the
   /// interface's own sentence rather than a provider code.
   Future<void> _run(Future<String?> Function() action) async {
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
       _message = null;
@@ -63,10 +66,10 @@ class _AccountSectionState extends State<AccountSection> {
       setState(() => _message = said);
     } on AccountException catch (error) {
       if (!mounted) return;
-      setState(() => _message = error.message);
+      setState(() => _message = strings.accountFailure(error.failure));
     } catch (_) {
       if (!mounted) return;
-      setState(() => _message = 'Something went wrong. Nothing was changed.');
+      setState(() => _message = strings.somethingWentWrong);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -74,6 +77,7 @@ class _AccountSectionState extends State<AccountSection> {
 
   Future<void> _submit() {
     final service = widget.service!;
+    final strings = EterStrings.of(context);
     final email = _email.text;
     final password = _password.text;
     return _run(() async {
@@ -83,8 +87,7 @@ class _AccountSectionState extends State<AccountSection> {
           password: password,
         );
         _password.clear();
-        return 'Check ${account.email} for a confirmation link. '
-            'Your history stays here until you follow it.';
+        return strings.confirmationLinkSent(account.email ?? email);
       }
       await service.signInWithEmail(email: email, password: password);
       _password.clear();
@@ -96,24 +99,24 @@ class _AccountSectionState extends State<AccountSection> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final service = widget.service;
     final account = widget.account;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('ACCOUNT', style: text.labelSmall),
+        Text(strings.headingAccount, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         if (service == null)
           Text(
-            'This build has no account system. Everything works; nothing is '
-            'backed up.',
+            strings.buildHasNoAccountSystem,
             style: text.bodyMedium?.copyWith(color: ink.labelMuted),
           )
         else if (account == null)
-          ..._signedOut(text, ink, service)
+          ..._signedOut(text, ink, strings, service)
         else
-          ..._signedIn(text, ink, service, account),
+          ..._signedIn(text, ink, strings, service, account),
         if (_message != null) ...[
           const SizedBox(height: EterSpace.s8),
           Semantics(
@@ -128,34 +131,30 @@ class _AccountSectionState extends State<AccountSection> {
   List<Widget> _signedOut(
     TextTheme text,
     EterInk ink,
+    EterStrings strings,
     AccountService service,
   ) {
     final registering = _mode == _Mode.register;
     return [
-      Text(
-        'Your history is on this device and needs no account. Sign in only if '
-        'you want it back when you change phone.',
-        style: text.bodyMedium,
-      ),
+      Text(strings.historyNeedsNoAccount, style: text.bodyMedium),
       const SizedBox(height: EterSpace.s16),
       _field(
         controller: _email,
-        label: 'Email',
+        label: strings.fieldEmail,
         ink: ink,
         keyboardType: TextInputType.emailAddress,
       ),
       const SizedBox(height: EterSpace.s12),
       _field(
         controller: _password,
-        label: registering ? 'New password' : 'Password',
+        label: registering ? strings.fieldNewPassword : strings.fieldPassword,
         ink: ink,
         obscure: true,
       ),
       if (registering) ...[
         const SizedBox(height: EterSpace.s4),
         Text(
-          'At least ${AccountRules.minimumPasswordLength} characters. '
-          'A phrase you will remember beats a short tangle you will not.',
+          strings.passwordMinimum(AccountRules.minimumPasswordLength),
           style: text.bodySmall?.copyWith(color: ink.labelMuted),
         ),
       ],
@@ -163,13 +162,13 @@ class _AccountSectionState extends State<AccountSection> {
       Row(
         children: [
           EterAction(
-            label: registering ? 'Create account' : 'Sign in',
+            label: registering ? strings.createAccount : strings.signIn,
             busy: _busy,
             onPressed: _busy ? null : _submit,
           ),
           const SizedBox(width: EterSpace.s12),
           EterAction(
-            label: registering ? 'I have an account' : 'Create one',
+            label: registering ? strings.iHaveAnAccount : strings.createOne,
             emphasis: EterActionEmphasis.quiet,
             onPressed: _busy
                 ? null
@@ -182,7 +181,7 @@ class _AccountSectionState extends State<AccountSection> {
       ),
       const SizedBox(height: EterSpace.s12),
       EterAction(
-        label: 'Continue with Google',
+        label: strings.continueWithGoogle,
         busy: _busy,
         onPressed: _busy
             ? null
@@ -194,7 +193,7 @@ class _AccountSectionState extends State<AccountSection> {
       if (!registering) ...[
         const SizedBox(height: EterSpace.s8),
         EterAction(
-          label: 'Forgotten password',
+          label: strings.forgottenPassword,
           emphasis: EterActionEmphasis.quiet,
           onPressed: _busy
               ? null
@@ -202,8 +201,7 @@ class _AccountSectionState extends State<AccountSection> {
                     await service.sendPasswordReset(_email.text);
                     // Deliberately says nothing about whether the address is
                     // registered — the same sentence either way.
-                    return 'If that address has an account, a reset link is '
-                        'on its way.';
+                    return strings.resetLinkOnItsWay;
                   }),
         ),
       ],
@@ -212,47 +210,64 @@ class _AccountSectionState extends State<AccountSection> {
 
   /// Sends whatever has not been sent, and says exactly what happened —
   /// including what deliberately stayed behind.
-  Future<void> _sync(EterAccount account) => _run(() async {
-        final sync = widget.sync;
-        if (sync == null) return 'Sync is not available on this build.';
-        final outcome = await sync.push(account);
-        if (outcome.failure != null) return outcome.failure;
-        final held = outcome.skipped['journalEntries'];
-        final sent = outcome.uploaded == 0
-            ? 'Everything was already copied.'
-            : 'Copied ${outcome.uploaded} '
-                '${outcome.uploaded == 1 ? 'record' : 'records'}.';
-        return held == null ? sent : '$sent Your journal stayed on this device.';
-      });
+  /// Whatever stopped the attempt, said in the reader's language.
+  ///
+  /// A refusal is Eter's own precondition and has a translated sentence; a
+  /// `failure` is whatever the mirror reported and is passed through untranslated
+  /// — inventing Polish for an arbitrary backend error would be inventing a
+  /// diagnosis. Null when nothing stopped it.
+  String? _stopped(SyncOutcome outcome, EterStrings strings) =>
+      outcome.refusal != null
+          ? strings.syncRefusal(outcome.refusal!)
+          : outcome.failure;
 
-  Future<void> _restore(EterAccount account) => _run(() async {
-        final sync = widget.sync;
-        if (sync == null) return 'Sync is not available on this build.';
-        final outcome = await sync.restore(account);
-        if (outcome.failure != null) return outcome.failure;
-        return outcome.restored == 0
-            ? 'There was nothing in your account to restore.'
-            : 'Restored ${outcome.restored} '
-                '${outcome.restored == 1 ? 'record' : 'records'}.';
-      });
+  Future<void> _sync(EterAccount account) {
+    final strings = EterStrings.of(context);
+    return _run(() async {
+      final sync = widget.sync;
+      if (sync == null) return strings.syncNotAvailableOnBuild;
+      final outcome = await sync.push(account);
+      if (_stopped(outcome, strings) case final stopped?) return stopped;
+      final held = outcome.skipped['journalEntries'];
+      final sent = outcome.uploaded == 0
+          ? strings.everythingAlreadyCopied
+          : strings.copiedRecords(outcome.uploaded);
+      return held == null
+          ? sent
+          : '$sent ${strings.journalStayedOnThisDevice}';
+    });
+  }
+
+  Future<void> _restore(EterAccount account) {
+    final strings = EterStrings.of(context);
+    return _run(() async {
+      final sync = widget.sync;
+      if (sync == null) return strings.syncNotAvailableOnBuild;
+      final outcome = await sync.restore(account);
+      if (_stopped(outcome, strings) case final stopped?) return stopped;
+      return outcome.restored == 0
+          ? strings.nothingInAccountToRestore
+          : strings.restoredRecords(outcome.restored);
+    });
+  }
 
   List<Widget> _signedIn(
     TextTheme text,
     EterInk ink,
+    EterStrings strings,
     AccountService service,
     EterAccount account,
   ) =>
       [
         Text(
-          account.email ?? 'Signed in',
+          account.email ?? strings.signedIn,
           style: text.bodyMedium,
         ),
         const SizedBox(height: EterSpace.s4),
         Text(
           account.canSync
-              ? 'Your history can be restored on a new phone.'
-              : 'Confirm your email to enable that. Until you do, nothing '
-                  'leaves this device.',
+              ? strings.historyCanBeRestored
+              : strings.confirmEmailToEnable,
           style: text.bodySmall?.copyWith(color: ink.labelMuted),
         ),
         const SizedBox(height: EterSpace.s16),
@@ -260,18 +275,18 @@ class _AccountSectionState extends State<AccountSection> {
           Row(
             children: [
               EterAction(
-                label: 'Resend link',
+                label: strings.resendLink,
                 busy: _busy,
                 onPressed: _busy
                     ? null
                     : () => _run(() async {
                           await service.resendVerification();
-                          return 'Sent. It can take a minute to arrive.';
+                          return strings.verificationSent;
                         }),
               ),
               const SizedBox(width: EterSpace.s12),
               EterAction(
-                label: 'I have confirmed',
+                label: strings.iHaveConfirmed,
                 busy: _busy,
                 onPressed: _busy
                     ? null
@@ -279,8 +294,7 @@ class _AccountSectionState extends State<AccountSection> {
                           final refreshed = await service.refresh();
                           return refreshed?.canSync ?? false
                               ? null
-                              : 'Not confirmed yet. Follow the link in the '
-                                  'email, then try again.';
+                              : strings.notConfirmedYet;
                         }),
               ),
             ],
@@ -291,13 +305,13 @@ class _AccountSectionState extends State<AccountSection> {
           Row(
             children: [
               EterAction(
-                label: 'Sync now',
+                label: strings.syncNow,
                 busy: _busy,
                 onPressed: _busy ? null : () => _sync(account),
               ),
               const SizedBox(width: EterSpace.s12),
               EterAction(
-                label: 'Restore',
+                label: strings.restore,
                 busy: _busy,
                 onPressed: _busy ? null : () => _restore(account),
               ),
@@ -305,14 +319,13 @@ class _AccountSectionState extends State<AccountSection> {
           ),
           const SizedBox(height: EterSpace.s4),
           Text(
-            'Restore only fills a device that has no history of its own — it '
-            'will never overwrite what is already here.',
+            strings.restoreOnlyFillsEmptyDevice,
             style: text.bodySmall?.copyWith(color: ink.labelMuted),
           ),
           const SizedBox(height: EterSpace.s12),
         ],
         EterAction(
-          label: 'Sign out',
+          label: strings.signOut,
           busy: _busy,
           onPressed: _busy
               ? null
@@ -320,8 +333,7 @@ class _AccountSectionState extends State<AccountSection> {
                     await service.signOut();
                     // Worth saying plainly: signing out is not deletion, and
                     // people reasonably fear it might be.
-                    return 'Signed out. Everything on this device is still '
-                        'here.';
+                    return strings.signedOutNothingRemoved;
                   }),
         ),
       ];

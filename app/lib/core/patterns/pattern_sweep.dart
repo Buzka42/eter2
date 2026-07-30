@@ -98,6 +98,12 @@ class PatternSweep {
             'r': double.parse(finding.correlation.r.toStringAsFixed(3)),
             'p': double.parse(finding.correlation.p.toStringAsExponential(2)),
             'explains': '${(finding.correlation.explainedFraction * 100).round()}%',
+            // The same figure as a number, and the direction as a flag, so the
+            // finding can be re-worded in any language without parsing prose or
+            // a percent sign back out of `explains`.
+            'explainsPercent':
+                (finding.correlation.explainedFraction * 100).round(),
+            'positive': finding.correlation.isPositive,
             'lagged': finding.subject.lagged,
           }),
           confidence: finding.correlation.explainedFraction,
@@ -139,7 +145,13 @@ class PatternSweep {
     return (xs, ys);
   }
 
-  /// The sentence a person reads, and the model is given.
+  /// The sentence the *model* is given, and the fallback the surface uses.
+  ///
+  /// Stored in English on purpose. It travels to Aether inside the guidance
+  /// request, where the surrounding instruction is English and a consistent
+  /// context is worth more than a translated one — and the Sanctum re-words the
+  /// finding for the reader from this pattern's key and evidence, so what a
+  /// person sees is never this string. See `EterStrings.patternSweepSummary`.
   ///
   /// It says what was compared, which way it went, how much it accounts for,
   /// and over how many days — because "your sleep is worse after late

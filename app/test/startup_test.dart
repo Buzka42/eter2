@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:eter/core/diagnostics/crash_reporter.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/prototype_harness.dart';
+
 /// Startup must not be able to wait forever.
 ///
 /// It could, and it did. On a fresh install crash-report consent is null, so
@@ -13,6 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 /// The lesson is not "that one call": it is that optional infrastructure was
 /// allowed to decide whether the app opens. These tests hold that line.
 void main() {
+  // The Journal's date needs `intl`'s locale data, and no test runs `main()`.
+  setUpAll(eterInitializeFormatting);
+
   test('a reporter that never answers cannot hold the app closed', () async {
     // The exact shape of the bug: setEnabled never completes.
     final consent = CrashConsent(_HangingReporter());

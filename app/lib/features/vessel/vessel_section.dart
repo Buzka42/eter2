@@ -14,6 +14,8 @@ import '../../core/ai/transport.dart';
 import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/i18n/language.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/profile/birth_time.dart';
 import '../../core/symbolic/astro_glyphs.dart';
 import '../../core/symbolic/chart_wheel.dart';
@@ -97,7 +99,9 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       profile.birthLongitude,
       profile.guidanceMode,
     ].join('|');
-    final content = await SymbolContent.load();
+    final content = await SymbolContent.load(
+      language: AppLanguage.forProfile(profile.language),
+    );
     final minutes = profile.birthTimeMinutes ?? 12 * 60;
     final input = NatalInput(
       localDateTime: DateTime(
@@ -160,11 +164,11 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
 
   Future<void> _compose(_VesselData data) async {
     if (_composing) return;
+    final strings = EterStrings.of(context);
     final provider = ref.read(vesselReadingTransportProvider);
     if (provider == null) {
       setState(() {
-        _compositionMessage =
-            'Personal reading composition is not connected on this build yet.';
+        _compositionMessage = strings.personalReadingNotConnected;
       });
       return;
     }
@@ -180,14 +184,18 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         inputHash: data.inputHash,
         request: VesselReadingRequest(
           mode: data.mode,
+          // Sent as the reader sees them, in the reader's language, because the
+          // passage is an interpretation of the words on their screen. The
+          // instruction that travels with this says which language to answer
+          // in; see `core/ai/prompts.dart`.
           positions: [
-            for (final position in data.positions)
+            for (final position in data.positions(strings))
               VesselReadingPosition(
                 key: position.key,
-                label: position.label,
-                card: position.card.title,
+                label: position.label(strings),
+                card: strings.arcanaTitle(position.card.assetSlug),
                 keywords: position.keywords,
-                detail: position.detail,
+                detail: position.detail(strings),
               ),
           ],
           approximateTime: data.usedApproximateTime,
@@ -200,20 +208,21 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         _composing = false;
         data.readings.addAll(result.rows);
         _compositionMessage = result.fromCache
-            ? 'Every personal reading is already composed for this chart.'
-            : 'The missing personal readings have been composed.';
+            ? strings.everyReadingAlreadyComposed
+            : strings.missingReadingsComposed;
       });
     } on VesselReadingException catch (error) {
       if (!mounted) return;
       setState(() {
         _composing = false;
         _compositionMessage = error.reason == 'AI processing is not permitted'
-            ? 'Enable AI guidance in the Sanctum before composing.'
+            ? strings.enableAiBeforeComposing
             // Everything else here is the parser or the safety gate refusing
             // what came back, and saying which is more use than a single
-            // sentence covering both.
-            : 'The reading could not be accepted: ${error.reason}. '
-                'Nothing changed.';
+            // sentence covering both. The reason itself stays English: it is a
+            // contract value, not copy, and inventing a Polish rendering of
+            // every parser failure would be translating a diagnostic.
+            : strings.readingNotAccepted(error.reason);
       });
     } on EterTransportException catch (error) {
       if (!mounted) return;
@@ -225,8 +234,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       if (!mounted) return;
       setState(() {
         _composing = false;
-        _compositionMessage =
-            'Composition is unavailable right now. Cached readings remain.';
+        _compositionMessage = strings.compositionUnavailableCachedRemain;
       });
     }
   }
@@ -235,6 +243,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return FutureBuilder<_VesselData?>(
       future: _data,
       builder: (context, snapshot) {
@@ -245,23 +254,25 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
             Container(height: 1, color: ink.line),
             Row(
               children: [
-                Text('THE VESSEL', style: text.labelSmall),
-                const Spacer(),
+                // Expanded rather than a bare Text beside a Spacer: the heading
+                // and the close action together are wider than 320 dp at 200%
+                // text once either word grows, and a Spacer cannot give back
+                // space a fixed child has already claimed.
+                Expanded(
+                  child: Text(strings.theVessel, style: text.labelSmall),
+                ),
                 EterAction(
-                  label: 'Close',
+                  label: strings.close,
                   emphasis: EterActionEmphasis.quiet,
                   onPressed: widget.onClose,
                 ),
               ],
             ),
             if (snapshot.connectionState == ConnectionState.waiting)
-              Text(
-                'Reading the chart held on this device…',
-                style: text.bodyMedium,
-              )
+              Text(strings.readingChartOnDevice, style: text.bodyMedium)
             else if (data == null)
               Text(
-                'Birth details are needed before the Vessel can be drawn.',
+                strings.birthDetailsNeededForVessel,
                 style: text.bodyMedium,
               )
             else ...[
@@ -284,7 +295,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
               if (data.usedApproximateTime || data.usedApproximatePlace) ...[
                 const SizedBox(height: EterSpace.s16),
                 Text(
-                  _approximationNote(data),
+                  _approximationNote(data, strings),
                   style: text.bodySmall?.copyWith(color: ink.labelMuted),
                 ),
               ],
@@ -293,7 +304,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
               // append a second copy of the same four positions underneath the
               // first, so the same headings appeared twice on one screen; it
               // now deepens the list in place.
-              for (final position in data.positions)
+              for (final position in data.positions(strings))
                 if (_readingOpen)
                   _ComposedReading(
                     position: position,
@@ -307,7 +318,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                   _PositionLine(position: position),
               const SizedBox(height: EterSpace.s16),
               EterAction(
-                label: _readingOpen ? 'Show less' : 'Read deeper',
+                label: _readingOpen ? strings.showLess : strings.readDeeper,
                 emphasis: EterActionEmphasis.secondary,
                 onPressed: () => setState(() => _readingOpen = !_readingOpen),
               ),
@@ -315,7 +326,9 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 const SizedBox(height: EterSpace.s16),
                 if (data.readings.values.any((reading) => reading == null))
                   EterAction(
-                    label: _composing ? 'Composing' : 'Compose readings',
+                    label: _composing
+                        ? strings.composing
+                        : strings.composeReadings,
                     emphasis: EterActionEmphasis.quiet,
                     busy: _composing,
                     onPressed: () => _compose(data),
@@ -341,16 +354,12 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     );
   }
 
-  static String _approximationNote(_VesselData data) {
+  static String _approximationNote(_VesselData data, EterStrings strings) {
     if (data.usedApproximateTime && data.usedApproximatePlace) {
-      return 'Birth time and place are incomplete. Noon and zero coordinates '
-          'are used provisionally; the Ascendant is not reliable.';
+      return strings.approximateTimeAndPlace;
     }
-    if (data.usedApproximateTime) {
-      return 'Birth time is unknown. Noon is used provisionally; the '
-          'Ascendant is not reliable.';
-    }
-    return 'Birth place is incomplete. The Ascendant is provisional.';
+    if (data.usedApproximateTime) return strings.approximateTime;
+    return strings.approximatePlace;
   }
 }
 
@@ -369,8 +378,10 @@ class _SunCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sun = data.positions.firstWhere((p) => p.key == 'sun');
+    final strings = EterStrings.of(context);
+    final sun = data.positions(strings).firstWhere((p) => p.key == 'sun');
     final attributes = data.content.card(sun.card);
+    final title = strings.arcanaTitle(sun.card.assetSlug);
     final text = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.only(top: EterSpace.s8),
@@ -387,25 +398,23 @@ class _SunCard extends StatelessWidget {
                 builder: (context, constraints) => EterArcanaPlate(
                   card: sun.card,
                   width: constraints.maxWidth.clamp(200.0, 420.0),
-                  semanticLabel: '${sun.card.title}, your Sun card',
+                  semanticLabel: strings.sunCardSemantic(title),
                 ),
               ),
             ),
           ),
           const SizedBox(height: EterSpace.s16),
-          Text('YOUR CARD', style: text.labelSmall),
+          Text(strings.headingYourCard, style: text.labelSmall),
           const SizedBox(height: EterSpace.s4),
-          Text(sun.card.title, style: text.headlineSmall),
+          Text(title, style: text.headlineSmall),
           if (attributes != null) ...[
             const SizedBox(height: EterSpace.s4),
             Text(attributes.subtitle, style: text.bodySmall),
           ],
           const SizedBox(height: EterSpace.s8),
-          Text(
-            'Your Sun sits in ${sun.detail ?? 'its own sign'}, which is what '
-            'sets this card. It does not change.',
-            style: text.bodySmall,
-          ),
+          // The canonical sign, not the printed degree line: the sentence needs
+          // to decline the sign's name, which it cannot do to `12.4° Baran`.
+          Text(strings.sunSitsIn(sun.signCanonical), style: text.bodySmall),
         ],
       ),
     );
@@ -436,7 +445,7 @@ class EterArcanaPlate extends StatelessWidget {
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
     return Semantics(
       image: true,
-      label: semanticLabel ?? card.title,
+      label: semanticLabel ?? EterStrings.of(context).arcanaTitle(card.assetSlug),
       excludeSemantics: true,
       child: ArcanaCardMedia(
         path: card.assetFor(brightness),
@@ -473,14 +482,25 @@ class _PositionsState extends ConsumerState<_Positions> {
   bool _busy = false;
   String? _message;
 
+  bool _loaded = false;
+
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Not `initState`: the first load reads the string table for its failure
+    // sentences, and an inherited widget may not be looked up before
+    // `initState` has returned. Guarded, because this also runs whenever the
+    // language or the register changes and the contacts are the same either way
+    // — they are arithmetic, and re-fetching them would only re-request the
+    // passage.
+    if (_loaded) return;
+    _loaded = true;
     _load();
   }
 
   Future<void> _load({bool compose = false}) async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = compose;
       if (compose) _message = null;
@@ -518,16 +538,14 @@ class _PositionsState extends ConsumerState<_Positions> {
       setState(() {
         _busy = false;
         _message = error.reason == 'AI processing is not permitted'
-            ? 'Enable AI guidance in the Sanctum before reading today.'
-            : 'Today’s reading is not connected on this build yet. The '
-                'positions below are calculated on this device.';
+            ? strings.enableAiBeforeReadingToday
+            : strings.todaysReadingNotConnected;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _message = 'Today’s reading could not be written. The positions '
-            'below are unchanged.';
+        _message = strings.todaysReadingCouldNotBeWritten;
       });
     }
   }
@@ -536,10 +554,14 @@ class _PositionsState extends ConsumerState<_Positions> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final reading = _reading;
     if (reading == null) return const SizedBox.shrink();
 
     final contacts = reading.contacts.take(4).toList();
+    // `toJson` is the reading's own serialisation and carries canonical English
+    // names, which is exactly what the localised lookups want.
+    final json = reading.toJson();
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: ink.line)),
@@ -548,19 +570,19 @@ class _PositionsState extends ConsumerState<_Positions> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('POSITIONS TODAY', style: text.labelSmall),
+          Text(strings.headingPositionsToday, style: text.labelSmall),
           const SizedBox(height: EterSpace.s8),
           Text(
-            'A ${reading.moonPhaseLabel} moon in ${reading.toJson()['moonSign']}, '
-            'the sun in ${reading.toJson()['sunSign']}.',
+            strings.positionsSummary(
+              moonPhaseCanonical: reading.moonPhaseLabel,
+              moonSignCanonical: '${json['moonSign']}',
+              sunSignCanonical: '${json['sunSign']}',
+            ),
             style: text.bodyMedium,
           ),
           const SizedBox(height: EterSpace.s12),
           if (contacts.isEmpty)
-            Text(
-              'Nothing in the sky stands close to your chart today.',
-              style: text.bodySmall,
-            )
+            Text(strings.nothingCloseInTheSky, style: text.bodySmall)
           else
             for (final contact in contacts)
               Padding(
@@ -570,16 +592,30 @@ class _PositionsState extends ConsumerState<_Positions> {
                   children: [
                     Expanded(
                       child: Text(
-                        '${contact.transiting} ${contact.type} '
-                        'natal ${contact.natal}',
+                        strings.contactLine(
+                          transiting: strings.bodyName(contact.transiting),
+                          aspect: strings.aspectName(contact.type),
+                          natal: strings.bodyName(contact.natal),
+                        ),
                         style: text.bodyMedium,
                       ),
                     ),
                     const SizedBox(width: EterSpace.s8),
-                    Text(
-                      '${contact.orb.toStringAsFixed(1)}° '
-                      '${contact.applying ? 'applying' : 'separating'}',
-                      style: text.labelSmall,
+                    // Flexible, not a bare Text. A non-flex child beside an
+                    // Expanded is laid out at its full intrinsic width first,
+                    // so a long one overflows the row no matter how much the
+                    // Expanded gives up: `zbliża się` is three times the width
+                    // of `applying`, and at 320 dp with text doubled that ran
+                    // ten pixels past the edge.
+                    Flexible(
+                      child: Text(
+                        strings.contactOrb(
+                          degrees: contact.orb.toStringAsFixed(1),
+                          applying: contact.applying,
+                        ),
+                        textAlign: TextAlign.end,
+                        style: text.labelSmall,
+                      ),
                     ),
                   ],
                 ),
@@ -598,7 +634,7 @@ class _PositionsState extends ConsumerState<_Positions> {
           ] else ...[
             const SizedBox(height: EterSpace.s12),
             EterAction(
-              label: _busy ? 'Reading' : 'Read today',
+              label: _busy ? strings.readingToday : strings.readToday,
               emphasis: EterActionEmphasis.secondary,
               busy: _busy,
               onPressed: () => _load(compose: true),
@@ -627,6 +663,8 @@ class _PositionLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
+    final detail = position.detail(strings);
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: ink.line)),
@@ -637,36 +675,49 @@ class _PositionLine extends StatelessWidget {
         children: [
           Row(
             children: [
-              if (AstroGlyph.forBody(position.label) case final glyph?) ...[
-                AstroGlyphMark(
-                  glyph: glyph,
-                  color: ink.labelMuted,
-                  size: 14,
+              // Keyed on the canonical body, never on the printed label.
+              if (position.bodyCanonical case final body?)
+                if (AstroGlyph.forBody(body) case final glyph?) ...[
+                  AstroGlyphMark(
+                    glyph: glyph,
+                    color: ink.labelMuted,
+                    size: 14,
+                  ),
+                  const SizedBox(width: EterSpace.s8),
+                ],
+              // Expanded, so the label wraps rather than running off the row.
+              // It held an unbounded `Text` for as long as every label was a
+              // short English word; `ODZIEDZICZONE` and `MEDIUM COELI` at
+              // 320 dp with text doubled overflow it by ten pixels, which the
+              // Polish goldens caught at exactly that size.
+              Expanded(
+                child: Text(
+                  position.label(strings).toUpperCase(),
+                  style: text.labelSmall,
                 ),
-                const SizedBox(width: EterSpace.s8),
-              ],
-              Text(position.label.toUpperCase(), style: text.labelSmall),
+              ),
             ],
           ),
           const SizedBox(height: EterSpace.s4),
           Text(
-            '${position.card.title} · ${position.keywords.join(', ')}',
+            '${strings.arcanaTitle(position.card.assetSlug)} · '
+            '${position.keywords.join(', ')}',
             style: text.titleMedium,
           ),
-          if (position.detail != null) ...[
+          if (detail != null) ...[
             const SizedBox(height: EterSpace.s4),
             Row(
               children: [
-                if (AstroGlyph.forSign(position.detail!.split(' ').first)
-                    case final sign?) ...[
-                  AstroGlyphMark(
-                    glyph: sign,
-                    color: ink.labelMuted,
-                    size: 12,
-                  ),
-                  const SizedBox(width: EterSpace.s4),
-                ],
-                Text(position.detail!, style: text.bodySmall),
+                if (position.signCanonical case final sign?)
+                  if (AstroGlyph.forSign(sign) case final glyph?) ...[
+                    AstroGlyphMark(
+                      glyph: glyph,
+                      color: ink.labelMuted,
+                      size: 12,
+                    ),
+                    const SizedBox(width: EterSpace.s4),
+                  ],
+                Expanded(child: Text(detail, style: text.bodySmall)),
               ],
             ),
           ],
@@ -690,6 +741,8 @@ class _ComposedReading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
+    final title = strings.arcanaTitle(position.card.assetSlug);
     final passage = reading == null ? null : _passage(reading!.contentJson);
     return Padding(
       padding: const EdgeInsets.only(bottom: EterSpace.s24),
@@ -706,26 +759,27 @@ class _ComposedReading extends StatelessWidget {
                 child: EterArcanaPlate(
                   card: position.card,
                   width: 132,
-                  semanticLabel: '${position.card.title}, ${position.label}',
+                  semanticLabel: strings.positionCardSemantic(
+                    cardTitle: title,
+                    positionLabel: position.label(strings),
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: EterSpace.s12),
           ],
-          Text(position.label.toUpperCase(), style: text.labelSmall),
+          Text(position.label(strings).toUpperCase(), style: text.labelSmall),
           const SizedBox(height: EterSpace.s4),
           // The keywords stay visible at depth: the passage interprets them,
           // and losing them on opening made the deeper view feel like a
           // different subject rather than the same one, closer.
           Text(
-            '${position.card.title} · ${position.keywords.join(', ')}',
+            '$title · ${position.keywords.join(', ')}',
             style: text.titleMedium,
           ),
           const SizedBox(height: EterSpace.s8),
           Text(
-            passage ??
-                'This personal reading has not been composed yet. The '
-                    'keywords are shipped with the app and stand on their own.',
+            passage ?? strings.personalReadingNotComposedYet,
             style: text.headlineSmall?.copyWith(
               fontSize: 18,
               height: 1.5,
@@ -773,23 +827,27 @@ class _VesselData {
   final bool usedApproximateTime;
   final bool usedApproximatePlace;
 
-  List<_VesselPosition> get positions {
+  List<_VesselPosition> positions(EterStrings strings) {
     _VesselPosition signPosition(
       String key,
-      String label,
+      String bodyCanonical,
       ZodiacPosition point,
     ) {
+      // `point.sign` is the engine's English name, and `Zodiac.label` is the
+      // English canon it is matched against. Neither is ever localised, which
+      // is what keeps this lookup working in Polish.
       final sign =
           Zodiac.values.firstWhere((value) => value.label == point.sign);
       final card = MajorArcana.forZodiac(sign);
       final attributes = content.card(card)!;
       return _VesselPosition(
         key: key,
-        label: label,
+        bodyCanonical: bodyCanonical,
         card: card,
         keywords: attributes.keywords,
-        detail: '${point.sign} ${point.degreeInSign.toStringAsFixed(1)}°'
-            '${point.retrograde ? ' retrograde' : ''}',
+        signCanonical: point.sign,
+        degrees: point.degreeInSign,
+        retrograde: point.retrograde,
       );
     }
 
@@ -797,7 +855,7 @@ class _VesselData {
     return [
       _VesselPosition(
         key: 'lifePath',
-        label: 'Life Path $lifePath',
+        displayLabel: strings.lifePathLabel(lifePath),
         card: lifeCard,
         keywords: content.lifePath(lifePath)!.keywords,
       ),
@@ -809,31 +867,82 @@ class _VesselData {
       for (final entry in buildArcanaMatrix(dob).inReadingOrder)
         _VesselPosition(
           key: entry.position.key,
-          label: entry.position.label,
+          displayLabel: strings.matrixPositionLabel(entry.position),
           card: entry.card,
           keywords: content.card(entry.card)?.keywords ?? const [],
           // The row carries a short mark, as the sign positions do. The
           // position's sentence is context for the model, not a caption —
           // putting it here overflowed the line by 246 pixels, which is the
           // layout saying the same thing.
-          detail: entry.card.numeral,
+          numeral: entry.card.numeral,
         ),
     ];
   }
 }
 
+/// One place in the Vessel, kept as data rather than as rendered text.
+///
+/// It used to carry a `label` and a `detail` string and nothing else, which made
+/// two different things the same field. `label` was shown to the reader *and*
+/// handed to `AstroGlyph.forBody`; `detail` was shown to the reader *and* split
+/// on whitespace so its first word could be handed to `AstroGlyph.forSign`. Both
+/// worked exactly as long as the strings stayed English — the moment `Sun`
+/// became `Słońce`, every glyph in the Vessel would have silently vanished,
+/// because a failed lookup returns null and null draws nothing.
+///
+/// So identity and presentation are separated. [bodyCanonical] and
+/// [signCanonical] are the chart engine's own English names and are what the
+/// glyph tables and caches key on; the label and the degree line are composed at
+/// render time from the active language. A position that is not a chart point —
+/// a Life Path, a place in the matrix figure — carries a [displayLabel] instead
+/// and no canonical body.
 class _VesselPosition {
   const _VesselPosition({
     required this.key,
-    required this.label,
     required this.card,
     required this.keywords,
-    this.detail,
+    this.bodyCanonical,
+    this.displayLabel,
+    this.signCanonical,
+    this.degrees,
+    this.retrograde = false,
+    this.numeral,
   });
 
+  /// Cache key for this position's composed reading. Never translated: it is
+  /// part of the `VesselReadings` primary key.
   final String key;
-  final String label;
   final MajorArcana card;
   final List<String> keywords;
-  final String? detail;
+
+  /// `'Sun'`, `'Moon'`, `'Ascendant'` — the engine's name, for glyphs and
+  /// lookups. Null for the Life Path and the matrix positions.
+  final String? bodyCanonical;
+
+  /// Used when there is no canonical body to name, and already localised.
+  final String? displayLabel;
+
+  final String? signCanonical;
+  final double? degrees;
+  final bool retrograde;
+
+  /// The matrix rows carry the card's Roman numeral where a sign position
+  /// carries its degree. Language-independent by nature.
+  final String? numeral;
+
+  String label(EterStrings strings) => bodyCanonical == null
+      ? displayLabel!
+      : strings.bodyName(bodyCanonical!);
+
+  /// The short second line: a degree and sign, a numeral, or nothing.
+  String? detail(EterStrings strings) {
+    if (numeral != null) return numeral;
+    final sign = signCanonical;
+    if (sign == null || degrees == null) return null;
+    return strings.positionDetail(
+      signName: strings.signName(sign),
+      degrees: degrees!.toStringAsFixed(1),
+      retrograde: retrograde,
+    );
+  }
 }

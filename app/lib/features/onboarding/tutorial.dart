@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
@@ -38,54 +39,6 @@ class EterTutorial extends StatefulWidget {
   State<EterTutorial> createState() => _EterTutorialState();
 }
 
-class _TutorialPassage {
-  const _TutorialPassage({
-    required this.eyebrow,
-    required this.lines,
-  });
-
-  final String eyebrow;
-  final List<String> lines;
-}
-
-const _passages = <_TutorialPassage>[
-  _TutorialPassage(
-    eyebrow: 'ETER',
-    lines: [
-      'Eter reads your days and tells you what it notices.',
-      'It keeps everything on this device unless you say otherwise, and it '
-          'never scores you.',
-    ],
-  ),
-  _TutorialPassage(
-    eyebrow: 'THE JOURNAL',
-    lines: [
-      'Everything you record, you write or speak here.',
-      'There are no forms elsewhere: meals, movement and how a day felt all '
-          'come from what you wrote. Each page can be interpreted when you ask '
-          'for it, and any page can be kept from Aether entirely.',
-    ],
-  ),
-  _TutorialPassage(
-    eyebrow: 'THE DASHBOARD',
-    lines: [
-      'The other side of the same space reads back what it found.',
-      'Guidance arrives on its own each day. Look deeper for the body, or for '
-          'the Vessel — your chart, your Life Path, and where today’s sky '
-          'stands against them.',
-    ],
-  ),
-  _TutorialPassage(
-    eyebrow: 'THE SANCTUM',
-    lines: [
-      'Tap the ETER signature at the top to open it.',
-      'Settings, your birth details, the health connection, and every '
-          'permission — each one independent, each one revocable, and a way to '
-          'take all of it back out again.',
-    ],
-  ),
-];
-
 class _EterTutorialState extends State<EterTutorial> {
   int _index = 0;
 
@@ -100,10 +53,12 @@ class _EterTutorialState extends State<EterTutorial> {
 
   @override
   Widget build(BuildContext context) {
-    final passage = _passages[_index];
+    final strings = EterStrings.of(context);
+    final passages = strings.tutorialPassages;
+    final passage = passages[_index];
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
-    final last = _index == _passages.length - 1;
+    final last = _index == passages.length - 1;
 
     return Scaffold(
       body: SkyBackground(
@@ -120,7 +75,10 @@ class _EterTutorialState extends State<EterTutorial> {
                       Text(passage.eyebrow, style: text.labelSmall),
                       const Spacer(),
                       Text(
-                        '${_index + 1} / ${_passages.length}',
+                        strings.onboardingStepMark(
+                          step: _index + 1,
+                          total: passages.length,
+                        ),
                         style: text.labelSmall,
                       ),
                     ],
@@ -163,13 +121,13 @@ class _EterTutorialState extends State<EterTutorial> {
                     children: [
                       if (!last)
                         EterAction(
-                          label: 'Skip',
+                          label: strings.skip,
                           emphasis: EterActionEmphasis.quiet,
                           onPressed: _finish,
                         ),
                       const Spacer(),
                       EterAction(
-                        label: last ? 'Begin' : 'Next',
+                        label: last ? strings.begin : strings.next,
                         emphasis: last
                             ? EterActionEmphasis.primary
                             : EterActionEmphasis.secondary,

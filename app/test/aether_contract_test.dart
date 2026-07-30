@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:eter/core/i18n/language.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
 import 'package:eter/core/aether/request_contract.dart';
@@ -96,7 +97,9 @@ void main() {
       // And the model is told, rather than left to read a severed sentence as
       // a complete one.
       expect(request.journalTruncated, isTrue);
-      expect(EterPrompts.guidance(request).system, contains('is incomplete'));
+      expect(
+          EterPrompts.guidance(request, language: AppLanguage.english).system,
+          contains('is incomplete'));
     });
 
     test('payload has no identity fields and fingerprint is deterministic', () {
@@ -249,7 +252,7 @@ void main() {
         responseCiting({'sleepMinutes': 402, 'localDate': '2026-07-27'}),
         mode: GuidanceMode.balanced,
         evidence: AetherEvidenceScope.fromContext(
-          EterPrompts.guidance(request).user,
+          EterPrompts.guidance(request, language: AppLanguage.english).user,
         ),
       );
 
@@ -267,7 +270,7 @@ void main() {
           responseCiting({'sleepMinutes': 400}),
           mode: GuidanceMode.balanced,
           evidence: AetherEvidenceScope.fromContext(
-            EterPrompts.guidance(request).user,
+            EterPrompts.guidance(request, language: AppLanguage.english).user,
           ),
         ),
         throwsA(isA<AetherContractException>()),
@@ -281,7 +284,7 @@ void main() {
           responseCiting({'caloriesBurned': 8412}),
           mode: GuidanceMode.balanced,
           evidence: AetherEvidenceScope.fromContext(
-            EterPrompts.guidance(request).user,
+            EterPrompts.guidance(request, language: AppLanguage.english).user,
           ),
         ),
         throwsA(isA<AetherContractException>()),
@@ -344,7 +347,9 @@ void main() {
 
     test('the prompt explains them, and only when there are any', () {
       expect(
-        EterPrompts.guidance(buildWith(journalConsented: true)).system,
+        EterPrompts.guidance(buildWith(journalConsented: true),
+                language: AppLanguage.english)
+            .system,
         contains('WHAT THEY REPORTED THEMSELVES'),
       );
       expect(
@@ -356,6 +361,7 @@ void main() {
             mode: GuidanceMode.balanced,
             health: const [],
           ),
+          language: AppLanguage.english,
         ).system,
         isNot(contains('WHAT THEY REPORTED THEMSELVES')),
       );
@@ -543,13 +549,16 @@ void main() {
             recalled: recalled,
           );
 
-      final withMemory = EterPrompts.guidance(requestWith(const [
-        AetherRecallContext(
-          localDate: '2026-07-28',
-          note: 'second short night. offered a walk.',
-          action: 'Take a short walk.',
-        ),
-      ])).system;
+      final withMemory = EterPrompts.guidance(
+              requestWith(const [
+                AetherRecallContext(
+                  localDate: '2026-07-28',
+                  note: 'second short night. offered a walk.',
+                  action: 'Take a short walk.',
+                ),
+              ]),
+              language: AppLanguage.english)
+          .system;
 
       expect(withMemory, contains('WHAT YOU HAVE ALREADY SAID'));
       // The three limits that make referring back safe.
@@ -560,7 +569,9 @@ void main() {
       expect(withMemory, contains('cannot say "again"'));
 
       expect(
-        EterPrompts.guidance(requestWith(const [])).system,
+        EterPrompts.guidance(requestWith(const []),
+                language: AppLanguage.english)
+            .system,
         isNot(contains('WHAT YOU HAVE ALREADY SAID')),
       );
     });

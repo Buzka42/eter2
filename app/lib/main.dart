@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart' show initializeDateFormatting;
 
 import 'core/account/account.dart';
 import 'core/account/firebase_account_service.dart';
@@ -23,6 +25,8 @@ import 'core/sync/cloud_mirror.dart';
 import 'core/sync/firestore_mirror.dart';
 import 'core/sync/sync_service.dart';
 import 'core/health/foreground_refresh.dart';
+import 'core/i18n/language.dart';
+import 'core/i18n/strings.dart';
 import 'core/vessel/initial_readings.dart';
 import 'core/vessel/positions_composer.dart';
 import 'core/vessel/reading_composer.dart';
@@ -41,6 +45,13 @@ import 'features/shell/eter_shell.dart';
 /// belong in this chain as those layers land.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // `DateFormat` ships with `en_US` alone until this runs; every other locale's
+  // month and weekday names are absent, and asking for one throws. The Journal's
+  // date is the first thing on the page, so this happens before anything can
+  // render. Tests call it from `test/helpers/`.
+  initializeDateFormatting();
+
   final database = AppDatabase();
   await database.runLocalRetention();
 
@@ -176,8 +187,7 @@ final aetherTransportProvider = Provider<AetherProvider?>((ref) {
   return transport == null ? null : TransportAetherProvider(transport);
 });
 
-final vesselReadingTransportProvider =
-    Provider<VesselReadingProvider?>((ref) {
+final vesselReadingTransportProvider = Provider<VesselReadingProvider?>((ref) {
   final transport = ref.watch(aiTransportProvider);
   return transport == null ? null : TransportVesselReadingProvider(transport);
 });
@@ -307,54 +317,74 @@ class _EterAppState extends ConsumerState<EterApp> {
         final register = EterRegister.resolve(mode, phase);
         final night = register == EterRegister.night;
         final intakeFuture = _intakeFuture ??= db.loadIntakeAnswers();
+        // A stored choice is the person's and is obeyed; a null column means
+        // nobody has chosen, and then the phone decides. Resolved here, once, so
+        // every surface below reads one answer — including onboarding, which
+        // runs before there is a profile row to hold one.
+        final language = AppLanguage.forProfile(profile?.language);
         return MaterialApp(
           title: 'Eter',
           debugShowCheckedModeBanner: false,
           theme: EterTheme.day(),
           darkTheme: EterTheme.night(),
           themeMode: night ? ThemeMode.dark : ThemeMode.light,
-          home: EterRegisterScope(
-            register: register,
-            child: FutureBuilder<Map<String, IntakeAnswerRow>>(
-              future: intakeFuture,
-              builder: (context, intake) {
-                if (!intake.hasData) return const SizedBox.shrink();
-                final complete = _onboardingCompletedNow ||
-                    intake.data?['onboarding_complete']?.value == 'true';
-                if (profile == null || !complete) {
-                  return OnboardingFlow(
-                    database: db,
-                    profile: profile,
-                    onComplete: () {
-                      setState(() => _onboardingCompletedNow = true);
-                      // The chart is fixed for life, so its passages are
-                      // written once, here, rather than on demand — the
-                      // Vessel should already be whole the first time it is
-                      // opened. Best-effort and unawaited: no consent, no
-                      // transport or a provider failure all mean the same
-                      // thing, and none of them may delay the first screen.
-                      _ensureInitialReadings(db);
-                    },
+          // The framework's own strings — the selection toolbar, the scrollbar's
+          // semantics — follow Eter rather than the device, so a Polish app does
+          // not offer an English "Paste".
+          locale: language.locale,
+          supportedLocales: [
+            for (final value in AppLanguage.values) value.locale,
+          ],
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: EterStringsScope(
+            strings: EterStrings.forLanguage(language),
+            child: EterRegisterScope(
+              register: register,
+              child: FutureBuilder<Map<String, IntakeAnswerRow>>(
+                future: intakeFuture,
+                builder: (context, intake) {
+                  if (!intake.hasData) return const SizedBox.shrink();
+                  final complete = _onboardingCompletedNow ||
+                      intake.data?['onboarding_complete']?.value == 'true';
+                  if (profile == null || !complete) {
+                    return OnboardingFlow(
+                      database: db,
+                      profile: profile,
+                      onComplete: () {
+                        setState(() => _onboardingCompletedNow = true);
+                        // The chart is fixed for life, so its passages are
+                        // written once, here, rather than on demand — the
+                        // Vessel should already be whole the first time it is
+                        // opened. Best-effort and unawaited: no consent, no
+                        // transport or a provider failure all mean the same
+                        // thing, and none of them may delay the first screen.
+                        _ensureInitialReadings(db);
+                      },
+                    );
+                  }
+                  // The first minute, once. A sparse interface is the kind most
+                  // often misread, so the four passages that say where things
+                  // are come between intake and the shell — and never again.
+                  final tutorialDone = _tutorialCompletedNow ||
+                      intake.data?[EterTutorial.answerKey]?.value == 'true';
+                  if (!tutorialDone) {
+                    return EterTutorial(
+                      database: db,
+                      onFinished: () =>
+                          setState(() => _tutorialCompletedNow = true),
+                    );
+                  }
+                  _ensureInitialReadings(db);
+                  return HealthRefreshOnResume(
+                    refresh: ref.watch(healthForegroundRefreshProvider),
+                    child: EterShell(startSurface: profile.startSurface),
                   );
-                }
-                // The first minute, once. A sparse interface is the kind most
-                // often misread, so the four passages that say where things
-                // are come between intake and the shell — and never again.
-                final tutorialDone = _tutorialCompletedNow ||
-                    intake.data?[EterTutorial.answerKey]?.value == 'true';
-                if (!tutorialDone) {
-                  return EterTutorial(
-                    database: db,
-                    onFinished: () =>
-                        setState(() => _tutorialCompletedNow = true),
-                  );
-                }
-                _ensureInitialReadings(db);
-                return HealthRefreshOnResume(
-                  refresh: ref.watch(healthForegroundRefreshProvider),
-                  child: EterShell(startSurface: profile.startSurface),
-                );
-              },
+                },
+              ),
             ),
           ),
         );

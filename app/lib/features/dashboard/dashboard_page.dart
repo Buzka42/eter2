@@ -12,6 +12,7 @@ import '../../core/ai/transport.dart';
 import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/icons.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
@@ -64,11 +65,14 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   Future<void> _compose(AppDatabase db, DateTime now) async {
     if (_composing) return;
+    // Captured before the first await: this is the only place in the file that
+    // needs words outside `build`, and reading the scope after an await would
+    // touch a possibly-unmounted context.
+    final strings = EterStrings.of(context);
     final provider = ref.read(aetherTransportProvider);
     if (provider == null) {
       setState(() {
-        _compositionMessage =
-            'Aether composition is not connected on this build yet.';
+        _compositionMessage = strings.aetherNotConnected;
       });
       return;
     }
@@ -87,22 +91,20 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       setState(() {
         _composing = false;
         _compositionMessage = result.fromCache
-            ? 'Guidance is already current for the available context.'
-            : 'Today’s guidance has been composed.';
+            ? strings.guidanceAlreadyCurrent
+            : strings.guidanceComposed;
       });
     } on AetherConsentException {
       if (!mounted) return;
       setState(() {
         _composing = false;
-        _compositionMessage =
-            'Enable AI guidance in the Sanctum before composing.';
+        _compositionMessage = strings.enableAiBeforeComposing;
       });
     } on AetherContractException {
       if (!mounted) return;
       setState(() {
         _composing = false;
-        _compositionMessage =
-            'The response could not be accepted safely. Nothing changed.';
+        _compositionMessage = strings.responseNotAcceptedSafely;
       });
     } on EterTransportException catch (error) {
       // Named separately because "unavailable right now" is useless when the
@@ -117,8 +119,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       if (!mounted) return;
       setState(() {
         _composing = false;
-        _compositionMessage =
-            'Composition is unavailable right now. Existing guidance remains.';
+        _compositionMessage = strings.compositionUnavailable;
       });
     }
   }
@@ -250,8 +251,8 @@ class _UncomposedGuidance extends StatelessWidget {
         children: [
           Text(
             composing
-                ? 'Composing today’s guidance…'
-                : 'Today’s guidance has not been composed yet.',
+                ? EterStrings.of(context).composingTodaysGuidance
+                : EterStrings.of(context).guidanceNotComposedYet,
             style: style,
           ),
           // Composition is automatic on the day's first look, so this is a
@@ -260,7 +261,7 @@ class _UncomposedGuidance extends StatelessWidget {
           if (!composing) ...[
             const SizedBox(height: EterSpace.s12),
             EterAction(
-              label: 'Compose now',
+              label: EterStrings.of(context).composeNow,
               emphasis: EterActionEmphasis.quiet,
               onPressed: onCompose,
             ),
@@ -294,6 +295,7 @@ class _SectionThreshold extends StatelessWidget {
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -301,7 +303,7 @@ class _SectionThreshold extends StatelessWidget {
         if (!choosing)
           Semantics(
             button: true,
-            label: 'Look deeper',
+            label: strings.lookDeeper.toLowerCase(),
             excludeSemantics: true,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -311,7 +313,7 @@ class _SectionThreshold extends StatelessWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text('LOOK DEEPER', style: text.labelSmall),
+                      child: Text(strings.lookDeeper, style: text.labelSmall),
                     ),
                     const SizedBox(width: EterSpace.s8),
                     const EterDisclosureMark(),
@@ -326,15 +328,15 @@ class _SectionThreshold extends StatelessWidget {
             runSpacing: EterSpace.s4,
             children: [
               _ThresholdChoice(
-                label: 'GUIDANCE',
+                label: strings.sectionGuidance,
                 onTap: () => onChoose('guidance'),
               ),
               _ThresholdChoice(
-                label: 'THE BODY',
+                label: strings.sectionBody,
                 onTap: () => onChoose('body'),
               ),
               _ThresholdChoice(
-                label: 'VESSEL',
+                label: strings.sectionVessel,
                 onTap: () => onChoose('vessel'),
               ),
             ],
@@ -388,6 +390,7 @@ class _ExpandedGuidance extends StatelessWidget {
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return FutureBuilder<List<GuidanceHistoryRow>>(
       future: rows,
       builder: (context, snapshot) {
@@ -401,7 +404,7 @@ class _ExpandedGuidance extends StatelessWidget {
           children: [
             Container(height: 1, color: ink.line),
             if (largeText) ...[
-              Text('GUIDANCE', style: text.labelSmall),
+              Text(strings.sectionGuidance, style: text.labelSmall),
               _GuidanceHeaderActions(
                 composing: composing,
                 onRefresh: onRefresh,
@@ -411,7 +414,7 @@ class _ExpandedGuidance extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('GUIDANCE', style: text.labelSmall),
+                  Text(strings.sectionGuidance, style: text.labelSmall),
                   const SizedBox(width: EterSpace.s12),
                   Expanded(
                     child: _GuidanceHeaderActions(
@@ -461,13 +464,15 @@ class _GuidanceHeaderActions extends StatelessWidget {
         runSpacing: EterSpace.s4,
         children: [
           EterAction(
-            label: composing ? 'Composing' : 'Refresh',
+            label: composing
+                ? EterStrings.of(context).composing
+                : EterStrings.of(context).refresh,
             emphasis: EterActionEmphasis.quiet,
             busy: composing,
             onPressed: onRefresh,
           ),
           EterAction(
-            label: 'Close',
+            label: EterStrings.of(context).close,
             emphasis: EterActionEmphasis.quiet,
             onPressed: onClose,
           ),
@@ -494,7 +499,7 @@ class _GuidanceDimension extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name.toUpperCase(),
+          Text(EterStrings.of(context).guidanceDimension(name),
               style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: EterSpace.s8),
           Text(content.passage, style: prose),
@@ -522,14 +527,17 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
   @override
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
-    final evidence = _decodeEvidence(widget.raw);
+    final strings = EterStrings.of(context);
+    final evidence = _decodeEvidence(widget.raw, strings);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Semantics(
           button: true,
           expanded: _open,
-          label: 'Evidence for ${widget.dimension}',
+          label: strings.evidenceFor(
+            strings.guidanceDimension(widget.dimension).toLowerCase(),
+          ),
           excludeSemantics: true,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -554,9 +562,12 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
           Padding(
             padding: const EdgeInsets.only(bottom: EterSpace.s8),
             child: Text(
-              'n=${evidence['n']} · ${evidence['window']} · '
-              'coefficient ${evidence['coefficient']}\n'
-              '${evidence['note']} This is an association, not proof of cause.',
+              strings.evidenceReceipt(
+                n: evidence['n'],
+                window: evidence['window'],
+                coefficient: evidence['coefficient'],
+                note: evidence['note'],
+              ),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ),
@@ -564,7 +575,10 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
     );
   }
 
-  static Map<String, Object?> _decodeEvidence(String raw) {
+  static Map<String, Object?> _decodeEvidence(
+    String raw,
+    EterStrings strings,
+  ) {
     try {
       final decoded = jsonDecode(raw);
       if (decoded is Map) {
@@ -573,11 +587,11 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
     } on FormatException {
       // The receipt remains inspectable even if an old cached payload is bad.
     }
-    return const {
-      'n': 'unknown',
-      'window': 'window unavailable',
-      'coefficient': 'unavailable',
-      'note': 'The cached evidence details could not be read.',
+    return {
+      'n': strings.evidenceUnknownCount,
+      'window': strings.evidenceWindowUnavailable,
+      'coefficient': strings.evidenceCoefficientUnavailable,
+      'note': strings.evidenceUnreadable,
     };
   }
 }

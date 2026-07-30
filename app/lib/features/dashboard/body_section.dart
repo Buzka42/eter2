@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/icons.dart';
 import '../../core/instruments.dart';
 import '../../core/tokens.dart';
@@ -46,7 +47,12 @@ class BodySection extends ConsumerStatefulWidget {
 }
 
 class _BodySectionState extends ConsumerState<BodySection> {
-  static final _numbers = NumberFormat('#,##0');
+  /// Grouped thousands in the active language's own convention: `1,870` in
+  /// English, `1 870` in Polish. Rebuilt when the language changes rather than
+  /// held in a static, which is what pinned every figure in this section to the
+  /// comma.
+  NumberFormat _numbers(EterStrings strings) =>
+      NumberFormat('#,##0', strings.language.code);
 
   Stream<DaySummaryRow?>? _summaryStream;
   Stream<DailyVitalsRow?>? _vitalsStream;
@@ -71,6 +77,7 @@ class _BodySectionState extends ConsumerState<BodySection> {
     final today = eterIsoDate(now);
     _ensureStreams(db, today, now);
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
 
     return StreamBuilder<DaySummaryRow?>(
       stream: _summaryStream,
@@ -98,7 +105,7 @@ class _BodySectionState extends ConsumerState<BodySection> {
                     Container(height: 1, color: ink.line),
                     if (!widget.expanded)
                       _DisclosureLine(
-                        fact: _fact(vitals, summary),
+                        fact: _fact(vitals, summary, strings),
                         onTap: () => widget.onToggle(true),
                       )
                     else
@@ -114,8 +121,11 @@ class _BodySectionState extends ConsumerState<BodySection> {
                               db: db,
                               now: now,
                               today: today,
-                              conclusion:
-                                  _conclusion(intake: intake, burn: burn),
+                              conclusion: _conclusion(
+                                intake: intake,
+                                burn: burn,
+                                strings: strings,
+                              ),
                               vitals: vitals,
                               meals: meals,
                               intake: intake,
@@ -134,36 +144,43 @@ class _BodySectionState extends ConsumerState<BodySection> {
   }
 
   /// One short textual fact beside the word `Body` — never a metric row.
-  String? _fact(DailyVitalsRow? vitals, DaySummaryRow? summary) {
+  String? _fact(
+    DailyVitalsRow? vitals,
+    DaySummaryRow? summary,
+    EterStrings strings,
+  ) {
     final resting = vitals?.restingHr;
-    if (resting != null) return '${resting.round()} bpm resting';
+    if (resting != null) return strings.factResting(resting.round());
     final steps = summary?.steps ?? 0;
-    if (steps > 0) return '${_numbers.format(steps)} steps';
+    if (steps > 0) return strings.factSteps(_numbers(strings).format(steps));
     return null;
   }
 
   /// The section opens with its conclusion, in words, before any instrument.
-  String _conclusion({required double? intake, required double? burn}) {
+  String _conclusion({
+    required double? intake,
+    required double? burn,
+    required EterStrings strings,
+  }) {
+    final numbers = _numbers(strings);
     if (intake == null && (burn == null || burn <= 0)) {
-      return 'No activity or food has been recorded yet today.';
+      return strings.conclusionNothingRecorded;
     }
     if (intake == null) {
-      return 'Nothing has been logged to eat yet today.';
+      return strings.conclusionNothingEaten;
     }
     if (burn == null || burn <= 0) {
-      return '${_numbers.format(intake)} kcal logged; '
-          'activity has not been recorded yet.';
+      return strings.conclusionNoActivityYet(numbers.format(intake));
     }
-    final eaten = _numbers.format(intake);
-    final burned = _numbers.format(burn);
+    final eaten = numbers.format(intake);
+    final burned = numbers.format(burn);
     final difference = intake - burn;
     if (difference.abs() < 150) {
-      return 'Intake and burn sit close to level — '
-          '$eaten kcal eaten against $burned kcal burned.';
+      return strings.conclusionLevel(eaten: eaten, burned: burned);
     }
     return difference > 0
-        ? 'A little over today — $eaten kcal eaten against $burned kcal burned.'
-        : 'A little under today — $eaten kcal eaten against $burned kcal burned.';
+        ? strings.conclusionOver(eaten: eaten, burned: burned)
+        : strings.conclusionUnder(eaten: eaten, burned: burned);
   }
 }
 
@@ -177,11 +194,12 @@ class _DisclosureLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return Semantics(
       button: true,
       expanded: false,
-      label: 'The Body',
-      hint: 'expands health details',
+      label: strings.theBody,
+      hint: strings.bodyExpandsHint,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -190,7 +208,7 @@ class _DisclosureLine extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 48),
           child: Row(
             children: [
-              Text('THE BODY',
+              Text(strings.theBody,
                   style: text.labelSmall?.copyWith(color: ink.label)),
               if (fact != null) ...[
                 const SizedBox(width: EterSpace.s8),
@@ -226,10 +244,14 @@ class _ExpandedHeader extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     return Row(
       children: [
-        Text('THE BODY', style: text.labelSmall?.copyWith(color: ink.label)),
-        const Spacer(),
+        // See the Vessel's header: a fixed heading beside a fixed action leaves
+        // the Spacer nothing to give up when either word grows.
+        Expanded(
+          child: Text(EterStrings.of(context).theBody,
+              style: text.labelSmall?.copyWith(color: ink.label)),
+        ),
         EterAction(
-          label: 'Close',
+          label: EterStrings.of(context).close,
           emphasis: EterActionEmphasis.quiet,
           onPressed: onClose,
         ),
@@ -262,6 +284,7 @@ class _ExpandedBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     final proseStyle = EterProse.of(context);
     final showBalance = intake != null && burn != null && burn! > 0;
     return Column(
@@ -271,11 +294,7 @@ class _ExpandedBody extends StatelessWidget {
         Text(conclusion, style: proseStyle),
         if (meals.any((meal) => !meal.confirmed)) ...[
           const SizedBox(height: EterSpace.s8),
-          Text(
-            'One food estimate is waiting below. It is not included in the '
-            'balance until you confirm or correct it.',
-            style: text.bodySmall,
-          ),
+          Text(strings.estimateWaitingBelow, style: text.bodySmall),
         ],
         const SizedBox(height: EterSpace.s24),
         _SignalSummary(vitals: vitals),
@@ -297,7 +316,7 @@ class _ExpandedBody extends StatelessWidget {
         _HistoricalSignals(db: db, now: now, today: today),
         if (meals.isNotEmpty) ...[
           const SizedBox(height: EterSpace.s24),
-          Text('FOOD NOTES', style: text.labelSmall),
+          Text(strings.headingFoodNotes, style: text.labelSmall),
           const SizedBox(height: EterSpace.s8),
           for (final meal in meals)
             _NutritionLine(
@@ -372,7 +391,11 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
   /// which is what every watch reports and what a person means. The range
   /// comes from the segments themselves rather than a stored bed time, so it
   /// says what was actually measured: first stage to last.
-  String _sleptSummary(List<SleepSegmentRow> rows, Map<String, int> minutes) {
+  String _sleptSummary(
+    List<SleepSegmentRow> rows,
+    Map<String, int> minutes,
+    EterStrings strings,
+  ) {
     final asleep = minutes.entries
         .where((entry) => entry.key != 'awake')
         .fold<int>(0, (sum, entry) => sum + entry.value);
@@ -387,8 +410,12 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
     String clock(DateTime at) =>
         '${at.hour.toString().padLeft(2, '0')}:'
         '${at.minute.toString().padLeft(2, '0')}';
-    return '${asleep ~/ 60}h ${asleep % 60}m asleep · '
-        '${clock(start)} to ${clock(end)}';
+    return strings.sleptSummary(
+      hours: asleep ~/ 60,
+      minutes: asleep % 60,
+      from: clock(start),
+      to: clock(end),
+    );
   }
 
   void _selectSleepWindow(int days) {
@@ -402,6 +429,7 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -419,7 +447,7 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
             ];
             if (heartRate.length < 2 && hrv.length < 2) {
               return Text(
-                'A historical recovery trend is not available yet.',
+                strings.recoveryTrendUnavailable,
                 style: text.bodyMedium,
               );
             }
@@ -427,20 +455,22 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (heartRate.length >= 2) ...[
-                  Text('RESTING HEART RATE', style: text.labelSmall),
+                  Text(strings.headingRestingHeartRate,
+                      style: text.labelSmall),
                   EngravedTrend(
                     values: heartRate,
-                    label: 'Resting heart rate trend',
-                    unit: 'bpm',
+                    label: strings.trendRestingHeartRate,
+                    unit: strings.unitBpm,
                   ),
                   const SizedBox(height: EterSpace.s16),
                 ],
                 if (hrv.length >= 2) ...[
-                  Text('HEART RATE VARIABILITY', style: text.labelSmall),
+                  Text(strings.headingHeartRateVariability,
+                      style: text.labelSmall),
                   EngravedTrend(
                     values: hrv,
-                    label: 'Heart rate variability trend',
-                    unit: 'ms',
+                    label: strings.trendHeartRateVariability,
+                    unit: strings.unitMs,
                   ),
                 ],
               ],
@@ -455,7 +485,7 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
         // describing one subject, from one table, that a person reads as one
         // thing. The window control belongs to both, and did not visibly
         // belong to either.
-        Text('SLEEP', style: text.labelSmall),
+        Text(strings.headingSleep, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         StreamBuilder<List<SleepSegmentRow>>(
           stream: _sleep,
@@ -490,7 +520,7 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
                 // same absence said twice in two registers.
                 if (minutes.isEmpty && byNight.isEmpty) {
                   return Text(
-                    'No sleep has been recorded yet.',
+                    strings.noSleepRecorded,
                     style: EterProse.of(context),
                   );
                 }
@@ -500,17 +530,17 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
                   children: [
                     if (minutes.isEmpty)
                       Text(
-                        'Last night was not staged.',
+                        strings.lastNightNotStaged,
                         style: EterProse.of(context),
                       )
                     else ...[
-                      Text('LAST NIGHT', style: text.labelSmall),
+                      Text(strings.headingLastNight, style: text.labelSmall),
                       const SizedBox(height: EterSpace.s4),
                       // Asleep, and between when. Time awake in the night is
                       // shown in the breakdown but is not slept time, which
                       // is what every watch reports and what a person means.
                       Text(
-                        _sleptSummary(rows, minutes),
+                        _sleptSummary(rows, minutes, strings),
                         style: EterProse.of(context),
                       ),
                       const SizedBox(height: EterSpace.s8),
@@ -519,23 +549,21 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
                     const SizedBox(height: EterSpace.s16),
                     if (byNight.length < 2)
                       Text(
-                        'A history needs at least two recorded nights.',
+                        strings.sleepHistoryNeedsTwoNights,
                         style: text.bodySmall,
                       )
                     else ...[
                       Row(
                         children: [
-                          _PeriodChoice(
-                            label: '7 days',
-                            selected: _sleepWindow == 7,
-                            onTap: () => _selectSleepWindow(7),
-                          ),
-                          const SizedBox(width: EterSpace.s16),
-                          _PeriodChoice(
-                            label: '30 days',
-                            selected: _sleepWindow == 30,
-                            onTap: () => _selectSleepWindow(30),
-                          ),
+                          for (final days in const [7, 30]) ...[
+                            if (days != 7)
+                              const SizedBox(width: EterSpace.s16),
+                            _PeriodChoice(
+                              label: strings.windowDays(days),
+                              selected: _sleepWindow == days,
+                              onTap: () => _selectSleepWindow(days),
+                            ),
+                          ],
                         ],
                       ),
                       EngravedSleepHistory(
@@ -556,18 +584,18 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
             final rows = snapshot.data ?? const <WeightEntryRow>[];
             if (rows.length < 2) {
               return Text(
-                'A weight trend needs at least two entries.',
+                strings.weightNeedsTwoEntries,
                 style: text.bodyMedium,
               );
             }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('WEIGHT', style: text.labelSmall),
+                Text(strings.headingWeight, style: text.labelSmall),
                 EngravedTrend(
                   values: rows.reversed.map((row) => row.kg).toList(),
-                  label: 'Weight trend',
-                  unit: 'kg',
+                  label: strings.trendWeight,
+                  unit: strings.unitKg,
                 ),
               ],
             );
@@ -580,8 +608,7 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
             final rows = snapshot.data ?? const <MinuteBucketRow>[];
             if (rows.isEmpty) {
               return Text(
-                'Activity by time of day is unavailable until minute-level '
-                'movement data is connected.',
+                strings.activityByTimeUnavailable,
                 style: text.bodySmall,
               );
             }
@@ -592,7 +619,7 @@ class _HistoricalSignalsState extends State<_HistoricalSignals> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ACTIVITY BY TIME', style: text.labelSmall),
+                Text(strings.headingActivityByTime, style: text.labelSmall),
                 const SizedBox(height: EterSpace.s8),
                 EngravedActivityDay(kcalByHour: hourly),
               ],
@@ -652,26 +679,29 @@ class _SignalSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     if (vitals == null ||
         (vitals!.restingHr == null &&
             vitals!.hrvMs == null &&
             vitals!.respiratoryRate == null)) {
       return Text(
-        'No wearable recovery signals are available today.',
+        strings.noRecoverySignals,
         style: EterProse.of(context),
       );
     }
     final parts = <String>[
       if (vitals!.restingHr != null)
-        '${vitals!.restingHr!.round()} bpm resting heart rate',
-      if (vitals!.hrvMs != null) '${vitals!.hrvMs!.round()} ms HRV',
+        strings.signalRestingHeartRate(vitals!.restingHr!.round()),
+      if (vitals!.hrvMs != null) strings.signalHrv(vitals!.hrvMs!.round()),
       if (vitals!.respiratoryRate != null)
-        '${vitals!.respiratoryRate!.toStringAsFixed(1)} breaths per minute',
+        strings.signalRespiratoryRate(
+          vitals!.respiratoryRate!.toStringAsFixed(1),
+        ),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('RECOVERY SIGNALS', style: text.labelSmall),
+        Text(strings.headingRecoverySignals, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         Text(parts.join(' · '), style: text.bodyMedium),
       ],
@@ -741,6 +771,7 @@ class _NutritionLineState extends State<_NutritionLine> {
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: ink.line, width: 1)),
@@ -760,9 +791,10 @@ class _NutritionLineState extends State<_NutritionLine> {
                     const SizedBox(height: EterSpace.s4),
                     Text(
                       widget.meal.confirmed
-                          ? '${widget.meal.kcal.round()} kcal'
-                          : 'ESTIMATE · ${widget.meal.kcal.round()} KCAL · '
-                              'NOT COUNTED',
+                          ? strings.kcalConfirmed(widget.meal.kcal.round())
+                          : strings.kcalEstimateNotCounted(
+                              widget.meal.kcal.round(),
+                            ),
                       style: text.labelSmall?.copyWith(
                         color: widget.meal.confirmed
                             ? ink.labelMuted
@@ -774,8 +806,8 @@ class _NutritionLineState extends State<_NutritionLine> {
               ),
               EterAction(
                 label: _editing
-                    ? (_saving ? 'Saving' : 'Confirm')
-                    : (widget.meal.confirmed ? 'Edit' : 'Review'),
+                    ? (_saving ? strings.saving : strings.confirm)
+                    : (widget.meal.confirmed ? strings.edit : strings.proceed),
                 emphasis: EterActionEmphasis.quiet,
                 busy: _saving,
                 onPressed:
@@ -793,15 +825,15 @@ class _NutritionLineState extends State<_NutritionLine> {
                     key: ValueKey('nutrition-kcal-${widget.meal.id}'),
                     controller: _kcal,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'kcal',
+                    decoration: InputDecoration(
+                      labelText: strings.fieldKcal,
                     ),
                   ),
                 ),
                 const SizedBox(width: EterSpace.s12),
                 Expanded(
                   child: Text(
-                    'Correct the estimate before it enters today’s total.',
+                    strings.correctEstimateFirst,
                     style: text.bodySmall,
                   ),
                 ),

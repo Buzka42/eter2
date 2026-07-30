@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 
+import '../i18n/language.dart';
 import 'major_arcana.dart';
 import 'zodiac.dart';
 
@@ -43,15 +44,35 @@ class SymbolContent {
   PointAttributes? point(String name) => points[name];
 
   static const _schemaVersion = 1;
-  static SymbolContent? _rootBundleContent;
 
-  static Future<SymbolContent> load({AssetBundle? bundle}) async {
-    if (bundle == null && _rootBundleContent != null) {
-      return _rootBundleContent!;
+  /// One cache per language, not one cache.
+  ///
+  /// It was a single `SymbolContent?`, which was correct for exactly as long as
+  /// there was one language: the first `load()` after launch won, and every
+  /// later call got that language's keywords regardless of what it asked for. A
+  /// person switching to Polish would have kept English keywords in the Vessel
+  /// until they restarted the app — and, worse, whichever language happened to
+  /// load first would have won on the *next* launch too.
+  static final _rootBundleContent = <AppLanguage, SymbolContent>{};
+
+  /// The attributes for [language], from `assets/content/<code>/`.
+  ///
+  /// Every file in every language directory carries the same join keys — slugs,
+  /// sign names, life-path numbers, house numbers, point names — because those
+  /// are what the enums and the chart engine match on. Only the prose differs.
+  /// `test/symbol_content_test.dart` asserts that for each language, so a
+  /// mistranslated key fails the build rather than rendering a blank position.
+  static Future<SymbolContent> load({
+    AppLanguage language = AppLanguage.english,
+    AssetBundle? bundle,
+  }) async {
+    if (bundle == null && _rootBundleContent[language] != null) {
+      return _rootBundleContent[language]!;
     }
     final b = bundle ?? rootBundle;
     Future<Map<String, Object?>> read(String name) async {
-      final raw = await b.loadString('assets/content/$name.json');
+      final raw =
+          await b.loadString('assets/content/${language.code}/$name.json');
       final json = jsonDecode(raw);
       if (json is! Map<String, Object?>) {
         throw FormatException('$name.json is not an object');
@@ -101,7 +122,7 @@ class SymbolContent {
           _string(row, 'name'): PointAttributes.fromJson(row),
       },
     );
-    if (bundle == null) _rootBundleContent = content;
+    if (bundle == null) _rootBundleContent[language] = content;
     return content;
   }
 }

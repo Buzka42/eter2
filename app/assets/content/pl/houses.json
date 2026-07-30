@@ -1,0 +1,126 @@
+{
+  "_comment": "Polski. Numery domów są kluczami złączenia.",
+  "schemaVersion": 1,
+  "houses": [
+    {
+      "number": 1,
+      "title": "Ascendent",
+      "domain": "ja i pierwsze wrażenie",
+      "keywords": [
+        "tożsamość",
+        "wygląd",
+        "sposób"
+      ]
+    },
+    {
+      "number": 2,
+      "title": "Drugi Dom",
+      "domain": "zasoby i wartość",
+      "keywords": [
+        "posiadanie",
+        "wartość",
+        "bezpieczeństwo"
+      ]
+    },
+    {
+      "number": 3,
+      "title": "Trzeci Dom",
+      "domain": "umysł i bliski świat",
+      "keywords": [
+        "komunikacja",
+        "rodzeństwo",
+        "krótkie podróże"
+      ]
+    },
+    {
+      "number": 4,
+      "title": "Czwarty Dom",
+      "domain": "korzeń i dom",
+      "keywords": [
+        "rodzina",
+        "fundament",
+        "życie prywatne"
+      ]
+    },
+    {
+      "number": 5,
+      "title": "Piąty Dom",
+      "domain": "zabawa i tworzenie",
+      "keywords": [
+        "romans",
+        "dzieci",
+        "wyrażanie"
+      ]
+    },
+    {
+      "number": 6,
+      "title": "Szósty Dom",
+      "domain": "praca i ciało",
+      "keywords": [
+        "rutyna",
+        "zdrowie",
+        "służba"
+      ]
+    },
+    {
+      "number": 7,
+      "title": "Descendent",
+      "domain": "drugi człowiek",
+      "keywords": [
+        "partnerstwo",
+        "umowy",
+        "otwarty sprzeciw"
+      ]
+    },
+    {
+      "number": 8,
+      "title": "Ósmy Dom",
+      "domain": "głębia i wymiana",
+      "keywords": [
+        "przemiana",
+        "wspólne zasoby",
+        "to, co ukryte"
+      ]
+    },
+    {
+      "number": 9,
+      "title": "Dziewiąty Dom",
+      "domain": "daleki horyzont",
+      "keywords": [
+        "przekonanie",
+        "podróż",
+        "wyższa nauka"
+      ]
+    },
+    {
+      "number": 10,
+      "title": "Medium Coeli",
+      "domain": "powołanie i życie publiczne",
+      "keywords": [
+        "powołanie",
+        "reputacja",
+        "władza"
+      ]
+    },
+    {
+      "number": 11,
+      "title": "Jedenasty Dom",
+      "domain": "wspólnota i nadzieja",
+      "keywords": [
+        "przyjaźń",
+        "przymierze",
+        "aspiracja"
+      ]
+    },
+    {
+      "number": 12,
+      "title": "Dwunasty Dom",
+      "domain": "wnętrze i to, czego nie widać",
+      "keywords": [
+        "samotność",
+        "sen",
+        "poddanie się"
+      ]
+    }
+  ]
+}

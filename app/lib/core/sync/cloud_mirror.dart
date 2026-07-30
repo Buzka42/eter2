@@ -54,13 +54,32 @@ class MirrorException implements Exception {
 }
 
 /// What a sync attempt did, in terms a surface can report honestly.
+/// A precondition the sync layer itself refused on.
+///
+/// Distinct from [SyncOutcome.failure], which carries whatever the mirror said
+/// when a write actually failed. These five are Eter's own decisions — there is
+/// nothing to send, the address is unconfirmed, the consent is off — and they
+/// are the ones a person reads most often, so they are codes the interface words
+/// rather than sentences this layer invents.
+enum SyncRefusal {
+  nothingToSync,
+  confirmEmailBeforeCopying,
+  cloudContinuityOff,
+  confirmEmailFirst,
+  deviceAlreadyHasHistory,
+}
+
 class SyncOutcome {
   const SyncOutcome({
     this.uploaded = 0,
     this.restored = 0,
     this.skipped = const {},
+    this.refusal,
     this.failure,
   });
+
+  /// Set when Eter declined before contacting the mirror at all.
+  final SyncRefusal? refusal;
 
   /// Documents written to the mirror.
   final int uploaded;

@@ -3,12 +3,20 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../db/app_database.dart';
+import '../i18n/language.dart';
+import '../i18n/strings.dart';
 
 /// Prepares a factual seven-day review entirely on device.
 ///
 /// The result is intentionally descriptive rather than advisory. It records
 /// which canonical inputs were present, never fills missing days with zero,
 /// and remains useful when no model transport or AI consent exists.
+///
+/// Written in the profile's language. This is the one piece of prose in the
+/// product that Eter composes itself rather than asking Aether for, so it is
+/// also the one that would have stayed English in a translated build — and it is
+/// stored, so it would have stayed English on screen too. The stored row is
+/// discarded when the language changes; see `AppDatabase.chooseLanguage`.
 class LocalWeeklyRetrospective {
   LocalWeeklyRetrospective(this.database);
 
@@ -17,6 +25,9 @@ class LocalWeeklyRetrospective {
   Future<WeeklyRetrospectiveResult?> prepare({
     required DateTime now,
   }) async {
+    final strings = EterStrings.forLanguage(
+      AppLanguage.forProfile((await database.loadProfile())?.language),
+    );
     final today = DateTime(now.year, now.month, now.day);
     final endExclusive = today;
     final start = endExclusive.subtract(const Duration(days: 7));
@@ -45,54 +56,43 @@ class LocalWeeklyRetrospective {
       // The v1 schema cannot distinguish an unavailable step count from its
       // default zero, so only positive counts are described as measured.
       final stepDays = summaries.where((row) => row.steps > 0).toList();
-      final movement = StringBuffer(
-        'Movement was recorded on ${summaries.length} of 7 days, averaging '
-        '${activeAverage.round()} active kcal on recorded days',
-      );
-      if (stepDays.isNotEmpty) {
-        final stepAverage =
-            stepDays.fold<int>(0, (sum, row) => sum + row.steps) ~/
-                stepDays.length;
-        movement.write(
-          ' and $stepAverage steps across ${stepDays.length} measured '
-          '${stepDays.length == 1 ? 'day' : 'days'}',
-        );
-      }
-      passages.add('$movement.');
+      passages.add(strings.retrospectiveMovement(
+        days: summaries.length,
+        averageActiveKcal: activeAverage.round(),
+        averageSteps: stepDays.isEmpty
+            ? null
+            : stepDays.fold<int>(0, (sum, row) => sum + row.steps) ~/
+                stepDays.length,
+        stepDays: stepDays.isEmpty ? null : stepDays.length,
+      ));
     }
 
     final sleepByNight = _sleepMinutesByNight(sleep);
     if (sleepByNight.isNotEmpty) {
       final average =
           sleepByNight.values.reduce((a, b) => a + b) / sleepByNight.length;
-      passages.add(
-        'Sleep was available for ${sleepByNight.length} of 7 nights, '
-        'averaging ${(average / 60).toStringAsFixed(1)} hours.',
-      );
+      passages.add(strings.retrospectiveSleep(
+        nights: sleepByNight.length,
+        averageHours: (average / 60).toStringAsFixed(1),
+      ));
     }
     if (journal.isNotEmpty) {
-      passages.add(
-        'You made ${journal.length} journal '
-        '${journal.length == 1 ? 'entry' : 'entries'} during this window.',
-      );
+      passages.add(strings.retrospectiveJournal(journal.length));
     }
     if (lifestyle.isNotEmpty) {
       final kinds = lifestyle.map((entry) => entry.kind).toSet().toList()
         ..sort();
-      passages.add(
-        '${lifestyle.length} self-reported '
-        '${lifestyle.length == 1 ? 'signal was' : 'signals were'} recorded '
-        'across ${kinds.join(', ')}.',
-      );
+      passages.add(strings.retrospectiveLifestyle(
+        signals: lifestyle.length,
+        kinds: kinds,
+      ));
     }
 
     final content = jsonEncode({
       'schemaVersion': 1,
-      'headline': summaries.length == 7
-          ? 'Your seven-day view'
-          : 'Your partial seven-day view',
+      'headline': strings.retrospectiveHeadline(complete: summaries.length == 7),
       'passages': passages,
-      'caveat': 'Missing days are omitted, not treated as zero.',
+      'caveat': strings.retrospectiveCaveat,
     });
     final evidence = jsonEncode({
       'window': '$periodStart to $periodEnd',

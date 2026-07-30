@@ -6,6 +6,7 @@ import '../aether/guidance_mode.dart';
 import '../aether/safety_policy.dart';
 import '../ai/prompts.dart';
 import '../db/app_database.dart';
+import '../i18n/language.dart';
 import '../symbolic/transits.dart';
 
 class PositionsException implements Exception {
@@ -141,6 +142,7 @@ class PositionsComposer {
       mode: mode,
       transits: reading.toJson(),
       ascendantReliable: ascendantReliable,
+      language: AppLanguage.forProfile(profile?.language),
     );
     final raw = await transport.compose(PositionsProviderRequest(
       system: prompt.system,

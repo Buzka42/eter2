@@ -51,6 +51,16 @@ class Profiles extends Table {
   TextColumn get startSurface =>
       text().withDefault(const Constant('dashboard'))();
 
+  /// `en` | `pl`. Which language Eter speaks — see `core/i18n/language.dart`.
+  ///
+  /// Nullable, and null means "nobody has chosen", which is a different fact
+  /// from "chose English". An unchosen language follows the phone on every
+  /// launch, so somebody who switches their OS to Polish is met in Polish; a
+  /// chosen one is theirs and stops following anything. Defaulting the column to
+  /// `'en'` would have quietly converted the first launch into a choice and
+  /// stranded every Polish-speaking install in English.
+  TextColumn get language => text().nullable()();
+
   /// Birth data. Nullable because only the date is required; the chart
   /// degrades gracefully without a time or place.
   IntColumn get birthTimeMinutes => integer().nullable()();

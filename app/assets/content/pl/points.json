@@ -1,0 +1,123 @@
+{
+  "_comment": "Polski. Nazwy punktów odpowiadają dokładnie temu, co emituje NatalChartEngine, i nigdy nie są tłumaczone.",
+  "schemaVersion": 1,
+  "points": [
+    {
+      "name": "Sun",
+      "domain": "istota siebie",
+      "keywords": [
+        "tożsamość",
+        "witalność",
+        "cel"
+      ]
+    },
+    {
+      "name": "Moon",
+      "domain": "wewnętrzna pogoda",
+      "keywords": [
+        "uczucie",
+        "instynkt",
+        "potrzeba"
+      ]
+    },
+    {
+      "name": "Mercury",
+      "domain": "umysł i mowa",
+      "keywords": [
+        "myśl",
+        "wymiana",
+        "uczenie się"
+      ]
+    },
+    {
+      "name": "Venus",
+      "domain": "przyciąganie i wartość",
+      "keywords": [
+        "miłość",
+        "piękno",
+        "wartość własna"
+      ]
+    },
+    {
+      "name": "Mars",
+      "domain": "napęd i stanowczość",
+      "keywords": [
+        "działanie",
+        "pragnienie",
+        "konflikt"
+      ]
+    },
+    {
+      "name": "Jupiter",
+      "domain": "rozszerzenie i sens",
+      "keywords": [
+        "wzrost",
+        "wiara",
+        "sposobność"
+      ]
+    },
+    {
+      "name": "Saturn",
+      "domain": "granica i struktura",
+      "keywords": [
+        "dyscyplina",
+        "czas",
+        "następstwo"
+      ]
+    },
+    {
+      "name": "Uranus",
+      "domain": "zakłócenie i wolność",
+      "keywords": [
+        "zmiana",
+        "wynalazczość",
+        "zerwanie"
+      ]
+    },
+    {
+      "name": "Neptune",
+      "domain": "rozpuszczenie i sen",
+      "keywords": [
+        "wyobraźnia",
+        "tęsknota",
+        "rozmycie"
+      ]
+    },
+    {
+      "name": "Pluto",
+      "domain": "głębia i moc",
+      "keywords": [
+        "przemiana",
+        "przymus",
+        "odnowa"
+      ]
+    },
+    {
+      "name": "North Node",
+      "domain": "kierunek wzrostu",
+      "keywords": [
+        "powołanie",
+        "nieznane",
+        "przed siebie"
+      ]
+    },
+    {
+      "name": "Ascendant",
+      "domain": "punkt spotkania",
+      "keywords": [
+        "sposób",
+        "obejście",
+        "próg"
+      ]
+    },
+    {
+      "name": "Midheaven",
+      "domain": "życie widoczne",
+      "keywords": [
+        "powołanie zawodowe",
+        "pozycja",
+        "zamiar"
+      ]
+    }
+  ]
+}

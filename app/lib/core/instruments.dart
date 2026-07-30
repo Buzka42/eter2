@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'controls.dart';
+import 'i18n/strings.dart';
 import 'tokens.dart';
 
 /// Engraved instruments — the widgets that render live data.
@@ -69,6 +70,7 @@ class EngravedBalance extends StatelessWidget {
                 intake: intake,
                 burn: burn,
                 style: text,
+                strings: EterStrings.of(context),
               ),
             ),
           ],
@@ -265,12 +267,14 @@ class _PanLabels extends StatelessWidget {
     required this.intake,
     required this.burn,
     required this.style,
+    required this.strings,
   });
 
   final double tiltDegrees;
   final double intake;
   final double burn;
   final TextTheme style;
+  final EterStrings strings;
 
   @override
   Widget build(BuildContext context) {
@@ -294,8 +298,8 @@ class _PanLabels extends StatelessWidget {
             );
         return Stack(
           children: [
-            figure(g.leftPan, 'Eaten', intake),
-            figure(g.rightPan, 'Burned', burn),
+            figure(g.leftPan, strings.balanceEaten, intake),
+            figure(g.rightPan, strings.balanceBurned, burn),
           ],
         );
       },
@@ -327,11 +331,17 @@ class EngravedTrend extends StatelessWidget {
     final low = values.reduce(math.min);
     final high = values.reduce(math.max);
     final latest = values.last;
+    final strings = EterStrings.of(context);
     return Semantics(
       container: true,
-      label: '$label, ${values.length} readings. Latest '
-          '${_figure(latest)} $unit. Range ${_figure(low)} to '
-          '${_figure(high)} $unit.',
+      label: strings.trendSemantic(
+        label: label,
+        readings: values.length,
+        latest: _figure(latest),
+        unit: unit,
+        low: _figure(low),
+        high: _figure(high),
+      ),
       child: ExcludeSemantics(
         child: SizedBox(
           height: height,
@@ -358,7 +368,7 @@ class EngravedTrend extends StatelessWidget {
                 left: 0,
                 bottom: 0,
                 child: Text(
-                  '${values.length} DAYS',
+                  strings.trendDayCount(values.length),
                   style: text.labelSmall?.copyWith(color: ink.labelMuted),
                 ),
               ),
@@ -445,12 +455,13 @@ class EngravedSleepStages extends StatelessWidget {
     if (total <= 0) return const SizedBox.shrink();
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     final summary = minutesByStage.entries
-        .map((entry) => '${entry.key} ${entry.value} minutes')
+        .map((entry) => strings.sleepStageSemanticEntry(entry.key, entry.value))
         .join(', ');
     return Semantics(
       container: true,
-      label: 'Sleep stages. $summary.',
+      label: strings.sleepStagesSemantic(summary),
       // The rail carries the proportions; the legend beneath carries the
       // values, and each legend entry is struck in its own stage's weight so
       // the two read as one instrument. Positional alignment was tried first
@@ -495,7 +506,7 @@ class EngravedSleepStages extends StatelessWidget {
                       ),
                       const SizedBox(width: EterSpace.s8),
                       Text(
-                        '${entry.key.toUpperCase()} ${entry.value}m',
+                        strings.sleepStageMinutes(entry.key, entry.value),
                         style: text.labelSmall,
                       ),
                     ],
@@ -539,17 +550,23 @@ class EngravedSleepHistory extends StatelessWidget {
             .where((stage) => stage.key != 'awake')
             .fold<int>(0, (sum, stage) => sum + stage.value),
     ];
+    final strings = EterStrings.of(context);
     final average = totals.fold<int>(0, (a, b) => a + b) / totals.length;
     final summary = nights.indexed.map((entry) {
       final stages = entry.$2.entries
-          .map((stage) => '${stage.key} ${stage.value} minutes')
+          .map((stage) =>
+              strings.sleepStageSemanticEntry(stage.key, stage.value))
           .join(', ');
-      return 'Night ${entry.$1 + 1}: $stages';
+      return strings.sleepNightSemantic(entry.$1 + 1, stages);
     }).join('. ');
     return Semantics(
       container: true,
-      label: '$windowDays day sleep history, ${nights.length} nights. '
-          'Average ${(average / 60).toStringAsFixed(1)} hours. $summary.',
+      label: strings.sleepHistorySemantic(
+        windowDays: windowDays,
+        nights: nights.length,
+        averageHours: (average / 60).toStringAsFixed(1),
+        nightSummary: summary,
+      ),
       child: ExcludeSemantics(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,7 +582,7 @@ class EngravedSleepHistory extends StatelessWidget {
             child: Align(
               alignment: Alignment.topRight,
               child: Text(
-                '${(average / 60).toStringAsFixed(1)} h AVG',
+                strings.averageHoursMark((average / 60).toStringAsFixed(1)),
                 style: Theme.of(context).textTheme.labelSmall,
               ),
             ),
@@ -583,18 +600,14 @@ class EngravedSleepHistory extends StatelessWidget {
               spacing: EterSpace.s12,
               runSpacing: EterSpace.s4,
               children: [
-                for (final entry in const [
-                  (label: 'Deep', stage: 'deep'),
-                  (label: 'Light', stage: 'light'),
-                  (label: 'REM', stage: 'rem'),
-                ])
+                for (final stage in const ['deep', 'light', 'rem'])
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         width: 10,
                         height: 6,
-                        color: switch (entry.stage) {
+                        color: switch (stage) {
                           'deep' => ink.lineStrong,
                           'rem' => ink.lineStrong.withValues(alpha: .65),
                           _ => ink.line,
@@ -602,7 +615,7 @@ class EngravedSleepHistory extends StatelessWidget {
                       ),
                       const SizedBox(width: EterSpace.s4),
                       Text(
-                        entry.label,
+                        strings.sleepStageName(stage),
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                     ],
@@ -694,17 +707,22 @@ class EngravedActivityDay extends StatelessWidget {
   Widget build(BuildContext context) {
     if (kcalByHour.length != 24) return const SizedBox.shrink();
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final total = kcalByHour.fold<double>(0, (a, b) => a + b);
     final active = [
       for (var hour = 0; hour < 24; hour++)
         if (kcalByHour[hour] > 0)
-          '${hour.toString().padLeft(2, '0')}:00 '
-              '${kcalByHour[hour].round()} kilocalories',
+          strings.activityHourSemantic(
+            clock: '${hour.toString().padLeft(2, '0')}:00',
+            kcal: kcalByHour[hour].round(),
+          ),
     ].join(', ');
     return Semantics(
       container: true,
-      label: 'Activity by time of day. Total ${total.round()} '
-          'kilocalories. $active.',
+      label: strings.activityDaySemantic(
+        totalKilocalories: '${total.round()}',
+        detail: active,
+      ),
       child: ExcludeSemantics(
         child: SizedBox(
           height: 112,

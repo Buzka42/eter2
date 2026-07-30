@@ -77,7 +77,7 @@ void main() {
       final outcome = await sync.push(confirmed);
 
       expect(outcome.uploaded, 0);
-      expect(outcome.failure, contains('off'));
+      expect(outcome.refusal, SyncRefusal.cloudContinuityOff);
       expect(mirror.writes, isEmpty);
     });
 
@@ -90,7 +90,8 @@ void main() {
       expect(outcome.uploaded, greaterThan(0));
       expect(mirror.collections, contains('weights'));
       expect(mirror.collections, isNot(contains('journal')));
-      expect(outcome.skipped['journalEntries'], contains('stay on this device'));
+      expect(
+          outcome.skipped['journalEntries'], contains('stay on this device'));
     });
 
     test('allowing the journal separately sends the pages', () async {
@@ -100,7 +101,8 @@ void main() {
       await sync.push(confirmed);
 
       expect(mirror.collections, contains('journal'));
-      expect(mirror.writes['journal']!.values.single['text'], 'A private page.');
+      expect(
+          mirror.writes['journal']!.values.single['text'], 'A private page.');
     });
 
     test('withdrawing cloud continuity withdraws the journal with it',
@@ -121,7 +123,7 @@ void main() {
 
       expect(outcome.uploaded, 0);
       expect(mirror.writes, isEmpty);
-      expect(outcome.failure, contains('Confirm your email'));
+      expect(outcome.refusal, SyncRefusal.confirmEmailBeforeCopying);
     });
   });
 
@@ -201,7 +203,7 @@ void main() {
       final outcome = await sync.restore(confirmed);
 
       expect(outcome.restored, 0);
-      expect(outcome.failure, contains('already has history'));
+      expect(outcome.refusal, SyncRefusal.deviceAlreadyHasHistory);
     });
 
     test('brings the record onto an empty device', () async {
@@ -213,8 +215,8 @@ void main() {
       // Another opens it.
       final fresh = AppDatabase(NativeDatabase.memory());
       addTearDown(fresh.close);
-      final restored = await SyncService(database: fresh, mirror: mirror)
-          .restore(confirmed);
+      final restored =
+          await SyncService(database: fresh, mirror: mirror).restore(confirmed);
 
       expect(restored.failure, isNull);
       expect(restored.restored, greaterThan(0));
@@ -246,10 +248,10 @@ void main() {
     test('an unconfirmed account restores nothing', () async {
       final fresh = AppDatabase(NativeDatabase.memory());
       addTearDown(fresh.close);
-      final outcome =
-          await SyncService(database: fresh, mirror: mirror).restore(unconfirmed);
+      final outcome = await SyncService(database: fresh, mirror: mirror)
+          .restore(unconfirmed);
       expect(outcome.restored, 0);
-      expect(outcome.failure, contains('Confirm'));
+      expect(outcome.refusal, SyncRefusal.confirmEmailFirst);
     });
 
     test('restored rows are already marked synced, not re-uploaded', () async {
@@ -285,7 +287,7 @@ void main() {
   test('nothing is sent for a device with no profile', () async {
     final outcome = await sync.push(confirmed);
     expect(outcome.uploaded, 0);
-    expect(outcome.failure, isNotNull);
+    expect(outcome.refusal, SyncRefusal.nothingToSync);
     expect(mirror.writes, isEmpty);
   });
 }

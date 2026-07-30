@@ -13,6 +13,8 @@ import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
+import '../../core/i18n/language.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/privacy/local_data_export.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/profile/birth_context.dart';
@@ -36,6 +38,7 @@ class SanctumOverlay extends ConsumerWidget {
     final night = Theme.of(context).brightness == Brightness.dark;
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
 
     return SurfaceIntentScope(
       intent: SurfaceIntent.plain,
@@ -60,43 +63,49 @@ class SanctumOverlay extends ConsumerWidget {
                     ),
                     const SizedBox(height: EterSpace.s48),
                     Text(
-                      'How Eter meets you',
+                      strings.howEterMeetsYou,
                       style: text.displaySmall?.copyWith(fontSize: 30),
                     ),
                     const SizedBox(height: EterSpace.s8),
                     Text(
                       profile?.cloudSyncConsentAt == null
-                          ? 'Your history stays on this device. Cloud sync is '
-                              'off.'
-                          : 'Cloud continuity is allowed. You can revoke it '
-                              'below.',
+                          ? strings.historyStaysOnThisDevice
+                          : strings.cloudContinuityAllowed,
                       style: text.bodyMedium?.copyWith(color: ink.labelMuted),
                     ),
                     const SizedBox(height: EterSpace.s32),
                     _ChoiceGroup(
-                      heading: 'OPENING PAGE',
+                      id: 'opening-page',
+                      heading: strings.headingOpeningPage,
                       value: profile?.startSurface ?? 'dashboard',
-                      choices: const {
-                        'journal': 'Journal',
-                        'dashboard': 'Dashboard',
+                      choices: {
+                        'journal': strings.choiceJournal,
+                        'dashboard': strings.choiceDashboard,
                       },
                       onChanged: (value) => db.updateProfilePreferences(
                         startSurface: value,
                       ),
                     ),
                     const SizedBox(height: EterSpace.s32),
+                    // Above the register and the consents, because it governs
+                    // both of their wording: reading them in a language you do
+                    // not speak in order to find the language setting is the
+                    // one ordering that cannot work.
+                    _LanguageChoice(database: db, profile: profile),
+                    const SizedBox(height: EterSpace.s32),
                     _ChoiceGroup(
-                      heading: 'GUIDANCE REGISTER',
+                      id: 'guidance-register',
+                      heading: strings.headingGuidanceRegister,
                       value: profile?.guidanceMode ?? 'balanced',
-                      choices: const {
-                        'grounded': 'Grounded',
-                        'balanced': 'Balanced',
-                        'immersive': 'Immersive',
+                      choices: {
+                        'grounded': strings.registerGrounded,
+                        'balanced': strings.registerBalanced,
+                        'immersive': strings.registerImmersive,
                       },
-                      descriptions: const {
-                        'grounded': 'Daylight clarity at every hour.',
-                        'balanced': 'Changes with sunrise and sunset.',
-                        'immersive': 'The deeper night register.',
+                      descriptions: {
+                        'grounded': strings.registerGroundedDetail,
+                        'balanced': strings.registerBalancedDetail,
+                        'immersive': strings.registerImmersiveDetail,
                       },
                       onChanged: (value) => db.updateProfilePreferences(
                         guidanceMode: value,
@@ -111,25 +120,24 @@ class SanctumOverlay extends ConsumerWidget {
                     const SizedBox(height: EterSpace.s32),
                     Container(height: 1, color: ink.line),
                     const SizedBox(height: EterSpace.s24),
-                    Text('YOUR DATA', style: text.labelSmall),
+                    Text(strings.headingYourData, style: text.labelSmall),
                     const SizedBox(height: EterSpace.s12),
                     Text(
-                      'Each permission is independent and can be revoked. '
-                      'Revoking AI also turns off journal-aware guidance.',
+                      strings.permissionsAreIndependent,
                       style: text.bodyMedium,
                     ),
                     const SizedBox(height: EterSpace.s16),
                     _ChoiceGroup(
-                      heading: 'AI GUIDANCE',
+                      id: 'ai-guidance',
+                      heading: strings.headingAiGuidance,
                       value: profile?.aiConsentAt == null ? 'off' : 'allowed',
-                      choices: const {
-                        'off': 'Off',
-                        'allowed': 'Allowed',
+                      choices: {
+                        'off': strings.off,
+                        'allowed': strings.allowed,
                       },
-                      descriptions: const {
-                        'off': 'No health context leaves this device for AI.',
-                        'allowed':
-                            'Selected context may be sent to compose guidance.',
+                      descriptions: {
+                        'off': strings.aiGuidanceOffDetail,
+                        'allowed': strings.aiGuidanceAllowedDetail,
                       },
                       onChanged: profile == null
                           ? null
@@ -139,18 +147,18 @@ class SanctumOverlay extends ConsumerWidget {
                     ),
                     const SizedBox(height: EterSpace.s24),
                     _ChoiceGroup(
-                      heading: 'JOURNAL-AWARE GUIDANCE',
+                      id: 'journal-aware-guidance',
+                      heading: strings.headingJournalAwareGuidance,
                       value: profile?.journalAiConsentAt == null
                           ? 'off'
                           : 'allowed',
-                      choices: const {
-                        'off': 'Off',
-                        'allowed': 'Allowed',
+                      choices: {
+                        'off': strings.off,
+                        'allowed': strings.allowed,
                       },
-                      descriptions: const {
-                        'off': 'Journal prose is never sent.',
-                        'allowed': 'Only entries not marked Keep local may be '
-                            'included.',
+                      descriptions: {
+                        'off': strings.journalAwareOffDetail,
+                        'allowed': strings.journalAwareAllowedDetail,
                       },
                       onChanged: profile == null
                           ? null
@@ -160,18 +168,18 @@ class SanctumOverlay extends ConsumerWidget {
                     ),
                     const SizedBox(height: EterSpace.s24),
                     _ChoiceGroup(
-                      heading: 'CLOUD CONTINUITY',
+                      id: 'cloud-continuity',
+                      heading: strings.headingCloudContinuity,
                       value: profile?.cloudSyncConsentAt == null
                           ? 'off'
                           : 'allowed',
-                      choices: const {
-                        'off': 'Local only',
-                        'allowed': 'Allowed',
+                      choices: {
+                        'off': strings.localOnly,
+                        'allowed': strings.allowed,
                       },
-                      descriptions: const {
-                        'off': 'No account copy is created.',
-                        'allowed': 'Eligible documents may mirror to your '
-                            'account when sync is connected.',
+                      descriptions: {
+                        'off': strings.cloudOffDetail,
+                        'allowed': strings.cloudAllowedDetail,
                       },
                       onChanged: profile == null
                           ? null
@@ -185,19 +193,18 @@ class SanctumOverlay extends ConsumerWidget {
                     // agreeing to keep a copy of your weights is not agreeing
                     // to keep a copy of what you wrote at 2am.
                     _ChoiceGroup(
-                      heading: 'JOURNAL IN THE MIRROR',
+                      id: 'journal-in-the-mirror',
+                      heading: strings.headingJournalInTheMirror,
                       value: profile?.journalCloudSyncConsentAt == null
                           ? 'off'
                           : 'allowed',
-                      choices: const {
-                        'off': 'Stays here',
-                        'allowed': 'Allowed',
+                      choices: {
+                        'off': strings.staysHere,
+                        'allowed': strings.allowed,
                       },
-                      descriptions: const {
-                        'off': 'Your pages exist on this device only, and are '
-                            'lost with it.',
-                        'allowed': 'Pages are copied too, and come back on a '
-                            'new phone.',
+                      descriptions: {
+                        'off': strings.journalMirrorOffDetail,
+                        'allowed': strings.journalMirrorAllowedDetail,
                       },
                       onChanged: profile == null
                           ? null
@@ -207,18 +214,18 @@ class SanctumOverlay extends ConsumerWidget {
                     ),
                     const SizedBox(height: EterSpace.s24),
                     _ChoiceGroup(
-                      heading: 'CRASH REPORTS',
+                      id: 'crash-reports',
+                      heading: strings.headingCrashReports,
                       value: profile?.crashReportConsentAt == null
                           ? 'off'
                           : 'allowed',
-                      choices: const {
-                        'off': 'Off',
-                        'allowed': 'Allowed',
+                      choices: {
+                        'off': strings.off,
+                        'allowed': strings.allowed,
                       },
-                      descriptions: const {
-                        'off': 'Nothing is sent when Eter fails.',
-                        'allowed': 'Send the error and your device model when '
-                            'Eter fails. Never your records.',
+                      descriptions: {
+                        'off': strings.crashReportsOffDetail,
+                        'allowed': strings.crashReportsAllowedDetail,
                       },
                       onChanged: profile == null
                           ? null
@@ -261,6 +268,76 @@ class SanctumOverlay extends ConsumerWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Choosing the language, and saying what choosing it costs.
+///
+/// The choice is not just a relabelling: composed passages are discarded, and a
+/// person who has been reading Eter for a month should be told that before the
+/// paragraph they were reading disappears. The note under the group says it up
+/// front and the live message afterwards says what actually happened, in the
+/// language they just switched *to* — which is also the first sentence of the new
+/// language they will read, and so has to be worth reading.
+class _LanguageChoice extends StatefulWidget {
+  const _LanguageChoice({required this.database, required this.profile});
+
+  final AppDatabase database;
+  final ProfileRow? profile;
+
+  @override
+  State<_LanguageChoice> createState() => _LanguageChoiceState();
+}
+
+class _LanguageChoiceState extends State<_LanguageChoice> {
+  int? _cleared;
+
+  Future<void> _choose(String code) async {
+    final cleared = await widget.database.chooseLanguage(code);
+    // Only when something was actually discarded. Switching to the language
+    // already in force clears nothing and should say nothing.
+    if (mounted && cleared > 0) setState(() => _cleared = cleared);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    // An unchosen language shows whatever the phone resolved to, so the group
+    // marks what the person is actually reading rather than nothing at all.
+    final active = widget.profile?.language ?? strings.language.code;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _ChoiceGroup(
+          id: 'language',
+          heading: strings.headingLanguage,
+          value: active,
+          // Each language names itself in itself — see `AppLanguage.endonym`.
+          choices: {
+            for (final language in AppLanguage.values)
+              language.code: language.endonym,
+          },
+          onChanged: widget.profile == null ? null : _choose,
+        ),
+        Text(
+          strings.languageDetail,
+          style: text.bodySmall?.copyWith(color: ink.labelMuted),
+        ),
+        if (_cleared case final cleared?)
+          Semantics(
+            liveRegion: true,
+            child: Padding(
+              padding: const EdgeInsets.only(top: EterSpace.s4),
+              child: Text(
+                strings.languageChanged(cleared),
+                style: text.bodySmall,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -344,16 +421,16 @@ class _BirthContextState extends State<_BirthContext> {
     if (minutes == null || !mounted || _offset.text.trim().isNotEmpty) return;
     setState(() {
       _offset.text = BirthOffset.format(minutes);
-      _message = 'Offset suggested from this phone’s timezone on that date, '
-          'summer time included. Correct it if you were born elsewhere.';
+      _message = EterStrings.of(context).offsetSuggestedFromPhone;
     });
   }
 
   Future<void> _save() async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
-      _message = 'Locating this birth context…';
+      _message = strings.locatingBirthContext;
     });
     try {
       await BirthContextService(
@@ -370,13 +447,13 @@ class _BirthContextState extends State<_BirthContext> {
       setState(() {
         _busy = false;
         _editing = false;
-        _message = 'Birth context saved on this device.';
+        _message = strings.birthContextSaved;
       });
-    } on BirthContextException catch (error) {
+    } on BirthContextException catch (failure) {
       if (!mounted) return;
       setState(() {
         _busy = false;
-        _message = error.message;
+        _message = strings.birthContextError(failure.error);
       });
     }
   }
@@ -385,6 +462,7 @@ class _BirthContextState extends State<_BirthContext> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     final profile = widget.profile;
     final exact = profile?.birthTimeMinutes != null &&
         profile?.birthUtcOffsetMinutes != null &&
@@ -393,15 +471,16 @@ class _BirthContextState extends State<_BirthContext> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('BIRTH CONTEXT', style: text.labelSmall),
+        Text(strings.headingBirthContext, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         Text(
           exact
-              ? '${profile!.birthPlace ?? 'Located place'} · '
-                  '${_formatTime(profile.birthTimeMinutes!)} · '
-                  'UTC${_formatOffset(profile.birthUtcOffsetMinutes!)}'
-              : 'Provisional. Add exact local time, its UTC offset, and a '
-                  'place to improve chart reliability.',
+              ? strings.birthContextSummary(
+                  place: profile!.birthPlace ?? strings.locatedPlace,
+                  time: _formatTime(profile.birthTimeMinutes!),
+                  utcOffset: _formatOffset(profile.birthUtcOffsetMinutes!),
+                )
+              : strings.birthContextProvisional,
           style: text.bodyMedium?.copyWith(
             color: exact ? null : ink.labelMuted,
           ),
@@ -412,18 +491,18 @@ class _BirthContextState extends State<_BirthContext> {
           // part of the day. Offering only "exact or nothing" turned real
           // knowledge into either a false certainty or a shrug.
           _ChoiceGroup(
-            heading: 'HOW WELL IS THE TIME KNOWN',
+            id: 'time-precision',
+            heading: strings.headingHowWellIsTimeKnown,
             value: _precision.name,
-            choices: const {
-              'exact': 'To the minute',
-              'approximate': 'Roughly',
-              'unknown': 'Not at all',
+            choices: {
+              'exact': strings.precisionExact,
+              'approximate': strings.precisionApproximate,
+              'unknown': strings.precisionUnknown,
             },
-            descriptions: const {
-              'exact': 'From a record. The ascendant is stated plainly.',
-              'approximate': 'A remembered part of the day. The chart is '
-                  'drawn, and every angle says it is provisional.',
-              'unknown': 'The chart is drawn for noon and says so.',
+            descriptions: {
+              'exact': strings.precisionExactDetail,
+              'approximate': strings.precisionApproximateDetail,
+              'unknown': strings.precisionUnknownDetail,
             },
             onChanged: _busy
                 ? null
@@ -438,23 +517,24 @@ class _BirthContextState extends State<_BirthContext> {
               controller: _time,
               enabled: !_busy,
               keyboardType: TextInputType.datetime,
-              decoration: const InputDecoration(
-                labelText: 'Local birth time · HH:MM',
+              decoration: InputDecoration(
+                labelText: strings.fieldLocalBirthTime,
               ),
             ),
           ],
           if (_precision == BirthTimePrecision.approximate) ...[
             const SizedBox(height: EterSpace.s12),
             _ChoiceGroup(
-              heading: 'WHICH PART OF THE DAY',
+              id: 'birth-period',
+              heading: strings.headingWhichPartOfDay,
               value: (_period ?? BirthTimePeriod.morning).name,
               choices: {
                 for (final period in BirthTimePeriod.values)
-                  period.name: period.label,
+                  period.name: strings.birthPeriodLabel(period),
               },
               descriptions: {
                 for (final period in BirthTimePeriod.values)
-                  period.name: period.detail,
+                  period.name: strings.birthPeriodDetail(period),
               },
               onChanged: _busy
                   ? null
@@ -470,8 +550,8 @@ class _BirthContextState extends State<_BirthContext> {
             controller: _offset,
             enabled: !_busy,
             keyboardType: TextInputType.datetime,
-            decoration: const InputDecoration(
-              labelText: 'UTC offset at birth · for example +01:00',
+            decoration: InputDecoration(
+              labelText: strings.fieldUtcOffsetAtBirth,
             ),
           ),
           const SizedBox(height: EterSpace.s12),
@@ -480,14 +560,13 @@ class _BirthContextState extends State<_BirthContext> {
             controller: _place,
             enabled: !_busy,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Birth city and country',
+            decoration: InputDecoration(
+              labelText: strings.fieldBirthCityAndCountry,
             ),
           ),
           const SizedBox(height: EterSpace.s8),
           Text(
-            'Place lookup uses the device geocoder. The label and coordinates '
-            'are stored locally.',
+            strings.placeLookupNote,
             style: text.bodySmall?.copyWith(color: ink.labelMuted),
           ),
         ],
@@ -497,7 +576,7 @@ class _BirthContextState extends State<_BirthContext> {
           children: [
             EterAction(
               key: const ValueKey('birth-context-primary-action'),
-              label: _editing ? 'Save' : 'Edit',
+              label: _editing ? strings.save : strings.edit,
               emphasis: EterActionEmphasis.quiet,
               busy: _busy,
               onPressed: widget.profile == null || _busy
@@ -511,7 +590,7 @@ class _BirthContextState extends State<_BirthContext> {
             ),
             if (_editing)
               EterAction(
-                label: 'Cancel',
+                label: strings.cancel,
                 emphasis: EterActionEmphasis.quiet,
                 onPressed: _busy
                     ? null
@@ -566,9 +645,10 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
 
   Future<void> _review() async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
-      _message = 'Reviewing recent local signals…';
+      _message = strings.reviewing;
     });
     final result = await LocalPatternDiscovery(widget.database).review(
       now: DateTime.now(),
@@ -578,17 +658,20 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _busy = false;
       _patterns = widget.database.loadActivePatterns();
       _message = result.activePatterns == 0
-          ? 'Not enough consistent local evidence yet.'
-          : '${result.activePatterns} local pattern refreshed from '
-              '${result.observations} observations.';
+          ? strings.notEnoughConsistentEvidence
+          : strings.patternsRefreshed(
+              patterns: result.activePatterns,
+              observations: result.observations,
+            );
     });
   }
 
   Future<void> _prepareWeek() async {
     if (_busy) return;
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
-      _message = 'Preparing a factual seven-day view…';
+      _message = strings.preparingSevenDayView;
     });
     final result = await LocalWeeklyRetrospective(widget.database).prepare(
       now: DateTime.now(),
@@ -598,17 +681,18 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _busy = false;
       _retrospectives = widget.database.loadRetrospectives(limit: 1);
       _message = result == null
-          ? 'There is not enough local history for a weekly view yet.'
-          : 'Seven-day view prepared on this device.';
+          ? strings.notEnoughHistoryForWeekly
+          : strings.sevenDayViewPrepared;
     });
   }
 
   Future<void> _dismiss(String key) async {
+    final strings = EterStrings.of(context);
     await widget.database.dismissPattern(key);
     if (mounted) {
       setState(() {
         _patterns = widget.database.loadActivePatterns();
-        _message = 'Pattern dismissed. Aether will not use it.';
+        _message = strings.patternDismissed;
       });
     }
   }
@@ -621,11 +705,11 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
   /// and the least likely to be read again; what they ate that day is a fact
   /// about their history and stays.
   Future<void> _pruneProse() async {
+    final strings = EterStrings.of(context);
     if (!_confirmPrune) {
       setState(() {
         _confirmPrune = true;
-        _message = 'This clears the text of journal pages older than a year. '
-            'Meals, workouts and check-ins derived from them stay.';
+        _message = strings.pruneProseWarning;
       });
       return;
     }
@@ -638,17 +722,17 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _busy = false;
       _confirmPrune = false;
       _message = cleared == 0
-          ? 'No pages are older than a year.'
-          : 'Cleared the text of $cleared page${cleared == 1 ? '' : 's'}.';
+          ? strings.noPagesOlderThanAYear
+          : strings.clearedPageText(cleared);
     });
   }
 
   Future<void> _reset() async {
+    final strings = EterStrings.of(context);
     if (!_confirmReset) {
       setState(() {
         _confirmReset = true;
-        _message = 'This removes composed guidance, learned patterns, and '
-            'retrospectives. Your journal and health history stay.';
+        _message = strings.resetPersonalizationWarning;
       });
       return;
     }
@@ -661,8 +745,8 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _patterns = widget.database.loadActivePatterns();
       _retrospectives = widget.database.loadRetrospectives(limit: 1);
       _message = result.total == 0
-          ? 'Aether memory was already empty.'
-          : 'Aether memory cleared from this device.';
+          ? strings.aetherMemoryAlreadyEmpty
+          : strings.aetherMemoryCleared;
     });
   }
 
@@ -670,18 +754,15 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('AETHER MEMORY', style: text.labelSmall),
+        Text(strings.headingAetherMemory, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
-        Text(
-          'Only structured patterns are retained. Local correlations are not '
-          'treated as causes.',
-          style: text.bodyMedium,
-        ),
+        Text(strings.onlyStructuredPatternsRetained, style: text.bodyMedium),
         const SizedBox(height: EterSpace.s16),
-        Text('WEEK IN VIEW', style: text.labelSmall),
+        Text(strings.headingWeekInView, style: text.labelSmall),
         FutureBuilder<List<RetrospectiveRow>>(
           future: _retrospectives,
           builder: (context, snapshot) {
@@ -691,18 +772,18 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
               return Padding(
                 padding: const EdgeInsets.only(top: EterSpace.s8),
                 child: Text(
-                  'No weekly view has been prepared.',
+                  strings.noWeeklyViewPrepared,
                   style: text.bodySmall?.copyWith(color: ink.labelMuted),
                 ),
               );
             }
-            final review = _RetrospectiveView.tryParse(rows.first);
+            final review = _RetrospectiveView.tryParse(rows.first, strings);
             if (review == null) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.only(top: EterSpace.s8),
               child: Semantics(
                 container: true,
-                label: review.semanticLabel,
+                label: review.semanticLabel(strings),
                 child: ExcludeSemantics(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -726,13 +807,13 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
           },
         ),
         EterAction(
-          label: 'Prepare',
+          label: strings.prepare,
           emphasis: EterActionEmphasis.quiet,
           busy: _busy,
           onPressed: _busy ? null : _prepareWeek,
         ),
         const SizedBox(height: EterSpace.s16),
-        Text('LOCAL PATTERNS', style: text.labelSmall),
+        Text(strings.headingLocalPatterns, style: text.labelSmall),
         FutureBuilder<List<PatternCandidateRow>>(
           future: _patterns,
           builder: (context, snapshot) {
@@ -742,7 +823,7 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
               return Padding(
                 padding: const EdgeInsets.only(top: EterSpace.s8),
                 child: Text(
-                  'No active patterns.',
+                  strings.noActivePatterns,
                   style: text.bodySmall?.copyWith(color: ink.labelMuted),
                 ),
               );
@@ -757,15 +838,18 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
                       children: [
                         Semantics(
                           container: true,
-                          label: _patternSemantics(pattern),
+                          label: _patternSemantics(pattern, strings),
                           child: ExcludeSemantics(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(pattern.summary, style: text.titleMedium),
+                                Text(
+                                  _patternSummary(pattern, strings),
+                                  style: text.titleMedium,
+                                ),
                                 const SizedBox(height: EterSpace.s4),
                                 Text(
-                                  _patternReceipt(pattern),
+                                  _patternReceipt(pattern, strings),
                                   style: text.bodySmall?.copyWith(
                                     color: ink.labelMuted,
                                   ),
@@ -775,7 +859,7 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
                           ),
                         ),
                         EterAction(
-                          label: 'Dismiss',
+                          label: strings.dismiss,
                           emphasis: EterActionEmphasis.quiet,
                           onPressed: () => _dismiss(pattern.key),
                         ),
@@ -788,28 +872,24 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
         ),
         const SizedBox(height: EterSpace.s8),
         EterAction(
-          label: 'Review',
+          label: strings.review,
           emphasis: EterActionEmphasis.quiet,
           busy: _busy,
           onPressed: _busy ? null : _review,
         ),
         EterAction(
-          label: _confirmReset ? 'Clear now' : 'Reset',
+          label: _confirmReset ? strings.clearNow : strings.reset,
           busy: _busy,
           onPressed: _busy ? null : _reset,
         ),
         const SizedBox(height: EterSpace.s16),
-        Text('OLD PAGES', style: text.labelSmall),
+        Text(strings.headingOldPages, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
-        Text(
-          'Journal text older than a year can be cleared while the meals, '
-          'workouts and check-ins it produced stay.',
-          style: text.bodyMedium,
-        ),
+        Text(strings.oldPagesNote, style: text.bodyMedium),
         EterAction(
           // Two words at most: the section heading above already says which
           // pages, and a longer label overflows at 320 dp with text doubled.
-          label: _confirmPrune ? 'Clear now' : 'Clear',
+          label: _confirmPrune ? strings.clearNow : strings.clear,
           emphasis: EterActionEmphasis.quiet,
           busy: _busy,
           onPressed: _busy ? null : _pruneProse,
@@ -823,32 +903,89 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
     );
   }
 
-  String _patternReceipt(PatternCandidateRow pattern) {
-    final parts = <String>[
-      '${(pattern.confidence * 100).round()}% confidence',
-    ];
+  static Map<String, dynamic> _evidence(PatternCandidateRow pattern) {
     try {
-      final evidence = jsonDecode(pattern.evidenceJson);
-      if (evidence is Map<String, dynamic>) {
-        if (evidence['n'] case final num count) {
-          parts.add('$count observations');
-        }
-        if (evidence['window'] case final String window) {
-          parts.add(window);
-        }
-        if (evidence['coefficient'] case final num coefficient) {
-          final sign = coefficient > 0 ? '+' : '';
-          parts.add('$sign${coefficient.round()} min difference');
-        }
-      }
+      final decoded = jsonDecode(pattern.evidenceJson);
+      if (decoded is Map<String, dynamic>) return decoded;
     } on FormatException {
-      // The summary remains inspectable even if legacy evidence is malformed.
+      // A pattern stays inspectable even if legacy evidence is malformed.
     }
-    return '${parts.join(' · ')} · correlation, not cause';
+    return const {};
   }
 
-  String _patternSemantics(PatternCandidateRow pattern) =>
-      '${pattern.summary}. ${_patternReceipt(pattern)}.';
+  /// The finding, worded now rather than read back as a stored sentence.
+  ///
+  /// `PatternCandidates.summary` still holds the English sentence discovery
+  /// wrote, and it is still the fallback — but a pattern found last month must
+  /// read in the language chosen today, and the structured evidence beside it
+  /// says everything the sentence does. Discovery finds; this speaks.
+  String _patternSummary(PatternCandidateRow pattern, EterStrings strings) {
+    final evidence = _evidence(pattern);
+    if (pattern.key == LocalPatternDiscovery.sleepAfterLateActivityKey) {
+      if (evidence['coefficient'] case final num coefficient) {
+        return strings.patternSleepAfterLateActivity(shorter: coefficient < 0);
+      }
+    }
+    // The correlation sweep names its findings `sweep:<from><>|~><to>`, which
+    // carries both series and whether the pair was lagged. Everything else the
+    // sentence needs is in the evidence beside it, so nothing has to be parsed
+    // out of the stored English prose.
+    if (_sweepPairing(pattern.key) case final pairing?) {
+      if (evidence['explainsPercent'] case final num percent) {
+        if (evidence['days'] case final num days) {
+          return strings.patternSweepSummary(
+            fromKey: pairing.from,
+            toKey: pairing.to,
+            lagged: pairing.lagged,
+            positive: evidence['positive'] == true,
+            percent: percent.round(),
+            days: days.round(),
+          );
+        }
+      }
+    }
+    // A finding from a build before the evidence carried its own numbers. Its
+    // English sentence is all there is, and showing it beats showing nothing.
+    return pattern.summary;
+  }
+
+  /// Reads a sweep key back into the two series it compared.
+  ///
+  /// Null for any key that is not a sweep finding — the local discovery pattern,
+  /// or anything a future sweep names differently.
+  static ({String from, String to, bool lagged})? _sweepPairing(String key) {
+    if (!key.startsWith('sweep:')) return null;
+    final body = key.substring('sweep:'.length);
+    for (final (separator, lagged) in const [('>', true), ('~', false)]) {
+      final at = body.indexOf(separator);
+      if (at <= 0 || at == body.length - 1) continue;
+      return (
+        from: body.substring(0, at),
+        to: body.substring(at + 1),
+        lagged: lagged,
+      );
+    }
+    return null;
+  }
+
+  String _patternReceipt(PatternCandidateRow pattern, EterStrings strings) {
+    final evidence = _evidence(pattern);
+    return strings.patternReceipt(
+      confidencePercent: (pattern.confidence * 100).round(),
+      observations: evidence['n'] is num ? evidence['n'] : null,
+      window: evidence['window'] is String
+          ? evidence['window'] as String
+          : null,
+      coefficientMinutes:
+          evidence['coefficient'] is num ? evidence['coefficient'] as num : null,
+    );
+  }
+
+  String _patternSemantics(PatternCandidateRow pattern, EterStrings strings) =>
+      strings.patternSemantic(
+        summary: _patternSummary(pattern, strings),
+        receipt: _patternReceipt(pattern, strings),
+      );
 }
 
 class _RetrospectiveView {
@@ -864,10 +1001,17 @@ class _RetrospectiveView {
   final String caveat;
   final String window;
 
-  String get semanticLabel =>
-      '$headline. ${passages.join(' ')} $caveat Window $window.';
+  String semanticLabel(EterStrings strings) => strings.retrospectiveSemantic(
+        headline: headline,
+        passages: passages.join(' '),
+        caveat: caveat,
+        window: window,
+      );
 
-  static _RetrospectiveView? tryParse(RetrospectiveRow row) {
+  static _RetrospectiveView? tryParse(
+    RetrospectiveRow row,
+    EterStrings strings,
+  ) {
     try {
       final content = jsonDecode(row.contentJson);
       if (content is! Map<String, dynamic>) return null;
@@ -883,7 +1027,10 @@ class _RetrospectiveView {
         headline: headline,
         passages: passages,
         caveat: caveat,
-        window: '${row.periodStart} to ${row.periodEnd}',
+        window: strings.retrospectiveWindow(
+          from: row.periodStart,
+          to: row.periodEnd,
+        ),
       );
     } on FormatException {
       return null;
@@ -921,22 +1068,19 @@ class _LocalDeletionState extends State<_LocalDeletion> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('DELETE FROM THIS DEVICE', style: text.labelSmall),
+        Text(strings.headingDeleteFromThisDevice, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         Text(
-          _confirming
-              ? 'This permanently removes the local profile, journal, health '
-                  'history, and derived readings. It does not claim to delete '
-                  'a future cloud account copy.'
-              : 'Remove every local Eter record and return to onboarding.',
+          _confirming ? strings.deleteLocalWarning : strings.deleteLocalIntro,
           style: text.bodyMedium,
         ),
         const SizedBox(height: EterSpace.s8),
         EterAction(
-          label: _confirming ? 'Delete now' : 'Delete',
+          label: _confirming ? strings.deleteNow : strings.delete,
           busy: _busy,
           onPressed: _busy ? null : _delete,
         ),
@@ -961,6 +1105,7 @@ class _HealthConnectionState extends State<_HealthConnection> {
   String? _message;
 
   Future<void> _connect() async {
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
       _message = null;
@@ -977,15 +1122,12 @@ class _HealthConnectionState extends State<_HealthConnection> {
       if (!mounted) return;
       setState(() {
         _message = result.authorized
-            ? '${result.records} health records read. Eter kept one source per minute.'
-            : 'Access was not granted. No health values were imported.';
+            ? strings.healthRecordsRead(result.records)
+            : strings.healthAccessNotGranted;
       });
     } catch (_) {
       if (mounted) {
-        setState(() {
-          _message =
-              'Health data could not be read. Existing history is unchanged.';
-        });
+        setState(() => _message = strings.healthCouldNotBeRead);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -996,6 +1138,7 @@ class _HealthConnectionState extends State<_HealthConnection> {
   Widget build(BuildContext context) {
     final supported = Platform.isAndroid || Platform.isIOS;
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return StreamBuilder<List<IntegrationRow>>(
       stream: _integrations,
       builder: (context, snapshot) {
@@ -1009,19 +1152,19 @@ class _HealthConnectionState extends State<_HealthConnection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('HEALTH HISTORY', style: text.labelSmall),
+            Text(strings.headingHealthHistory, style: text.labelSmall),
             const SizedBox(height: EterSpace.s8),
             Text(
               connected
-                  ? 'Connected. Reconnect to read the latest 30 days; source overlap is resolved per minute.'
+                  ? strings.healthConnectedReconnect
                   : supported
-                      ? 'Read selected movement, sleep, and recovery signals from your phone’s health store.'
-                      : 'Health connection is available on iPhone and Android.',
+                      ? strings.healthOffer
+                      : strings.healthUnsupportedPlatform,
               style: text.bodyMedium,
             ),
             const SizedBox(height: EterSpace.s8),
             EterAction(
-              label: connected ? 'Refresh' : 'Connect',
+              label: connected ? strings.refresh : strings.connect,
               busy: _busy,
               onPressed: supported && !_busy ? _connect : null,
             ),
@@ -1052,6 +1195,7 @@ class _LocalExportState extends State<_LocalExport> {
   String? _path;
 
   Future<void> _prepare() async {
+    final strings = EterStrings.of(context);
     setState(() {
       _busy = true;
       _message = null;
@@ -1061,14 +1205,11 @@ class _LocalExportState extends State<_LocalExport> {
       if (!mounted) return;
       setState(() {
         _path = bundle.directory.path;
-        _message = 'Local JSON and CSV files are ready on this device. '
-            'Cloud account data is not included.';
+        _message = strings.localExportReady;
       });
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _message = 'The local export could not be prepared right now.';
-      });
+      setState(() => _message = strings.localExportFailed);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1077,34 +1218,32 @@ class _LocalExportState extends State<_LocalExport> {
   Future<void> _copyPath() async {
     final path = _path;
     if (path == null) return;
+    final strings = EterStrings.of(context);
     await Clipboard.setData(ClipboardData(text: path));
     if (mounted) {
-      setState(() => _message = 'Export folder location copied.');
+      setState(() => _message = strings.exportFolderCopied);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('LOCAL EXPORT', style: text.labelSmall),
+        Text(strings.headingLocalExport, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
-        Text(
-          'Prepare a complete JSON snapshot and spreadsheet-friendly movement '
-          'and session files. Nothing is uploaded.',
-          style: text.bodyMedium,
-        ),
+        Text(strings.localExportNote, style: text.bodyMedium),
         const SizedBox(height: EterSpace.s8),
         EterAction(
-          label: 'Export',
+          label: strings.export,
           busy: _busy,
           onPressed: _busy ? null : _prepare,
         ),
         if (_path != null)
           EterAction(
-            label: 'Copy path',
+            label: strings.copyPath,
             emphasis: EterActionEmphasis.quiet,
             onPressed: _copyPath,
           ),
@@ -1127,8 +1266,9 @@ class _SanctumHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final largeText = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
+    final strings = EterStrings.of(context);
     final close = EterAction(
-      label: 'Close',
+      label: strings.close,
       emphasis: EterActionEmphasis.quiet,
       onPressed: onClose,
     );
@@ -1142,7 +1282,11 @@ class _SanctumHeader extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: Text('SANCTUM', maxLines: 1, style: style),
+                child: Text(
+                  strings.headingSanctum,
+                  maxLines: 1,
+                  style: style,
+                ),
               ),
             ),
           ),
@@ -1152,7 +1296,9 @@ class _SanctumHeader extends StatelessWidget {
     }
     return Row(
       children: [
-        Expanded(child: Text('SANCTUM', maxLines: 1, style: style)),
+        Expanded(
+          child: Text(strings.headingSanctum, maxLines: 1, style: style),
+        ),
         close,
       ],
     );
@@ -1161,12 +1307,23 @@ class _SanctumHeader extends StatelessWidget {
 
 class _ChoiceGroup extends StatelessWidget {
   const _ChoiceGroup({
+    required this.id,
     required this.heading,
     required this.value,
     required this.choices,
     required this.onChanged,
     this.descriptions = const {},
   });
+
+  /// A stable slug, never shown and never translated.
+  ///
+  /// The widget keys used to be built from [heading] — `ValueKey('$heading-$k')`
+  /// — which made a caps-locked English sentence the identity of every setting
+  /// row. Translating the heading would have renamed every key in the Sanctum,
+  /// so a test tapping a permission would silently find nothing, and a
+  /// `GlobalKey` collision was one duplicated heading away. The id is what
+  /// identifies the row; the heading is what it says.
+  final String id;
 
   final String heading;
   final String value;
@@ -1189,7 +1346,7 @@ class _ChoiceGroup extends StatelessWidget {
             selected: choice.key == value,
             label: choice.value,
             child: GestureDetector(
-              key: ValueKey('$heading-${choice.key}'),
+              key: ValueKey('$id-${choice.key}'),
               behavior: HitTestBehavior.opaque,
               onTap: onChanged == null ? null : () => onChanged!(choice.key),
               child: ConstrainedBox(

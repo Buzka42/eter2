@@ -280,6 +280,49 @@ alongside the global `DAILY_CAP`, keyed by a salted truncated SHA-256 of the
 connecting address so no address is stored. The client still sends no
 identifier.
 
+## 6a. The language it answers in
+
+Every one of the five instructions carries a `LANGUAGE` block naming the
+language to write in, built by `EterPrompts.languageFor` and parameterised by
+`AppLanguage`. English prompts carry it too: if only the Polish prompt had it,
+the two would differ in two ways instead of one and a difference in output could
+not be attributed.
+
+The block is **written in English regardless of what it asks for** — an English
+directive inside an otherwise-English system prompt is followed far more
+reliably than the same directive in the target language.
+
+The load-bearing half is the second paragraph, which says what is *not* writing:
+
+> Do not translate the structure. Every JSON key, and every value that comes
+> from a fixed set named in these instructions, stays exactly as written here,
+> in English, character for character.
+
+Every contract in this product validates against fixed English values —
+`synthesis`, `needsDetail`, `mood`, `breakfast`, the dimension names, the
+position keys, and every field name inside `evidence`, which is compared
+key-for-key against the payload. A model told only "answer in Polish" will
+helpfully rename `sleepMinutes` to `minutySnu`, and `AetherSafetyPolicy` then
+discards the entire composition — correctly, and invisibly, so the Dashboard
+simply never fills in. Numbers, dates and units are excluded too: Polish writes
+decimals with a comma, and `evidence` is checked digit for digit.
+
+The language is an **instruction, not context**. It changes the system prompt
+and nothing about what crosses the boundary: `prompt.user` is byte-identical in
+every language, and so is `prompt.responseSchema`. A test asserts both.
+
+Each composer resolves the language from `Profile.language` itself rather than
+receiving it from a widget, so automatic and background composition are written
+in the same language a tap would produce. `AppLanguage.forProfile` is the single
+place that rule lives.
+
+The two pieces of prose Eter writes *itself* — the weekly retrospective and the
+correlation sweep's findings — are not covered by any prompt and so were the
+ones most likely to stay English. The retrospective is composed in the profile's
+language and discarded when the language changes; the sweep keeps its English
+sentence (that is what travels to the model) and the Sanctum re-words each
+finding from the pattern's key and evidence at display time.
+
 ## 7. What a page may report about a day
 
 `journalInterpretation` derives lifestyle records from twelve kinds, wider than

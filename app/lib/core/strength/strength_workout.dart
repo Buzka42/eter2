@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../db/app_database.dart';
 import '../energy/energy.dart' as energy;
 import '../health/manual_activity.dart';
+import '../health/record_error.dart';
 
 /// Strength, recorded in full — sets, reps and load — but never on the resting
 /// screen (steering decision, 28 July 2026: complete functionality behind
@@ -144,12 +145,12 @@ class StrengthWorkoutResult {
 }
 
 class StrengthWorkoutException implements Exception {
-  const StrengthWorkoutException(this.message);
+  const StrengthWorkoutException(this.error);
 
-  final String message;
+  final BodyRecordError error;
 
   @override
-  String toString() => message;
+  String toString() => 'StrengthWorkoutException(${error.name})';
 }
 
 class StrengthWorkoutService {
@@ -171,21 +172,17 @@ class StrengthWorkoutService {
     ];
     if (usable.isEmpty) {
       throw const StrengthWorkoutException(
-        'Add one exercise with at least one set.',
+        BodyRecordError.strengthNeedsExercise,
       );
     }
     for (final exercise in usable) {
       for (final set in exercise.sets) {
         if (set.reps < 1 || set.reps > 500) {
-          throw const StrengthWorkoutException(
-            'Each set holds between 1 and 500 reps.',
-          );
+          throw const StrengthWorkoutException(BodyRecordError.strengthReps);
         }
         final load = set.loadKg;
         if (load != null && (!load.isFinite || load < 0 || load > 1000)) {
-          throw const StrengthWorkoutException(
-            'Load must be between 0 and 1,000 kg.',
-          );
+          throw const StrengthWorkoutException(BodyRecordError.strengthLoad);
         }
       }
     }
@@ -194,7 +191,7 @@ class StrengthWorkoutService {
     final weightKg = profile?.weightKg;
     if (weightKg == null || weightKg <= 0) {
       throw const StrengthWorkoutException(
-        'Record a body weight first; strength energy is estimated from it.',
+        BodyRecordError.strengthNeedsBodyWeight,
       );
     }
 

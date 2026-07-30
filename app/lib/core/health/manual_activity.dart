@@ -3,13 +3,15 @@ import 'package:drift/drift.dart';
 import '../db/app_database.dart';
 import '../energy/energy.dart' as energy;
 import 'daily_activity_summary.dart';
+import 'record_error.dart';
 
 class ManualActivityException implements Exception {
-  const ManualActivityException(this.message);
-  final String message;
+  const ManualActivityException(this.error);
+
+  final BodyRecordError error;
 
   @override
-  String toString() => message;
+  String toString() => 'ManualActivityException(${error.name})';
 }
 
 class ManualActivityResult {
@@ -38,19 +40,13 @@ class ManualActivityService {
   }) async {
     final name = activity.trim();
     if (name.isEmpty || name.length > 80) {
-      throw const ManualActivityException(
-        'Name the activity in 1–80 characters.',
-      );
+      throw const ManualActivityException(BodyRecordError.activityName);
     }
     if (durationMinutes < 1 || durationMinutes > 1440) {
-      throw const ManualActivityException(
-        'Enter a duration between 1 and 1,440 minutes.',
-      );
+      throw const ManualActivityException(BodyRecordError.activityDuration);
     }
     if (!activeKcal.isFinite || activeKcal <= 0 || activeKcal > 10000) {
-      throw const ManualActivityException(
-        'Enter active energy between 1 and 10,000 kcal.',
-      );
+      throw const ManualActivityException(BodyRecordError.activityEnergy);
     }
 
     final suppliedEnd = (endedAt ?? DateTime.now()).toUtc();

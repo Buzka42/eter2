@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:eter/core/i18n/language.dart';
 import 'package:eter/core/ai/prompts.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
@@ -39,7 +40,8 @@ void main() {
     test('guidance carries only what the request contract permitted', () {
       final request = buildRequest();
 
-      final prompt = EterPrompts.guidance(request);
+      final prompt =
+          EterPrompts.guidance(request, language: AppLanguage.english);
 
       expect(prompt.user, equals(request.toJson()));
       expect(
@@ -77,7 +79,8 @@ void main() {
         approximatePlace: false,
       );
 
-      final prompt = EterPrompts.vesselReading(request);
+      final prompt =
+          EterPrompts.vesselReading(request, language: AppLanguage.english);
       final encoded = jsonEncode(prompt.user);
 
       expect(encoded, contains('The Emperor'));
@@ -90,6 +93,7 @@ void main() {
       final prompt = EterPrompts.journalInterpretation(
         entryText: 'Soup for lunch, then a long walk.',
         clarification: 'A medium bowl.',
+        language: AppLanguage.english,
       );
 
       expect(prompt.user.keys, containsAll(['entry', 'clarification']));
@@ -100,6 +104,7 @@ void main() {
       final prompt = EterPrompts.journalInterpretation(
         entryText: 'Soup for lunch.',
         clarification: '   ',
+        language: AppLanguage.english,
       );
 
       expect(prompt.user.keys, ['entry']);
@@ -110,6 +115,7 @@ void main() {
     test('grounded forbids the symbolic register outright', () {
       final system = EterPrompts.guidance(
         buildRequest(mode: GuidanceMode.grounded),
+        language: AppLanguage.english,
       ).system;
 
       expect(system, contains('VOICE — GROUNDED'));
@@ -120,6 +126,7 @@ void main() {
     test('immersive keeps symbolism subordinate to the records', () {
       final system = EterPrompts.guidance(
         buildRequest(mode: GuidanceMode.immersive),
+        language: AppLanguage.english,
       ).system;
 
       expect(system, contains('VOICE — IMMERSIVE'));
@@ -128,7 +135,9 @@ void main() {
 
     test('every mode carries the safety and absence rules', () {
       for (final mode in GuidanceMode.values) {
-        final system = EterPrompts.guidance(buildRequest(mode: mode)).system;
+        final system = EterPrompts.guidance(buildRequest(mode: mode),
+                language: AppLanguage.english)
+            .system;
         expect(system, contains('SAFETY'), reason: mode.name);
         expect(system, contains('ABSENCE'), reason: mode.name);
         expect(system, contains('1200 kcal'), reason: mode.name);
@@ -137,9 +146,12 @@ void main() {
   });
 
   test('the journal prompt is told when no prose was included', () {
-    final withProse = EterPrompts.guidance(buildRequest()).system;
+    final withProse =
+        EterPrompts.guidance(buildRequest(), language: AppLanguage.english)
+            .system;
     final without = EterPrompts.guidance(
       buildRequest(journalConsented: false),
+      language: AppLanguage.english,
     ).system;
 
     expect(withProse, contains('journal passages'));
@@ -150,7 +162,9 @@ void main() {
 
   group('the response schema is the one the parser enforces', () {
     test('guidance schema names the four dimensions and the note', () {
-      final schema = EterPrompts.guidance(buildRequest()).responseSchema;
+      final schema =
+          EterPrompts.guidance(buildRequest(), language: AppLanguage.english)
+              .responseSchema;
 
       expect(
         (schema['required'] as List).toSet(),
@@ -163,8 +177,8 @@ void main() {
 
       // The note is a string with the ceiling the instruction states, not a
       // fifth dimension.
-      final recall = (schema['properties'] as Map)[
-          AetherGuidanceParser.recallKey] as Map<String, Object?>;
+      final recall = (schema['properties']
+          as Map)[AetherGuidanceParser.recallKey] as Map<String, Object?>;
       expect(recall['type'], 'string');
       expect(recall['maxLength'], AetherGuidanceParser.maxRecallCharacters);
 
@@ -180,6 +194,7 @@ void main() {
         () {
       final schema = EterPrompts.journalInterpretation(
         entryText: 'anything',
+        language: AppLanguage.english,
       ).responseSchema;
       final lifestyle =
           (schema['properties'] as Map)['lifestyle'] as Map<String, Object?>;
@@ -212,8 +227,10 @@ void main() {
     test('journal schema bounds kcal exactly where the parser rejects', () {
       final schema = EterPrompts.journalInterpretation(
         entryText: 'anything',
+        language: AppLanguage.english,
       ).responseSchema;
-      final food = (schema['properties'] as Map)['food'] as Map<String, Object?>;
+      final food =
+          (schema['properties'] as Map)['food'] as Map<String, Object?>;
       final item = food['items'] as Map<String, Object?>;
       final kcal = (item['properties'] as Map)['kcal'] as Map<String, Object?>;
 
@@ -236,20 +253,24 @@ void main() {
         approximatePlace: false,
       );
 
-      final schema = EterPrompts.vesselReading(request).responseSchema;
+      final schema =
+          EterPrompts.vesselReading(request, language: AppLanguage.english)
+              .responseSchema;
       final readings =
           (schema['properties'] as Map)['readings'] as Map<String, Object?>;
       final item = readings['items'] as Map<String, Object?>;
       final passage =
           (item['properties'] as Map)['passage'] as Map<String, Object?>;
 
-      expect(passage['maxLength'], vesselReadingResponseSchema['maxPassageCharacters']);
+      expect(passage['maxLength'],
+          vesselReadingResponseSchema['maxPassageCharacters']);
     });
   });
 
   test('interpretation refuses to invent, and says so', () {
     final system = EterPrompts.journalInterpretation(
       entryText: 'A hard morning.',
+      language: AppLanguage.english,
     ).system;
 
     expect(system, contains('Anything they did not say'));
@@ -265,6 +286,7 @@ void main() {
   test('interpretation asks for the fields the parser requires', () {
     final schema = EterPrompts.journalInterpretation(
       entryText: 'Squatted 100 for five, twice.',
+      language: AppLanguage.english,
     ).responseSchema;
     final properties = schema['properties'] as Map<String, Object?>;
 
@@ -332,7 +354,9 @@ void main() {
     });
 
     test('the proportions reach the instruction', () {
-      final system = EterPrompts.guidance(requestFor(GuidanceMode.balanced)).system;
+      final system = EterPrompts.guidance(requestFor(GuidanceMode.balanced),
+              language: AppLanguage.english)
+          .system;
       expect(system, contains('50% from what the person wrote'));
       expect(system, contains('25% from the symbolic context'));
       expect(system, contains('25% from the measured records'));
@@ -340,9 +364,10 @@ void main() {
 
     test('with no journal material the share is redistributed, not left open',
         () {
-      final system =
-          EterPrompts.guidance(requestFor(GuidanceMode.balanced, journal: false))
-              .system;
+      final system = EterPrompts.guidance(
+              requestFor(GuidanceMode.balanced, journal: false),
+              language: AppLanguage.english)
+          .system;
       // Naming a 50% share of something absent invites the model to fill it.
       expect(system, contains('no journal material'));
       expect(system, isNot(contains('50% from what the person wrote')));
@@ -358,15 +383,23 @@ void main() {
 
     test('absence is stated in all five instructions, not just guidance', () {
       const marker = 'Missing data is information';
-      expect(EterPrompts.guidance(requestFor(GuidanceMode.balanced)).system,
+      expect(
+          EterPrompts.guidance(requestFor(GuidanceMode.balanced),
+                  language: AppLanguage.english)
+              .system,
           contains(marker));
       expect(
-        EterPrompts.journalDayStory(date: '2026-07-27', entries: const [])
+        EterPrompts.journalDayStory(
+                date: '2026-07-27',
+                entries: const [],
+                language: AppLanguage.english)
             .system,
         contains(marker),
       );
       expect(
-        EterPrompts.journalInterpretation(entryText: 'anything').system,
+        EterPrompts.journalInterpretation(
+                entryText: 'anything', language: AppLanguage.english)
+            .system,
         contains(marker),
       );
       expect(
@@ -374,29 +407,35 @@ void main() {
           mode: GuidanceMode.balanced,
           transits: const {},
           ascendantReliable: true,
+          language: AppLanguage.english,
         ).system,
         contains(marker),
       );
       expect(
-        EterPrompts.vesselReading(const VesselReadingRequest(
-          mode: GuidanceMode.balanced,
-          positions: [
-            VesselReadingPosition(
-              key: 'sun',
-              label: 'Sun',
-              card: 'Strength',
-              keywords: ['courage'],
-            ),
-          ],
-          approximateTime: false,
-          approximatePlace: false,
-        )).system,
+        EterPrompts.vesselReading(
+                const VesselReadingRequest(
+                  mode: GuidanceMode.balanced,
+                  positions: [
+                    VesselReadingPosition(
+                      key: 'sun',
+                      label: 'Sun',
+                      card: 'Strength',
+                      keywords: ['courage'],
+                    ),
+                  ],
+                  approximateTime: false,
+                  approximatePlace: false,
+                ),
+                language: AppLanguage.english)
+            .system,
         contains(marker),
       );
     });
 
     test('the deficit rule is gone and the floor is not', () {
-      final system = EterPrompts.guidance(requestFor(GuidanceMode.balanced)).system;
+      final system = EterPrompts.guidance(requestFor(GuidanceMode.balanced),
+              language: AppLanguage.english)
+          .system;
       // Someone choosing to lose weight is not someone to be talked out of it.
       expect(system, isNot(contains('under-eating')));
       expect(system, contains('Never recommend eating under 1200 kcal'));
@@ -404,4 +443,141 @@ void main() {
     });
   });
 
+  group('the language the model answers in', () {
+    /// Every instruction Eter can build, so a new one cannot be added without
+    /// deciding what language it writes in.
+    List<EterPrompt> allPrompts(AppLanguage language) => [
+          EterPrompts.guidance(buildRequest(), language: language),
+          EterPrompts.journalDayStory(
+            date: '2026-07-27',
+            entries: const [],
+            language: language,
+          ),
+          EterPrompts.positions(
+            mode: GuidanceMode.balanced,
+            transits: const {},
+            ascendantReliable: true,
+            language: language,
+          ),
+          EterPrompts.journalInterpretation(
+            entryText: 'A hard morning.',
+            language: language,
+          ),
+          EterPrompts.vesselReading(
+            const VesselReadingRequest(
+              mode: GuidanceMode.balanced,
+              positions: [
+                VesselReadingPosition(
+                  key: 'sun',
+                  label: 'Sun',
+                  card: 'The Emperor',
+                  keywords: ['authority'],
+                ),
+              ],
+              approximateTime: false,
+              approximatePlace: false,
+            ),
+            language: language,
+          ),
+        ];
+
+    test('every instruction names the language, in all five', () {
+      // Not just guidance. A Polish reader whose Dashboard is Polish and whose
+      // Journal story arrives in English has a half-translated product, and the
+      // day story is the one people read most.
+      for (final language in AppLanguage.values) {
+        for (final prompt in allPrompts(language)) {
+          expect(prompt.system, contains('LANGUAGE'));
+          expect(
+            prompt.system,
+            contains('Write every word a person will read in '
+                '${language.modelName}'),
+          );
+        }
+      }
+    });
+
+    test('the instruction is carried in English, whatever it asks for', () {
+      // An English directive inside an otherwise-English system prompt is
+      // followed far more reliably than the same directive written in the
+      // target language.
+      final polish = EterPrompts.guidance(
+        buildRequest(),
+        language: AppLanguage.polish,
+      ).system;
+      expect(polish, contains('Write every word a person will read in Polish'));
+      // The prompt itself is not translated.
+      expect(polish, contains('SAFETY'));
+      expect(polish, contains('ABSENCE'));
+      expect(polish, isNot(contains('Odpowiadaj')));
+    });
+
+    test('the structure is explicitly excluded from translation', () {
+      // The load-bearing half. A model told only "answer in Polish" will
+      // helpfully rename `sleepMinutes` to `minutySnu`, and the safety policy
+      // then discards the whole composition — correctly, silently, and the
+      // Dashboard simply never fills in.
+      for (final language in AppLanguage.values) {
+        for (final prompt in allPrompts(language)) {
+          expect(prompt.system, contains('Do not translate the structure'));
+          expect(prompt.system, contains('"evidence"'));
+          expect(
+            prompt.system,
+            contains('stays exactly as written here, in\nEnglish'),
+          );
+          // And that a translated key is stated to be fatal, not merely
+          // discouraged.
+          expect(prompt.system, contains('rejected'));
+        }
+      }
+    });
+
+    test('numbers and dates are never reformatted', () {
+      // Polish writes decimals with a comma. The payload's numbers are contract
+      // values checked digit for digit against the request, so the model must
+      // leave them exactly as given even while writing Polish prose around them.
+      for (final language in AppLanguage.values) {
+        for (final prompt in allPrompts(language)) {
+          expect(
+            prompt.system,
+            contains('Numbers, dates, times and units are never translated'),
+          );
+        }
+      }
+    });
+
+    test('the language does not leak into the payload', () {
+      // Rule 2 of this file: the builders never add a field the request
+      // contracts did not permit. The language is an instruction, not context —
+      // it changes the system prompt and nothing about what crosses the
+      // boundary.
+      final request = buildRequest();
+      expect(
+        EterPrompts.guidance(request, language: AppLanguage.polish).user,
+        equals(EterPrompts.guidance(request, language: AppLanguage.english).user),
+      );
+      expect(
+        EterPrompts.guidance(request, language: AppLanguage.polish).user,
+        equals(request.toJson()),
+      );
+    });
+
+    test('the schema is identical in every language', () {
+      // The schema names the fields the parser requires. If it varied by
+      // language the parser would have to as well, and the contract would stop
+      // being one contract.
+      for (var i = 0; i < allPrompts(AppLanguage.english).length; i++) {
+        expect(
+          allPrompts(AppLanguage.polish)[i].responseSchema,
+          equals(allPrompts(AppLanguage.english)[i].responseSchema),
+        );
+      }
+    });
+
+    test('changing the instruction bumped the version', () {
+      // Stored beside every generated row, so a future reader can tell which
+      // instruction produced a passage. v4 is the one that states the language.
+      expect(EterPrompts.version, greaterThanOrEqualTo(4));
+    });
+  });
 }

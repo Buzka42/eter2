@@ -290,6 +290,7 @@ class TransportJournalClassificationProvider
     final prompt = EterPrompts.journalInterpretation(
       entryText: request.text,
       clarification: request.clarification,
+      language: request.language,
     );
     return transport.send(
       call: EterAiCall.journalInterpretation,

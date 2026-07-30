@@ -16,6 +16,9 @@ import 'helpers/prototype_harness.dart';
 /// first day, first entry — covered only in pieces. This walks it as a person
 /// would, through the real app root, with nothing pre-populated.
 void main() {
+  // The Journal's date needs `intl`'s locale data, and no test runs `main()`.
+  setUpAll(eterInitializeFormatting);
+
   late AppDatabase db;
 
   setUp(() => db = AppDatabase(NativeDatabase.memory()));
@@ -46,6 +49,11 @@ void main() {
     await settle(tester);
 
     // ---- Onboarding -------------------------------------------------------
+    // Step one is the language; see the walkthrough above.
+    expect(find.text('What language should Eter speak?'), findsOneWidget);
+    await tester.tap(find.text('CONTINUE'));
+    await settle(tester);
+
     expect(find.text('Begin with what matters'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, 'What should Eter call you?'),

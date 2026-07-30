@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../ai/prompts.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
+import '../i18n/language.dart';
 
 /// The day, read back to the person — and the same day, compressed for Aether.
 ///
@@ -248,6 +249,9 @@ class JournalDayStoryComposer {
         for (final entry in usable)
           (at: entry.createdAt.toLocal(), text: entry.entryText.trim()),
       ],
+      language: AppLanguage.forProfile(
+        (await database.loadProfile())?.language,
+      ),
     );
     final raw = await provider.compose(JournalDayStoryProviderRequest(
       system: prompt.system,

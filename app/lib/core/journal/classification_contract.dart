@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import '../i18n/language.dart';
+
 class JournalClassificationException implements Exception {
   const JournalClassificationException(this.reason);
   final String reason;
@@ -426,6 +428,7 @@ class JournalClassificationRequest {
     required this.text,
     required this.source,
     required this.responseSchema,
+    required this.language,
     this.clarification,
   });
 
@@ -433,6 +436,15 @@ class JournalClassificationRequest {
   final String source;
   final Map<String, Object> responseSchema;
   final String? clarification;
+
+  /// Which language the derived prose comes back in.
+  ///
+  /// Part of the request rather than of the provider, because a provider is
+  /// built once at startup and the language can change at any time. It governs
+  /// the prose only — the food names, the assumptions, the clarifying question —
+  /// and never `status` or `kind`, which are the values above and are what the
+  /// parser validates against.
+  final AppLanguage language;
 }
 
 const journalClassificationSchema = <String, Object>{

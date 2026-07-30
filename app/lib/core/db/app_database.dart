@@ -54,9 +54,10 @@ class AppDatabase extends _$AppDatabase {
   /// precisely the birth time is known; v6 repairs nights that were stored
   /// twice, once as stages and once as the session containing them; v7 records
   /// which prompt version composed each piece of model output; v8 adds the
-  /// fortnight of compressed notes guidance reads so it stops repeating itself.
+  /// fortnight of compressed notes guidance reads so it stops repeating itself;
+  /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -128,6 +129,13 @@ class AppDatabase extends _$AppDatabase {
           // inventing one from the stored prose would be Eter paraphrasing
           // itself. Memory starts the day the column does.
           await _createTableIfMissing(m, guidanceRecalls);
+
+          // New in v9, and deliberately left null on every existing install.
+          // Null means "unchosen", which is the truth: nobody who upgrades has
+          // ever been asked. Their language then follows the phone, so an
+          // upgrade is where a Polish-speaking install starts being spoken to
+          // in Polish rather than staying in an English it never picked.
+          await _addColumnIfMissing(m, profiles, profiles.language);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();
@@ -295,6 +303,55 @@ class AppDatabase extends _$AppDatabase {
           syncedAt: const Value(null),
         ),
       );
+
+  /// Records the chosen language and discards every passage composed in the
+  /// old one.
+  ///
+  /// Deliberately not part of [updateProfilePreferences]: this is the one
+  /// preference that invalidates stored content, and a caller reaching for
+  /// "change a setting" should not be able to do that by accident.
+  ///
+  /// What goes, and why it has to: guidance, its self-addressed notes, the
+  /// Vessel's personal readings, the day's transit passage and the Journal's
+  /// daily stories are all prose in a particular language. Left in place, a
+  /// Polish Dashboard would open on an English paragraph — and worse, the
+  /// composers key their caches on a *fingerprint of the inputs*, none of which
+  /// changed, so they would consider that paragraph current and never replace
+  /// it. Clearing is what makes the switch take effect at all.
+  ///
+  /// What stays, and why it must: every measurement, every journal page, every
+  /// consent, the whole symbolic chart, and the learned patterns. A pattern
+  /// stores its finding as structured evidence and is worded at display time,
+  /// so it re-words itself and there is nothing to clear. Retrospectives do
+  /// store their prose and are removed; the Sanctum's Prepare rebuilds one from
+  /// the same local history in a second.
+  ///
+  /// Returns how many composed rows were discarded, so the surface can say
+  /// something true about what just happened.
+  Future<int> chooseLanguage(String code) async {
+    return transaction(() async {
+      final before = await loadProfile();
+      await (update(profiles)..where((row) => row.id.equals(1))).write(
+        ProfilesCompanion(
+          language: Value(code),
+          syncedAt: const Value(null),
+        ),
+      );
+      // Nothing to invalidate when the language did not actually move. This
+      // also makes the call idempotent, which matters because the Sanctum's
+      // choice group fires on every tap, including a tap on the current value.
+      if (before?.language == code) return 0;
+
+      var cleared = 0;
+      cleared += await delete(guidanceHistory).go();
+      cleared += await delete(guidanceRecalls).go();
+      cleared += await delete(vesselReadings).go();
+      cleared += await delete(transitReadings).go();
+      cleared += await delete(journalDayStories).go();
+      cleared += await delete(retrospectives).go();
+      return cleared;
+    });
+  }
 
   /// Changes only explicit outbound-data permissions.
   ///
