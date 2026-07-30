@@ -628,17 +628,9 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   /// couple of months out a month, a year out a year. `DECISIONS.md` chose
   /// extension over a menu, and a menu is what a "zoom" button would have been.
   ///
-  /// The thresholds are where a day stops being the interesting unit. Nobody
-  /// reads yesterday as part of a trend, and nobody reads a Tuesday in March as
-  /// a day.
-  static LongViewSpan? _spanFor(int daysBack) => switch (daysBack) {
-        < 14 => null,
-        < 60 => LongViewSpan.week,
-        <= 365 => LongViewSpan.month,
-        _ => LongViewSpan.year,
-      };
-
-  LongViewSpan? get _span => _spanFor(
+  /// The thresholds themselves are [longViewSpanFor], which is domain rather
+  /// than interface and is tested there.
+  LongViewSpan? get _span => longViewSpanFor(
         DateTime(widget.today.year, widget.today.month, widget.today.day)
             .difference(DateTime(_day.year, _day.month, _day.day))
             .inDays,

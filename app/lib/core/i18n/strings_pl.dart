@@ -1719,6 +1719,11 @@ class EterStringsPl extends EterStrings {
   @override
   String get headingLongView => 'Z ODDALI';
   @override
+  String get longViewNote =>
+      'Cofaj się w historii dziennika, a dzień się poszerzy — do tygodnia, '
+      'miesiąca, roku. Wszystko liczy się na tym urządzeniu, więc działa bez '
+      'sieci i nic nie kosztuje.';
+  @override
   String longViewSpanName(LongViewSpanName span) => switch (span) {
         LongViewSpanName.week => 'Tydzień',
         LongViewSpanName.month => 'Miesiąc',

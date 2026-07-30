@@ -1523,6 +1523,11 @@ class EterStringsEn extends EterStrings {
   @override
   String get headingLongView => 'THE LONG VIEW';
   @override
+  String get longViewNote =>
+      'Keep turning back in the Journal’s history and the day widens — a week, '
+      'a month, a year. It is counted on this device, so it works offline and '
+      'costs nothing.';
+  @override
   String longViewSpanName(LongViewSpanName span) => switch (span) {
         LongViewSpanName.week => 'Week',
         LongViewSpanName.month => 'Month',

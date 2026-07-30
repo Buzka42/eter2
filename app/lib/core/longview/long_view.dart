@@ -31,6 +31,22 @@ enum LongViewSpan {
   year,
 }
 
+/// What scale the axis is on, given how far back it has been turned.
+///
+/// The Long View has no zoom control: turning back *is* the zoom. This is that
+/// rule, kept here rather than in the widget because it is a statement about
+/// when a day stops being the interesting unit, not about a sheet.
+///
+/// Null means the day itself — the History sheet's original behaviour, which is
+/// what the first fortnight still gets. Nobody reads yesterday as part of a
+/// trend, and nobody reads a Tuesday last March as a day.
+LongViewSpan? longViewSpanFor(int daysBack) => switch (daysBack) {
+      < 14 => null,
+      < 60 => LongViewSpan.week,
+      <= 365 => LongViewSpan.month,
+      _ => LongViewSpan.year,
+    };
+
 /// One period on the axis, and what is known about it.
 ///
 /// Every measure is nullable and null means *not recorded*. A cell can be

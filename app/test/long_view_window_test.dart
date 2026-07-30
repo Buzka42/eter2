@@ -85,4 +85,44 @@ void main() {
       expect(LongViewSource.isoDate(previous.from), '2024-04-01');
     });
   });
+
+  group('how far back the axis has to go before the day widens', () {
+    test('the first fortnight is still a day', () {
+      expect(longViewSpanFor(0), isNull);
+      expect(longViewSpanFor(1), isNull);
+      expect(longViewSpanFor(13), isNull);
+    });
+
+    test('a fortnight out it is a week', () {
+      expect(longViewSpanFor(14), LongViewSpan.week);
+      expect(longViewSpanFor(59), LongViewSpan.week);
+    });
+
+    test('two months out it is a month, and stays one for a year', () {
+      expect(longViewSpanFor(60), LongViewSpan.month);
+      expect(longViewSpanFor(365), LongViewSpan.month);
+    });
+
+    test('past a year it is a year', () {
+      expect(longViewSpanFor(366), LongViewSpan.year);
+      expect(longViewSpanFor(4000), LongViewSpan.year);
+    });
+
+    test('it never narrows as you travel further back', () {
+      // The axis is a zoom, and a zoom that reverses direction partway is a
+      // bug nobody would think to look for.
+      const order = {
+        null: 0,
+        LongViewSpan.week: 1,
+        LongViewSpan.month: 2,
+        LongViewSpan.year: 3,
+      };
+      var previous = 0;
+      for (var days = 0; days <= 800; days++) {
+        final rank = order[longViewSpanFor(days)]!;
+        expect(rank, greaterThanOrEqualTo(previous), reason: '$days days back');
+        previous = rank;
+      }
+    });
+  });
 }

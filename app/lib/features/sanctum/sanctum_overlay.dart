@@ -902,6 +902,15 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
           onPressed: _busy ? null : _reset,
         ),
         const SizedBox(height: EterSpace.s16),
+        // Named here and nowhere else, because the Long View is reached by
+        // extending the Journal's date axis rather than by a destination of its
+        // own — and something reachable only by a gesture is something a person
+        // has to already know about. The Sanctum is the index; see
+        // `docs/DECISIONS.md` on extension over a menu.
+        Text(strings.headingLongView, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(strings.longViewNote, style: text.bodyMedium),
+        const SizedBox(height: EterSpace.s16),
         Text(strings.headingOldPages, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         Text(strings.oldPagesNote, style: text.bodyMedium),

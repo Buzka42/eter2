@@ -805,6 +805,12 @@ abstract class EterStrings {
   /// see `docs/DECISIONS.md`.
   String get headingLongView;
 
+  /// The Sanctum's entry for it. The Long View is reached by turning back in
+  /// the Journal, and extension is only discoverable to somebody already
+  /// turning pages — so this is the sentence that stops it living behind a
+  /// gesture alone. `UI_BRIEF.md` non-negotiable 7.
+  String get longViewNote;
+
   /// Week, month or year, for the mark that says which scale you are on.
   String longViewSpanName(LongViewSpanName span);
 
