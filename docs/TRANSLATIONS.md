@@ -54,9 +54,9 @@ explains why translating one would break the symbolic engine.
 | Key | English | Polish |
 |---|---|---|
 | `destinationJournal` | JOURNAL | DZIENNIK |
-| `destinationDashboard` | DASHBOARD | PULPIT |
-| `sanctum` | Sanctum | Sanktuarium |
-| `openSanctumSemantic` | Open Sanctum | Otwórz Sanktuarium |
+| `destinationDashboard` | DASHBOARD | TARCZA |
+| `sanctum` | Sanctum | Zacisze |
+| `openSanctumSemantic` | Open Sanctum | Otwórz Zacisze |
 
 ## the dashboard
 
@@ -68,13 +68,13 @@ explains why translating one would break the symbolic engine.
 | `guidanceComposed` | Today’s guidance has been composed. | Dzisiejsze wskazania są gotowe. |
 | `guidanceAlreadyCurrent` | Guidance is already current for the available context. | Wskazania są już aktualne dla tego, co Eter wie o dzisiejszym dniu. |
 | `aetherNotConnected` | Aether composition is not connected on this build yet. | Kompozycja Aether nie jest jeszcze podłączona w tej wersji. |
-| `enableAiBeforeComposing` | Enable AI guidance in the Sanctum before composing. | Włącz wskazania AI w Sanktuarium, zanim zaczniesz komponować. |
+| `enableAiBeforeComposing` | Enable AI guidance in the Sanctum before composing. | Włącz wskazania AI w Zaciszu, zanim zaczniesz komponować. |
 | `responseNotAcceptedSafely` | The response could not be accepted safely. Nothing changed. | Odpowiedzi nie można było bezpiecznie przyjąć. Nic się nie zmieniło. |
 | `compositionUnavailable` | Composition is unavailable right now. Existing guidance remains. | Kompozycja jest teraz niedostępna. Dotychczasowe wskazania zostają. |
-| `lookDeeper` | LOOK DEEPER | ZAJRZYJ GŁĘBIEJ |
+| `lookDeeper` | LOOK DEEPER | GŁĘBIA |
 | `sectionGuidance` | GUIDANCE | WSKAZANIA |
 | `sectionBody` | THE BODY | CIAŁO |
-| `sectionVessel` | VESSEL | NACZYNIE |
+| `sectionVessel` | VESSEL | KRĄG |
 | `guidanceDimension()` | healthHEALTHmindMINDspiritSPIRITsynthesisSYNTHESIS | healthZDROWIEmindUMYSŁspiritDUCHsynthesisSYNTEZA |
 | `evidenceFor()` | Evidence for $dimension | Podstawa dla: $dimension |
 | `evidenceReceipt()` | n=$n · $window · coefficient $coefficient $note This is an association, not proof of cause. | n=$n · $window · współczynnik $coefficient $note To współwystępowanie, a nie dowód przyczyny. |
@@ -146,9 +146,9 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `theVessel` | THE VESSEL | NACZYNIE |
+| `theVessel` | THE VESSEL | KRĄG |
 | `readingChartOnDevice` | Reading the chart held on this device… | Czytam kosmogram zapisany na tym urządzeniu… |
-| `birthDetailsNeededForVessel` | Birth details are needed before the Vessel can be drawn. | Naczynie potrzebuje danych urodzenia, żeby można je było narysować. |
+| `birthDetailsNeededForVessel` | Birth details are needed before the Vessel can be drawn. | Krąg potrzebuje danych urodzenia, żeby można go było narysować. |
 | `headingYourCard` | YOUR CARD | TWOJA KARTA |
 | `sunCardSemantic()` | $cardTitle, your Sun card | $cardTitle, twoja karta Słońca |
 | `sunSitsIn()` | Your Sun sits in ${canonicalSign == null ? : signName(canonicalSign)}, which is what sets this card. It does not change. | Twoje Słońce stoi we własnym znaku, i to wyznacza tę kartę. To się nie zmienia.Twoje Słońce stoi ${_wZnaku(canonicalSign)}, i to wyznacza tę kartę. To się nie zmienia. |
@@ -172,7 +172,7 @@ explains why translating one would break the symbolic engine.
 | `readingToday` | Reading | Czytam |
 | `todaysReadingNotConnected` | Today’s reading is not connected on this build yet. The positions below are calculated on this device. | Dzisiejsze odczytanie nie jest jeszcze podłączone w tej wersji. Pozycje poniżej są wyliczone na tym urządzeniu. |
 | `todaysReadingCouldNotBeWritten` | Today’s reading could not be written. The positions below are unchanged. | Nie udało się zapisać dzisiejszego odczytania. Pozycje poniżej są bez zmian. |
-| `enableAiBeforeReadingToday` | Enable AI guidance in the Sanctum before reading today. | Włącz wskazania AI w Sanktuarium, zanim przeczytasz dzisiejszy dzień. |
+| `enableAiBeforeReadingToday` | Enable AI guidance in the Sanctum before reading today. | Włącz wskazania AI w Zaciszu, zanim przeczytasz dzisiejszy dzień. |
 | `lifePathLabel()` | Life Path $value | Droga życia $value |
 | `signName()` | canonical | AriesBaranTaurusBykGeminiBliźniętaCancerRakLeoLewVirgoPannaLibraWagaScorpioSkorpionSagittariusStrzelecCapricornKoziorożecAquariusWodnikPiscesRyby |
 
@@ -215,7 +215,7 @@ explains why translating one would break the symbolic engine.
 | `fieldAddMissingDetail` | Add the missing detail | Dopisz brakujący szczegół |
 | `addMoreDetailFirst` | Add a little more detail first. | Najpierw dopisz trochę więcej szczegółów. |
 | `journalInterpretationNotConnected` | Journal interpretation is not connected on this build yet. | Interpretacja dziennika nie jest jeszcze podłączona w tej wersji. |
-| `enableAiBeforeSendingEntry` | Enable AI guidance in the Sanctum before sending this entry. | Włącz wskazania AI w Sanktuarium, zanim wyślesz ten wpis. |
+| `enableAiBeforeSendingEntry` | Enable AI guidance in the Sanctum before sending this entry. | Włącz wskazania AI w Zaciszu, zanim wyślesz ten wpis. |
 | `entryNotInterpretedSafely` | This entry could not be interpreted safely. Try again. | Tego wpisu nie udało się bezpiecznie zinterpretować. Spróbuj ponownie. |
 | `interpretationUnavailable` | Interpretation is unavailable right now. Nothing changed. | Interpretacja jest teraz niedostępna. Nic się nie zmieniło. |
 | `interpretationAndDerivedRemoved` | The interpretation and its derived records were removed. | Interpretacja i wynikające z niej zapisy zostały usunięte. |
@@ -259,7 +259,7 @@ explains why translating one would break the symbolic engine.
 | `headingJournalAwareGuidance` | JOURNAL-AWARE GUIDANCE | WSKAZANIA CZYTAJĄCE DZIENNIK |
 | `journalAwareOffDetail` | Journal prose is never sent. | Treść dziennika nigdy nie jest wysyłana. |
 | `journalAwareAllowedDetail` | Only entries not marked Keep local may be included. | Wysłane mogą zostać tylko wpisy bez oznaczenia „Zatrzymaj lokalnie”. |
-| `headingCloudContinuity` | CLOUD CONTINUITY | CIĄGŁOŚĆ W CHMURZE |
+| `headingCloudContinuity` | CLOUD CONTINUITY | KOPIA W CHMURZE |
 | `localOnly` | Local only | Tylko lokalnie |
 | `cloudOffDetail` | No new copies are made. Any copy already in your account stays until you delete the account. | Nowe kopie nie powstają. Kopia, która już jest na Twoim koncie, zostaje do momentu usunięcia konta. |
 | `cloudAllowedDetail` | Eligible documents may mirror to your account when sync is connected. | Kwalifikujące się dokumenty mogą trafiać na twoje konto, gdy synchronizacja jest połączona. |
@@ -329,13 +329,13 @@ explains why translating one would break the symbolic engine.
 | `healthUnsupportedPlatform` | Health connection is available on iPhone and Android. | Połączenie ze zdrowiem jest dostępne na iPhonie i Androidzie. |
 | `healthRecordsRead()` | $records health records read. Eter kept one source per minute. | Wczytano $records ${_zapisy(records)} zdrowia. Eter zachował jedno źródło na minutę. |
 | `healthAccessNotGranted` | Access was not granted. No health values were imported. | Dostęp nie został przyznany. Nie zaimportowano żadnych wartości zdrowotnych. |
-| `healthAccessNotGrantedOnboarding` | Access was not granted. Nothing was imported, and you can connect later in the Sanctum. | Dostęp nie został przyznany. Nic nie zaimportowano, a połączyć możesz się później w Sanktuarium. |
+| `healthAccessNotGrantedOnboarding` | Access was not granted. Nothing was imported, and you can connect later in the Sanctum. | Dostęp nie został przyznany. Nic nie zaimportowano, a połączyć możesz się później w Zaciszu. |
 | `writeBackNote` | Sends weights and confirmed meals to your phone’s health record. Only what you entered here — never anything Eter read from it. | Wysyła wagi i potwierdzone posiłki do zapisu zdrowia w telefonie. Tylko to, co wpisałeś tutaj — nigdy nic, co Eter z niego odczytał. |
 | `healthWroteBack()` | 1 record written.$records records written. | Zapisano $records ${_wpisy(records)}. |
 | `healthNothingToWriteBack` | Nothing new to write. Everything you entered is already there. | Nie ma nic nowego do zapisania. Wszystko, co wpisałeś, już tam jest. |
 | `healthCouldNotWriteBack` | Could not write to the health record. Nothing was changed. | Nie udało się zapisać do zapisu zdrowia. Nic nie zostało zmienione. |
 | `healthCouldNotBeRead` | Health data could not be read. Existing history is unchanged. | Nie udało się odczytać danych zdrowotnych. Dotychczasowa historia jest bez zmian. |
-| `healthCouldNotBeReadOnboarding` | Health data could not be read. You can try again later in the Sanctum. | Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w Sanktuarium. |
+| `healthCouldNotBeReadOnboarding` | Health data could not be read. You can try again later in the Sanctum. | Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w Zacisze. |
 | `headingLocalExport` | LOCAL EXPORT | EKSPORT LOKALNY |
 | `localExportNote` | Prepare a complete JSON snapshot and spreadsheet-friendly movement and session files. Nothing is uploaded. | Przygotuj pełny zrzut JSON oraz pliki ruchu i sesji wygodne dla arkusza kalkulacyjnego. Nic nie jest wysyłane. |
 | `localExportReady` | Local JSON and CSV files are ready on this device. Cloud account data is not included. | Pliki JSON i CSV są gotowe na tym urządzeniu. Dane konta w chmurze nie są w nich zawarte. |
@@ -424,18 +424,18 @@ explains why translating one would break the symbolic engine.
 | `sexOther` | Another / prefer not to say | Inaczej / wolę nie mówić |
 | `fieldBirthPlaceOptional` | Birth place — optional | Miejsce urodzenia — opcjonalnie |
 | `hintCityOrRegion` | City or region | Miasto lub region |
-| `exactBirthTimeLater` | Exact birth time can be added later in the Sanctum. | Dokładną godzinę urodzenia można dopisać później w Sanktuarium. |
+| `exactBirthTimeLater` | Exact birth time can be added later in the Sanctum. | Dokładną godzinę urodzenia można dopisać później w Zaciszu. |
 | `errorEnterValidBirthDate` | Enter a valid birth date as YYYY-MM-DD. | Podaj prawidłową datę urodzenia w formacie RRRR-MM-DD. |
 | `errorMinimumAge` | Eter is currently available to people aged 16 and over. | Eter jest obecnie dostępny dla osób w wieku 16 lat i starszych. |
 | `errorEnterWeightRange` | Enter your current weight between 20 and 500 kg. | Podaj obecną wagę pomiędzy 20 a 500 kg. |
 | `errorEnterHeightRange` | Enter your current height between 100 and 250 cm. | Podaj obecny wzrost pomiędzy 100 a 250 cm. |
 | `registerStepTitle` | How Eter should speak | Jak Eter ma mówić |
-| `registerStepIntro` | This sets the voice, not the facts. You can change it any time in the Sanctum. | To ustawia głos, nie fakty. Możesz to zmienić w każdej chwili w Sanktuarium. |
+| `registerStepIntro` | This sets the voice, not the facts. You can change it any time in the Sanctum. | To ustawia głos, nie fakty. Możesz to zmienić w każdej chwili w Zacisze. |
 | `registerGroundedOnboardingDetail` | Daylight clarity at every hour. Plain, practical, unadorned. | Jasność dnia o każdej godzinie. Prosto, praktycznie, bez ozdób. |
 | `registerBalancedOnboardingDetail` | Changes with sunrise and sunset, as the day does. | Zmienia się ze wschodem i zachodem słońca, tak jak dzień. |
 | `registerImmersiveOnboardingDetail` | The deeper night register, symbolic and unhurried. | Głębszy rejestr nocy, symboliczny i niespieszny. |
 | `languageStepTitle` | What language should Eter speak? | W jakim języku ma mówić Eter? |
-| `languageStepIntro` | Set from your phone to begin with. It changes every word, including what Aether writes, and you can change it any time in the Sanctum. | Na początek ustawiony według twojego telefonu. Zmienia każde słowo, razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w Sanktuarium. |
+| `languageStepIntro` | Set from your phone to begin with. It changes every word, including what Aether writes, and you can change it any time in the Sanctum. | Na początek ustawiony według twojego telefonu. Zmienia każde słowo, razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w Zacisze. |
 | `consentStepTitle` | Choose what may leave this device | Wybierz, co może opuścić to urządzenie |
 | `consentStepIntro` | All of these are optional. Core journaling and local calculations still work if you decline. | Wszystko to jest opcjonalne. Prowadzenie dziennika i lokalne wyliczenia działają nawet wtedy, gdy odmówisz. |
 | `consentAiTitle` | AI guidance | Wskazania AI |
@@ -452,7 +452,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.PULPITDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wskazania przychodzą same każdego dnia. Zajrzyj głębiej po ciało albo po Naczynie — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.SANKTUARIUMTen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
+| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.PULPITDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wskazania przychodzą same każdego dnia. Zajrzyj głębiej po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.SANKTUARIUMTen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
 
 ## body fat
 
