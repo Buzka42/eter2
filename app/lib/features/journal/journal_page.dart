@@ -21,6 +21,9 @@ import '../../core/journal/classification_contract.dart';
 import '../../core/journal/auto_interpret.dart';
 import '../../core/journal/classifier.dart';
 import '../../core/journal/day_story.dart';
+import '../../core/instruments.dart';
+import '../../core/longview/long_view.dart';
+import '../../core/longview/long_view_source.dart';
 import '../../core/register.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -618,9 +621,47 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
     return _entries!;
   }
 
+  /// How far back the axis has been turned, and therefore what scale it is on.
+  ///
+  /// This is the whole of the Long View's navigation: there is no control for
+  /// it. Keep turning back and the day widens — a fortnight out it is a week, a
+  /// couple of months out a month, a year out a year. `DECISIONS.md` chose
+  /// extension over a menu, and a menu is what a "zoom" button would have been.
+  ///
+  /// The thresholds are where a day stops being the interesting unit. Nobody
+  /// reads yesterday as part of a trend, and nobody reads a Tuesday in March as
+  /// a day.
+  static LongViewSpan? _spanFor(int daysBack) => switch (daysBack) {
+        < 14 => null,
+        < 60 => LongViewSpan.week,
+        <= 365 => LongViewSpan.month,
+        _ => LongViewSpan.year,
+      };
+
+  LongViewSpan? get _span => _spanFor(
+        DateTime(widget.today.year, widget.today.month, widget.today.day)
+            .difference(DateTime(_day.year, _day.month, _day.day))
+            .inDays,
+      );
+
+  /// One step along the axis, at whatever scale the axis is currently on. The
+  /// beads travel further per tap the further out you are, which is what stops
+  /// reaching last spring from being ninety taps.
   void _move(int delta) {
-    final target = _day.add(Duration(days: delta));
-    if (target.isAfter(widget.today)) return;
+    final span = _span;
+    final DateTime target;
+    if (span == null) {
+      target = _day.add(Duration(days: delta));
+    } else {
+      final window = LongViewWindow.of(span, _day);
+      target = delta < 0 ? window.earlier(span) : window.later(span);
+    }
+    if (target.isAfter(widget.today)) {
+      // Stepping forward out of a wide span lands past today; the axis narrows
+      // back to today rather than refusing to move.
+      if (span != null) setState(() => _day = widget.today);
+      return;
+    }
     setState(() => _day = target);
   }
 
@@ -678,8 +719,7 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                   children: [
                     Expanded(
                       child: Text(
-                        DateFormat('EEEE d MMMM', strings.language.code)
-                            .format(_day),
+                        _axisTitle(strings),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: text.headlineSmall,
@@ -700,8 +740,18 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                   ],
                 ),
                 const SizedBox(height: EterSpace.s8),
-                Expanded(
-                  child: StreamBuilder<List<JournalEntryRow>>(
+                if (_span case final span?)
+                  Expanded(
+                    child: _LongViewPanel(
+                      key: ValueKey('long-view-$span-${eterIsoDate(_day)}'),
+                      db: widget.db,
+                      span: span,
+                      anchor: _day,
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: StreamBuilder<List<JournalEntryRow>>(
                     stream: _entriesFor(_day),
                     builder: (context, snapshot) {
                       final entries =
@@ -727,15 +777,38 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
                           playArrival: false,
                         ),
                       );
-                    },
+                      },
+                    ),
                   ),
-                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  /// A day names itself; a wider span names its scale and its window, because
+  /// "24–30 July" alone does not say whether you are looking at a week or the
+  /// last seven days of a month.
+  String _axisTitle(EterStrings strings) {
+    final span = _span;
+    if (span == null) {
+      return DateFormat('EEEE d MMMM', strings.language.code).format(_day);
+    }
+    final window = LongViewWindow.of(span, _day);
+    final locale = strings.language.code;
+    final name = strings.longViewSpanName(switch (span) {
+      LongViewSpan.week => LongViewSpanName.week,
+      LongViewSpan.month => LongViewSpanName.month,
+      LongViewSpan.year => LongViewSpanName.year,
+    });
+    final pattern = span == LongViewSpan.year ? 'MMMM yyyy' : 'd MMM';
+    final from = DateFormat(pattern, locale).format(window.from);
+    final to = DateFormat(pattern, locale).format(window.to);
+    return span == LongViewSpan.month
+        ? '$name · ${DateFormat('MMMM yyyy', locale).format(window.from)}'
+        : '$name · $from – $to';
   }
 }
 
@@ -1371,4 +1444,176 @@ class _WritingLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(_WritingLinesPainter old) =>
       old.color != color || old.spacing != spacing;
+}
+
+/// The axis, pulled back — what the History sheet shows once the day has
+/// widened. Not a destination and not a route: the same sheet, the same beads,
+/// a different scale.
+///
+/// Everything here is arithmetic over rows already on the device. No model call,
+/// so it works offline, instantly, and after a trial has ended — which is the
+/// reason `long_view.dart` exists at all.
+class _LongViewPanel extends StatefulWidget {
+  const _LongViewPanel({
+    super.key,
+    required this.db,
+    required this.span,
+    required this.anchor,
+  });
+
+  final AppDatabase db;
+  final LongViewSpan span;
+  final DateTime anchor;
+
+  @override
+  State<_LongViewPanel> createState() => _LongViewPanelState();
+}
+
+class _LongViewPanelState extends State<_LongViewPanel> {
+  late Future<LongView> _view = _load();
+
+  Future<LongView> _load() async {
+    // Consent is re-read here rather than passed down, because every path in
+    // Eter re-reads it and a cached flag would outlive a revocation.
+    final profile = await widget.db.loadProfile();
+    return LongViewSource.load(
+      widget.db,
+      span: widget.span,
+      anchor: widget.anchor,
+      journalAllowed: profile?.journalAiConsentAt != null,
+    );
+  }
+
+  @override
+  void didUpdateWidget(_LongViewPanel old) {
+    super.didUpdateWidget(old);
+    if (old.span != widget.span || old.anchor != widget.anchor) {
+      setState(() => _view = _load());
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    final ink = EterInk.of(context);
+    final text = Theme.of(context).textTheme;
+
+    return FutureBuilder<LongView>(
+      future: _view,
+      builder: (context, snapshot) {
+        final view = snapshot.data;
+        if (view == null) return const SizedBox.shrink();
+
+        final labels = [
+          for (final cell in view.cells) _cellLabel(cell, strings.language.code),
+        ];
+
+        return ListView(
+          padding: const EdgeInsets.only(bottom: EterSpace.s32),
+          children: [
+            Text(
+              strings.longViewRecorded(
+                recorded: view.recordedCells,
+                total: view.cells.length,
+              ),
+              style: text.labelSmall,
+            ),
+            const SizedBox(height: EterSpace.s16),
+            if (view.isEmpty)
+              Text(
+                strings.longViewNothingRecorded,
+                style: text.bodyMedium?.copyWith(color: ink.labelMuted),
+              )
+            else ...[
+              for (final (measure, values, format) in _series(view))
+                if (values.any((value) => value != null)) ...[
+                  EngravedLongView(
+                    measure: measure,
+                    values: values,
+                    labels: labels,
+                    format: format,
+                  ),
+                  const SizedBox(height: EterSpace.s24),
+                ],
+              ..._marginalia(view, text, ink),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  /// The four measures, each with the units it is said in. Pages is a count and
+  /// its zero is real; the other three are means over recorded days only, and a
+  /// period that recorded none of them is null all the way through.
+  List<(LongViewMeasure, List<double?>, String Function(double))> _series(
+    LongView view,
+  ) =>
+      [
+        (
+          LongViewMeasure.sleep,
+          [for (final cell in view.cells) cell.sleepHours],
+          (double value) => '${value.toStringAsFixed(1)} h',
+        ),
+        (
+          LongViewMeasure.mood,
+          [for (final cell in view.cells) cell.mood],
+          (double value) => value.toStringAsFixed(1),
+        ),
+        (
+          LongViewMeasure.steps,
+          [for (final cell in view.cells) cell.steps],
+          (double value) => '${value.round()}',
+        ),
+        (
+          LongViewMeasure.pages,
+          [
+            for (final cell in view.cells)
+              // Zero pages is a fact, not an absence — Eter knows for certain
+              // that nothing was written. It is drawn as a bar of no height
+              // rather than an absent tick.
+              cell.journalEntries.toDouble(),
+          ],
+          (double value) => '${value.round()}',
+        ),
+      ];
+
+  /// Aether's own notes, in the margin.
+  ///
+  /// Only on a week. A month is thirty day cells and thirty notes is a wall of
+  /// text, not marginalia — the same reason `LongViewComposer` returns none for
+  /// a month cell rather than picking one and implying it summarised the month.
+  List<Widget> _marginalia(LongView view, TextTheme text, EterInk ink) {
+    if (view.span != LongViewSpan.week) return const [];
+    final notes = [
+      for (final cell in view.cells)
+        if (cell.note case final note?) (cell.key, note),
+    ];
+    if (notes.isEmpty) return const [];
+    return [
+      for (final (key, note) in notes)
+        Padding(
+          padding: const EdgeInsets.only(bottom: EterSpace.s8),
+          child: Text(
+            '$key · $note',
+            style: text.bodySmall?.copyWith(
+              fontStyle: FontStyle.italic,
+              color: ink.labelMuted,
+            ),
+          ),
+        ),
+    ];
+  }
+
+  /// A day cell is a day number; a month cell is a short month name. The
+  /// composer carries the canonical key and leaves the wording here, which is
+  /// the half that knows the language.
+  static String _cellLabel(LongViewCell cell, String locale) {
+    final parts = cell.key.split('-');
+    if (parts.length == 2) {
+      return DateFormat('MMM', locale)
+          .format(DateTime(int.parse(parts[0]), int.parse(parts[1])));
+    }
+    return parts.last.replaceFirst(RegExp(r'^0'), '');
+  }
 }

@@ -1517,4 +1517,42 @@ class EterStringsEn extends EterStrings {
         'breathwork' => 'breathwork',
         _ => canonical,
       };
+
+  // ------------------------------------------------------------- the long view
+
+  @override
+  String get headingLongView => 'THE LONG VIEW';
+  @override
+  String longViewSpanName(LongViewSpanName span) => switch (span) {
+        LongViewSpanName.week => 'Week',
+        LongViewSpanName.month => 'Month',
+        LongViewSpanName.year => 'Year',
+      };
+  @override
+  String longViewRecorded({required int recorded, required int total}) =>
+      '$recorded of $total recorded.';
+  @override
+  String get longViewNothingRecorded =>
+      'Nothing was recorded in this stretch of time.';
+  @override
+  String longViewMeasure(LongViewMeasure measure) => switch (measure) {
+        LongViewMeasure.sleep => 'Sleep',
+        LongViewMeasure.mood => 'Mood',
+        LongViewMeasure.steps => 'Steps',
+        LongViewMeasure.pages => 'Pages written',
+      };
+  @override
+  String longViewSeriesSemantic({
+    required String measure,
+    required String cells,
+    required int absent,
+  }) =>
+      absent == 0
+          ? '$measure. $cells.'
+          : '$measure. $cells. $absent not recorded.';
+  @override
+  String longViewCellSemantic({required String label, required String value}) =>
+      '$label $value';
+  @override
+  String longViewCellAbsent(String label) => '$label not recorded';
 }

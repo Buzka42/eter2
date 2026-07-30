@@ -1714,6 +1714,45 @@ class EterStringsPl extends EterStrings {
         _ => canonical,
       };
 
+  // ------------------------------------------------------------- the long view
+
+  @override
+  String get headingLongView => 'Z ODDALI';
+  @override
+  String longViewSpanName(LongViewSpanName span) => switch (span) {
+        LongViewSpanName.week => 'Tydzień',
+        LongViewSpanName.month => 'Miesiąc',
+        LongViewSpanName.year => 'Rok',
+      };
+  // "Zapisane: 4 z 7" rather than a counted noun. The cells are days in one
+  // span and months in another, and a fraction does not have to name them.
+  @override
+  String longViewRecorded({required int recorded, required int total}) =>
+      'Zapisane: $recorded z $total.';
+  @override
+  String get longViewNothingRecorded => 'W tym czasie nic nie zapisano.';
+  @override
+  String longViewMeasure(LongViewMeasure measure) => switch (measure) {
+        LongViewMeasure.sleep => 'Sen',
+        LongViewMeasure.mood => 'Nastrój',
+        LongViewMeasure.steps => 'Kroki',
+        LongViewMeasure.pages => 'Napisane strony',
+      };
+  @override
+  String longViewSeriesSemantic({
+    required String measure,
+    required String cells,
+    required int absent,
+  }) =>
+      absent == 0
+          ? '$measure. $cells.'
+          : '$measure. $cells. Nie zapisano: $absent.';
+  @override
+  String longViewCellSemantic({required String label, required String value}) =>
+      '$label $value';
+  @override
+  String longViewCellAbsent(String label) => '$label — nie zapisano';
+
   // ------------------------------------------------------------------ plural
   //
   // Polish has three plural forms, not two: one for 1, one for 2–4, and one for

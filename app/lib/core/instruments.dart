@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import 'controls.dart';
@@ -784,4 +785,188 @@ class _ActivityDayPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ActivityDayPainter old) =>
       old.values != values || old.line != line || old.strong != strong;
+}
+
+/// One measure across a Long View window, drawn on the same axis as every other
+/// instrument here: a hairline baseline, one mark per period, nothing filled.
+///
+/// The rule this widget exists to keep is that **a period nobody recorded is
+/// absent, not zero**. A bar of height zero and a bar that was never measured
+/// look identical, and on a year axis that difference is the whole reading —
+/// eleven recorded months beside one empty one, drawn as twelve bars, invents a
+/// collapse that did not happen. An unrecorded period is therefore drawn as an
+/// open tick *below* the baseline: present on the axis, visibly not a value.
+///
+/// [values] is one entry per cell, null where nothing was recorded. [labels] is
+/// the same length and carries what the axis calls each cell; only the first,
+/// middle and last are drawn, because twelve month names do not fit at 320 dp.
+class EngravedLongView extends StatelessWidget {
+  const EngravedLongView({
+    super.key,
+    required this.measure,
+    required this.values,
+    required this.labels,
+    required this.format,
+    this.height = 108,
+  });
+
+  final LongViewMeasure measure;
+  final List<double?> values;
+  final List<String> labels;
+
+  /// How a value is said, in the caller's units. Passed in rather than switched
+  /// on [measure], because hours, a 0–10 mood and a step count round nothing
+  /// like each other and the surface already knows which it asked for.
+  final String Function(double) format;
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty || values.length != labels.length) {
+      return const SizedBox.shrink();
+    }
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+    final text = Theme.of(context).textTheme;
+    final name = strings.longViewMeasure(measure);
+
+    final spoken = <String>[];
+    var absent = 0;
+    for (var i = 0; i < values.length; i++) {
+      final value = values[i];
+      if (value == null) {
+        absent++;
+        continue;
+      }
+      spoken.add(
+        strings.longViewCellSemantic(label: labels[i], value: format(value)),
+      );
+    }
+
+    return Semantics(
+      container: true,
+      label: strings.longViewSeriesSemantic(
+        measure: name,
+        cells: spoken.join(', '),
+        absent: absent,
+      ),
+      child: ExcludeSemantics(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name, style: text.labelSmall),
+            const SizedBox(height: EterSpace.s4),
+            SizedBox(
+              height: height,
+              child: CustomPaint(
+                painter: _LongViewPainter(
+                  values: values,
+                  line: ink.line,
+                  strong: ink.lineStrong,
+                ),
+                child: Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      for (final index in _axisLabelIndices(labels.length))
+                        Text(labels[index], style: text.labelSmall),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// First, middle and last. Three is what fits at 320 dp with 200% text, and
+  /// the middle one is what stops a twelve-month axis reading as seven days.
+  static List<int> _axisLabelIndices(int count) {
+    if (count <= 1) return const [0];
+    if (count == 2) return const [0, 1];
+    return [0, count ~/ 2, count - 1];
+  }
+}
+
+class _LongViewPainter extends CustomPainter {
+  const _LongViewPainter({
+    required this.values,
+    required this.line,
+    required this.strong,
+  });
+
+  final List<double?> values;
+  final Color line;
+  final Color strong;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bottom = size.height - 22;
+    const top = 6.0;
+    final recorded = [
+      for (final value in values)
+        if (value != null) value,
+    ];
+    if (recorded.isEmpty) {
+      // The baseline still gets drawn. A window with nothing in it is a period
+      // of time that happened, and erasing the axis would deny that.
+      canvas.drawLine(
+        Offset(0, bottom),
+        Offset(size.width, bottom),
+        Paint()
+          ..color = line
+          ..strokeWidth = 1,
+      );
+      return;
+    }
+    final peak = recorded.reduce(math.max);
+    // A flat series still has to be drawn at some height, and drawing it at the
+    // top would say "peak" about a week where nothing moved.
+    final scale = peak <= 0 ? 1.0 : peak;
+    final slot = size.width / values.length;
+    final stroke = math.max(1.4, math.min(12.0, slot * .34));
+
+    canvas.drawLine(
+      Offset(0, bottom),
+      Offset(size.width, bottom),
+      Paint()
+        ..color = line
+        ..strokeWidth = 1,
+    );
+
+    for (var i = 0; i < values.length; i++) {
+      final x = slot * (i + .5);
+      final value = values[i];
+      if (value == null) {
+        // Absent: a short open tick under the axis. Below it, so it can never
+        // be misread as a small value above it.
+        canvas.drawLine(
+          Offset(x, bottom + 2),
+          Offset(x, bottom + 6),
+          Paint()
+            ..color = line
+            ..strokeWidth = 1,
+        );
+        continue;
+      }
+      final barHeight = (bottom - top) * (value / scale);
+      canvas.drawLine(
+        Offset(x, bottom),
+        Offset(x, bottom - math.max(1, barHeight)),
+        Paint()
+          ..color = value == peak ? strong : line
+          ..strokeWidth = stroke,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LongViewPainter old) =>
+      !listEquals(old.values, values) ||
+      old.line != line ||
+      old.strong != strong;
 }

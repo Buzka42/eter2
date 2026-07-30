@@ -797,7 +797,53 @@ abstract class EterStrings {
   /// The self-report kinds a lifestyle entry can carry, for the sentence above.
   /// Canonical keys; see `core/lifestyle/daily_check_in.dart`.
   String lifestyleKindName(String canonical);
+
+  // ------------------------------------------------------------- the long view
+
+  /// The axis pulled back. Named in the Sanctum as well as reached by turning,
+  /// because extension is discoverable only to somebody already turning pages —
+  /// see `docs/DECISIONS.md`.
+  String get headingLongView;
+
+  /// Week, month or year, for the mark that says which scale you are on.
+  String longViewSpanName(LongViewSpanName span);
+
+  /// How much of the period was recorded at all.
+  ///
+  /// The headline of every Long View, and the reason it is a *fraction* rather
+  /// than a count: an average of four days is not a week, and the surface has to
+  /// say which it is before it says anything else.
+  String longViewRecorded({required int recorded, required int total});
+
+  /// When the whole window is empty. Not an error and not an empty state to be
+  /// apologised for — a stretch of time you did not spend with Eter.
+  String get longViewNothingRecorded;
+
+  /// What a series of cells is measuring.
+  String longViewMeasure(LongViewMeasure measure);
+
+  /// The whole chart, for a reader who cannot see it. Absent periods are named
+  /// as absent rather than skipped, because a gap is the shape of the year.
+  String longViewSeriesSemantic({
+    required String measure,
+    required String cells,
+    required int absent,
+  });
+
+  /// One cell inside that reading.
+  String longViewCellSemantic({required String label, required String value});
+
+  /// A cell nobody recorded, inside that reading.
+  String longViewCellAbsent(String label);
 }
+
+/// The three scales, named for the string table without dragging
+/// `core/longview` into every localisation file.
+enum LongViewSpanName { week, month, year }
+
+/// The measures a Long View can draw. Sleep, mood and steps are means over the
+/// days that recorded them; pages is a count, and a count of zero is true.
+enum LongViewMeasure { sleep, mood, steps, pages }
 
 /// One passage of the tutorial: an eyebrow in caps and the lines beneath it.
 @immutable
