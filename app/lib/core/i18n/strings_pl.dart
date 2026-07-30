@@ -24,7 +24,9 @@ import 'strings.dart';
 /// * **Wskazania** — *guidance*. Chosen over `prowadzenie` because the whole
 ///   visual language of this app is engraved instruments, and `wskazania` is
 ///   what an instrument gives you: a reading, not advice.
-/// * **Naczynie** — *the Vessel*. **Sanktuarium** — *the Sanctum*.
+/// * **Krąg** — *the Vessel*. **Zacisze** — *the Sanctum*. Neither is the
+///   literal translation; see `docs/POLISH.md` for what each word was chosen
+///   over and why.
 ///   **Dziennik** — *the Journal*. **Pulpit** — *the Dashboard*.
 /// * **Rejestr** — *register*, in the musical sense the English word carries
 ///   here, not a ledger.
@@ -102,11 +104,11 @@ class EterStringsPl extends EterStrings {
   @override
   String get destinationJournal => 'DZIENNIK';
   @override
-  String get destinationDashboard => 'PULPIT';
+  String get destinationDashboard => 'TARCZA';
   @override
-  String get sanctum => 'Sanktuarium';
+  String get sanctum => 'Zacisze';
   @override
-  String get openSanctumSemantic => 'Otwórz Sanktuarium';
+  String get openSanctumSemantic => 'Otwórz Zacisze';
 
   // ----------------------------------------------------------- the dashboard
 
@@ -127,7 +129,7 @@ class EterStringsPl extends EterStrings {
       'Kompozycja Aether nie jest jeszcze podłączona w tej wersji.';
   @override
   String get enableAiBeforeComposing =>
-      'Włącz wskazania AI w Sanktuarium, zanim zaczniesz komponować.';
+      'Włącz wskazania AI w Zaciszu, zanim zaczniesz komponować.';
   @override
   String get responseNotAcceptedSafely =>
       'Odpowiedzi nie można było bezpiecznie przyjąć. Nic się nie zmieniło.';
@@ -136,13 +138,13 @@ class EterStringsPl extends EterStrings {
       'Kompozycja jest teraz niedostępna. Dotychczasowe wskazania zostają.';
 
   @override
-  String get lookDeeper => 'ZAJRZYJ GŁĘBIEJ';
+  String get lookDeeper => 'GŁĘBIA';
   @override
   String get sectionGuidance => 'WSKAZANIA';
   @override
   String get sectionBody => 'CIAŁO';
   @override
-  String get sectionVessel => 'NACZYNIE';
+  String get sectionVessel => 'KRĄG';
 
   @override
   String guidanceDimension(String canonical) => switch (canonical) {
@@ -369,13 +371,13 @@ class EterStringsPl extends EterStrings {
   // ------------------------------------------------------------------ vessel
 
   @override
-  String get theVessel => 'NACZYNIE';
+  String get theVessel => 'KRĄG';
   @override
   String get readingChartOnDevice =>
       'Czytam kosmogram zapisany na tym urządzeniu…';
   @override
   String get birthDetailsNeededForVessel =>
-      'Naczynie potrzebuje danych urodzenia, żeby można je było narysować.';
+      'Krąg potrzebuje danych urodzenia, żeby można go było narysować.';
 
   @override
   String get headingYourCard => 'TWOJA KARTA';
@@ -474,7 +476,7 @@ class EterStringsPl extends EterStrings {
       'zmian.';
   @override
   String get enableAiBeforeReadingToday =>
-      'Włącz wskazania AI w Sanktuarium, zanim przeczytasz dzisiejszy dzień.';
+      'Włącz wskazania AI w Zaciszu, zanim przeczytasz dzisiejszy dzień.';
 
   @override
   String lifePathLabel(int value) => 'Droga życia $value';
@@ -583,7 +585,7 @@ class EterStringsPl extends EterStrings {
       'Interpretacja dziennika nie jest jeszcze podłączona w tej wersji.';
   @override
   String get enableAiBeforeSendingEntry =>
-      'Włącz wskazania AI w Sanktuarium, zanim wyślesz ten wpis.';
+      'Włącz wskazania AI w Zaciszu, zanim wyślesz ten wpis.';
   @override
   String get entryNotInterpretedSafely =>
       'Tego wpisu nie udało się bezpiecznie zinterpretować. Spróbuj ponownie.';
@@ -695,7 +697,7 @@ class EterStringsPl extends EterStrings {
   String get journalAwareAllowedDetail =>
       'Wysłane mogą zostać tylko wpisy bez oznaczenia „Zatrzymaj lokalnie”.';
   @override
-  String get headingCloudContinuity => 'CIĄGŁOŚĆ W CHMURZE';
+  String get headingCloudContinuity => 'KOPIA W CHMURZE';
   @override
   String get localOnly => 'Tylko lokalnie';
   @override
@@ -958,7 +960,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get healthAccessNotGrantedOnboarding =>
       'Dostęp nie został przyznany. Nic nie zaimportowano, a połączyć możesz '
-      'się później w Sanktuarium.';
+      'się później w Zaciszu.';
   @override
   // "Zapisz zwrotnie" is the precise phrase and overflowed the control by 24 px
   // at 320 dp with 200% text. The note below carries the precision; the button
@@ -984,7 +986,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get healthCouldNotBeReadOnboarding =>
       'Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w '
-      'Sanktuarium.';
+      'Zacisze.';
 
   @override
   String get headingLocalExport => 'EKSPORT LOKALNY';
@@ -1250,7 +1252,7 @@ class EterStringsPl extends EterStrings {
   String get hintCityOrRegion => 'Miasto lub region';
   @override
   String get exactBirthTimeLater =>
-      'Dokładną godzinę urodzenia można dopisać później w Sanktuarium.';
+      'Dokładną godzinę urodzenia można dopisać później w Zaciszu.';
   @override
   String get errorEnterValidBirthDate =>
       'Podaj prawidłową datę urodzenia w formacie RRRR-MM-DD.';
@@ -1269,7 +1271,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get registerStepIntro =>
       'To ustawia głos, nie fakty. Możesz to zmienić w każdej chwili w '
-      'Sanktuarium.';
+      'Zacisze.';
   @override
   String get registerGroundedOnboardingDetail =>
       'Jasność dnia o każdej godzinie. Prosto, praktycznie, bez ozdób.';
@@ -1286,7 +1288,7 @@ class EterStringsPl extends EterStrings {
   String get languageStepIntro =>
       'Na początek ustawiony według twojego telefonu. Zmienia każde słowo, '
       'razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w '
-      'Sanktuarium.';
+      'Zacisze.';
 
   @override
   String get consentStepTitle => 'Wybierz, co może opuścić to urządzenie';
@@ -1346,7 +1348,7 @@ class EterStringsPl extends EterStrings {
           lines: [
             'Druga strona tej samej przestrzeni odczytuje to, co znalazła.',
             'Wskazania przychodzą same każdego dnia. Zajrzyj głębiej po ciało '
-                'albo po Naczynie — twój kosmogram, twoją Drogę życia i to, '
+                'albo po Krąg — twój kosmogram, twoją Drogę życia i to, '
                 'jak dzisiejsze niebo stoi wobec nich.',
           ],
         ),
