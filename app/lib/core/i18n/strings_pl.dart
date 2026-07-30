@@ -447,16 +447,16 @@ class EterStringsPl extends EterStrings {
   @override
   String get nothingCloseInTheSky =>
       'Nic na niebie nie stoi dziś blisko twojego kosmogramu.';
+  // A readout rather than a sentence. Polish would need `natalny` to agree
+  // with each body's gender (Mars natalny, Wenus natalna, Słońce natalne),
+  // and this is a dense four-row table where a labelled reading is clearer
+  // than forced prose anyway.
   @override
   String contactLine({
     required String transiting,
     required String aspect,
     required String natal,
   }) =>
-      // A readout rather than a sentence. Polish would need `natalny` to agree
-      // with each body's gender (Mars natalny, Wenus natalna, Słońce natalne),
-      // and this is a dense four-row table where a labelled reading is clearer
-      // than forced prose anyway.
       '$transiting · $aspect · natalny: $natal';
   @override
   String contactOrb({required String degrees, required bool applying}) =>
@@ -1553,7 +1553,8 @@ class EterStringsPl extends EterStrings {
 
   @override
   String matrixPositionLabel(MatrixPosition position) => switch (position) {
-        MatrixPosition.given => 'Dane',
+        // Not `Dane`, which is the word the Sanctum uses for *data*.
+        MatrixPosition.given => 'Zastane',
         MatrixPosition.inherited => 'Odziedziczone',
         MatrixPosition.era => 'Epoka',
         MatrixPosition.turning => 'Zwrot',
@@ -1565,15 +1566,15 @@ class EterStringsPl extends EterStrings {
   @override
   String matrixPositionDetail(MatrixPosition position) => switch (position) {
         MatrixPosition.given =>
-          'Sam dzień — poszczególny fakt przybycia.',
+          'Sam dzień — konkretny fakt przyjścia na świat.',
         MatrixPosition.inherited =>
           'Miesiąc — pora roku, którą życie dostaje, zanim cokolwiek wybierze.',
         MatrixPosition.era =>
           'Rok — pogoda czasu, nie człowieka.',
         MatrixPosition.turning =>
-          'Gdzie ten rok stał we własnym cyklu, kiedy człowiek się zaczął.',
+          'Gdzie ten rok stał we własnym cyklu, gdy zaczynał się człowiek.',
         MatrixPosition.meeting =>
-          'Dzień i miesiąc razem — poszczególne spotykające swoją porę roku.',
+          'Dzień i miesiąc razem — to, co konkretne, spotyka swoją porę roku.',
         MatrixPosition.longThread =>
           'Dzień i rok razem — ta część, która biegnie przez całą długość.',
         MatrixPosition.centre =>
@@ -1596,7 +1597,7 @@ class EterStringsPl extends EterStrings {
         BirthTimePeriod.smallHours => 'Około 1–4 w nocy',
         BirthTimePeriod.earlyMorning => 'Około 4–7 rano',
         BirthTimePeriod.morning => 'Około 7 rano – południe',
-        BirthTimePeriod.afternoon => 'Około południe – 17',
+        BirthTimePeriod.afternoon => 'Około południa – 17',
         BirthTimePeriod.evening => 'Około 17–21',
         BirthTimePeriod.night => 'Około 21–1',
       };

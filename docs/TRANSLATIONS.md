@@ -167,7 +167,7 @@ explains why translating one would break the symbolic engine.
 | `headingPositionsToday` | POSITIONS TODAY | POZYCJE NA DZIŚ |
 | `positionsSummary()` | A ${moonPhaseName(moonPhaseCanonical)} moon in ${signName(moonSignCanonical)}, the sun in ${signName(sunSignCanonical)}. | Księżyc w fazie ${_fazaGen(moonPhaseCanonical)} ${_wZnaku(moonSignCanonical)}, Słońce ${_wZnaku(sunSignCanonical)}. |
 | `nothingCloseInTheSky` | Nothing in the sky stands close to your chart today. | Nic na niebie nie stoi dziś blisko twojego kosmogramu. |
-| `contactLine()` | $transiting $aspect natal $natal | s gender (Mars natalny, Wenus natalna, Słońce natalne), // and this is a dense four-row table where a labelled reading is clearer // than forced prose anyway. |
+| `contactLine()` | $transiting $aspect natal $natal | $transiting · $aspect · natalny: $natal |
 | `readToday` | Read today | Przeczytaj dziś |
 | `readingToday` | Reading | Czytam |
 | `todaysReadingNotConnected` | Today’s reading is not connected on this build yet. The positions below are calculated on this device. | Dzisiejsze odczytanie nie jest jeszcze podłączone w tej wersji. Pozycje poniżej są wyliczone na tym urządzeniu. |
@@ -481,10 +481,10 @@ explains why translating one would break the symbolic engine.
 | `aspectName()` | canonical | conjunctionkoniunkcjasextilesekstylsquarekwadraturatrinetrygonoppositionopozycja |
 | `moonPhaseName()` | canonical | newnówwaxing crescentrosnący sierpfirst quarterpierwsza kwadrawaxing gibbousrosnący garbfullpełniawaning gibbousubywający garblast quarterostatnia kwadrawaning crescentubywający sierp |
 | `arcanaTitle()` | the-foolThe Foolthe-magicianThe Magicianthe-high-priestessThe High Priestessthe-empressThe Empressthe-emperorThe Emperorthe-hierophantThe Hierophantthe-loversThe Loversthe-chariotThe ChariotstrengthStrengththe-hermitThe Hermitwheel-of-fortuneWheel of FortunejusticeJusticethe-hanged-manThe Hanged MandeathDeathtemperanceTemperancethe-devilThe Devilthe-towerThe Towerthe-starThe Starthe-moonThe Moonthe-sunThe SunjudgementJudgementthe-worldThe World | the-foolGłupiecthe-magicianMagthe-high-priestessKapłankathe-empressCesarzowathe-emperorCesarzthe-hierophantKapłanthe-loversKochankowiethe-chariotRydwanstrengthSiłathe-hermitPustelnikwheel-of-fortuneKoło FortunyjusticeSprawiedliwośćthe-hanged-manWisielecdeathŚmierćtemperanceUmiarkowaniethe-devilDiabełthe-towerWieżathe-starGwiazdathe-moonKsiężycthe-sunSłońcejudgementSąd Ostatecznythe-worldŚwiat |
-| `matrixPositionLabel()` | position.label | DaneOdziedziczoneEpokaZwrotSpotkanieDługa nićŚrodek |
-| `matrixPositionDetail()` | position.detail | Sam dzień — poszczególny fakt przybycia.Miesiąc — pora roku, którą życie dostaje, zanim cokolwiek wybierze.Rok — pogoda czasu, nie człowieka.Gdzie ten rok stał we własnym cyklu, kiedy człowiek się zaczął.Dzień i miesiąc razem — poszczególne spotykające swoją porę roku.Dzień i rok razem — ta część, która biegnie przez całą długość.Wszystko zsumowane. Ta sama karta, do której dochodzi Droga życia, osiągnięta z drugiej strony. |
+| `matrixPositionLabel()` | position.label | ZastaneOdziedziczoneEpokaZwrotSpotkanieDługa nićŚrodek |
+| `matrixPositionDetail()` | position.detail | Sam dzień — konkretny fakt przyjścia na świat.Miesiąc — pora roku, którą życie dostaje, zanim cokolwiek wybierze.Rok — pogoda czasu, nie człowieka.Gdzie ten rok stał we własnym cyklu, gdy zaczynał się człowiek.Dzień i miesiąc razem — to, co konkretne, spotyka swoją porę roku.Dzień i rok razem — ta część, która biegnie przez całą długość.Wszystko zsumowane. Ta sama karta, do której dochodzi Droga życia, osiągnięta z drugiej strony. |
 | `birthPeriodLabel()` | period.label | Głucha nocWczesny ranekRanoPopołudnieWieczórNoc |
-| `birthPeriodDetail()` | period.detail | Około 1–4 w nocyOkoło 4–7 ranoOkoło 7 rano – południeOkoło południe – 17Około 17–21Około 21–1 |
+| `birthPeriodDetail()` | period.detail | Około 1–4 w nocyOkoło 4–7 ranoOkoło 7 rano – południeOkoło południa – 17Około 17–21Około 21–1 |
 | `applyingWord` | applying | zbliża się |
 | `separatingWord` | separating | rozchodzi się |
 | `retrogradeWord` | retrograde | retrogradacja |
