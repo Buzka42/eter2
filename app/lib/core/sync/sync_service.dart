@@ -218,24 +218,42 @@ class SyncService {
     return 1;
   }
 
+  /// The key a row occupies in the mirror, forever.
+  ///
+  /// Reuses the row's existing [WeightEntries.mirrorId] when it has one, and
+  /// otherwise mints a key that does not depend on the local autoincrement id
+  /// surviving. It once did depend on exactly that, and a restore reassigns
+  /// those ids, so after a phone swap every push wrote to a document named
+  /// after the new id and left the old one untouched — including the tombstone
+  /// that was supposed to erase a discarded page's prose.
+  ///
+  /// The row id is still in the key, because two rows pushed inside the same
+  /// microsecond otherwise collide.
+  static String mirrorKeyFor({required String? existing, required int rowId}) =>
+      existing ?? 'r$rowId-${DateTime.now().microsecondsSinceEpoch}';
+
   Future<int> _pushWeights(String userId) async {
     final rows = await (database.select(database.weightEntries)
           ..where((row) => row.syncedAt.isNull()))
         .get();
     if (rows.isEmpty) return 0;
+    final keys = {
+      for (final row in rows)
+        row.id: mirrorKeyFor(existing: row.mirrorId, rowId: row.id),
+    };
     await mirror.putAll(
       userId: userId,
       collection: 'weights',
       documents: {
         for (final row in rows)
-          '${row.id}': {
+          keys[row.id]!: {
             'recordedAt': row.recordedAt.toIso8601String(),
             'kg': row.kg,
             'source': row.source,
           },
       },
     );
-    await _markSynced(database.weightEntries, rows.map((row) => row.id));
+    await _markPushed(database.weightEntries, keys);
     return rows.length;
   }
 
@@ -244,12 +262,16 @@ class SyncService {
           ..where((row) => row.syncedAt.isNull()))
         .get();
     if (rows.isEmpty) return 0;
+    final keys = {
+      for (final row in rows)
+        row.id: mirrorKeyFor(existing: row.mirrorId, rowId: row.id),
+    };
     await mirror.putAll(
       userId: userId,
       collection: 'nutrition',
       documents: {
         for (final row in rows)
-          '${row.id}': {
+          keys[row.id]!: {
             'recordedAt': row.recordedAt.toIso8601String(),
             'kcal': row.kcal,
             'proteinG': row.proteinG,
@@ -261,7 +283,7 @@ class SyncService {
           },
       },
     );
-    await _markSynced(database.nutritionEntries, rows.map((row) => row.id));
+    await _markPushed(database.nutritionEntries, keys);
     return rows.length;
   }
 
@@ -270,12 +292,16 @@ class SyncService {
           ..where((row) => row.syncedAt.isNull()))
         .get();
     if (rows.isEmpty) return 0;
+    final keys = {
+      for (final row in rows)
+        row.id: mirrorKeyFor(existing: row.mirrorId, rowId: row.id),
+    };
     await mirror.putAll(
       userId: userId,
       collection: 'lifestyle',
       documents: {
         for (final row in rows)
-          '${row.id}': {
+          keys[row.id]!: {
             'recordedAt': row.recordedAt.toIso8601String(),
             'kind': row.kind,
             'value': row.value,
@@ -285,7 +311,7 @@ class SyncService {
           },
       },
     );
-    await _markSynced(database.lifestyleEntries, rows.map((row) => row.id));
+    await _markPushed(database.lifestyleEntries, keys);
     return rows.length;
   }
 
@@ -395,12 +421,16 @@ class SyncService {
           ..where((row) => row.syncedAt.isNull()))
         .get();
     if (rows.isEmpty) return 0;
+    final keys = {
+      for (final row in rows)
+        row.id: mirrorKeyFor(existing: row.mirrorId, rowId: row.id),
+    };
     await mirror.putAll(
       userId: userId,
       collection: 'journal',
       documents: {
         for (final row in rows)
-          '${row.id}': {
+          keys[row.id]!: {
             'createdAt': row.createdAt.toIso8601String(),
             'text': row.entryText,
             'source': row.source,
@@ -409,23 +439,34 @@ class SyncService {
           },
       },
     );
-    await _markSynced(database.journalEntries, rows.map((row) => row.id));
+    await _markPushed(database.journalEntries, keys);
     return rows.length;
   }
 
-  Future<void> _markSynced(
+  /// Records that these rows went, and which document each one went to.
+  ///
+  /// Both in one statement per row, because a row marked synced without its
+  /// mirror key would never be pushed again and would never learn where it
+  /// lives — the next edit would then mint a second key and orphan the first.
+  Future<void> _markPushed(
     TableInfo<Table, dynamic> table,
-    Iterable<int> ids,
+    Map<int, String> keys,
   ) =>
-      database.customUpdate(
-        'UPDATE ${table.actualTableName} SET synced_at = ? '
-        'WHERE id IN (${ids.map((_) => '?').join(',')})',
-        variables: [
-          Variable<String>(DateTime.now().toUtc().toIso8601String()),
-          for (final id in ids) Variable<int>(id),
-        ],
-        updates: {table},
-      );
+      database.transaction(() async {
+        final now = DateTime.now().toUtc().toIso8601String();
+        for (final entry in keys.entries) {
+          await database.customUpdate(
+            'UPDATE ${table.actualTableName} '
+            'SET synced_at = ?, mirror_id = ? WHERE id = ?',
+            variables: [
+              Variable<String>(now),
+              Variable<String>(entry.value),
+              Variable<int>(entry.key),
+            ],
+            updates: {table},
+          );
+        }
+      });
 
   // -------------------------------------------------------------------------
   // Restore
@@ -435,7 +476,7 @@ class SyncService {
     final documents =
         await mirror.readAll(userId: userId, collection: 'profile');
     if (documents.isEmpty) return 0;
-    final data = documents.first;
+    final data = documents.first.data;
     await database.saveProfile(ProfilesCompanion.insert(
       dob: DateTime.parse(data['dob']! as String),
       sex: data['sex']! as String,
@@ -467,13 +508,18 @@ class SyncService {
   Future<int> _restoreWeights(String userId) async {
     final documents =
         await mirror.readAll(userId: userId, collection: 'weights');
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       await database.into(database.weightEntries).insert(
             WeightEntriesCompanion.insert(
               recordedAt: DateTime.parse(data['recordedAt']! as String),
               kg: (data['kg']! as num).toDouble(),
               source: Value(data['source'] as String? ?? 'manual'),
               syncedAt: Value(DateTime.now().toUtc()),
+              // The local id this lands under is not the one it left as.
+              // Keeping the mirror's own key is what lets a later edit replace
+              // this document instead of creating a second one beside it.
+              mirrorId: Value(entry.id),
             ),
           );
     }
@@ -483,7 +529,8 @@ class SyncService {
   Future<int> _restoreNutrition(String userId) async {
     final documents =
         await mirror.readAll(userId: userId, collection: 'nutrition');
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       await database.into(database.nutritionEntries).insert(
             NutritionEntriesCompanion.insert(
               recordedAt: DateTime.parse(data['recordedAt']! as String),
@@ -495,6 +542,7 @@ class SyncService {
               source: Value(data['source'] as String? ?? 'eter'),
               confirmed: Value(data['confirmed'] as bool? ?? true),
               syncedAt: Value(DateTime.now().toUtc()),
+              mirrorId: Value(entry.id),
             ),
           );
     }
@@ -504,7 +552,8 @@ class SyncService {
   Future<int> _restoreLifestyle(String userId) async {
     final documents =
         await mirror.readAll(userId: userId, collection: 'lifestyle');
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       await database.into(database.lifestyleEntries).insert(
             LifestyleEntriesCompanion.insert(
               recordedAt: DateTime.parse(data['recordedAt']! as String),
@@ -515,6 +564,7 @@ class SyncService {
               note: Value(data['note'] as String?),
               source: Value(data['source'] as String? ?? 'self-report'),
               syncedAt: Value(DateTime.now().toUtc()),
+              mirrorId: Value(entry.id),
             ),
           );
     }
@@ -524,7 +574,8 @@ class SyncService {
   Future<int> _restoreSessions(String userId) async {
     final documents =
         await mirror.readAll(userId: userId, collection: 'sessions');
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       await database.upsertActivitySession(
         ActivitySessionsCompanion.insert(
           id: data['id']! as String,
@@ -547,7 +598,8 @@ class SyncService {
   Future<int> _restoreStrength(String userId) async {
     final documents =
         await mirror.readAll(userId: userId, collection: 'strength');
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       await database.into(database.strengthWorkouts).insertOnConflictUpdate(
             StrengthWorkoutsCompanion.insert(
               id: data['id']! as String,
@@ -568,7 +620,8 @@ class SyncService {
 
   Future<int> _restoreDaySummaries(String userId) async {
     final documents = await mirror.readAll(userId: userId, collection: 'days');
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       await database.into(database.daySummaries).insertOnConflictUpdate(
             DaySummariesCompanion.insert(
               date: data['date']! as String,
@@ -589,7 +642,8 @@ class SyncService {
     final documents =
         await mirror.readAll(userId: userId, collection: 'journal');
     var restored = 0;
-    for (final data in documents) {
+    for (final entry in documents) {
+      final data = entry.data;
       // A blanked tombstone carries nothing worth restoring; recreating it
       // would put an empty page back on a new phone for no reason.
       if (data['status'] == 'discarded') continue;
@@ -601,6 +655,11 @@ class SyncService {
         status: Value(data['status'] as String? ?? 'pending'),
         excludedFromAi: Value(data['excludedFromAi'] as bool? ?? false),
         syncedAt: Value(DateTime.now().toUtc()),
+        // The page keeps the key it was stored under, so discarding it later
+        // blanks *that* document. Without this the tombstone landed on a new
+        // document and the original prose stayed in the cloud permanently —
+        // the one copy the person had just asked to be rid of.
+        mirrorId: Value(entry.id),
       ));
     }
     return restored;

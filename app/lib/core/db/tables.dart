@@ -290,6 +290,15 @@ class WeightEntries extends Table {
   RealColumn get kg => real()();
   TextColumn get source => text().withDefault(const Constant('manual'))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  /// The key this row occupies in the mirror, once it has one.
+  ///
+  /// Null until the row is first pushed, and then never changes. It exists
+  /// because [id] cannot do this job across a phone swap: mirror documents used
+  /// to be keyed on the local autoincrement id, and a restore reassigns those,
+  /// so every subsequent push wrote to a *different* document than the one it
+  /// meant to replace. See `SyncService.mirrorKeyFor`.
+  TextColumn get mirrorId => text().nullable()();
 }
 
 @DataClassName('NutritionEntryRow')
@@ -312,6 +321,9 @@ class NutritionEntries extends Table {
   /// saved" -- unconfirmed rows must not count toward any total.
   BoolColumn get confirmed => boolean().withDefault(const Constant(true))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  /// See `WeightEntries.mirrorId`.
+  TextColumn get mirrorId => text().nullable()();
 }
 
 @DataClassName('LiveSessionRow')
@@ -352,6 +364,9 @@ class LifestyleEntries extends Table {
   TextColumn get note => text().nullable()();
   TextColumn get source => text().withDefault(const Constant('self-report'))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  /// See [WeightEntries.mirrorId].
+  TextColumn get mirrorId => text().nullable()();
 }
 
 /// One local day, as the day's own pages tell it.
@@ -463,6 +478,12 @@ class JournalEntries extends Table {
   BoolColumn get excludedFromAi =>
       boolean().withDefault(const Constant(false))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  /// See [WeightEntries.mirrorId]. This is the column that matters most: a
+  /// discarded page is pushed as a blanked row so it overwrites the prose in
+  /// the mirror, and without a stable key that overwrite landed on a new
+  /// document and left the original page in the cloud permanently.
+  TextColumn get mirrorId => text().nullable()();
 }
 
 // ---------------------------------------------------------------------------

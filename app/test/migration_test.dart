@@ -124,6 +124,59 @@ void main() {
     expect(profile.journalCloudSyncConsentAt, isNull);
   });
 
+  /// v10's `mirror_id` columns, and why they are backfilled rather than null.
+  ///
+  /// Every row on an existing install was pushed — if at all — under
+  /// `CAST(id AS TEXT)`, so the local id *is* its mirror key today. Left null,
+  /// each of those rows would be handed a freshly minted key on the next push
+  /// and the entire record would be duplicated in the mirror: a worse bug than
+  /// the id drift the column exists to fix.
+  test('an upgraded install keeps the mirror keys it already had', () async {
+    final memory = sqlite3.openInMemory();
+    final before = AppDatabase(
+      NativeDatabase.opened(memory, closeUnderlyingOnClose: false),
+    );
+    await before.addJournalEntry(JournalEntriesCompanion.insert(
+      createdAt: DateTime(2026, 7, 28, 10),
+      entryText: 'Written before the column existed.',
+    ));
+    await before.addManualWeight(kg: 80, recordedAt: DateTime(2026, 7, 28));
+    await before.close();
+
+    // Wind back to v9: the columns gone, the version not knowing it.
+    for (final table in [
+      'journal_entries',
+      'weight_entries',
+      'nutrition_entries',
+      'lifestyle_entries',
+    ]) {
+      memory.execute('ALTER TABLE $table DROP COLUMN mirror_id');
+    }
+    memory.execute('PRAGMA user_version = 9');
+
+    final upgraded = AppDatabase(NativeDatabase.opened(memory));
+    addTearDown(upgraded.close);
+
+    final page = (await upgraded.select(upgraded.journalEntries).get()).single;
+    expect(page.mirrorId, '${page.id}');
+    final weight = (await upgraded.select(upgraded.weightEntries).get()).single;
+    expect(weight.mirrorId, '${weight.id}');
+  });
+
+  test('a fresh install mints keys rather than reusing row ids', () async {
+    // The other half of the same rule. Nothing has been pushed, so there is no
+    // existing document to stay in step with, and a key that is not the local
+    // id is what survives a restore reassigning those ids.
+    final database = AppDatabase(NativeDatabase.memory());
+    addTearDown(database.close);
+    await database.addJournalEntry(JournalEntriesCompanion.insert(
+      createdAt: DateTime(2026, 7, 28, 10),
+      entryText: 'Written after.',
+    ));
+    final page = (await database.select(database.journalEntries).get()).single;
+    expect(page.mirrorId, isNull, reason: 'assigned on first push, not before');
+  });
+
   test('a night stored twice is repaired when the database opens', () async {
     // The state a real phone was left in: nights written before the import
     // learned to prefer stages carry both the stages and the session that

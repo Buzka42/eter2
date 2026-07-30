@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   /// fortnight of compressed notes guidance reads so it stops repeating itself;
   /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -136,6 +136,32 @@ class AppDatabase extends _$AppDatabase {
           // upgrade is where a Polish-speaking install starts being spoken to
           // in Polish rather than staying in an English it never picked.
           await _addColumnIfMissing(m, profiles, profiles.language);
+
+          // New in v10: the key each row occupies in the mirror, so a restore
+          // cannot silently repoint a row at a different document.
+          //
+          // Backfilled to the local id rather than left null, and that is the
+          // load-bearing half. Every row on an existing install was already
+          // pushed — if it was pushed at all — under `CAST(id AS TEXT)`, so the
+          // local id *is* its mirror key today. Leaving these null would hand
+          // every one of them a freshly generated key on the next push and
+          // duplicate the entire record in the mirror, which is a worse bug
+          // than the one being fixed.
+          Future<void> addMirrorId(
+            TableInfo<Table, dynamic> table,
+            GeneratedColumn<String> column,
+          ) async {
+            if (!await _addColumnIfMissing(m, table, column)) return;
+            await customStatement(
+              'UPDATE ${table.actualTableName} '
+              'SET mirror_id = CAST(id AS TEXT) WHERE mirror_id IS NULL',
+            );
+          }
+
+          await addMirrorId(weightEntries, weightEntries.mirrorId);
+          await addMirrorId(nutritionEntries, nutritionEntries.mirrorId);
+          await addMirrorId(lifestyleEntries, lifestyleEntries.mirrorId);
+          await addMirrorId(journalEntries, journalEntries.mirrorId);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();

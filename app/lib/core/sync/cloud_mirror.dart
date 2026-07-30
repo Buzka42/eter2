@@ -13,6 +13,23 @@ library;
 /// One document, as it travels.
 typedef MirrorDocument = Map<String, Object?>;
 
+/// One document and the key it is stored under.
+///
+/// [readAll] returns these rather than bare documents because the key is not
+/// recoverable from the contents, and a restore has to keep it: the local row
+/// ids it lands under are reassigned by autoincrement, so the mirror key is the
+/// only thing that still identifies which document a row came from. Without it,
+/// the next push writes to a document named after the *new* local id and the
+/// original is orphaned — which is how a discarded journal page used to leave
+/// its prose in the cloud forever.
+class MirrorEntry {
+  const MirrorEntry({required this.id, required this.data});
+
+  /// The document's key in its collection.
+  final String id;
+  final MirrorDocument data;
+}
+
 /// The storage the mirror needs, and nothing more.
 ///
 /// An interface rather than Firestore directly, for the same reason
@@ -34,8 +51,8 @@ abstract interface class CloudMirror {
     required Map<String, MirrorDocument> documents,
   });
 
-  /// Everything in one collection. Used only on restore.
-  Future<List<MirrorDocument>> readAll({
+  /// Everything in one collection, each with its key. Used only on restore.
+  Future<List<MirrorEntry>> readAll({
     required String userId,
     required String collection,
   });

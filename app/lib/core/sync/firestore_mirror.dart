@@ -53,13 +53,16 @@ class FirestoreCloudMirror implements CloudMirror {
       });
 
   @override
-  Future<List<MirrorDocument>> readAll({
+  Future<List<MirrorEntry>> readAll({
     required String userId,
     required String collection,
   }) =>
       _guard(() async {
         final snapshot = await _collection(userId, collection).get();
-        return [for (final document in snapshot.docs) document.data()];
+        return [
+          for (final document in snapshot.docs)
+            MirrorEntry(id: document.id, data: document.data()),
+        ];
       });
 
   @override

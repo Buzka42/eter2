@@ -274,6 +274,86 @@ void main() {
       expect(mirror.writeCount, afterFirstDevice + 1);
     });
 
+    /// The whole point of restoring: the record has to stay *the same record*.
+    ///
+    /// Mirror documents used to be keyed on the local autoincrement id, which a
+    /// restore reassigns. So on the new phone every row pointed at a document
+    /// named after somebody else's id, and the next push wrote a second copy
+    /// beside the first instead of replacing it. For the journal that was not
+    /// untidiness: discarding a page pushes a blanked row *in order to*
+    /// overwrite the prose in the mirror, and the overwrite was landing on a
+    /// document nobody had ever read.
+    test('a discarded page still erases its cloud copy after a phone swap',
+        () async {
+      await profile(journalCloud: true);
+      // Three pages, the first discarded before the swap. A restore skips
+      // tombstones, so the two survivors land on compacted local ids 1 and 2
+      // while their documents keep the keys they were written under — and on a
+      // fresh install those keys are minted, so they never look like a local id
+      // at all. Divergence is the normal case, not the unlucky one.
+      for (final text in ['First.', 'Second.', 'Keep this one.']) {
+        await database.addJournalEntry(JournalEntriesCompanion.insert(
+          createdAt: DateTime(2026, 7, 28, 10),
+          entryText: text,
+        ));
+      }
+      await database.discardJournalEntry(1);
+      await sync.push(confirmed);
+
+      String keyHolding(String text) => mirror.writes['journal']!.entries
+          .firstWhere((entry) => entry.value['text'] == text)
+          .key;
+      final doomed = keyHolding('Second.');
+      final kept = keyHolding('Keep this one.');
+      final keysBefore = mirror.writes['journal']!.keys.toSet();
+
+      final fresh = AppDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      final second = SyncService(database: fresh, mirror: mirror);
+      await second.restore(confirmed);
+      await fresh.updateProfileConsents(
+        cloudSyncAllowed: true,
+        journalCloudSyncAllowed: true,
+      );
+
+      final restored = await fresh.select(fresh.journalEntries).get();
+      expect(restored, hasLength(2), reason: 'the tombstone is not restored');
+      final row = restored.firstWhere((row) => row.entryText == 'Second.');
+      expect(row.mirrorId, doomed);
+      expect('${row.id}', isNot(doomed), reason: 'the ids really do diverge');
+
+      // Change your mind about that page on the new phone.
+      await fresh.discardJournalEntry(row.id);
+      await second.push(confirmed);
+
+      final journal = mirror.writes['journal']!;
+      // No fourth document was invented, the right one was blanked, and the
+      // other survivor was left alone. Keyed on the local id, this push would
+      // have written a new document and left "Second." in the cloud forever.
+      expect(journal.keys.toSet(), keysBefore);
+      expect(journal[doomed]!['text'], '');
+      expect(journal[doomed]!['status'], 'discarded');
+      expect(journal[kept]!['text'], 'Keep this one.');
+    });
+
+    test('restored rows keep the key they were stored under', () async {
+      await profile();
+      await someRecords();
+      await sync.push(confirmed);
+      final originalKeys = mirror.writes['weights']!.keys.toSet();
+
+      final fresh = AppDatabase(NativeDatabase.memory());
+      addTearDown(fresh.close);
+      await SyncService(database: fresh, mirror: mirror).restore(confirmed);
+
+      final restored = await fresh.select(fresh.weightEntries).get();
+      expect(
+        restored.map((row) => row.mirrorId).toSet(),
+        originalKeys,
+        reason: 'the mirror key is the only surviving link to the document',
+      );
+    });
+
     test('a restored device does not inherit cloud continuity', () async {
       await profile();
       await someRecords();
@@ -452,11 +532,14 @@ class _FakeMirror implements CloudMirror {
   }
 
   @override
-  Future<List<MirrorDocument>> readAll({
+  Future<List<MirrorEntry>> readAll({
     required String userId,
     required String collection,
   }) async =>
-      writes[collection]?.values.toList() ?? const [];
+      [
+        for (final entry in writes[collection]?.entries ?? const <Never>[])
+          MirrorEntry(id: entry.key, data: entry.value),
+      ];
 
   @override
   Future<void> deleteEverything(String userId) async {

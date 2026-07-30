@@ -5041,8 +5041,15 @@ class $WeightEntriesTable extends WeightEntries
   late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
       'synced_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _mirrorIdMeta =
+      const VerificationMeta('mirrorId');
   @override
-  List<GeneratedColumn> get $columns => [id, recordedAt, kg, source, syncedAt];
+  late final GeneratedColumn<String> mirrorId = GeneratedColumn<String>(
+      'mirror_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, recordedAt, kg, source, syncedAt, mirrorId];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -5077,6 +5084,10 @@ class $WeightEntriesTable extends WeightEntries
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
     }
+    if (data.containsKey('mirror_id')) {
+      context.handle(_mirrorIdMeta,
+          mirrorId.isAcceptableOrUnknown(data['mirror_id']!, _mirrorIdMeta));
+    }
     return context;
   }
 
@@ -5096,6 +5107,8 @@ class $WeightEntriesTable extends WeightEntries
           .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+      mirrorId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mirror_id']),
     );
   }
 
@@ -5111,12 +5124,22 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
   final double kg;
   final String source;
   final DateTime? syncedAt;
+
+  /// The key this row occupies in the mirror, once it has one.
+  ///
+  /// Null until the row is first pushed, and then never changes. It exists
+  /// because [id] cannot do this job across a phone swap: mirror documents used
+  /// to be keyed on the local autoincrement id, and a restore reassigns those,
+  /// so every subsequent push wrote to a *different* document than the one it
+  /// meant to replace. See `SyncService.mirrorKeyFor`.
+  final String? mirrorId;
   const WeightEntryRow(
       {required this.id,
       required this.recordedAt,
       required this.kg,
       required this.source,
-      this.syncedAt});
+      this.syncedAt,
+      this.mirrorId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -5126,6 +5149,9 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
     map['source'] = Variable<String>(source);
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || mirrorId != null) {
+      map['mirror_id'] = Variable<String>(mirrorId);
     }
     return map;
   }
@@ -5139,6 +5165,9 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
+      mirrorId: mirrorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mirrorId),
     );
   }
 
@@ -5151,6 +5180,7 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
       kg: serializer.fromJson<double>(json['kg']),
       source: serializer.fromJson<String>(json['source']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      mirrorId: serializer.fromJson<String?>(json['mirrorId']),
     );
   }
   @override
@@ -5162,6 +5192,7 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
       'kg': serializer.toJson<double>(kg),
       'source': serializer.toJson<String>(source),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'mirrorId': serializer.toJson<String?>(mirrorId),
     };
   }
 
@@ -5170,13 +5201,15 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
           DateTime? recordedAt,
           double? kg,
           String? source,
-          Value<DateTime?> syncedAt = const Value.absent()}) =>
+          Value<DateTime?> syncedAt = const Value.absent(),
+          Value<String?> mirrorId = const Value.absent()}) =>
       WeightEntryRow(
         id: id ?? this.id,
         recordedAt: recordedAt ?? this.recordedAt,
         kg: kg ?? this.kg,
         source: source ?? this.source,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+        mirrorId: mirrorId.present ? mirrorId.value : this.mirrorId,
       );
   WeightEntryRow copyWithCompanion(WeightEntriesCompanion data) {
     return WeightEntryRow(
@@ -5186,6 +5219,7 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
       kg: data.kg.present ? data.kg.value : this.kg,
       source: data.source.present ? data.source.value : this.source,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      mirrorId: data.mirrorId.present ? data.mirrorId.value : this.mirrorId,
     );
   }
 
@@ -5196,13 +5230,15 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
           ..write('recordedAt: $recordedAt, ')
           ..write('kg: $kg, ')
           ..write('source: $source, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, recordedAt, kg, source, syncedAt);
+  int get hashCode =>
+      Object.hash(id, recordedAt, kg, source, syncedAt, mirrorId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5211,7 +5247,8 @@ class WeightEntryRow extends DataClass implements Insertable<WeightEntryRow> {
           other.recordedAt == this.recordedAt &&
           other.kg == this.kg &&
           other.source == this.source &&
-          other.syncedAt == this.syncedAt);
+          other.syncedAt == this.syncedAt &&
+          other.mirrorId == this.mirrorId);
 }
 
 class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
@@ -5220,12 +5257,14 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
   final Value<double> kg;
   final Value<String> source;
   final Value<DateTime?> syncedAt;
+  final Value<String?> mirrorId;
   const WeightEntriesCompanion({
     this.id = const Value.absent(),
     this.recordedAt = const Value.absent(),
     this.kg = const Value.absent(),
     this.source = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   });
   WeightEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -5233,6 +5272,7 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
     required double kg,
     this.source = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   })  : recordedAt = Value(recordedAt),
         kg = Value(kg);
   static Insertable<WeightEntryRow> custom({
@@ -5241,6 +5281,7 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
     Expression<double>? kg,
     Expression<String>? source,
     Expression<DateTime>? syncedAt,
+    Expression<String>? mirrorId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5248,6 +5289,7 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
       if (kg != null) 'kg': kg,
       if (source != null) 'source': source,
       if (syncedAt != null) 'synced_at': syncedAt,
+      if (mirrorId != null) 'mirror_id': mirrorId,
     });
   }
 
@@ -5256,13 +5298,15 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
       Value<DateTime>? recordedAt,
       Value<double>? kg,
       Value<String>? source,
-      Value<DateTime?>? syncedAt}) {
+      Value<DateTime?>? syncedAt,
+      Value<String?>? mirrorId}) {
     return WeightEntriesCompanion(
       id: id ?? this.id,
       recordedAt: recordedAt ?? this.recordedAt,
       kg: kg ?? this.kg,
       source: source ?? this.source,
       syncedAt: syncedAt ?? this.syncedAt,
+      mirrorId: mirrorId ?? this.mirrorId,
     );
   }
 
@@ -5284,6 +5328,9 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
+    if (mirrorId.present) {
+      map['mirror_id'] = Variable<String>(mirrorId.value);
+    }
     return map;
   }
 
@@ -5294,7 +5341,8 @@ class WeightEntriesCompanion extends UpdateCompanion<WeightEntryRow> {
           ..write('recordedAt: $recordedAt, ')
           ..write('kg: $kg, ')
           ..write('source: $source, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
@@ -5378,6 +5426,12 @@ class $NutritionEntriesTable extends NutritionEntries
   late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
       'synced_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _mirrorIdMeta =
+      const VerificationMeta('mirrorId');
+  @override
+  late final GeneratedColumn<String> mirrorId = GeneratedColumn<String>(
+      'mirror_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -5390,7 +5444,8 @@ class $NutritionEntriesTable extends NutritionEntries
         source,
         metadataJson,
         confirmed,
-        syncedAt
+        syncedAt,
+        mirrorId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5455,6 +5510,10 @@ class $NutritionEntriesTable extends NutritionEntries
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
     }
+    if (data.containsKey('mirror_id')) {
+      context.handle(_mirrorIdMeta,
+          mirrorId.isAcceptableOrUnknown(data['mirror_id']!, _mirrorIdMeta));
+    }
     return context;
   }
 
@@ -5486,6 +5545,8 @@ class $NutritionEntriesTable extends NutritionEntries
           .read(DriftSqlType.bool, data['${effectivePrefix}confirmed'])!,
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+      mirrorId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mirror_id']),
     );
   }
 
@@ -5515,6 +5576,9 @@ class NutritionEntryRow extends DataClass
   /// saved" -- unconfirmed rows must not count toward any total.
   final bool confirmed;
   final DateTime? syncedAt;
+
+  /// See `WeightEntries.mirrorId`.
+  final String? mirrorId;
   const NutritionEntryRow(
       {required this.id,
       required this.recordedAt,
@@ -5526,7 +5590,8 @@ class NutritionEntryRow extends DataClass
       required this.source,
       required this.metadataJson,
       required this.confirmed,
-      this.syncedAt});
+      this.syncedAt,
+      this.mirrorId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -5549,6 +5614,9 @@ class NutritionEntryRow extends DataClass
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
+    if (!nullToAbsent || mirrorId != null) {
+      map['mirror_id'] = Variable<String>(mirrorId);
+    }
     return map;
   }
 
@@ -5570,6 +5638,9 @@ class NutritionEntryRow extends DataClass
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
+      mirrorId: mirrorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mirrorId),
     );
   }
 
@@ -5588,6 +5659,7 @@ class NutritionEntryRow extends DataClass
       metadataJson: serializer.fromJson<String>(json['metadataJson']),
       confirmed: serializer.fromJson<bool>(json['confirmed']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      mirrorId: serializer.fromJson<String?>(json['mirrorId']),
     );
   }
   @override
@@ -5605,6 +5677,7 @@ class NutritionEntryRow extends DataClass
       'metadataJson': serializer.toJson<String>(metadataJson),
       'confirmed': serializer.toJson<bool>(confirmed),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'mirrorId': serializer.toJson<String?>(mirrorId),
     };
   }
 
@@ -5619,7 +5692,8 @@ class NutritionEntryRow extends DataClass
           String? source,
           String? metadataJson,
           bool? confirmed,
-          Value<DateTime?> syncedAt = const Value.absent()}) =>
+          Value<DateTime?> syncedAt = const Value.absent(),
+          Value<String?> mirrorId = const Value.absent()}) =>
       NutritionEntryRow(
         id: id ?? this.id,
         recordedAt: recordedAt ?? this.recordedAt,
@@ -5632,6 +5706,7 @@ class NutritionEntryRow extends DataClass
         metadataJson: metadataJson ?? this.metadataJson,
         confirmed: confirmed ?? this.confirmed,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+        mirrorId: mirrorId.present ? mirrorId.value : this.mirrorId,
       );
   NutritionEntryRow copyWithCompanion(NutritionEntriesCompanion data) {
     return NutritionEntryRow(
@@ -5649,6 +5724,7 @@ class NutritionEntryRow extends DataClass
           : this.metadataJson,
       confirmed: data.confirmed.present ? data.confirmed.value : this.confirmed,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      mirrorId: data.mirrorId.present ? data.mirrorId.value : this.mirrorId,
     );
   }
 
@@ -5665,14 +5741,15 @@ class NutritionEntryRow extends DataClass
           ..write('source: $source, ')
           ..write('metadataJson: $metadataJson, ')
           ..write('confirmed: $confirmed, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, recordedAt, kcal, proteinG, carbsG, fatG,
-      meal, source, metadataJson, confirmed, syncedAt);
+      meal, source, metadataJson, confirmed, syncedAt, mirrorId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -5687,7 +5764,8 @@ class NutritionEntryRow extends DataClass
           other.source == this.source &&
           other.metadataJson == this.metadataJson &&
           other.confirmed == this.confirmed &&
-          other.syncedAt == this.syncedAt);
+          other.syncedAt == this.syncedAt &&
+          other.mirrorId == this.mirrorId);
 }
 
 class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
@@ -5702,6 +5780,7 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
   final Value<String> metadataJson;
   final Value<bool> confirmed;
   final Value<DateTime?> syncedAt;
+  final Value<String?> mirrorId;
   const NutritionEntriesCompanion({
     this.id = const Value.absent(),
     this.recordedAt = const Value.absent(),
@@ -5714,6 +5793,7 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
     this.metadataJson = const Value.absent(),
     this.confirmed = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   });
   NutritionEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -5727,6 +5807,7 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
     this.metadataJson = const Value.absent(),
     this.confirmed = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   })  : recordedAt = Value(recordedAt),
         kcal = Value(kcal),
         meal = Value(meal);
@@ -5742,6 +5823,7 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
     Expression<String>? metadataJson,
     Expression<bool>? confirmed,
     Expression<DateTime>? syncedAt,
+    Expression<String>? mirrorId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -5755,6 +5837,7 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
       if (metadataJson != null) 'metadata_json': metadataJson,
       if (confirmed != null) 'confirmed': confirmed,
       if (syncedAt != null) 'synced_at': syncedAt,
+      if (mirrorId != null) 'mirror_id': mirrorId,
     });
   }
 
@@ -5769,7 +5852,8 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
       Value<String>? source,
       Value<String>? metadataJson,
       Value<bool>? confirmed,
-      Value<DateTime?>? syncedAt}) {
+      Value<DateTime?>? syncedAt,
+      Value<String?>? mirrorId}) {
     return NutritionEntriesCompanion(
       id: id ?? this.id,
       recordedAt: recordedAt ?? this.recordedAt,
@@ -5782,6 +5866,7 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
       metadataJson: metadataJson ?? this.metadataJson,
       confirmed: confirmed ?? this.confirmed,
       syncedAt: syncedAt ?? this.syncedAt,
+      mirrorId: mirrorId ?? this.mirrorId,
     );
   }
 
@@ -5821,6 +5906,9 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
+    if (mirrorId.present) {
+      map['mirror_id'] = Variable<String>(mirrorId.value);
+    }
     return map;
   }
 
@@ -5837,7 +5925,8 @@ class NutritionEntriesCompanion extends UpdateCompanion<NutritionEntryRow> {
           ..write('source: $source, ')
           ..write('metadataJson: $metadataJson, ')
           ..write('confirmed: $confirmed, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
@@ -6567,9 +6656,24 @@ class $LifestyleEntriesTable extends LifestyleEntries
   late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
       'synced_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _mirrorIdMeta =
+      const VerificationMeta('mirrorId');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, recordedAt, kind, value, durationMinutes, note, source, syncedAt];
+  late final GeneratedColumn<String> mirrorId = GeneratedColumn<String>(
+      'mirror_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        recordedAt,
+        kind,
+        value,
+        durationMinutes,
+        note,
+        source,
+        syncedAt,
+        mirrorId
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -6619,6 +6723,10 @@ class $LifestyleEntriesTable extends LifestyleEntries
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
     }
+    if (data.containsKey('mirror_id')) {
+      context.handle(_mirrorIdMeta,
+          mirrorId.isAcceptableOrUnknown(data['mirror_id']!, _mirrorIdMeta));
+    }
     return context;
   }
 
@@ -6644,6 +6752,8 @@ class $LifestyleEntriesTable extends LifestyleEntries
           .read(DriftSqlType.string, data['${effectivePrefix}source'])!,
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+      mirrorId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mirror_id']),
     );
   }
 
@@ -6665,6 +6775,9 @@ class LifestyleEntryRow extends DataClass
   final String? note;
   final String source;
   final DateTime? syncedAt;
+
+  /// See [WeightEntries.mirrorId].
+  final String? mirrorId;
   const LifestyleEntryRow(
       {required this.id,
       required this.recordedAt,
@@ -6673,7 +6786,8 @@ class LifestyleEntryRow extends DataClass
       this.durationMinutes,
       this.note,
       required this.source,
-      this.syncedAt});
+      this.syncedAt,
+      this.mirrorId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -6693,6 +6807,9 @@ class LifestyleEntryRow extends DataClass
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
     }
+    if (!nullToAbsent || mirrorId != null) {
+      map['mirror_id'] = Variable<String>(mirrorId);
+    }
     return map;
   }
 
@@ -6711,6 +6828,9 @@ class LifestyleEntryRow extends DataClass
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
+      mirrorId: mirrorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mirrorId),
     );
   }
 
@@ -6726,6 +6846,7 @@ class LifestyleEntryRow extends DataClass
       note: serializer.fromJson<String?>(json['note']),
       source: serializer.fromJson<String>(json['source']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      mirrorId: serializer.fromJson<String?>(json['mirrorId']),
     );
   }
   @override
@@ -6740,6 +6861,7 @@ class LifestyleEntryRow extends DataClass
       'note': serializer.toJson<String?>(note),
       'source': serializer.toJson<String>(source),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'mirrorId': serializer.toJson<String?>(mirrorId),
     };
   }
 
@@ -6751,7 +6873,8 @@ class LifestyleEntryRow extends DataClass
           Value<double?> durationMinutes = const Value.absent(),
           Value<String?> note = const Value.absent(),
           String? source,
-          Value<DateTime?> syncedAt = const Value.absent()}) =>
+          Value<DateTime?> syncedAt = const Value.absent(),
+          Value<String?> mirrorId = const Value.absent()}) =>
       LifestyleEntryRow(
         id: id ?? this.id,
         recordedAt: recordedAt ?? this.recordedAt,
@@ -6763,6 +6886,7 @@ class LifestyleEntryRow extends DataClass
         note: note.present ? note.value : this.note,
         source: source ?? this.source,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+        mirrorId: mirrorId.present ? mirrorId.value : this.mirrorId,
       );
   LifestyleEntryRow copyWithCompanion(LifestyleEntriesCompanion data) {
     return LifestyleEntryRow(
@@ -6777,6 +6901,7 @@ class LifestyleEntryRow extends DataClass
       note: data.note.present ? data.note.value : this.note,
       source: data.source.present ? data.source.value : this.source,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      mirrorId: data.mirrorId.present ? data.mirrorId.value : this.mirrorId,
     );
   }
 
@@ -6790,14 +6915,15 @@ class LifestyleEntryRow extends DataClass
           ..write('durationMinutes: $durationMinutes, ')
           ..write('note: $note, ')
           ..write('source: $source, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, recordedAt, kind, value, durationMinutes, note, source, syncedAt);
+  int get hashCode => Object.hash(id, recordedAt, kind, value, durationMinutes,
+      note, source, syncedAt, mirrorId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6809,7 +6935,8 @@ class LifestyleEntryRow extends DataClass
           other.durationMinutes == this.durationMinutes &&
           other.note == this.note &&
           other.source == this.source &&
-          other.syncedAt == this.syncedAt);
+          other.syncedAt == this.syncedAt &&
+          other.mirrorId == this.mirrorId);
 }
 
 class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
@@ -6821,6 +6948,7 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
   final Value<String?> note;
   final Value<String> source;
   final Value<DateTime?> syncedAt;
+  final Value<String?> mirrorId;
   const LifestyleEntriesCompanion({
     this.id = const Value.absent(),
     this.recordedAt = const Value.absent(),
@@ -6830,6 +6958,7 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
     this.note = const Value.absent(),
     this.source = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   });
   LifestyleEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -6840,6 +6969,7 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
     this.note = const Value.absent(),
     this.source = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   })  : recordedAt = Value(recordedAt),
         kind = Value(kind);
   static Insertable<LifestyleEntryRow> custom({
@@ -6851,6 +6981,7 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
     Expression<String>? note,
     Expression<String>? source,
     Expression<DateTime>? syncedAt,
+    Expression<String>? mirrorId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -6861,6 +6992,7 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
       if (note != null) 'note': note,
       if (source != null) 'source': source,
       if (syncedAt != null) 'synced_at': syncedAt,
+      if (mirrorId != null) 'mirror_id': mirrorId,
     });
   }
 
@@ -6872,7 +7004,8 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
       Value<double?>? durationMinutes,
       Value<String?>? note,
       Value<String>? source,
-      Value<DateTime?>? syncedAt}) {
+      Value<DateTime?>? syncedAt,
+      Value<String?>? mirrorId}) {
     return LifestyleEntriesCompanion(
       id: id ?? this.id,
       recordedAt: recordedAt ?? this.recordedAt,
@@ -6882,6 +7015,7 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
       note: note ?? this.note,
       source: source ?? this.source,
       syncedAt: syncedAt ?? this.syncedAt,
+      mirrorId: mirrorId ?? this.mirrorId,
     );
   }
 
@@ -6912,6 +7046,9 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
+    if (mirrorId.present) {
+      map['mirror_id'] = Variable<String>(mirrorId.value);
+    }
     return map;
   }
 
@@ -6925,7 +7062,8 @@ class LifestyleEntriesCompanion extends UpdateCompanion<LifestyleEntryRow> {
           ..write('durationMinutes: $durationMinutes, ')
           ..write('note: $note, ')
           ..write('source: $source, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
@@ -7011,6 +7149,12 @@ class $JournalEntriesTable extends JournalEntries
   late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
       'synced_at', aliasedName, true,
       type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _mirrorIdMeta =
+      const VerificationMeta('mirrorId');
+  @override
+  late final GeneratedColumn<String> mirrorId = GeneratedColumn<String>(
+      'mirror_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -7023,7 +7167,8 @@ class $JournalEntriesTable extends JournalEntries
         promptVersion,
         appliedAt,
         excludedFromAi,
-        syncedAt
+        syncedAt,
+        mirrorId
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -7088,6 +7233,10 @@ class $JournalEntriesTable extends JournalEntries
       context.handle(_syncedAtMeta,
           syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
     }
+    if (data.containsKey('mirror_id')) {
+      context.handle(_mirrorIdMeta,
+          mirrorId.isAcceptableOrUnknown(data['mirror_id']!, _mirrorIdMeta));
+    }
     return context;
   }
 
@@ -7119,6 +7268,8 @@ class $JournalEntriesTable extends JournalEntries
           .read(DriftSqlType.bool, data['${effectivePrefix}excluded_from_ai'])!,
       syncedAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+      mirrorId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}mirror_id']),
     );
   }
 
@@ -7157,6 +7308,12 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
   /// that is what the user explicitly asked for when they wrote it.
   final bool excludedFromAi;
   final DateTime? syncedAt;
+
+  /// See [WeightEntries.mirrorId]. This is the column that matters most: a
+  /// discarded page is pushed as a blanked row so it overwrites the prose in
+  /// the mirror, and without a stable key that overwrite landed on a new
+  /// document and left the original page in the cloud permanently.
+  final String? mirrorId;
   const JournalEntryRow(
       {required this.id,
       required this.createdAt,
@@ -7168,7 +7325,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       this.promptVersion,
       this.appliedAt,
       required this.excludedFromAi,
-      this.syncedAt});
+      this.syncedAt,
+      this.mirrorId});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -7192,6 +7350,9 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
     map['excluded_from_ai'] = Variable<bool>(excludedFromAi);
     if (!nullToAbsent || syncedAt != null) {
       map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    if (!nullToAbsent || mirrorId != null) {
+      map['mirror_id'] = Variable<String>(mirrorId);
     }
     return map;
   }
@@ -7218,6 +7379,9 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       syncedAt: syncedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(syncedAt),
+      mirrorId: mirrorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mirrorId),
     );
   }
 
@@ -7236,6 +7400,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       appliedAt: serializer.fromJson<DateTime?>(json['appliedAt']),
       excludedFromAi: serializer.fromJson<bool>(json['excludedFromAi']),
       syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+      mirrorId: serializer.fromJson<String?>(json['mirrorId']),
     );
   }
   @override
@@ -7253,6 +7418,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       'appliedAt': serializer.toJson<DateTime?>(appliedAt),
       'excludedFromAi': serializer.toJson<bool>(excludedFromAi),
       'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+      'mirrorId': serializer.toJson<String?>(mirrorId),
     };
   }
 
@@ -7267,7 +7433,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           Value<int?> promptVersion = const Value.absent(),
           Value<DateTime?> appliedAt = const Value.absent(),
           bool? excludedFromAi,
-          Value<DateTime?> syncedAt = const Value.absent()}) =>
+          Value<DateTime?> syncedAt = const Value.absent(),
+          Value<String?> mirrorId = const Value.absent()}) =>
       JournalEntryRow(
         id: id ?? this.id,
         createdAt: createdAt ?? this.createdAt,
@@ -7282,6 +7449,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
         appliedAt: appliedAt.present ? appliedAt.value : this.appliedAt,
         excludedFromAi: excludedFromAi ?? this.excludedFromAi,
         syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+        mirrorId: mirrorId.present ? mirrorId.value : this.mirrorId,
       );
   JournalEntryRow copyWithCompanion(JournalEntriesCompanion data) {
     return JournalEntryRow(
@@ -7302,6 +7470,7 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           ? data.excludedFromAi.value
           : this.excludedFromAi,
       syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      mirrorId: data.mirrorId.present ? data.mirrorId.value : this.mirrorId,
     );
   }
 
@@ -7318,7 +7487,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           ..write('promptVersion: $promptVersion, ')
           ..write('appliedAt: $appliedAt, ')
           ..write('excludedFromAi: $excludedFromAi, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
@@ -7335,7 +7505,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
       promptVersion,
       appliedAt,
       excludedFromAi,
-      syncedAt);
+      syncedAt,
+      mirrorId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -7350,7 +7521,8 @@ class JournalEntryRow extends DataClass implements Insertable<JournalEntryRow> {
           other.promptVersion == this.promptVersion &&
           other.appliedAt == this.appliedAt &&
           other.excludedFromAi == this.excludedFromAi &&
-          other.syncedAt == this.syncedAt);
+          other.syncedAt == this.syncedAt &&
+          other.mirrorId == this.mirrorId);
 }
 
 class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
@@ -7365,6 +7537,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
   final Value<DateTime?> appliedAt;
   final Value<bool> excludedFromAi;
   final Value<DateTime?> syncedAt;
+  final Value<String?> mirrorId;
   const JournalEntriesCompanion({
     this.id = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -7377,6 +7550,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     this.appliedAt = const Value.absent(),
     this.excludedFromAi = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   });
   JournalEntriesCompanion.insert({
     this.id = const Value.absent(),
@@ -7390,6 +7564,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     this.appliedAt = const Value.absent(),
     this.excludedFromAi = const Value.absent(),
     this.syncedAt = const Value.absent(),
+    this.mirrorId = const Value.absent(),
   })  : createdAt = Value(createdAt),
         entryText = Value(entryText);
   static Insertable<JournalEntryRow> custom({
@@ -7404,6 +7579,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     Expression<DateTime>? appliedAt,
     Expression<bool>? excludedFromAi,
     Expression<DateTime>? syncedAt,
+    Expression<String>? mirrorId,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -7417,6 +7593,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
       if (appliedAt != null) 'applied_at': appliedAt,
       if (excludedFromAi != null) 'excluded_from_ai': excludedFromAi,
       if (syncedAt != null) 'synced_at': syncedAt,
+      if (mirrorId != null) 'mirror_id': mirrorId,
     });
   }
 
@@ -7431,7 +7608,8 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
       Value<int?>? promptVersion,
       Value<DateTime?>? appliedAt,
       Value<bool>? excludedFromAi,
-      Value<DateTime?>? syncedAt}) {
+      Value<DateTime?>? syncedAt,
+      Value<String?>? mirrorId}) {
     return JournalEntriesCompanion(
       id: id ?? this.id,
       createdAt: createdAt ?? this.createdAt,
@@ -7444,6 +7622,7 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
       appliedAt: appliedAt ?? this.appliedAt,
       excludedFromAi: excludedFromAi ?? this.excludedFromAi,
       syncedAt: syncedAt ?? this.syncedAt,
+      mirrorId: mirrorId ?? this.mirrorId,
     );
   }
 
@@ -7483,6 +7662,9 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
     if (syncedAt.present) {
       map['synced_at'] = Variable<DateTime>(syncedAt.value);
     }
+    if (mirrorId.present) {
+      map['mirror_id'] = Variable<String>(mirrorId.value);
+    }
     return map;
   }
 
@@ -7499,7 +7681,8 @@ class JournalEntriesCompanion extends UpdateCompanion<JournalEntryRow> {
           ..write('promptVersion: $promptVersion, ')
           ..write('appliedAt: $appliedAt, ')
           ..write('excludedFromAi: $excludedFromAi, ')
-          ..write('syncedAt: $syncedAt')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('mirrorId: $mirrorId')
           ..write(')'))
         .toString();
   }
@@ -13632,6 +13815,7 @@ typedef $$WeightEntriesTableCreateCompanionBuilder = WeightEntriesCompanion
   required double kg,
   Value<String> source,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 typedef $$WeightEntriesTableUpdateCompanionBuilder = WeightEntriesCompanion
     Function({
@@ -13640,6 +13824,7 @@ typedef $$WeightEntriesTableUpdateCompanionBuilder = WeightEntriesCompanion
   Value<double> kg,
   Value<String> source,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 
 class $$WeightEntriesTableFilterComposer
@@ -13665,6 +13850,9 @@ class $$WeightEntriesTableFilterComposer
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnFilters(column));
 }
 
 class $$WeightEntriesTableOrderingComposer
@@ -13690,6 +13878,9 @@ class $$WeightEntriesTableOrderingComposer
 
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$WeightEntriesTableAnnotationComposer
@@ -13715,6 +13906,9 @@ class $$WeightEntriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get mirrorId =>
+      $composableBuilder(column: $table.mirrorId, builder: (column) => column);
 }
 
 class $$WeightEntriesTableTableManager extends RootTableManager<
@@ -13748,6 +13942,7 @@ class $$WeightEntriesTableTableManager extends RootTableManager<
             Value<double> kg = const Value.absent(),
             Value<String> source = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               WeightEntriesCompanion(
             id: id,
@@ -13755,6 +13950,7 @@ class $$WeightEntriesTableTableManager extends RootTableManager<
             kg: kg,
             source: source,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -13762,6 +13958,7 @@ class $$WeightEntriesTableTableManager extends RootTableManager<
             required double kg,
             Value<String> source = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               WeightEntriesCompanion.insert(
             id: id,
@@ -13769,6 +13966,7 @@ class $$WeightEntriesTableTableManager extends RootTableManager<
             kg: kg,
             source: source,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -13805,6 +14003,7 @@ typedef $$NutritionEntriesTableCreateCompanionBuilder
   Value<String> metadataJson,
   Value<bool> confirmed,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 typedef $$NutritionEntriesTableUpdateCompanionBuilder
     = NutritionEntriesCompanion Function({
@@ -13819,6 +14018,7 @@ typedef $$NutritionEntriesTableUpdateCompanionBuilder
   Value<String> metadataJson,
   Value<bool> confirmed,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 
 class $$NutritionEntriesTableFilterComposer
@@ -13862,6 +14062,9 @@ class $$NutritionEntriesTableFilterComposer
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnFilters(column));
 }
 
 class $$NutritionEntriesTableOrderingComposer
@@ -13906,6 +14109,9 @@ class $$NutritionEntriesTableOrderingComposer
 
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$NutritionEntriesTableAnnotationComposer
@@ -13949,6 +14155,9 @@ class $$NutritionEntriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get mirrorId =>
+      $composableBuilder(column: $table.mirrorId, builder: (column) => column);
 }
 
 class $$NutritionEntriesTableTableManager extends RootTableManager<
@@ -13989,6 +14198,7 @@ class $$NutritionEntriesTableTableManager extends RootTableManager<
             Value<String> metadataJson = const Value.absent(),
             Value<bool> confirmed = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               NutritionEntriesCompanion(
             id: id,
@@ -14002,6 +14212,7 @@ class $$NutritionEntriesTableTableManager extends RootTableManager<
             metadataJson: metadataJson,
             confirmed: confirmed,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -14015,6 +14226,7 @@ class $$NutritionEntriesTableTableManager extends RootTableManager<
             Value<String> metadataJson = const Value.absent(),
             Value<bool> confirmed = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               NutritionEntriesCompanion.insert(
             id: id,
@@ -14028,6 +14240,7 @@ class $$NutritionEntriesTableTableManager extends RootTableManager<
             metadataJson: metadataJson,
             confirmed: confirmed,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -14428,6 +14641,7 @@ typedef $$LifestyleEntriesTableCreateCompanionBuilder
   Value<String?> note,
   Value<String> source,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 typedef $$LifestyleEntriesTableUpdateCompanionBuilder
     = LifestyleEntriesCompanion Function({
@@ -14439,6 +14653,7 @@ typedef $$LifestyleEntriesTableUpdateCompanionBuilder
   Value<String?> note,
   Value<String> source,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 
 class $$LifestyleEntriesTableFilterComposer
@@ -14474,6 +14689,9 @@ class $$LifestyleEntriesTableFilterComposer
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnFilters(column));
 }
 
 class $$LifestyleEntriesTableOrderingComposer
@@ -14509,6 +14727,9 @@ class $$LifestyleEntriesTableOrderingComposer
 
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$LifestyleEntriesTableAnnotationComposer
@@ -14543,6 +14764,9 @@ class $$LifestyleEntriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get mirrorId =>
+      $composableBuilder(column: $table.mirrorId, builder: (column) => column);
 }
 
 class $$LifestyleEntriesTableTableManager extends RootTableManager<
@@ -14580,6 +14804,7 @@ class $$LifestyleEntriesTableTableManager extends RootTableManager<
             Value<String?> note = const Value.absent(),
             Value<String> source = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               LifestyleEntriesCompanion(
             id: id,
@@ -14590,6 +14815,7 @@ class $$LifestyleEntriesTableTableManager extends RootTableManager<
             note: note,
             source: source,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -14600,6 +14826,7 @@ class $$LifestyleEntriesTableTableManager extends RootTableManager<
             Value<String?> note = const Value.absent(),
             Value<String> source = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               LifestyleEntriesCompanion.insert(
             id: id,
@@ -14610,6 +14837,7 @@ class $$LifestyleEntriesTableTableManager extends RootTableManager<
             note: note,
             source: source,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -14646,6 +14874,7 @@ typedef $$JournalEntriesTableCreateCompanionBuilder = JournalEntriesCompanion
   Value<DateTime?> appliedAt,
   Value<bool> excludedFromAi,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 typedef $$JournalEntriesTableUpdateCompanionBuilder = JournalEntriesCompanion
     Function({
@@ -14660,6 +14889,7 @@ typedef $$JournalEntriesTableUpdateCompanionBuilder = JournalEntriesCompanion
   Value<DateTime?> appliedAt,
   Value<bool> excludedFromAi,
   Value<DateTime?> syncedAt,
+  Value<String?> mirrorId,
 });
 
 class $$JournalEntriesTableFilterComposer
@@ -14705,6 +14935,9 @@ class $$JournalEntriesTableFilterComposer
 
   ColumnFilters<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnFilters(column));
 }
 
 class $$JournalEntriesTableOrderingComposer
@@ -14751,6 +14984,9 @@ class $$JournalEntriesTableOrderingComposer
 
   ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
       column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get mirrorId => $composableBuilder(
+      column: $table.mirrorId, builder: (column) => ColumnOrderings(column));
 }
 
 class $$JournalEntriesTableAnnotationComposer
@@ -14794,6 +15030,9 @@ class $$JournalEntriesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get syncedAt =>
       $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get mirrorId =>
+      $composableBuilder(column: $table.mirrorId, builder: (column) => column);
 }
 
 class $$JournalEntriesTableTableManager extends RootTableManager<
@@ -14834,6 +15073,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             Value<DateTime?> appliedAt = const Value.absent(),
             Value<bool> excludedFromAi = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               JournalEntriesCompanion(
             id: id,
@@ -14847,6 +15087,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             appliedAt: appliedAt,
             excludedFromAi: excludedFromAi,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -14860,6 +15101,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             Value<DateTime?> appliedAt = const Value.absent(),
             Value<bool> excludedFromAi = const Value.absent(),
             Value<DateTime?> syncedAt = const Value.absent(),
+            Value<String?> mirrorId = const Value.absent(),
           }) =>
               JournalEntriesCompanion.insert(
             id: id,
@@ -14873,6 +15115,7 @@ class $$JournalEntriesTableTableManager extends RootTableManager<
             appliedAt: appliedAt,
             excludedFromAi: excludedFromAi,
             syncedAt: syncedAt,
+            mirrorId: mirrorId,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
