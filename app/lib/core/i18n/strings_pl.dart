@@ -90,7 +90,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get clearNow => 'Wyczyść teraz';
   @override
-  String get reset => 'Zeruj';
+  String get reset => 'Od nowa';
   @override
   String get composing => 'Powstaje';
   @override
@@ -212,7 +212,7 @@ class EterStringsPl extends EterStrings {
 
   @override
   String get estimateWaitingBelow =>
-      'Poniżej czeka jedno oszacowanie jedzenia. Nie wchodzi do wagi, dopóki '
+      'Poniżej czeka jedno oszacowanie jedzenia. Nie wchodzi do bilansu, dopóki '
       'go nie potwierdzisz albo nie poprawisz.';
   @override
   String get headingFoodNotes => 'NOTATKI O JEDZENIU';
@@ -292,7 +292,7 @@ class EterStringsPl extends EterStrings {
   String kcalConfirmed(int kcal) => '$kcal kcal';
   @override
   String kcalEstimateNotCounted(int kcal) =>
-      'OSZACOWANIE · $kcal KCAL · NIE LICZONE';
+      'OSZACOWANIE · $kcal KCAL · POZA SUMĄ';
   @override
   String get correctEstimateFirst =>
       'Popraw oszacowanie, zanim wejdzie do dzisiejszej sumy.';
@@ -401,7 +401,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get showLess => 'Pokaż mniej';
   @override
-  String get composeReadings => 'Skomponuj odczytania';
+  String get composeReadings => 'Niech powstaną';
   @override
   String get personalReadingNotConnected =>
       'Osobiste odczytania nie są jeszcze podłączone w tej wersji.';
@@ -550,17 +550,17 @@ class EterStringsPl extends EterStrings {
       'Możesz je dodać w ustawieniach telefonu albo pisać.';
 
   @override
-  String get keptFromAether => 'Poza zasięgiem Aether';
+  String get keptFromAether => 'Poza zasięgiem Aethera';
   @override
-  String get allowAether => 'Udostępnij Aether';
+  String get allowAether => 'Udostępnij Aetherowi';
   @override
   String get keepLocal => 'Zatrzymaj lokalnie';
   @override
   String get allowAetherSemantic =>
-      'Pozwól, aby ten wpis trafił do wglądu Aether';
+      'Pozwól, żeby ten wpis trafił do wglądu Aethera';
   @override
   String get keepLocalSemantic =>
-      'Zatrzymaj ten wpis poza wglądem Aether';
+      'Zatrzymaj ten wpis poza wglądem Aethera';
   @override
   String get undoInterpretation => 'Cofnij interpretację';
   @override
@@ -784,7 +784,7 @@ class EterStringsPl extends EterStrings {
       'Kontekst urodzenia zapisany na tym urządzeniu.';
 
   @override
-  String get headingAetherMemory => 'PAMIĘĆ AETHER';
+  String get headingAetherMemory => 'PAMIĘĆ AETHERA';
   @override
   String get onlyStructuredPatternsRetained =>
       'Zachowywane są tylko uporządkowane wzorce. Lokalne współwystępowania nie '
@@ -858,10 +858,10 @@ class EterStringsPl extends EterStrings {
       'To usuwa wgląd, który już powstał, wyuczone wzorce i skróty. Twój '
       'dziennik i historia zdrowia zostają.';
   @override
-  String get aetherMemoryAlreadyEmpty => 'Pamięć Aether była już pusta.';
+  String get aetherMemoryAlreadyEmpty => 'Pamięć Aethera była już pusta.';
   @override
   String get aetherMemoryCleared =>
-      'Pamięć Aether wyczyszczona z tego urządzenia.';
+      'Pamięć Aethera wyczyszczona z tego urządzenia.';
   @override
   String retrospectiveSemantic({
     required String headline,
@@ -1338,7 +1338,7 @@ class EterStringsPl extends EterStrings {
             'Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął '
                 'dzień, biorą się z tego, co piszesz. Każdą '
                 'stronę można zinterpretować, a każdą można też całkowicie '
-                'zatrzymać poza zasięgiem Aether.',
+                'zatrzymać poza zasięgiem Aethera.',
           ],
         ),
         TutorialPassage(

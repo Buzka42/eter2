@@ -22,6 +22,12 @@ holds the distinction the steering brief asks for: Eter is the place, Aether is
 the one who reads. Nothing else needs doing, but it should not be quietly
 "corrected" later by somebody tidying spellings.
 
+**And because it is a proper name, it declines.** *Pamięć Aethera*, *poza
+zasięgiem Aethera*, *Udostępnij Aetherowi* — a Polish name that stays in the
+nominative everywhere reads as a database field, and *Udostępnij Aether* means
+"share Aether", which is not the offer. The nominative is of course still the
+nominative: *Aether pisze*.
+
 ---
 
 ## The vocabulary

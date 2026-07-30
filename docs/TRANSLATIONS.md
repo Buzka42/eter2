@@ -44,7 +44,7 @@ explains why translating one would break the symbolic engine.
 | `dismiss` | Dismiss | Odrzuć |
 | `clear` | Clear | Wyczyść |
 | `clearNow` | Clear now | Wyczyść teraz |
-| `reset` | Reset | Zeruj |
+| `reset` | Reset | Od nowa |
 | `composing` | Composing | Powstaje |
 | `off` | Off | Wyłączone |
 | `allowed` | Allowed | Dozwolone |
@@ -97,7 +97,7 @@ explains why translating one would break the symbolic engine.
 | `conclusionLevel()` | Intake and burn sit close to level — $eaten kcal eaten against $burned kcal burned. | Przyjęte i spalone są blisko równowagi — $eaten kcal zjedzone wobec $burned kcal spalonych. |
 | `conclusionOver()` | A little over today — $eaten kcal eaten against $burned kcal burned. | Dzisiaj trochę powyżej — $eaten kcal zjedzone wobec $burned kcal spalonych. |
 | `conclusionUnder()` | A little under today — $eaten kcal eaten against $burned kcal burned. | Dzisiaj trochę poniżej — $eaten kcal zjedzone wobec $burned kcal spalonych. |
-| `estimateWaitingBelow` | One food estimate is waiting below. It is not included in the balance until you confirm or correct it. | Poniżej czeka jedno oszacowanie jedzenia. Nie wchodzi do wagi, dopóki go nie potwierdzisz albo nie poprawisz. |
+| `estimateWaitingBelow` | One food estimate is waiting below. It is not included in the balance until you confirm or correct it. | Poniżej czeka jedno oszacowanie jedzenia. Nie wchodzi do bilansu, dopóki go nie potwierdzisz albo nie poprawisz. |
 | `headingFoodNotes` | FOOD NOTES | NOTATKI O JEDZENIU |
 | `headingRecoverySignals` | RECOVERY SIGNALS | SYGNAŁY REGENERACJI |
 | `noRecoverySignals` | No wearable recovery signals are available today. | Dzisiaj nie ma żadnych sygnałów regeneracji z urządzenia. |
@@ -122,7 +122,7 @@ explains why translating one would break the symbolic engine.
 | `trendHeartRateVariability` | Heart rate variability trend | Trend zmienności rytmu serca |
 | `trendWeight` | Weight trend | Trend wagi |
 | `unitBpm` | bpm | ud./min |
-| `kcalEstimateNotCounted()` | ESTIMATE · $kcal KCAL · NOT COUNTED | OSZACOWANIE · $kcal KCAL · NIE LICZONE |
+| `kcalEstimateNotCounted()` | ESTIMATE · $kcal KCAL · NOT COUNTED | OSZACOWANIE · $kcal KCAL · POZA SUMĄ |
 | `correctEstimateFirst` | Correct the estimate before it enters today’s total. | Popraw oszacowanie, zanim wejdzie do dzisiejszej sumy. |
 
 ## instruments
@@ -154,7 +154,7 @@ explains why translating one would break the symbolic engine.
 | `sunSitsIn()` | Your Sun sits in ${canonicalSign == null ? : signName(canonicalSign)}, which is what sets this card. It does not change. | Twoje Słońce stoi we własnym znaku, i to wyznacza tę kartę. To się nie zmienia.Twoje Słońce stoi ${_wZnaku(canonicalSign)}, i to wyznacza tę kartę. To się nie zmienia. |
 | `readDeeper` | Read deeper | Czytaj głębiej |
 | `showLess` | Show less | Pokaż mniej |
-| `composeReadings` | Compose readings | Skomponuj odczytania |
+| `composeReadings` | Compose readings | Niech powstaną |
 | `personalReadingNotConnected` | Personal reading composition is not connected on this build yet. | Osobiste odczytania nie są jeszcze podłączone w tej wersji. |
 | `everyReadingAlreadyComposed` | Every personal reading is already composed for this chart. | Wszystkie osobiste odczytania dla tego kosmogramu już powstały. |
 | `missingReadingsComposed` | The missing personal readings have been composed. | Brakujące osobiste odczytania powstały. |
@@ -202,11 +202,11 @@ explains why translating one would break the symbolic engine.
 | `dictationNoRecogniser` | This phone has no speech recogniser Eter can use. You can still type. | Ten telefon nie ma rozpoznawania mowy, z którego Eter mógłby korzystać. Nadal możesz pisać. |
 | `dictationUnavailable` | Dictation is unavailable right now. | Dyktowanie jest teraz niedostępne. |
 | `dictationLanguageUnavailable()` | This phone has no $languageName dictation installed. You can add it in your phone’s settings, or type. | Ten telefon nie ma zainstalowanego dyktowania dla języka $languageName. Możesz je dodać w ustawieniach telefonu albo pisać. |
-| `keptFromAether` | Kept from Aether | Poza zasięgiem Aether |
-| `allowAether` | Allow Aether | Udostępnij Aether |
+| `keptFromAether` | Kept from Aether | Poza zasięgiem Aethera |
+| `allowAether` | Allow Aether | Udostępnij Aetherowi |
 | `keepLocal` | Keep local | Zatrzymaj lokalnie |
-| `allowAetherSemantic` | Allow this journal entry in Aether guidance | Pozwól, aby ten wpis trafił do wglądu Aether |
-| `keepLocalSemantic` | Keep this journal entry out of Aether guidance | Zatrzymaj ten wpis poza wglądem Aether |
+| `allowAetherSemantic` | Allow this journal entry in Aether guidance | Pozwól, żeby ten wpis trafił do wglądu Aethera |
+| `keepLocalSemantic` | Keep this journal entry out of Aether guidance | Zatrzymaj ten wpis poza wglądem Aethera |
 | `undoInterpretation` | Undo interpretation | Cofnij interpretację |
 | `undoInterpretationSemantic` | Remove interpretation and derived records | Usuń interpretację i zapisy z niej wynikające |
 | `deleteEntrySemantic` | Delete this journal entry and anything derived from it | Usuń ten wpis dziennika i wszystko, co z niego wynikło |
@@ -288,7 +288,7 @@ explains why translating one would break the symbolic engine.
 | `offsetSuggestedFromPhone` | Offset suggested from this phone’s timezone on that date, summer time included. Correct it if you were born elsewhere. | Przesunięcie podpowiedziane ze strefy tego telefonu na tamtą datę, razem z czasem letnim. Popraw je, jeśli miejsce urodzenia było inne. |
 | `locatingBirthContext` | Locating this birth context… | Ustalam ten kontekst urodzenia… |
 | `birthContextSaved` | Birth context saved on this device. | Kontekst urodzenia zapisany na tym urządzeniu. |
-| `headingAetherMemory` | AETHER MEMORY | PAMIĘĆ AETHER |
+| `headingAetherMemory` | AETHER MEMORY | PAMIĘĆ AETHERA |
 | `onlyStructuredPatternsRetained` | Only structured patterns are retained. Local correlations are not treated as causes. | Zachowywane są tylko uporządkowane wzorce. Lokalne współwystępowania nie są traktowane jako przyczyny. |
 | `headingWeekInView` | WEEK IN VIEW | TYDZIEŃ W SKRÓCIE |
 | `noWeeklyViewPrepared` | No weekly view has been prepared. | Nie przygotowano jeszcze tygodniowego skrótu. |
@@ -302,8 +302,8 @@ explains why translating one would break the symbolic engine.
 | `sevenDayViewPrepared` | Seven-day view prepared on this device. | Skrót siedmiu dni przygotowany na tym urządzeniu. |
 | `patternDismissed` | Pattern dismissed. Aether will not use it. | Wzorzec odrzucony. Aether go nie użyje. |
 | `resetPersonalizationWarning` | This removes composed guidance, learned patterns, and retrospectives. Your journal and health history stay. | To usuwa wgląd, który już powstał, wyuczone wzorce i skróty. Twój dziennik i historia zdrowia zostają. |
-| `aetherMemoryAlreadyEmpty` | Aether memory was already empty. | Pamięć Aether była już pusta. |
-| `aetherMemoryCleared` | Aether memory cleared from this device. | Pamięć Aether wyczyszczona z tego urządzenia. |
+| `aetherMemoryAlreadyEmpty` | Aether memory was already empty. | Pamięć Aethera była już pusta. |
+| `aetherMemoryCleared` | Aether memory cleared from this device. | Pamięć Aethera wyczyszczona z tego urządzenia. |
 | `retrospectiveSemantic()` | $headline. $passages $caveat Window $window. | $headline. $passages $caveat Okno: $window. |
 | `retrospectiveWindow()` | $from to $to | od $from do $to |
 | `headingOldPages` | OLD PAGES | STARE STRONY |
@@ -452,7 +452,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co piszesz. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.WGLĄDDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.ZACISZETen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
+| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co piszesz. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aethera.WGLĄDDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.ZACISZETen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
 
 ## body fat
 
