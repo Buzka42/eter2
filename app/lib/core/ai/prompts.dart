@@ -63,7 +63,10 @@ abstract final class EterPrompts {
   ///
   /// v4 (30 July 2026): every instruction states which language to write in,
   /// and states that the contract values are not part of what gets translated.
-  static const version = 4;
+  ///
+  /// v5 (30 July 2026): the Letter. A sixth call, and the first one that writes
+  /// *to* the person over a month rather than about a day.
+  static const version = 5;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -971,6 +974,97 @@ Return JSON only: {"readings": [{"key": ..., "passage": ...}]}''',
           },
         },
       },
+    },
+  };
+
+  // -------------------------------------------------------------------------
+  // 1f. The Letter
+  // -------------------------------------------------------------------------
+
+  /// One page a month, written to the person rather than about them.
+  ///
+  /// The only call whose window is a month and whose subject is the person
+  /// rather than a day, a page or a chart. It reads the fortnight of recall
+  /// notes guidance wrote for itself, plus the retrospective's own arithmetic,
+  /// and it composes nothing new about the body: every figure in it came from
+  /// the device.
+  ///
+  /// Two constraints are worth stating here as well as in the instruction,
+  /// because they are the ones a later editor would soften. The recalls are
+  /// **the model's own words**, never the person's — a letter that says "you
+  /// told me" about a note nobody wrote is the exact failure `AI_FLOW.md` §1a
+  /// exists to prevent. And a month with little in it gets a short letter: the
+  /// instruction refuses padding explicitly, because a monthly page is the
+  /// surface with the strongest pull towards inventing significance.
+  static EterPrompt letter({
+    required GuidanceMode mode,
+    required AppLanguage language,
+    required String month,
+    required List<String> recalls,
+    required List<String> retrospective,
+  }) {
+    return EterPrompt(
+      system: '''
+You are writing one page to a person at the end of a month, in the second
+person, and signing nothing.
+
+It is a letter, not a report. No headings, no lists, no bullet points, no
+markdown, no emoji, no closing salutation. Six short paragraphs at the very
+most, and fewer is better.
+
+What you have:
+
+- "recalls" — your own compressed notes, one per day, oldest first. These are
+your words about what you had already said, not anything the person wrote or
+told you. Never write "you told me", "you mentioned", "you said", or anything
+else that attributes them to the person. They are a thread you kept.
+- "retrospective" — sentences Eter composed on the device from the records,
+carrying their own counts and windows. Every number you use must come from
+here. Do not compute, estimate, average or infer a figure of your own.
+
+Say what the month looked like from where you were standing. Name a thread that
+ran through it if there was one, in your own words, using the concrete details
+in the notes rather than abstractions. Referring back is the point — "the third
+stretch of short nights", "the same week you had been circling" — a companion
+that cannot say "again" is not one.
+
+Where the notes and the records disagree, the records are what happened.
+
+Do not deliver a verdict on the month. Do not congratulate, do not grade, do
+not say what to do next month, and do not end on an instruction.
+
+If the month is thin — few notes, little recorded — write a short letter and
+say plainly that there is not much here yet. Two sentences is a complete and
+correct answer. Never pad a quiet month into a full one; a monthly page is the
+easiest place in this product to invent significance that was not there.
+
+$absence
+
+${voiceFor(mode)}
+
+$safety
+
+${languageFor(language)}
+
+Return JSON only: {"letter": ...}''',
+      user: {
+        'month': month,
+        'recalls': recalls,
+        'retrospective': retrospective,
+      },
+      responseSchema: _letterSchema,
+    );
+  }
+
+  static const _letterSchema = <String, Object?>{
+    'type': 'object',
+    'required': ['letter'],
+    'additionalProperties': false,
+    'properties': {
+      // Six short paragraphs of second-person prose. The ceiling is the
+      // schema's job and the parser's again, because a provider that ignores
+      // the schema is a provider we still have to survive.
+      'letter': {'type': 'string', 'minLength': 1, 'maxLength': 2400},
     },
   };
 }

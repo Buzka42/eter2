@@ -11662,6 +11662,501 @@ class GuidanceRecallsCompanion extends UpdateCompanion<GuidanceRecallRow> {
   }
 }
 
+class $LettersTable extends Letters with TableInfo<$LettersTable, LetterRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LettersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _monthMeta = const VerificationMeta('month');
+  @override
+  late final GeneratedColumn<String> month = GeneratedColumn<String>(
+      'month', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _composedAtMeta =
+      const VerificationMeta('composedAt');
+  @override
+  late final GeneratedColumn<DateTime> composedAt = GeneratedColumn<DateTime>(
+      'composed_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+      'body', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sourceCountMeta =
+      const VerificationMeta('sourceCount');
+  @override
+  late final GeneratedColumn<int> sourceCount = GeneratedColumn<int>(
+      'source_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _usedJournalMeta =
+      const VerificationMeta('usedJournal');
+  @override
+  late final GeneratedColumn<bool> usedJournal = GeneratedColumn<bool>(
+      'used_journal', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("used_journal" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
+  @override
+  late final GeneratedColumn<bool> readAt = GeneratedColumn<bool>(
+      'read_at', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("read_at" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _modelMeta = const VerificationMeta('model');
+  @override
+  late final GeneratedColumn<String> model = GeneratedColumn<String>(
+      'model', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('provider'));
+  static const VerificationMeta _promptVersionMeta =
+      const VerificationMeta('promptVersion');
+  @override
+  late final GeneratedColumn<int> promptVersion = GeneratedColumn<int>(
+      'prompt_version', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _syncedAtMeta =
+      const VerificationMeta('syncedAt');
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+      'synced_at', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        month,
+        composedAt,
+        body,
+        sourceCount,
+        usedJournal,
+        readAt,
+        model,
+        promptVersion,
+        syncedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'letters';
+  @override
+  VerificationContext validateIntegrity(Insertable<LetterRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('month')) {
+      context.handle(
+          _monthMeta, month.isAcceptableOrUnknown(data['month']!, _monthMeta));
+    } else if (isInserting) {
+      context.missing(_monthMeta);
+    }
+    if (data.containsKey('composed_at')) {
+      context.handle(
+          _composedAtMeta,
+          composedAt.isAcceptableOrUnknown(
+              data['composed_at']!, _composedAtMeta));
+    } else if (isInserting) {
+      context.missing(_composedAtMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+          _bodyMeta, body.isAcceptableOrUnknown(data['body']!, _bodyMeta));
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('source_count')) {
+      context.handle(
+          _sourceCountMeta,
+          sourceCount.isAcceptableOrUnknown(
+              data['source_count']!, _sourceCountMeta));
+    }
+    if (data.containsKey('used_journal')) {
+      context.handle(
+          _usedJournalMeta,
+          usedJournal.isAcceptableOrUnknown(
+              data['used_journal']!, _usedJournalMeta));
+    }
+    if (data.containsKey('read_at')) {
+      context.handle(_readAtMeta,
+          readAt.isAcceptableOrUnknown(data['read_at']!, _readAtMeta));
+    }
+    if (data.containsKey('model')) {
+      context.handle(
+          _modelMeta, model.isAcceptableOrUnknown(data['model']!, _modelMeta));
+    }
+    if (data.containsKey('prompt_version')) {
+      context.handle(
+          _promptVersionMeta,
+          promptVersion.isAcceptableOrUnknown(
+              data['prompt_version']!, _promptVersionMeta));
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(_syncedAtMeta,
+          syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {month};
+  @override
+  LetterRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LetterRow(
+      month: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}month'])!,
+      composedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}composed_at'])!,
+      body: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}body'])!,
+      sourceCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}source_count'])!,
+      usedJournal: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}used_journal'])!,
+      readAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}read_at'])!,
+      model: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}model'])!,
+      promptVersion: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}prompt_version']),
+      syncedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}synced_at']),
+    );
+  }
+
+  @override
+  $LettersTable createAlias(String alias) {
+    return $LettersTable(attachedDatabase, alias);
+  }
+}
+
+class LetterRow extends DataClass implements Insertable<LetterRow> {
+  /// Local `YYYY-MM`.
+  final String month;
+  final DateTime composedAt;
+  final String body;
+
+  /// How many recall notes and retrospective sentences it was written from.
+  /// Kept so a thin month can be recognised as thin later, without re-reading
+  /// rows that retention may since have removed.
+  final int sourceCount;
+
+  /// True when the composition could see journal material, exactly as
+  /// `GuidanceRecalls.usedJournal` records it. Revoking journal consent must
+  /// leave a record of what the withdrawn consent had already reached.
+  final bool usedJournal;
+
+  /// True once it has been revealed on a Journal page. A letter arrives; it
+  /// does not accumulate unread.
+  final bool readAt;
+  final String model;
+
+  /// Which `EterPrompts.version` composed this. Null means the row predates
+  /// the column.
+  final int? promptVersion;
+  final DateTime? syncedAt;
+  const LetterRow(
+      {required this.month,
+      required this.composedAt,
+      required this.body,
+      required this.sourceCount,
+      required this.usedJournal,
+      required this.readAt,
+      required this.model,
+      this.promptVersion,
+      this.syncedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['month'] = Variable<String>(month);
+    map['composed_at'] = Variable<DateTime>(composedAt);
+    map['body'] = Variable<String>(body);
+    map['source_count'] = Variable<int>(sourceCount);
+    map['used_journal'] = Variable<bool>(usedJournal);
+    map['read_at'] = Variable<bool>(readAt);
+    map['model'] = Variable<String>(model);
+    if (!nullToAbsent || promptVersion != null) {
+      map['prompt_version'] = Variable<int>(promptVersion);
+    }
+    if (!nullToAbsent || syncedAt != null) {
+      map['synced_at'] = Variable<DateTime>(syncedAt);
+    }
+    return map;
+  }
+
+  LettersCompanion toCompanion(bool nullToAbsent) {
+    return LettersCompanion(
+      month: Value(month),
+      composedAt: Value(composedAt),
+      body: Value(body),
+      sourceCount: Value(sourceCount),
+      usedJournal: Value(usedJournal),
+      readAt: Value(readAt),
+      model: Value(model),
+      promptVersion: promptVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promptVersion),
+      syncedAt: syncedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(syncedAt),
+    );
+  }
+
+  factory LetterRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LetterRow(
+      month: serializer.fromJson<String>(json['month']),
+      composedAt: serializer.fromJson<DateTime>(json['composedAt']),
+      body: serializer.fromJson<String>(json['body']),
+      sourceCount: serializer.fromJson<int>(json['sourceCount']),
+      usedJournal: serializer.fromJson<bool>(json['usedJournal']),
+      readAt: serializer.fromJson<bool>(json['readAt']),
+      model: serializer.fromJson<String>(json['model']),
+      promptVersion: serializer.fromJson<int?>(json['promptVersion']),
+      syncedAt: serializer.fromJson<DateTime?>(json['syncedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'month': serializer.toJson<String>(month),
+      'composedAt': serializer.toJson<DateTime>(composedAt),
+      'body': serializer.toJson<String>(body),
+      'sourceCount': serializer.toJson<int>(sourceCount),
+      'usedJournal': serializer.toJson<bool>(usedJournal),
+      'readAt': serializer.toJson<bool>(readAt),
+      'model': serializer.toJson<String>(model),
+      'promptVersion': serializer.toJson<int?>(promptVersion),
+      'syncedAt': serializer.toJson<DateTime?>(syncedAt),
+    };
+  }
+
+  LetterRow copyWith(
+          {String? month,
+          DateTime? composedAt,
+          String? body,
+          int? sourceCount,
+          bool? usedJournal,
+          bool? readAt,
+          String? model,
+          Value<int?> promptVersion = const Value.absent(),
+          Value<DateTime?> syncedAt = const Value.absent()}) =>
+      LetterRow(
+        month: month ?? this.month,
+        composedAt: composedAt ?? this.composedAt,
+        body: body ?? this.body,
+        sourceCount: sourceCount ?? this.sourceCount,
+        usedJournal: usedJournal ?? this.usedJournal,
+        readAt: readAt ?? this.readAt,
+        model: model ?? this.model,
+        promptVersion:
+            promptVersion.present ? promptVersion.value : this.promptVersion,
+        syncedAt: syncedAt.present ? syncedAt.value : this.syncedAt,
+      );
+  LetterRow copyWithCompanion(LettersCompanion data) {
+    return LetterRow(
+      month: data.month.present ? data.month.value : this.month,
+      composedAt:
+          data.composedAt.present ? data.composedAt.value : this.composedAt,
+      body: data.body.present ? data.body.value : this.body,
+      sourceCount:
+          data.sourceCount.present ? data.sourceCount.value : this.sourceCount,
+      usedJournal:
+          data.usedJournal.present ? data.usedJournal.value : this.usedJournal,
+      readAt: data.readAt.present ? data.readAt.value : this.readAt,
+      model: data.model.present ? data.model.value : this.model,
+      promptVersion: data.promptVersion.present
+          ? data.promptVersion.value
+          : this.promptVersion,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LetterRow(')
+          ..write('month: $month, ')
+          ..write('composedAt: $composedAt, ')
+          ..write('body: $body, ')
+          ..write('sourceCount: $sourceCount, ')
+          ..write('usedJournal: $usedJournal, ')
+          ..write('readAt: $readAt, ')
+          ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
+          ..write('syncedAt: $syncedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(month, composedAt, body, sourceCount,
+      usedJournal, readAt, model, promptVersion, syncedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LetterRow &&
+          other.month == this.month &&
+          other.composedAt == this.composedAt &&
+          other.body == this.body &&
+          other.sourceCount == this.sourceCount &&
+          other.usedJournal == this.usedJournal &&
+          other.readAt == this.readAt &&
+          other.model == this.model &&
+          other.promptVersion == this.promptVersion &&
+          other.syncedAt == this.syncedAt);
+}
+
+class LettersCompanion extends UpdateCompanion<LetterRow> {
+  final Value<String> month;
+  final Value<DateTime> composedAt;
+  final Value<String> body;
+  final Value<int> sourceCount;
+  final Value<bool> usedJournal;
+  final Value<bool> readAt;
+  final Value<String> model;
+  final Value<int?> promptVersion;
+  final Value<DateTime?> syncedAt;
+  final Value<int> rowid;
+  const LettersCompanion({
+    this.month = const Value.absent(),
+    this.composedAt = const Value.absent(),
+    this.body = const Value.absent(),
+    this.sourceCount = const Value.absent(),
+    this.usedJournal = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LettersCompanion.insert({
+    required String month,
+    required DateTime composedAt,
+    required String body,
+    this.sourceCount = const Value.absent(),
+    this.usedJournal = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.model = const Value.absent(),
+    this.promptVersion = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : month = Value(month),
+        composedAt = Value(composedAt),
+        body = Value(body);
+  static Insertable<LetterRow> custom({
+    Expression<String>? month,
+    Expression<DateTime>? composedAt,
+    Expression<String>? body,
+    Expression<int>? sourceCount,
+    Expression<bool>? usedJournal,
+    Expression<bool>? readAt,
+    Expression<String>? model,
+    Expression<int>? promptVersion,
+    Expression<DateTime>? syncedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (month != null) 'month': month,
+      if (composedAt != null) 'composed_at': composedAt,
+      if (body != null) 'body': body,
+      if (sourceCount != null) 'source_count': sourceCount,
+      if (usedJournal != null) 'used_journal': usedJournal,
+      if (readAt != null) 'read_at': readAt,
+      if (model != null) 'model': model,
+      if (promptVersion != null) 'prompt_version': promptVersion,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LettersCompanion copyWith(
+      {Value<String>? month,
+      Value<DateTime>? composedAt,
+      Value<String>? body,
+      Value<int>? sourceCount,
+      Value<bool>? usedJournal,
+      Value<bool>? readAt,
+      Value<String>? model,
+      Value<int?>? promptVersion,
+      Value<DateTime?>? syncedAt,
+      Value<int>? rowid}) {
+    return LettersCompanion(
+      month: month ?? this.month,
+      composedAt: composedAt ?? this.composedAt,
+      body: body ?? this.body,
+      sourceCount: sourceCount ?? this.sourceCount,
+      usedJournal: usedJournal ?? this.usedJournal,
+      readAt: readAt ?? this.readAt,
+      model: model ?? this.model,
+      promptVersion: promptVersion ?? this.promptVersion,
+      syncedAt: syncedAt ?? this.syncedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (month.present) {
+      map['month'] = Variable<String>(month.value);
+    }
+    if (composedAt.present) {
+      map['composed_at'] = Variable<DateTime>(composedAt.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (sourceCount.present) {
+      map['source_count'] = Variable<int>(sourceCount.value);
+    }
+    if (usedJournal.present) {
+      map['used_journal'] = Variable<bool>(usedJournal.value);
+    }
+    if (readAt.present) {
+      map['read_at'] = Variable<bool>(readAt.value);
+    }
+    if (model.present) {
+      map['model'] = Variable<String>(model.value);
+    }
+    if (promptVersion.present) {
+      map['prompt_version'] = Variable<int>(promptVersion.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LettersCompanion(')
+          ..write('month: $month, ')
+          ..write('composedAt: $composedAt, ')
+          ..write('body: $body, ')
+          ..write('sourceCount: $sourceCount, ')
+          ..write('usedJournal: $usedJournal, ')
+          ..write('readAt: $readAt, ')
+          ..write('model: $model, ')
+          ..write('promptVersion: $promptVersion, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11699,6 +12194,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $TransitReadingsTable(this);
   late final $GuidanceRecallsTable guidanceRecalls =
       $GuidanceRecallsTable(this);
+  late final $LettersTable letters = $LettersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11727,7 +12223,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         intakeAnswers,
         journalDayStories,
         transitReadings,
-        guidanceRecalls
+        guidanceRecalls,
+        letters
       ];
 }
 
@@ -17329,6 +17826,232 @@ typedef $$GuidanceRecallsTableProcessedTableManager = ProcessedTableManager<
     ),
     GuidanceRecallRow,
     PrefetchHooks Function()>;
+typedef $$LettersTableCreateCompanionBuilder = LettersCompanion Function({
+  required String month,
+  required DateTime composedAt,
+  required String body,
+  Value<int> sourceCount,
+  Value<bool> usedJournal,
+  Value<bool> readAt,
+  Value<String> model,
+  Value<int?> promptVersion,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+typedef $$LettersTableUpdateCompanionBuilder = LettersCompanion Function({
+  Value<String> month,
+  Value<DateTime> composedAt,
+  Value<String> body,
+  Value<int> sourceCount,
+  Value<bool> usedJournal,
+  Value<bool> readAt,
+  Value<String> model,
+  Value<int?> promptVersion,
+  Value<DateTime?> syncedAt,
+  Value<int> rowid,
+});
+
+class $$LettersTableFilterComposer
+    extends Composer<_$AppDatabase, $LettersTable> {
+  $$LettersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get month => $composableBuilder(
+      column: $table.month, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get composedAt => $composableBuilder(
+      column: $table.composedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get body => $composableBuilder(
+      column: $table.body, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sourceCount => $composableBuilder(
+      column: $table.sourceCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get usedJournal => $composableBuilder(
+      column: $table.usedJournal, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get readAt => $composableBuilder(
+      column: $table.readAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get model => $composableBuilder(
+      column: $table.model, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$LettersTableOrderingComposer
+    extends Composer<_$AppDatabase, $LettersTable> {
+  $$LettersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get month => $composableBuilder(
+      column: $table.month, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get composedAt => $composableBuilder(
+      column: $table.composedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get body => $composableBuilder(
+      column: $table.body, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sourceCount => $composableBuilder(
+      column: $table.sourceCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get usedJournal => $composableBuilder(
+      column: $table.usedJournal, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get readAt => $composableBuilder(
+      column: $table.readAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get model => $composableBuilder(
+      column: $table.model, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+      column: $table.syncedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$LettersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LettersTable> {
+  $$LettersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get month =>
+      $composableBuilder(column: $table.month, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get composedAt => $composableBuilder(
+      column: $table.composedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceCount => $composableBuilder(
+      column: $table.sourceCount, builder: (column) => column);
+
+  GeneratedColumn<bool> get usedJournal => $composableBuilder(
+      column: $table.usedJournal, builder: (column) => column);
+
+  GeneratedColumn<bool> get readAt =>
+      $composableBuilder(column: $table.readAt, builder: (column) => column);
+
+  GeneratedColumn<String> get model =>
+      $composableBuilder(column: $table.model, builder: (column) => column);
+
+  GeneratedColumn<int> get promptVersion => $composableBuilder(
+      column: $table.promptVersion, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+}
+
+class $$LettersTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $LettersTable,
+    LetterRow,
+    $$LettersTableFilterComposer,
+    $$LettersTableOrderingComposer,
+    $$LettersTableAnnotationComposer,
+    $$LettersTableCreateCompanionBuilder,
+    $$LettersTableUpdateCompanionBuilder,
+    (LetterRow, BaseReferences<_$AppDatabase, $LettersTable, LetterRow>),
+    LetterRow,
+    PrefetchHooks Function()> {
+  $$LettersTableTableManager(_$AppDatabase db, $LettersTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LettersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LettersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LettersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> month = const Value.absent(),
+            Value<DateTime> composedAt = const Value.absent(),
+            Value<String> body = const Value.absent(),
+            Value<int> sourceCount = const Value.absent(),
+            Value<bool> usedJournal = const Value.absent(),
+            Value<bool> readAt = const Value.absent(),
+            Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LettersCompanion(
+            month: month,
+            composedAt: composedAt,
+            body: body,
+            sourceCount: sourceCount,
+            usedJournal: usedJournal,
+            readAt: readAt,
+            model: model,
+            promptVersion: promptVersion,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String month,
+            required DateTime composedAt,
+            required String body,
+            Value<int> sourceCount = const Value.absent(),
+            Value<bool> usedJournal = const Value.absent(),
+            Value<bool> readAt = const Value.absent(),
+            Value<String> model = const Value.absent(),
+            Value<int?> promptVersion = const Value.absent(),
+            Value<DateTime?> syncedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              LettersCompanion.insert(
+            month: month,
+            composedAt: composedAt,
+            body: body,
+            sourceCount: sourceCount,
+            usedJournal: usedJournal,
+            readAt: readAt,
+            model: model,
+            promptVersion: promptVersion,
+            syncedAt: syncedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$LettersTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $LettersTable,
+    LetterRow,
+    $$LettersTableFilterComposer,
+    $$LettersTableOrderingComposer,
+    $$LettersTableAnnotationComposer,
+    $$LettersTableCreateCompanionBuilder,
+    $$LettersTableUpdateCompanionBuilder,
+    (LetterRow, BaseReferences<_$AppDatabase, $LettersTable, LetterRow>),
+    LetterRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -17381,4 +18104,6 @@ class $AppDatabaseManager {
       $$TransitReadingsTableTableManager(_db, _db.transitReadings);
   $$GuidanceRecallsTableTableManager get guidanceRecalls =>
       $$GuidanceRecallsTableTableManager(_db, _db.guidanceRecalls);
+  $$LettersTableTableManager get letters =>
+      $$LettersTableTableManager(_db, _db.letters);
 }

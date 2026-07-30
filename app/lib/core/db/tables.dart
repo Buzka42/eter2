@@ -432,6 +432,48 @@ class JournalDayStories extends Table {
   Set<Column<Object>> get primaryKey => {date};
 }
 
+@DataClassName('LetterRow')
+/// One page a month, written to the person.
+///
+/// Keyed on the local month rather than a timestamp, because the cache key
+/// *is* the month: a letter for July is asked for once and paid for once, and
+/// asking again in August must not recompose July.
+///
+/// It is stored rather than shown and discarded because it arrives as a Journal
+/// page and can be answered by writing under it — a letter that vanished when
+/// the sheet closed would be a notification, not correspondence.
+class Letters extends Table {
+  /// Local `YYYY-MM`.
+  TextColumn get month => text()();
+  DateTimeColumn get composedAt => dateTime()();
+  TextColumn get body => text()();
+
+  /// How many recall notes and retrospective sentences it was written from.
+  /// Kept so a thin month can be recognised as thin later, without re-reading
+  /// rows that retention may since have removed.
+  IntColumn get sourceCount => integer().withDefault(const Constant(0))();
+
+  /// True when the composition could see journal material, exactly as
+  /// `GuidanceRecalls.usedJournal` records it. Revoking journal consent must
+  /// leave a record of what the withdrawn consent had already reached.
+  BoolColumn get usedJournal =>
+      boolean().withDefault(const Constant(false))();
+
+  /// True once it has been revealed on a Journal page. A letter arrives; it
+  /// does not accumulate unread.
+  BoolColumn get readAt => boolean().withDefault(const Constant(false))();
+
+  TextColumn get model => text().withDefault(const Constant('provider'))();
+
+  /// Which `EterPrompts.version` composed this. Null means the row predates
+  /// the column.
+  IntColumn get promptVersion => integer().nullable()();
+  DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {month};
+}
+
 /// Today's sky against the natal chart, and what was written about it.
 ///
 /// The contacts themselves are arithmetic and recomputed freely; this table

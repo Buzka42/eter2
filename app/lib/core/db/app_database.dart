@@ -41,6 +41,7 @@ part 'app_database.g.dart';
     JournalDayStories,
     TransitReadings,
     GuidanceRecalls,
+    Letters,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -57,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
   /// fortnight of compressed notes guidance reads so it stops repeating itself;
   /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -182,6 +183,12 @@ class AppDatabase extends _$AppDatabase {
               m, weightEntries, weightEntries.writtenBackAt);
           await _addColumnIfMissing(
               m, nutritionEntries, nutritionEntries.writtenBackAt);
+
+          // New in v13. `createTable` is not idempotent on its own, and a
+          // half-applied migration once left the app unable to open — so this
+          // asks the schema rather than trusting `from`, exactly as
+          // `_addColumnIfMissing` does.
+          await _createTableIfMissing(m, letters);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();
@@ -1204,6 +1211,31 @@ class AppDatabase extends _$AppDatabase {
   /// [journalAllowed] false drops notes written from journal material. A note
   /// composed while that consent was on may paraphrase a page, so withdrawing
   /// the consent has to withdraw the note with it.
+  /// The letter for a month, or null. The cache key of the sixth call: a month
+  /// already written is never composed again, so a Letter costs one request per
+  /// person per month and no more.
+  Future<LetterRow?> loadLetter(String month) =>
+      (select(letters)..where((row) => row.month.equals(month)))
+          .getSingleOrNull();
+
+  Stream<LetterRow?> watchLetter(String month) =>
+      (select(letters)..where((row) => row.month.equals(month)))
+          .watchSingleOrNull();
+
+  /// Letters newest first, for the Journal to reveal the unread one.
+  Future<List<LetterRow>> loadLetters({int limit = 24}) =>
+      (select(letters)
+            ..orderBy([(row) => OrderingTerm.desc(row.month)])
+            ..limit(limit))
+          .get();
+
+  Future<void> upsertLetter(LettersCompanion letter) =>
+      into(letters).insertOnConflictUpdate(letter);
+
+  Future<void> markLetterRead(String month) =>
+      (update(letters)..where((row) => row.month.equals(month)))
+          .write(const LettersCompanion(readAt: Value(true)));
+
   Future<List<GuidanceRecallRow>> loadGuidanceRecalls({
     required String today,
     int days = 14,

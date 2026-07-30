@@ -35,6 +35,9 @@ const CALLS = new Map([
   ['journalInterpretation', 0.1],
   ['vesselReadings', 0.7],
   ['positions', 0.7],
+  // The Letter is a writing call, so it sits with the other three at 0.7. It is
+  // also the rarest: once per person per month, cached on the month.
+  ['letter', 0.7],
 ]);
 
 const MODEL = 'gemini-3.5-flash-lite';

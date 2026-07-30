@@ -23,6 +23,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../aether/guidance_contract.dart';
+import '../aether/letter.dart';
 import '../journal/classification_contract.dart';
 import '../journal/day_story.dart';
 import '../vessel/positions_composer.dart';
@@ -138,7 +139,8 @@ enum EterAiCall {
   journalDayStory,
   journalInterpretation,
   vesselReadings,
-  positions;
+  positions,
+  letter;
 
   String get wireName => name;
 }
@@ -289,6 +291,19 @@ class TransportAetherProvider implements AetherProvider {
   @override
   Future<String> compose(AetherProviderRequest request) => transport.send(
         call: EterAiCall.guidance,
+        system: request.system,
+        user: request.context,
+        responseSchema: request.responseSchema,
+      );
+}
+
+class TransportLetterProvider implements LetterProvider {
+  const TransportLetterProvider(this.transport);
+  final EterAiTransport transport;
+
+  @override
+  Future<String> compose(LetterProviderRequest request) => transport.send(
+        call: EterAiCall.letter,
         system: request.system,
         user: request.context,
         responseSchema: request.responseSchema,
