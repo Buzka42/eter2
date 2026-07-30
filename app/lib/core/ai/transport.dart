@@ -38,8 +38,31 @@ class EterAiConfig {
   const EterAiConfig({
     required this.endpoint,
     required this.token,
+    this.installId,
     this.allowInsecure = false,
   });
+
+  /// An opaque per-install string, so the endpoint can meter one install without
+  /// metering everyone.
+  ///
+  /// This is a real, if small, widening of what leaves the device, and it is
+  /// worth being precise about. The endpoint's only previous way to tell callers
+  /// apart was the connecting address, which is wrong twice over: behind carrier
+  /// NAT thousands of people share one, and the daily cap is global, so a single
+  /// looping install could spend the day's budget and every other person would be
+  /// refused for it. Metering needs *something* stable per install.
+  ///
+  /// What this is not: it is random, generated on the device, derived from
+  /// nothing about the person, never assembled into a payload, and never stored
+  /// server-side except as a short-lived counter keyed on a hash of it. It cannot
+  /// be linked to an account, an address or a name by anyone holding it. The
+  /// `AI_FLOW.md` §1 rule — no identifier reaches the *model* — is unchanged; this
+  /// travels in a header, for the server, and is dropped before the request is
+  /// forwarded.
+  ///
+  /// Null on a build with no endpoint, and null is handled: the endpoint then
+  /// falls back to address-based limiting, which is better than nothing.
+  final String? installId;
 
   /// The owner-controlled endpoint. Empty means no transport is configured.
   final String endpoint;
@@ -64,11 +87,15 @@ class EterAiConfig {
 
   /// The configuration this build was compiled with, or null if it was
   /// compiled without one.
-  static EterAiConfig? fromEnvironment() {
+  ///
+  /// [installId] is not a compile-time define — it is per install, not per
+  /// build — so it is supplied by the caller that can read it from the store.
+  static EterAiConfig? fromEnvironment({String? installId}) {
     if (_endpoint.isEmpty) return null;
-    return const EterAiConfig(
+    return EterAiConfig(
       endpoint: _endpoint,
       token: _token,
+      installId: installId,
       allowInsecure: _allowInsecure,
     );
   }
@@ -211,6 +238,11 @@ class EterAiTransport {
       {
         'content-type': 'application/json; charset=utf-8',
         if (config.token.isNotEmpty) 'authorization': 'Bearer ${config.token}',
+        // A header, deliberately, and not a field in `body`. The endpoint meters
+        // on it and drops it; nothing about it reaches the model. See
+        // `EterAiConfig.installId`.
+        if (config.installId case final id? when id.isNotEmpty)
+          'x-eter-install': id,
       },
       body,
     ).timeout(

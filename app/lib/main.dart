@@ -11,6 +11,7 @@ import 'core/account/account.dart';
 import 'core/account/firebase_account_service.dart';
 import 'core/aether/guidance_mode.dart';
 import 'core/aether/guidance_contract.dart';
+import 'core/ai/install_id.dart';
 import 'core/ai/transport.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
@@ -56,6 +57,19 @@ Future<void> main() async {
   final database = AppDatabase();
   await database.runLocalRetention();
 
+  // Sixteen random bytes, minted once. Only ever used to meter this install
+  // against the endpoint's own quota; see `core/ai/install_id.dart` for what it
+  // deliberately is not made of. Read here rather than lazily so the transport
+  // has it before the first composition, and bounded like everything else in
+  // this chain — a store that will not answer must not decide whether Eter opens.
+  String? installId;
+  try {
+    installId = await EterInstallId.ensure(database)
+        .timeout(const Duration(seconds: 5));
+  } catch (error) {
+    debugPrint('Eter: install id unavailable, metering by address: $error');
+  }
+
   // Accounts are optional, so their absence must not be fatal. A build with no
   // Firebase configuration — or a device that cannot reach Google Play
   // services — opens normally, keeps every record, and simply has no
@@ -98,6 +112,7 @@ Future<void> main() async {
         databaseProvider.overrideWithValue(database),
         accountServiceProvider.overrideWithValue(accounts),
         crashReporterProvider.overrideWithValue(reporter),
+        installIdProvider.overrideWithValue(installId),
       ],
       child: const EterApp(),
     ),
@@ -167,9 +182,18 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
 /// See `docs/AI_FLOW.md` §6 and `core/ai/transport.dart` for why the endpoint
 /// belongs to the product owner and the model key never reaches this client.
 final aiTransportProvider = Provider<EterAiTransport?>((ref) {
-  final config = EterAiConfig.fromEnvironment();
+  final config = EterAiConfig.fromEnvironment(
+    installId: ref.watch(installIdProvider),
+  );
   return config == null ? null : EterAiTransport(config: config);
 });
+
+/// This install's opaque id, or null before it has been read.
+///
+/// Overridden at the root once `main` has minted it. Null is handled all the way
+/// through: the endpoint falls back to address-based metering, which is worse but
+/// not broken, and a build with no endpoint never reads this at all.
+final installIdProvider = Provider<String?>((ref) => null);
 
 /// Live interpretation transport. Absent without an endpoint; the Journal then
 /// still exposes the explicit workflow and explains that state honestly.

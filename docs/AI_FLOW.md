@@ -54,6 +54,30 @@ name · date of birth · birth time · birth place · coordinates · timezone ·
 account or device identifiers · row ids · vendor/source names · the chart
 input hash · anything from a day outside the requested window.
 
+### The one identifier that leaves the device, and where it stops
+
+`x-eter-install`: sixteen random bytes minted on first use
+(`core/ai/install_id.dart`), sent as an **HTTP header** and never assembled into
+a payload. The endpoint meters on it and drops it; it does not reach the model,
+and a test asserts it is absent from the request body.
+
+It was added because the endpoint's only other way to tell callers apart was the
+connecting address, and that is wrong twice: behind carrier NAT thousands of people
+share one, and the deployment's cap was global — so one looping install could spend
+the day's budget and every other person, including a paying one, would be refused
+for it.
+
+What keeps it cheap: it is derived from nothing about the person, it changes on
+reinstall, `deleteAllLocalData` erases it, and the server stores only a counter
+under a salted hash of it with a short expiry. Nobody holding it can link it to an
+account, an address or a name. It is deliberately *not* a hardware or advertising
+identifier, which would have been less code and materially worse — those are stable
+across reinstalls, shared between apps, and personal data on their own in several
+jurisdictions.
+
+Null is supported: a client that sends none is metered by address instead, and the
+endpoint logs `metered=by-address` rather than silently doing something else.
+
 Age crosses as **derived years**. The register crosses as a mode name.
 Reliability crosses as two booleans. The chart crosses as *already-computed
 placements* (sun sign, moon sign, optional ascendant, Life Path, personal year,
@@ -275,10 +299,22 @@ Model output expires on its own rather than when someone remembers to clear it
 `extractionJson` is also cleared immediately by `revertJournalEntryRows` — the
 model's account of a page goes with the rows the person just rejected.
 
-`server/worker.js` enforces a per-caller burst limit (12 requests / 60 s)
-alongside the global `DAILY_CAP`, keyed by a salted truncated SHA-256 of the
-connecting address so no address is stored. The client still sends no
-identifier.
+`server/worker.js` meters **per install first** — a 12-request burst window and 60
+calls a day — and treats the deployment-wide cap as a cost backstop rather than the
+real limit. That order is the correction: the shared cap used to be the only
+enforceable one at 500 a day, which is about a hundred users, and when it tripped it
+refused everybody indiscriminately.
+
+Counting goes through Cloudflare's rate-limiting binding when it is bound, because
+KV cannot do it: the previous version read a counter and wrote back an increment,
+which is not atomic, and KV reads are cached at the edge for up to 60 seconds against
+a window that was 60 seconds — so the limiter was measuring a value that had often
+not arrived. The KV path remains as a development fallback and the worker logs
+`limits=kv-approximate` when it is running that way, rather than letting the weaker
+mode pass for the stronger one.
+
+Keys are a salted truncated SHA-256, so the store holds neither an install id nor an
+address — only an opaque counter that expires.
 
 ## 6a. The language it answers in
 

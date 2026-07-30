@@ -9,10 +9,26 @@ compatibility_date = "2026-07-28"
 # Optional:
 #   ETER_MODEL          overrides the default model
 
-# Uncomment after `wrangler kv namespace create ETER_USAGE` to enable the
-# daily cap. Without it, Google's free tier is the only ceiling — which is
-# still a ceiling, and still cannot produce a bill while the project has no
-# billing account attached.
+# Rate limiting. Bind this before there are paying users.
+#
+# It is the only one of the two that counts *correctly*: atomic, and consistent
+# across colos. KV below is a fallback that reads a counter and writes back an
+# increment, which is neither — and KV reads are cached at the edge for up to 60
+# seconds, so a short window is measured against a value that may not have
+# arrived. The worker logs `limits=kv-approximate` when it is running that way, so
+# the weaker mode is visible rather than assumed.
+#
+# The period must match `BURST_WINDOW_SECONDS` in worker.js.
+# [[unsafe.bindings]]
+# name = "RATE_LIMITER"
+# type = "ratelimit"
+# namespace_id = "1001"
+# simple = { limit = 12, period = 60 }
+
+# Uncomment after `wrangler kv namespace create ETER_USAGE` to enable the daily
+# caps. Without either binding there is no per-install limit at all and Google's
+# free tier is the only ceiling — which is still a ceiling, and still cannot
+# produce a bill while the project has no billing account attached.
 # [[kv_namespaces]]
 # binding = "ETER_USAGE"
 # id = "..."

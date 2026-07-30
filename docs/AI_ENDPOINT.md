@@ -14,6 +14,7 @@ One HTTPS POST per call. Nothing else in the app opens a socket.
 ```
 POST <ETER_AI_ENDPOINT>
 authorization: Bearer <ETER_AI_TOKEN>
+x-eter-install: <16 random bytes, hex — omitted when the client has none>
 content-type: application/json; charset=utf-8
 
 {
@@ -26,7 +27,12 @@ content-type: application/json; charset=utf-8
 }
 ```
 
-Both values come from `--dart-define` at build time:
+`x-eter-install` is for metering and nothing else. **The server must not forward it
+to the model, log it, or store it unhashed** — see `AI_FLOW.md` §1 for what it is
+made of and why it is a header rather than a field. Treat its absence as normal and
+fall back to the connecting address.
+
+The endpoint and token come from `--dart-define` at build time:
 
 ```bash
 flutter build appbundle --release --dart-define=ETER_AI_ENDPOINT=https://… --dart-define=ETER_AI_TOKEN=…

@@ -32,6 +32,50 @@ void main() {
       // The defines are absent under `flutter test`, which is exactly the
       // shipped local-only configuration.
       expect(EterAiConfig.fromEnvironment(), isNull);
+      // And an install id does not conjure one into existence.
+      expect(EterAiConfig.fromEnvironment(installId: 'abc'), isNull);
+    });
+
+    group('the install id', () {
+      test('travels as a header and never in the payload', () async {
+        final record = recorder();
+        await transportWith(
+          record,
+          configuration: const EterAiConfig(
+            endpoint: 'https://ai.example.test/compose',
+            token: 'caller-token',
+            installId: 'deadbeefdeadbeefdeadbeefdeadbeef',
+          ),
+        ).send(
+          call: EterAiCall.guidance,
+          system: 'instruction',
+          user: const {'health': []},
+          responseSchema: const {'type': 'object'},
+        );
+
+        expect(
+          record.lastHeaders?['x-eter-install'],
+          'deadbeefdeadbeefdeadbeefdeadbeef',
+        );
+        // The boundary that matters. The endpoint meters on this and drops it;
+        // nothing about the install may reach the model, and the body is what
+        // reaches the model.
+        expect(record.lastBody, isNot(contains('deadbeef')));
+      });
+
+      test('is simply absent when there is none', () async {
+        final record = recorder();
+        await transportWith(record).send(
+          call: EterAiCall.guidance,
+          system: 'instruction',
+          user: const {},
+          responseSchema: const {},
+        );
+
+        // Not an empty header, which some intermediaries drop and others
+        // forward: absent, so the endpoint's own fallback is unambiguous.
+        expect(record.lastHeaders?.containsKey('x-eter-install'), isFalse);
+      });
     });
 
     test('loopback is allowed, because nothing leaves the device', () async {
