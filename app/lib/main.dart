@@ -21,6 +21,7 @@ import 'core/journal/day_story.dart';
 import 'core/profile/birth_context.dart';
 import 'core/register.dart';
 import 'core/symbolic/solar.dart';
+import 'core/sync/background_sync.dart';
 import 'core/sync/cloud_mirror.dart';
 import 'core/sync/firestore_mirror.dart';
 import 'core/sync/sync_service.dart';
@@ -210,6 +211,16 @@ final birthplaceResolverProvider = Provider<BirthplaceResolver>(
   (ref) => PlatformBirthplaceResolver(),
 );
 
+/// Copies the record up on its own, so the mirror is not limited to what
+/// somebody remembered to send from the Sanctum. Null with no mirror to push to.
+///
+/// Held in a provider so the debounce survives rebuilds; a fresh instance per
+/// frame would push on every lifecycle event.
+final backgroundSyncProvider = Provider<BackgroundSync?>((ref) {
+  final sync = ref.watch(syncServiceProvider);
+  return sync == null ? null : BackgroundSync(sync: sync, now: ref.read(nowProvider));
+});
+
 /// Keeps connected health data current when the app is opened or resumed, so
 /// the Body is not quietly stale until someone visits the Sanctum. Inert until
 /// a hub is connected, and debounced; see `core/health/foreground_refresh.dart`
@@ -395,7 +406,11 @@ class _EterAppState extends ConsumerState<EterApp> {
                   _ensureInitialReadings(db);
                   return HealthRefreshOnResume(
                     refresh: ref.watch(healthForegroundRefreshProvider),
-                    child: EterShell(startSurface: profile.startSurface),
+                    child: SyncOnLifecycle(
+                      sync: ref.watch(backgroundSyncProvider),
+                      account: () => ref.read(accountProvider).value,
+                      child: EterShell(startSurface: profile.startSurface),
+                    ),
                   );
                 },
               ),
