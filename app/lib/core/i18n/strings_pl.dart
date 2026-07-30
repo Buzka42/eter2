@@ -927,7 +927,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get deleteLocalWarningCopyRemains =>
       'To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i '
-      'wyliczone odczyty. Kopia na twoim koncie zostaje i „Przywróć” sprowadzi '
+      'wyliczone odczyty. Kopia na twoim koncie zostaje i „Odtwórz” sprowadzi '
       'ją z powrotem — usuń konto poniżej, żeby usunąć i ją.';
 
   @override
@@ -1017,21 +1017,21 @@ class EterStringsPl extends EterStrings {
       'Twój okres próbny kończy się dzisiaj.';
   @override
   String get aetherTrialExplainsItself =>
-      'Trzydzieści dni, bo Aether potrzebuje około trzech tygodni Twoich '
-      'zapisów, żeby powiedzieć Ci o Tobie coś, czego jeszcze nie wiedziałeś.';
+      'Trzydzieści dni, bo Aether potrzebuje około trzech tygodni twoich '
+      'zapisów, żeby powiedzieć ci o tobie coś, czego jeszcze nie wiesz.';
   @override
   String get aetherLapsed =>
-      'Okres próbny się skończył, więc Aether już nie komponuje.';
+      'Okres próbny się skończył, więc Aether już nie pisze.';
   @override
-  String get aetherSubscribed => 'Aether komponuje.';
+  String get aetherSubscribed => 'Aether pisze.';
   @override
   String get aetherUnconfigured =>
-      'Ta wersja nie ma punktu końcowego wskazówek, więc nic w niej nie '
-      'powstanie. Nic z tego, co masz, nie jest tym dotknięte.';
+      'Ta wersja nie ma dokąd wysłać pytania, więc nic w niej nie powstanie. '
+      'Nic z tego, co masz, na tym nie traci.';
   @override
   String get aetherRecordKeepsWorking =>
-      'Wszystko, co napisałeś i zapisałeś, zostaje i działa dalej — dziennik, '
-      'historia zdrowia, wykresy, Twój astrogram. Zatrzymuje się samo '
+      'Wszystko, co napisane i zapisane, zostaje i działa dalej — dziennik, '
+      'historia zdrowia, wykresy, twój kosmogram. Zatrzymuje się samo '
       'powstawanie.';
   @override
   String subscribeMonthly(String price) => 'Subskrybuj · $price miesięcznie';
@@ -1040,7 +1040,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get launchPriceWillRise =>
       'To cena startowa i wzrośnie. Subskrypcja teraz jej nie zamraża — wolimy '
-      'to powiedzieć, niż zaskoczyć Cię później. Rok kupiony teraz to rok w tej '
+      'to powiedzieć, niż zaskoczyć cię później. Rok kupiony teraz to rok w tej '
       'cenie.';
   @override
   String get restorePurchases => 'Przywróć zakup';
@@ -1066,7 +1066,7 @@ class EterStringsPl extends EterStrings {
   @override
   String passwordMinimum(int characters) =>
       'Co najmniej $characters ${_znaki(characters)}. Fraza, którą zapamiętasz, '
-      'jest lepsza niż krótki splot, którego nie zapamiętasz.';
+      'jest lepsza niż krótka plątanina, której nie zapamiętasz.';
   @override
   String get createAccount => 'Utwórz konto';
   @override
@@ -1098,7 +1098,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get resendLink => 'Wyślij link ponownie';
   @override
-  String get iHaveConfirmed => 'Potwierdziłem';
+  String get iHaveConfirmed => 'Już potwierdzone';
   @override
   String get verificationSent =>
       'Wysłano. Może minąć chwila, zanim dotrze.';
@@ -1125,12 +1125,12 @@ class EterStringsPl extends EterStrings {
   String get deleteAccount => 'USUŃ KONTO';
   @override
   String get deleteAccountIntro =>
-      'Usuń konto i kopię Twojego zapisu, którą pod nim trzyma.';
+      'Usuń konto i kopię twojego zapisu, którą pod nim trzyma.';
   @override
   String get deleteAccountWarning =>
       'To usuwa kopię na koncie, a potem samo konto. Wszystko na tym urządzeniu '
       'zostaje i działa dalej — usunięcie konta to wycofanie się z kopii, a nie '
-      'prośba, żeby Eter o Tobie zapomniał.';
+      'prośba, żeby Eter o tobie zapomniał.';
   @override
   String get accountDeletedRecordKept =>
       'Konto usunięte razem z kopią. Twój zapis nadal jest na tym urządzeniu.';
@@ -1162,7 +1162,7 @@ class EterStringsPl extends EterStrings {
         SyncRefusal.confirmEmailBeforeCopying =>
           'Potwierdź e-mail, zanim cokolwiek zostanie skopiowane.',
         SyncRefusal.cloudContinuityOff =>
-          'Ciągłość w chmurze jest wyłączona.',
+          'Kopia w chmurze jest wyłączona.',
         SyncRefusal.confirmEmailFirst => 'Najpierw potwierdź e-mail.',
         SyncRefusal.deviceAlreadyHasHistory =>
           'To urządzenie ma już historię, więc nic nie zostało odtworzone.',

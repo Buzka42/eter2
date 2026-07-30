@@ -321,7 +321,7 @@ explains why translating one would break the symbolic engine.
 | `headingDeleteFromThisDevice` | DELETE FROM THIS DEVICE | USUŃ Z TEGO URZĄDZENIA |
 | `deleteLocalIntro` | Remove every local Eter record and return to onboarding. | Usuń każdy lokalny zapis Eteru i wróć do wprowadzenia. |
 | `deleteLocalWarning` | This permanently removes the local profile, journal, health history, and derived readings. Nothing here is recoverable afterwards. | To trwale usuwa lokalny profil, dziennik, historię zdrowia i wyliczone odczyty. Nic z tego nie da się potem odzyskać. |
-| `deleteLocalWarningCopyRemains` | This removes the local profile, journal, health history, and derived readings from this device. Your account copy stays, and Restore would bring it back — delete the account below to remove that too. | To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i wyliczone odczyty. Kopia na twoim koncie zostaje i „Przywróć” sprowadzi ją z powrotem — usuń konto poniżej, żeby usunąć i ją. |
+| `deleteLocalWarningCopyRemains` | This removes the local profile, journal, health history, and derived readings from this device. Your account copy stays, and Restore would bring it back — delete the account below to remove that too. | To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i wyliczone odczyty. Kopia na twoim koncie zostaje i „Odtwórz” sprowadzi ją z powrotem — usuń konto poniżej, żeby usunąć i ją. |
 | `headingHealthHistory` | HEALTH HISTORY | HISTORIA ZDROWIA |
 | `healthConnectedReconnect` | Connected. Reconnect to read the latest 30 days; source overlap is resolved per minute. | Połączone. Połącz ponownie, żeby wczytać ostatnie 30 dni; gdy źródła się nakładają, zostaje jedno na każdą minutę. |
 | `healthOffer` | Read selected movement, sleep, and recovery signals from your phone’s health store. | Czytaj wybrane sygnały ruchu, snu i regeneracji z zapisu zdrowia w twoim telefonie. |
@@ -348,14 +348,14 @@ explains why translating one would break the symbolic engine.
 |---|---|---|
 | `aetherTrialDaysLeft()` | One day left of your trial.$days days left of your trial. | Został jeden dzień okresu próbnego.Zostało $days ${_dni(days)} okresu próbnego. |
 | `aetherTrialEndsToday` | Your trial ends today. | Twój okres próbny kończy się dzisiaj. |
-| `aetherTrialExplainsItself` | Thirty days, because Aether needs about three weeks of your records before it can tell you something about yourself that you did not already know. | Trzydzieści dni, bo Aether potrzebuje około trzech tygodni Twoich zapisów, żeby powiedzieć Ci o Tobie coś, czego jeszcze nie wiedziałeś. |
-| `aetherLapsed` | Your trial has ended, so Aether is no longer composing. | Okres próbny się skończył, więc Aether już nie komponuje. |
-| `aetherSubscribed` | Aether is composing. | Aether komponuje. |
-| `aetherUnconfigured` | This build has no guidance endpoint, so Aether cannot compose on it. Nothing you have is affected. | Ta wersja nie ma punktu końcowego wskazówek, więc nic w niej nie powstanie. Nic z tego, co masz, nie jest tym dotknięte. |
-| `aetherRecordKeepsWorking` | Everything you have written and recorded stays, and keeps working — the journal, your health history, the charts, your astrogram. It is the composing that stops. | Wszystko, co napisałeś i zapisałeś, zostaje i działa dalej — dziennik, historia zdrowia, wykresy, Twój astrogram. Zatrzymuje się samo powstawanie. |
+| `aetherTrialExplainsItself` | Thirty days, because Aether needs about three weeks of your records before it can tell you something about yourself that you did not already know. | Trzydzieści dni, bo Aether potrzebuje około trzech tygodni twoich zapisów, żeby powiedzieć ci o tobie coś, czego jeszcze nie wiesz. |
+| `aetherLapsed` | Your trial has ended, so Aether is no longer composing. | Okres próbny się skończył, więc Aether już nie pisze. |
+| `aetherSubscribed` | Aether is composing. | Aether pisze. |
+| `aetherUnconfigured` | This build has no guidance endpoint, so Aether cannot compose on it. Nothing you have is affected. | Ta wersja nie ma dokąd wysłać pytania, więc nic w niej nie powstanie. Nic z tego, co masz, na tym nie traci. |
+| `aetherRecordKeepsWorking` | Everything you have written and recorded stays, and keeps working — the journal, your health history, the charts, your astrogram. It is the composing that stops. | Wszystko, co napisane i zapisane, zostaje i działa dalej — dziennik, historia zdrowia, wykresy, twój kosmogram. Zatrzymuje się samo powstawanie. |
 | `subscribeMonthly()` | Subscribe · $price a month | Subskrybuj · $price miesięcznie |
 | `subscribeYearly()` | Subscribe · $price a year | Subskrybuj · $price rocznie |
-| `launchPriceWillRise` | This is a launch price and will rise. Subscribing now does not lock it in — we would rather say so than surprise you later. A year bought now is a year at this price. | To cena startowa i wzrośnie. Subskrypcja teraz jej nie zamraża — wolimy to powiedzieć, niż zaskoczyć Cię później. Rok kupiony teraz to rok w tej cenie. |
+| `launchPriceWillRise` | This is a launch price and will rise. Subscribing now does not lock it in — we would rather say so than surprise you later. A year bought now is a year at this price. | To cena startowa i wzrośnie. Subskrypcja teraz jej nie zamraża — wolimy to powiedzieć, niż zaskoczyć cię później. Rok kupiony teraz to rok w tej cenie. |
 | `restorePurchases` | Restore purchase | Przywróć zakup |
 | `billingNotOnThisBuild` | This build cannot take payment yet. | Ta wersja nie może jeszcze przyjąć płatności. |
 | `headingAccount` | ACCOUNT | KONTO |
@@ -364,7 +364,7 @@ explains why translating one would break the symbolic engine.
 | `fieldEmail` | Email | E-mail |
 | `fieldPassword` | Password | Hasło |
 | `fieldNewPassword` | New password | Nowe hasło |
-| `passwordMinimum()` | At least $characters characters. A phrase you will remember beats a short tangle you will not. | Co najmniej $characters ${_znaki(characters)}. Fraza, którą zapamiętasz, jest lepsza niż krótki splot, którego nie zapamiętasz. |
+| `passwordMinimum()` | At least $characters characters. A phrase you will remember beats a short tangle you will not. | Co najmniej $characters ${_znaki(characters)}. Fraza, którą zapamiętasz, jest lepsza niż krótka plątanina, której nie zapamiętasz. |
 | `createAccount` | Create account | Utwórz konto |
 | `signIn` | Sign in | Zaloguj się |
 | `iHaveAnAccount` | I have an account | Mam już konto |
@@ -377,7 +377,7 @@ explains why translating one would break the symbolic engine.
 | `historyCanBeRestored` | Your history can be restored on a new phone. | Twoją historię można odtworzyć na nowym telefonie. |
 | `confirmEmailToEnable` | Confirm your email to enable that. Until you do, nothing leaves this device. | Potwierdź e-mail, żeby to włączyć. Do tego czasu nic nie opuszcza tego urządzenia. |
 | `resendLink` | Resend link | Wyślij link ponownie |
-| `iHaveConfirmed` | I have confirmed | Potwierdziłem |
+| `iHaveConfirmed` | I have confirmed | Już potwierdzone |
 | `verificationSent` | Sent. It can take a minute to arrive. | Wysłano. Może minąć chwila, zanim dotrze. |
 | `notConfirmedYet` | Not confirmed yet. Follow the link in the email, then try again. | Jeszcze nie potwierdzone. Otwórz link z wiadomości i spróbuj ponownie. |
 | `syncNow` | Sync now | Synchronizuj |
@@ -387,8 +387,8 @@ explains why translating one would break the symbolic engine.
 | `signedOutNothingRemoved` | Signed out. Everything on this device is still here. | Wylogowano. Wszystko na tym urządzeniu nadal tu jest. |
 | `headingDeleteAccount` | DELETE ACCOUNT | USUŃ KONTO |
 | `deleteAccount` | DELETE ACCOUNT | USUŃ KONTO |
-| `deleteAccountIntro` | Remove the account and the copy of your record held under it. | Usuń konto i kopię Twojego zapisu, którą pod nim trzyma. |
-| `deleteAccountWarning` | This deletes the account copy and then the account itself. Everything on this device stays, and keeps working — deleting the account is withdrawing from the mirror, not asking Eter to forget you. | To usuwa kopię na koncie, a potem samo konto. Wszystko na tym urządzeniu zostaje i działa dalej — usunięcie konta to wycofanie się z kopii, a nie prośba, żeby Eter o Tobie zapomniał. |
+| `deleteAccountIntro` | Remove the account and the copy of your record held under it. | Usuń konto i kopię twojego zapisu, którą pod nim trzyma. |
+| `deleteAccountWarning` | This deletes the account copy and then the account itself. Everything on this device stays, and keeps working — deleting the account is withdrawing from the mirror, not asking Eter to forget you. | To usuwa kopię na koncie, a potem samo konto. Wszystko na tym urządzeniu zostaje i działa dalej — usunięcie konta to wycofanie się z kopii, a nie prośba, żeby Eter o tobie zapomniał. |
 | `accountDeletedRecordKept` | Account deleted, along with its copy. Your record is still on this device. | Konto usunięte razem z kopią. Twój zapis nadal jest na tym urządzeniu. |
 | `somethingWentWrong` | Something went wrong. Nothing was changed. | Coś poszło nie tak. Nic nie zostało zmienione. |
 | `syncNotAvailableOnBuild` | Sync is not available on this build. | Synchronizacja nie jest dostępna w tej wersji. |
@@ -397,7 +397,7 @@ explains why translating one would break the symbolic engine.
 | `journalStayedOnThisDevice` | Your journal stayed on this device. | Twój dziennik został na tym urządzeniu. |
 | `nothingInAccountToRestore` | There was nothing in your account to restore. | Na twoim koncie nie było nic do odtworzenia. |
 | `restoredRecords()` | Restored $records ${records == 1 ? : }. | Odtworzono $records ${_zapisy(records)}. |
-| `syncRefusal()` | There is nothing to sync yet.Confirm your email before anything is copied.Cloud continuity is off.Confirm your email first.This device already has history, so nothing was restored. | Nie ma jeszcze nic do synchronizacji.Potwierdź e-mail, zanim cokolwiek zostanie skopiowane.Ciągłość w chmurze jest wyłączona.Najpierw potwierdź e-mail.To urządzenie ma już historię, więc nic nie zostało odtworzone. |
+| `syncRefusal()` | There is nothing to sync yet.Confirm your email before anything is copied.Cloud continuity is off.Confirm your email first.This device already has history, so nothing was restored. | Nie ma jeszcze nic do synchronizacji.Potwierdź e-mail, zanim cokolwiek zostanie skopiowane.Kopia w chmurze jest wyłączona.Najpierw potwierdź e-mail.To urządzenie ma już historię, więc nic nie zostało odtworzone. |
 | `accountFailure()` | That does not look like an email address.Choose a password of at least eight characters.That address is already registered. Sign in instead, or reset the password.That email and password do not match.Sign-in was cancelled.No connection. Eter works offline; sync will wait.Too many attempts. Try again in a few minutes.Confirm your email first — check for the link we sent.Sign in again first, then ask again. Nothing was deleted.Sign-in failed. Nothing was changed. | To nie wygląda na adres e-mail.Wybierz hasło o długości co najmniej ośmiu znaków.Ten adres jest już zarejestrowany. Zaloguj się albo zmień hasło.Ten e-mail i hasło do siebie nie pasują.Logowanie zostało anulowane.Brak połączenia. Eter działa bez sieci; synchronizacja poczeka.Za dużo prób. Spróbuj ponownie za kilka minut.Najpierw potwierdź e-mail — poszukaj linku, który wysłaliśmy.Zaloguj się ponownie, a potem poproś jeszcze raz. Nic nie zostało usunięte.Logowanie się nie udało. Nic nie zostało zmienione. |
 
 ## onboarding
