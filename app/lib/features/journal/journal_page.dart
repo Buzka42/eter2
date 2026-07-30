@@ -51,6 +51,9 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   bool _saving = false;
   bool _spokenUsed = false;
   bool _listening = false;
+
+  /// A finger is currently on the dictation mark. See [_holdDictation].
+  bool _holding = false;
   String? _dictationNote;
   String _dictationBase = '';
   final _storyKey = GlobalKey<_DayStoryState>();
@@ -91,13 +94,53 @@ class _JournalPageState extends ConsumerState<JournalPage> {
   }
 
   /// Dictation has stopped. Now the page may keep what was said.
-  void _finishDictation() {
+  ///
+  /// [immediately] is push-to-talk releasing its hold. A held button says
+  /// exactly when someone finished — there is no ambiguity left for a debounce to
+  /// resolve — so the page is kept on release rather than 900 ms later. That
+  /// difference is the whole point of holding: speak, let go, put the phone in a
+  /// pocket, and the page is already filed.
+  ///
+  /// The timer still governs the tap path, where "stopped speaking" and
+  /// "finished" are not the same event.
+  void _finishDictation({bool immediately = false}) {
     if (!mounted) return;
     setState(() => _listening = false);
     _dictationBase = '';
     if (_composer.text.trim().isEmpty) return;
     _autosave?.cancel();
+    if (immediately) {
+      unawaited(_save());
+      return;
+    }
     _autosave = Timer(const Duration(milliseconds: 900), _save);
+  }
+
+  /// Push-to-talk. Held, so releasing is the commit.
+  ///
+  /// Deliberately *additive*: tapping still toggles, because a press-and-hold is
+  /// a gesture, and non-negotiable 7 forbids putting anything essential behind
+  /// one alone. Someone who cannot hold a button steady — or who never discovers
+  /// that they can — loses nothing.
+  ///
+  /// [_holding] exists for one race, and it is not a rare one. Starting
+  /// dictation is asynchronous — initialise, permission, enumerate locales — and
+  /// a quick hold can be released before any of that finishes. Without the flag,
+  /// the release finds `_listening` still false, returns, and the recogniser then
+  /// comes up listening with nobody holding it: the microphone left open by the
+  /// gesture meant to be the safe one.
+  Future<void> _holdDictation() async {
+    if (_listening) return;
+    _holding = true;
+    await _toggleDictation();
+    if (!_holding && _listening) await _releaseDictation();
+  }
+
+  Future<void> _releaseDictation() async {
+    _holding = false;
+    if (!_listening) return;
+    await _speech.stop();
+    _finishDictation(immediately: true);
   }
 
   Future<void> _save() async {
@@ -427,6 +470,10 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                               : strings.dictateSemantic,
                           color: _listening ? ink.lineStrong : ink.labelMuted,
                           onTap: _toggleDictation,
+                          // Hold to speak, release to keep. The fastest path
+                          // from wanting to say something to it being filed.
+                          onHoldStart: () => unawaited(_holdDictation()),
+                          onHoldEnd: () => unawaited(_releaseDictation()),
                           compact: true,
                           mark: true,
                           markActive: _listening,
@@ -1138,6 +1185,8 @@ class _GlyphAction extends StatelessWidget {
     required this.semanticLabel,
     required this.color,
     required this.onTap,
+    this.onHoldStart,
+    this.onHoldEnd,
     this.compact = false,
     this.mark = false,
     this.markActive = false,
@@ -1147,6 +1196,11 @@ class _GlyphAction extends StatelessWidget {
   final String semanticLabel;
   final Color color;
   final VoidCallback onTap;
+
+  /// Push-to-talk, when this action supports it. Additive to [onTap] — holding
+  /// is a shortcut for people who find it, never the only way in.
+  final VoidCallback? onHoldStart;
+  final VoidCallback? onHoldEnd;
 
   /// Draws the dictation mark before the word. Only dictation carries a glyph:
   /// it is the one action here that names a device rather than an intention.
@@ -1167,6 +1221,12 @@ class _GlyphAction extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
+        // `onLongPress` fires once the hold is recognised; the end callbacks
+        // cover every way a finger can leave, including sliding off the target,
+        // so a hold can never be left listening forever.
+        onLongPress: onHoldStart,
+        onLongPressEnd: onHoldEnd == null ? null : (_) => onHoldEnd!(),
+        onLongPressCancel: onHoldEnd,
         child: SizedBox(
           width: compact ? null : 112,
           height: 48,
