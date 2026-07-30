@@ -258,7 +258,8 @@ void main() {
       });
 
       test('journal entries', () {
-        expect(pl.retrospectiveJournal(1), contains('1 wpis '));
+        // The count closes the sentence now, so the boundary is the full stop.
+        expect(pl.retrospectiveJournal(1), contains('1 wpis.'));
         expect(pl.retrospectiveJournal(3), contains('3 wpisy'));
         expect(pl.retrospectiveJournal(11), contains('11 wpisów'));
       });

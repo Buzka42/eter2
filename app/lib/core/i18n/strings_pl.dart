@@ -1615,23 +1615,27 @@ class EterStringsPl extends EterStrings {
   String patternSleepAfterLateActivity({required bool shorter}) =>
       'Po późnej aktywności sen bywał ${shorter ? 'krótszy' : 'dłuższy'}.';
 
+  // Every name here is a noun phrase in the nominative, never a clause. The
+  // sweep sentence puts one of these in front of an adjective, and English can
+  // write "when how long you slept is higher" where Polish cannot: the phrase
+  // has to be something that can *be* higher, and it has to have a gender for
+  // the adjective to agree with. See `_seriesRodzaj`.
   @override
   String seriesLabel(String canonical) => switch (canonical) {
         'steps' => 'twoja liczba kroków',
-        'activeKcal' => 'ile się ruszałaś lub ruszałeś',
-        'sleep' => 'jak długo spałaś lub spałeś',
+        'activeKcal' => 'twoja aktywność',
+        'sleep' => 'długość twojego snu',
         'deep' => 'sen głęboki',
         'rem' => 'sen REM',
         'awake' => 'czas czuwania w nocy',
         'restingHr' => 'twój puls spoczynkowy',
         'hrv' => 'twoja zmienność rytmu serca',
-        'intake' => 'to, co jadłaś lub jadłeś',
-        'sessions' => 'sesje treningowe',
+        'intake' => 'ilość jedzenia',
+        'sessions' => 'liczba sesji treningowych',
         'mood' => 'twój nastrój',
         'stress' => 'twój stres',
-        'recovery' => 'jak zregenerowana lub zregenerowany się czułaś lub '
-            'czułeś',
-        'meditation' => 'czas spędzony na medytacji',
+        'recovery' => 'twoja regeneracja',
+        'meditation' => 'czas medytacji',
         'weight' => 'twoja waga',
         _ => canonical,
       };
@@ -1647,20 +1651,20 @@ class EterStringsPl extends EterStrings {
   }) {
     final from = seriesLabel(fromKey);
     final to = seriesLabel(toKey);
-    final direction = positive ? 'wyższe' : 'niższe';
+    final higher = _stopien(_seriesRodzaj(fromKey), higher: true);
+    final direction = _stopien(_seriesRodzaj(toKey), higher: positive);
     final receipt = 'około $percent% zmienności, na przestrzeni $days '
         '${_dniGen(days)}';
     return lagged
-        ? 'W dniach po tym, jak $from jest wyższe, $to bywa $direction '
+        ? 'W dniach po tym, gdy $from jest $higher, $to bywa $direction '
             '($receipt).'
-        : 'Kiedy $from jest wyższe, $to bywa $direction tego samego dnia '
+        : 'Kiedy $from jest $higher, $to bywa $direction tego samego dnia '
             '($receipt).';
   }
 
   @override
-  String retrospectiveHeadline({required bool complete}) => complete
-      ? 'Twój skrót siedmiu dni'
-      : 'Twój częściowy skrót siedmiu dni';
+  String retrospectiveHeadline({required bool complete}) =>
+      complete ? 'Twoje siedem dni' : 'Twoje niepełne siedem dni';
   @override
   String retrospectiveMovement({
     required int days,
@@ -1685,17 +1689,17 @@ class EterStringsPl extends EterStrings {
     required int nights,
     required String averageHours,
   }) =>
-      'Sen był dostępny dla $nights z 7 nocy, średnio $averageHours godz.';
+      'Sen zapisano w $nights z 7 nocy, średnio $averageHours godz.';
   @override
   String retrospectiveJournal(int entries) =>
-      'W tym okresie zrobiono $entries ${_wpisy(entries)} w dzienniku.';
+      'W tym okresie zapisano w dzienniku $entries ${_wpisy(entries)}.';
   @override
   String retrospectiveLifestyle({
     required int signals,
     required List<String> kinds,
   }) =>
-      'Zapisano $signals ${_sygnaly(signals)} zgłoszone samodzielnie, w '
-      'kategoriach: ${kinds.map(lifestyleKindName).join(', ')}.';
+      'Zapisano $signals ${_zgloszoneSygnaly(signals)} w kategoriach: '
+      '${kinds.map(lifestyleKindName).join(', ')}.';
   @override
   String get retrospectiveCaveat =>
       'Brakujące dni są pomijane, a nie traktowane jako zero.';
@@ -1733,6 +1737,31 @@ class EterStringsPl extends EterStrings {
     return many;
   }
 
+  /// The gender of the noun [seriesLabel] returns — `'ż'`, `'n'` or masculine
+  /// by default. Only needed because an adjective follows it.
+  static String _seriesRodzaj(String canonical) => switch (canonical) {
+        'steps' ||
+        'activeKcal' ||
+        'sleep' ||
+        'hrv' ||
+        'intake' ||
+        'sessions' ||
+        'recovery' ||
+        'weight' =>
+          'ż',
+        _ => 'm',
+      };
+
+  /// *wyższy / wyższa / wyższe*, and the same for *niższy*.
+  static String _stopien(String rodzaj, {required bool higher}) {
+    final stem = higher ? 'wyższ' : 'niższ';
+    return switch (rodzaj) {
+      'ż' => '${stem}a',
+      'n' => '${stem}e',
+      _ => '${stem}y',
+    };
+  }
+
   static String _dni(int n) => _plural(n, one: 'dzień', few: 'dni', many: 'dni');
   static String _dniGen(int n) =>
       _plural(n, one: 'dnia', few: 'dni', many: 'dni');
@@ -1748,8 +1777,15 @@ class EterStringsPl extends EterStrings {
       _plural(n, one: 'strony', few: 'stron', many: 'stron');
   static String _wpisy(int n) =>
       _plural(n, one: 'wpis', few: 'wpisy', many: 'wpisów');
-  static String _sygnaly(int n) =>
-      _plural(n, one: 'sygnał', few: 'sygnały', many: 'sygnałów');
+  /// The adjective is tabulated with the noun on purpose: it agrees with the
+  /// case the numeral forces, so `5 samodzielnie zgłoszonych sygnałów` and
+  /// `2 samodzielnie zgłoszone sygnały` differ in both words, not one.
+  static String _zgloszoneSygnaly(int n) => _plural(
+        n,
+        one: 'samodzielnie zgłoszony sygnał',
+        few: 'samodzielnie zgłoszone sygnały',
+        many: 'samodzielnie zgłoszonych sygnałów',
+      );
   static String _wzorce(int n) =>
       _plural(n, one: 'wzorzec', few: 'wzorce', many: 'wzorców');
   static String _obserwacje(int n) =>
