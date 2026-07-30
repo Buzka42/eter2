@@ -1215,8 +1215,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get fieldWhatShouldEterCallYou => 'Jak Eter ma cię nazywać?';
   @override
-  String get fieldWhatWouldYouLikeMoreOf => 'Czego chciałabyś lub chciałbyś '
-      'więcej?';
+  String get fieldWhatWouldYouLikeMoreOf => 'Czego chcesz więcej?';
   @override
   String get hintWhatWouldYouLikeMoreOf =>
       'Spokojniejszej energii, głębszego snu, jaśniejszej głowy…';
@@ -1256,7 +1255,7 @@ class EterStringsPl extends EterStrings {
       'Podaj prawidłową datę urodzenia w formacie RRRR-MM-DD.';
   @override
   String get errorMinimumAge =>
-      'Eter jest obecnie dostępny dla osób w wieku 16 lat i starszych.';
+      'Eter jest na razie dostępny dla osób od 16. roku życia.';
   @override
   String get errorEnterWeightRange =>
       'Podaj obecną wagę pomiędzy 20 a 500 kg.';
@@ -1269,7 +1268,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get registerStepIntro =>
       'To ustawia głos, nie fakty. Możesz to zmienić w każdej chwili w '
-      'Zacisze.';
+      'Zaciszu.';
   @override
   String get registerGroundedOnboardingDetail =>
       'Jasność dnia o każdej godzinie. Prosto, praktycznie, bez ozdób.';
@@ -1286,7 +1285,7 @@ class EterStringsPl extends EterStrings {
   String get languageStepIntro =>
       'Na początek ustawiony według twojego telefonu. Zmienia każde słowo, '
       'razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w '
-      'Zacisze.';
+      'Zaciszu.';
 
   @override
   String get consentStepTitle => 'Wybierz, co może opuścić to urządzenie';
@@ -1303,12 +1302,13 @@ class EterStringsPl extends EterStrings {
   String get consentJournalAiTitle => 'Wgląd czytający dziennik';
   @override
   String get consentJournalAiDetail =>
-      'Pozwól wysyłać dołączoną treść dziennika do refleksji.';
+      'Pozwól wysyłać dołączoną treść dziennika, żeby Aether mógł ją '
+      'przemyśleć.';
   @override
-  String get consentCloudTitle => 'Ciągłość w chmurze';
+  String get consentCloudTitle => 'Kopia w chmurze';
   @override
   String get consentCloudDetail =>
-      'Trzymaj zaszyfrowaną kopię na koncie na potrzeby przyszłego telefonu.';
+      'Trzymaj zaszyfrowaną kopię na koncie, na przyszły telefon.';
   @override
   String get allowMark => 'POZWÓL';
   @override
@@ -1336,7 +1336,7 @@ class EterStringsPl extends EterStrings {
           lines: [
             'Wszystko, co zapisujesz, piszesz albo mówisz tutaj.',
             'Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął '
-                'dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą '
+                'dzień, biorą się z tego, co piszesz. Każdą '
                 'stronę można zinterpretować, a każdą można też całkowicie '
                 'zatrzymać poza zasięgiem Aether.',
           ],
@@ -1408,7 +1408,7 @@ class EterStringsPl extends EterStrings {
         BirthContextError.profileUnavailable =>
           'Lokalny profil jest niedostępny.',
         BirthContextError.choosePartOfDay =>
-          'Wybierz porę dnia, w której się urodziłaś lub urodziłeś.',
+          'Wybierz porę dnia twoich narodzin.',
         BirthContextError.addUtcOffset =>
           'Dopisz przesunięcie UTC przy urodzeniu, żeby dało się umieścić '
               'godzinę.',

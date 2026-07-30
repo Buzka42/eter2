@@ -410,7 +410,7 @@ explains why translating one would break the symbolic engine.
 | `welcomeTitle` | Begin with what matters | Zacznij od tego, co ważne |
 | `welcomeIntro` | A few words are enough. You can change or remove any of this later. | Kilka słów wystarczy. Każdą z tych rzeczy możesz później zmienić albo usunąć. |
 | `fieldWhatShouldEterCallYou` | What should Eter call you? | Jak Eter ma cię nazywać? |
-| `fieldWhatWouldYouLikeMoreOf` | What would you like more of? | Czego chciałabyś lub chciałbyś więcej? |
+| `fieldWhatWouldYouLikeMoreOf` | What would you like more of? | Czego chcesz więcej? |
 | `hintWhatWouldYouLikeMoreOf` | Steadier energy, deeper sleep, a clearer mind… | Spokojniejszej energii, głębszego snu, jaśniejszej głowy… |
 | `birthStepTitle` | Your point of origin | Twój punkt wyjścia |
 | `birthStepIntro` | Date supports health context and symbolic calculations. Place and exact time are optional; without them, Eter labels the chart provisional. | Data zasila kontekst zdrowotny i wyliczenia symboliczne. Miejsce i dokładna godzina są opcjonalne; bez nich Eter oznacza kosmogram jako tymczasowy. |
@@ -426,24 +426,24 @@ explains why translating one would break the symbolic engine.
 | `hintCityOrRegion` | City or region | Miasto lub region |
 | `exactBirthTimeLater` | Exact birth time can be added later in the Sanctum. | Dokładną godzinę urodzenia można dopisać później w Zaciszu. |
 | `errorEnterValidBirthDate` | Enter a valid birth date as YYYY-MM-DD. | Podaj prawidłową datę urodzenia w formacie RRRR-MM-DD. |
-| `errorMinimumAge` | Eter is currently available to people aged 16 and over. | Eter jest obecnie dostępny dla osób w wieku 16 lat i starszych. |
+| `errorMinimumAge` | Eter is currently available to people aged 16 and over. | Eter jest na razie dostępny dla osób od 16. roku życia. |
 | `errorEnterWeightRange` | Enter your current weight between 20 and 500 kg. | Podaj obecną wagę pomiędzy 20 a 500 kg. |
 | `errorEnterHeightRange` | Enter your current height between 100 and 250 cm. | Podaj obecny wzrost pomiędzy 100 a 250 cm. |
 | `registerStepTitle` | How Eter should speak | Jak Eter ma mówić |
-| `registerStepIntro` | This sets the voice, not the facts. You can change it any time in the Sanctum. | To ustawia głos, nie fakty. Możesz to zmienić w każdej chwili w Zacisze. |
+| `registerStepIntro` | This sets the voice, not the facts. You can change it any time in the Sanctum. | To ustawia głos, nie fakty. Możesz to zmienić w każdej chwili w Zaciszu. |
 | `registerGroundedOnboardingDetail` | Daylight clarity at every hour. Plain, practical, unadorned. | Jasność dnia o każdej godzinie. Prosto, praktycznie, bez ozdób. |
 | `registerBalancedOnboardingDetail` | Changes with sunrise and sunset, as the day does. | Zmienia się ze wschodem i zachodem słońca, tak jak dzień. |
 | `registerImmersiveOnboardingDetail` | The deeper night register, symbolic and unhurried. | Głębszy rejestr nocy, symboliczny i niespieszny. |
 | `languageStepTitle` | What language should Eter speak? | W jakim języku ma mówić Eter? |
-| `languageStepIntro` | Set from your phone to begin with. It changes every word, including what Aether writes, and you can change it any time in the Sanctum. | Na początek ustawiony według twojego telefonu. Zmienia każde słowo, razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w Zacisze. |
+| `languageStepIntro` | Set from your phone to begin with. It changes every word, including what Aether writes, and you can change it any time in the Sanctum. | Na początek ustawiony według twojego telefonu. Zmienia każde słowo, razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w Zaciszu. |
 | `consentStepTitle` | Choose what may leave this device | Wybierz, co może opuścić to urządzenie |
 | `consentStepIntro` | All of these are optional. Core journaling and local calculations still work if you decline. | Wszystko to jest opcjonalne. Prowadzenie dziennika i lokalne wyliczenia działają nawet wtedy, gdy odmówisz. |
 | `consentAiTitle` | AI guidance | Wgląd AI |
 | `consentAiDetail` | Send selected health context to compose guidance. | Wysyłaj wybrany kontekst zdrowotny, żeby wgląd mógł powstać. |
 | `consentJournalAiTitle` | Journal-aware guidance | Wgląd czytający dziennik |
-| `consentJournalAiDetail` | Allow included journal prose to be sent for reflection. | Pozwól wysyłać dołączoną treść dziennika do refleksji. |
-| `consentCloudTitle` | Cloud continuity | Ciągłość w chmurze |
-| `consentCloudDetail` | Keep an encrypted account copy for a future phone. | Trzymaj zaszyfrowaną kopię na koncie na potrzeby przyszłego telefonu. |
+| `consentJournalAiDetail` | Allow included journal prose to be sent for reflection. | Pozwól wysyłać dołączoną treść dziennika, żeby Aether mógł ją przemyśleć. |
+| `consentCloudTitle` | Cloud continuity | Kopia w chmurze |
+| `consentCloudDetail` | Keep an encrypted account copy for a future phone. | Trzymaj zaszyfrowaną kopię na koncie, na przyszły telefon. |
 | `allowMark` | ALLOW | POZWÓL |
 | `offMark` | OFF | WYŁ. |
 | `healthHistoryTitle` | Health history | Historia zdrowia |
@@ -452,7 +452,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.WGLĄDDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.ZACISZETen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
+| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co piszesz. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.WGLĄDDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.ZACISZETen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
 
 ## body fat
 
@@ -469,7 +469,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `birthContextError()` | That place could not be located. Try a city and country.The local profile is unavailable.Choose which part of the day you were born in.Add the UTC offset at birth, so the time can be placed.That place could not be located right now. Nothing changed.Enter birth time as HH:MM, or leave it blank.Enter the birth-place UTC offset like +01:00.UTC offset must be between −14:00 and +14:00. | Nie udało się znaleźć tego miejsca. Spróbuj podać miasto i kraj.Lokalny profil jest niedostępny.Wybierz porę dnia, w której się urodziłaś lub urodziłeś.Dopisz przesunięcie UTC przy urodzeniu, żeby dało się umieścić godzinę.Nie udało się teraz znaleźć tego miejsca. Nic się nie zmieniło.Podaj godzinę urodzenia jako HH:MM albo zostaw pole puste.Podaj przesunięcie UTC miejsca urodzenia w postaci +01:00.Przesunięcie UTC musi być pomiędzy −14:00 a +14:00. |
+| `birthContextError()` | That place could not be located. Try a city and country.The local profile is unavailable.Choose which part of the day you were born in.Add the UTC offset at birth, so the time can be placed.That place could not be located right now. Nothing changed.Enter birth time as HH:MM, or leave it blank.Enter the birth-place UTC offset like +01:00.UTC offset must be between −14:00 and +14:00. | Nie udało się znaleźć tego miejsca. Spróbuj podać miasto i kraj.Lokalny profil jest niedostępny.Wybierz porę dnia twoich narodzin.Dopisz przesunięcie UTC przy urodzeniu, żeby dało się umieścić godzinę.Nie udało się teraz znaleźć tego miejsca. Nic się nie zmieniło.Podaj godzinę urodzenia jako HH:MM albo zostaw pole puste.Podaj przesunięcie UTC miejsca urodzenia w postaci +01:00.Przesunięcie UTC musi być pomiędzy −14:00 a +14:00. |
 
 ## symbolic vocabulary
 
