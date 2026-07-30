@@ -125,6 +125,24 @@ class $ProfilesTable extends Profiles
   late final GeneratedColumn<double> birthLongitude = GeneratedColumn<double>(
       'birth_longitude', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _homePlaceMeta =
+      const VerificationMeta('homePlace');
+  @override
+  late final GeneratedColumn<String> homePlace = GeneratedColumn<String>(
+      'home_place', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _homeLatitudeMeta =
+      const VerificationMeta('homeLatitude');
+  @override
+  late final GeneratedColumn<double> homeLatitude = GeneratedColumn<double>(
+      'home_latitude', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _homeLongitudeMeta =
+      const VerificationMeta('homeLongitude');
+  @override
+  late final GeneratedColumn<double> homeLongitude = GeneratedColumn<double>(
+      'home_longitude', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _aiConsentAtMeta =
       const VerificationMeta('aiConsentAt');
   @override
@@ -190,6 +208,9 @@ class $ProfilesTable extends Profiles
         birthPlace,
         birthLatitude,
         birthLongitude,
+        homePlace,
+        homeLatitude,
+        homeLongitude,
         aiConsentAt,
         journalAiConsentAt,
         crashReportConsentAt,
@@ -307,6 +328,22 @@ class $ProfilesTable extends Profiles
           birthLongitude.isAcceptableOrUnknown(
               data['birth_longitude']!, _birthLongitudeMeta));
     }
+    if (data.containsKey('home_place')) {
+      context.handle(_homePlaceMeta,
+          homePlace.isAcceptableOrUnknown(data['home_place']!, _homePlaceMeta));
+    }
+    if (data.containsKey('home_latitude')) {
+      context.handle(
+          _homeLatitudeMeta,
+          homeLatitude.isAcceptableOrUnknown(
+              data['home_latitude']!, _homeLatitudeMeta));
+    }
+    if (data.containsKey('home_longitude')) {
+      context.handle(
+          _homeLongitudeMeta,
+          homeLongitude.isAcceptableOrUnknown(
+              data['home_longitude']!, _homeLongitudeMeta));
+    }
     if (data.containsKey('ai_consent_at')) {
       context.handle(
           _aiConsentAtMeta,
@@ -393,6 +430,12 @@ class $ProfilesTable extends Profiles
           .read(DriftSqlType.double, data['${effectivePrefix}birth_latitude']),
       birthLongitude: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}birth_longitude']),
+      homePlace: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}home_place']),
+      homeLatitude: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}home_latitude']),
+      homeLongitude: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}home_longitude']),
       aiConsentAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}ai_consent_at']),
       journalAiConsentAt: attachedDatabase.typeMapping.read(
@@ -477,6 +520,21 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   final double? birthLatitude;
   final double? birthLongitude;
 
+  /// Where the person lives now, which is what the register actually turns on.
+  ///
+  /// Separate from the birth columns above and never a substitute for them: the
+  /// chart is cast where you were born and cannot be recast, while sunrise and
+  /// sunset are facts about where you are standing. Conflating the two made the
+  /// night register arrive mid-morning for anyone who had moved — see
+  /// `registerCoordinates` in `core/symbolic/solar.dart`.
+  ///
+  /// Null is the ordinary state and stays null for the majority who still live
+  /// near where they were born; the resolver only needs this once the device's
+  /// clock proves the birth coordinates cannot be current.
+  final String? homePlace;
+  final double? homeLatitude;
+  final double? homeLongitude;
+
   /// When the user consented to AI processing, and to journal prose crossing
   /// the boundary specifically. Null means never — and with these null the
   /// guidance pipeline must not send prose. Separate fields because they are
@@ -529,6 +587,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       this.birthPlace,
       this.birthLatitude,
       this.birthLongitude,
+      this.homePlace,
+      this.homeLatitude,
+      this.homeLongitude,
       this.aiConsentAt,
       this.journalAiConsentAt,
       this.crashReportConsentAt,
@@ -574,6 +635,15 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
     }
     if (!nullToAbsent || birthLongitude != null) {
       map['birth_longitude'] = Variable<double>(birthLongitude);
+    }
+    if (!nullToAbsent || homePlace != null) {
+      map['home_place'] = Variable<String>(homePlace);
+    }
+    if (!nullToAbsent || homeLatitude != null) {
+      map['home_latitude'] = Variable<double>(homeLatitude);
+    }
+    if (!nullToAbsent || homeLongitude != null) {
+      map['home_longitude'] = Variable<double>(homeLongitude);
     }
     if (!nullToAbsent || aiConsentAt != null) {
       map['ai_consent_at'] = Variable<DateTime>(aiConsentAt);
@@ -636,6 +706,15 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       birthLongitude: birthLongitude == null && nullToAbsent
           ? const Value.absent()
           : Value(birthLongitude),
+      homePlace: homePlace == null && nullToAbsent
+          ? const Value.absent()
+          : Value(homePlace),
+      homeLatitude: homeLatitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(homeLatitude),
+      homeLongitude: homeLongitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(homeLongitude),
       aiConsentAt: aiConsentAt == null && nullToAbsent
           ? const Value.absent()
           : Value(aiConsentAt),
@@ -683,6 +762,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       birthPlace: serializer.fromJson<String?>(json['birthPlace']),
       birthLatitude: serializer.fromJson<double?>(json['birthLatitude']),
       birthLongitude: serializer.fromJson<double?>(json['birthLongitude']),
+      homePlace: serializer.fromJson<String?>(json['homePlace']),
+      homeLatitude: serializer.fromJson<double?>(json['homeLatitude']),
+      homeLongitude: serializer.fromJson<double?>(json['homeLongitude']),
       aiConsentAt: serializer.fromJson<DateTime?>(json['aiConsentAt']),
       journalAiConsentAt:
           serializer.fromJson<DateTime?>(json['journalAiConsentAt']),
@@ -719,6 +801,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       'birthPlace': serializer.toJson<String?>(birthPlace),
       'birthLatitude': serializer.toJson<double?>(birthLatitude),
       'birthLongitude': serializer.toJson<double?>(birthLongitude),
+      'homePlace': serializer.toJson<String?>(homePlace),
+      'homeLatitude': serializer.toJson<double?>(homeLatitude),
+      'homeLongitude': serializer.toJson<double?>(homeLongitude),
       'aiConsentAt': serializer.toJson<DateTime?>(aiConsentAt),
       'journalAiConsentAt': serializer.toJson<DateTime?>(journalAiConsentAt),
       'crashReportConsentAt':
@@ -750,6 +835,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           Value<String?> birthPlace = const Value.absent(),
           Value<double?> birthLatitude = const Value.absent(),
           Value<double?> birthLongitude = const Value.absent(),
+          Value<String?> homePlace = const Value.absent(),
+          Value<double?> homeLatitude = const Value.absent(),
+          Value<double?> homeLongitude = const Value.absent(),
           Value<DateTime?> aiConsentAt = const Value.absent(),
           Value<DateTime?> journalAiConsentAt = const Value.absent(),
           Value<DateTime?> crashReportConsentAt = const Value.absent(),
@@ -783,6 +871,11 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
             birthLatitude.present ? birthLatitude.value : this.birthLatitude,
         birthLongitude:
             birthLongitude.present ? birthLongitude.value : this.birthLongitude,
+        homePlace: homePlace.present ? homePlace.value : this.homePlace,
+        homeLatitude:
+            homeLatitude.present ? homeLatitude.value : this.homeLatitude,
+        homeLongitude:
+            homeLongitude.present ? homeLongitude.value : this.homeLongitude,
         aiConsentAt: aiConsentAt.present ? aiConsentAt.value : this.aiConsentAt,
         journalAiConsentAt: journalAiConsentAt.present
             ? journalAiConsentAt.value
@@ -838,6 +931,13 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
       birthLongitude: data.birthLongitude.present
           ? data.birthLongitude.value
           : this.birthLongitude,
+      homePlace: data.homePlace.present ? data.homePlace.value : this.homePlace,
+      homeLatitude: data.homeLatitude.present
+          ? data.homeLatitude.value
+          : this.homeLatitude,
+      homeLongitude: data.homeLongitude.present
+          ? data.homeLongitude.value
+          : this.homeLongitude,
       aiConsentAt:
           data.aiConsentAt.present ? data.aiConsentAt.value : this.aiConsentAt,
       journalAiConsentAt: data.journalAiConsentAt.present
@@ -880,6 +980,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           ..write('birthPlace: $birthPlace, ')
           ..write('birthLatitude: $birthLatitude, ')
           ..write('birthLongitude: $birthLongitude, ')
+          ..write('homePlace: $homePlace, ')
+          ..write('homeLatitude: $homeLatitude, ')
+          ..write('homeLongitude: $homeLongitude, ')
           ..write('aiConsentAt: $aiConsentAt, ')
           ..write('journalAiConsentAt: $journalAiConsentAt, ')
           ..write('crashReportConsentAt: $crashReportConsentAt, ')
@@ -911,6 +1014,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
         birthPlace,
         birthLatitude,
         birthLongitude,
+        homePlace,
+        homeLatitude,
+        homeLongitude,
         aiConsentAt,
         journalAiConsentAt,
         crashReportConsentAt,
@@ -941,6 +1047,9 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
           other.birthPlace == this.birthPlace &&
           other.birthLatitude == this.birthLatitude &&
           other.birthLongitude == this.birthLongitude &&
+          other.homePlace == this.homePlace &&
+          other.homeLatitude == this.homeLatitude &&
+          other.homeLongitude == this.homeLongitude &&
           other.aiConsentAt == this.aiConsentAt &&
           other.journalAiConsentAt == this.journalAiConsentAt &&
           other.crashReportConsentAt == this.crashReportConsentAt &&
@@ -969,6 +1078,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
   final Value<String?> birthPlace;
   final Value<double?> birthLatitude;
   final Value<double?> birthLongitude;
+  final Value<String?> homePlace;
+  final Value<double?> homeLatitude;
+  final Value<double?> homeLongitude;
   final Value<DateTime?> aiConsentAt;
   final Value<DateTime?> journalAiConsentAt;
   final Value<DateTime?> crashReportConsentAt;
@@ -995,6 +1107,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.birthPlace = const Value.absent(),
     this.birthLatitude = const Value.absent(),
     this.birthLongitude = const Value.absent(),
+    this.homePlace = const Value.absent(),
+    this.homeLatitude = const Value.absent(),
+    this.homeLongitude = const Value.absent(),
     this.aiConsentAt = const Value.absent(),
     this.journalAiConsentAt = const Value.absent(),
     this.crashReportConsentAt = const Value.absent(),
@@ -1022,6 +1137,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     this.birthPlace = const Value.absent(),
     this.birthLatitude = const Value.absent(),
     this.birthLongitude = const Value.absent(),
+    this.homePlace = const Value.absent(),
+    this.homeLatitude = const Value.absent(),
+    this.homeLongitude = const Value.absent(),
     this.aiConsentAt = const Value.absent(),
     this.journalAiConsentAt = const Value.absent(),
     this.crashReportConsentAt = const Value.absent(),
@@ -1052,6 +1170,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     Expression<String>? birthPlace,
     Expression<double>? birthLatitude,
     Expression<double>? birthLongitude,
+    Expression<String>? homePlace,
+    Expression<double>? homeLatitude,
+    Expression<double>? homeLongitude,
     Expression<DateTime>? aiConsentAt,
     Expression<DateTime>? journalAiConsentAt,
     Expression<DateTime>? crashReportConsentAt,
@@ -1081,6 +1202,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       if (birthPlace != null) 'birth_place': birthPlace,
       if (birthLatitude != null) 'birth_latitude': birthLatitude,
       if (birthLongitude != null) 'birth_longitude': birthLongitude,
+      if (homePlace != null) 'home_place': homePlace,
+      if (homeLatitude != null) 'home_latitude': homeLatitude,
+      if (homeLongitude != null) 'home_longitude': homeLongitude,
       if (aiConsentAt != null) 'ai_consent_at': aiConsentAt,
       if (journalAiConsentAt != null)
         'journal_ai_consent_at': journalAiConsentAt,
@@ -1115,6 +1239,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       Value<String?>? birthPlace,
       Value<double?>? birthLatitude,
       Value<double?>? birthLongitude,
+      Value<String?>? homePlace,
+      Value<double?>? homeLatitude,
+      Value<double?>? homeLongitude,
       Value<DateTime?>? aiConsentAt,
       Value<DateTime?>? journalAiConsentAt,
       Value<DateTime?>? crashReportConsentAt,
@@ -1142,6 +1269,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
       birthPlace: birthPlace ?? this.birthPlace,
       birthLatitude: birthLatitude ?? this.birthLatitude,
       birthLongitude: birthLongitude ?? this.birthLongitude,
+      homePlace: homePlace ?? this.homePlace,
+      homeLatitude: homeLatitude ?? this.homeLatitude,
+      homeLongitude: homeLongitude ?? this.homeLongitude,
       aiConsentAt: aiConsentAt ?? this.aiConsentAt,
       journalAiConsentAt: journalAiConsentAt ?? this.journalAiConsentAt,
       crashReportConsentAt: crashReportConsentAt ?? this.crashReportConsentAt,
@@ -1211,6 +1341,15 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
     if (birthLongitude.present) {
       map['birth_longitude'] = Variable<double>(birthLongitude.value);
     }
+    if (homePlace.present) {
+      map['home_place'] = Variable<String>(homePlace.value);
+    }
+    if (homeLatitude.present) {
+      map['home_latitude'] = Variable<double>(homeLatitude.value);
+    }
+    if (homeLongitude.present) {
+      map['home_longitude'] = Variable<double>(homeLongitude.value);
+    }
     if (aiConsentAt.present) {
       map['ai_consent_at'] = Variable<DateTime>(aiConsentAt.value);
     }
@@ -1261,6 +1400,9 @@ class ProfilesCompanion extends UpdateCompanion<ProfileRow> {
           ..write('birthPlace: $birthPlace, ')
           ..write('birthLatitude: $birthLatitude, ')
           ..write('birthLongitude: $birthLongitude, ')
+          ..write('homePlace: $homePlace, ')
+          ..write('homeLatitude: $homeLatitude, ')
+          ..write('homeLongitude: $homeLongitude, ')
           ..write('aiConsentAt: $aiConsentAt, ')
           ..write('journalAiConsentAt: $journalAiConsentAt, ')
           ..write('crashReportConsentAt: $crashReportConsentAt, ')
@@ -11512,6 +11654,9 @@ typedef $$ProfilesTableCreateCompanionBuilder = ProfilesCompanion Function({
   Value<String?> birthPlace,
   Value<double?> birthLatitude,
   Value<double?> birthLongitude,
+  Value<String?> homePlace,
+  Value<double?> homeLatitude,
+  Value<double?> homeLongitude,
   Value<DateTime?> aiConsentAt,
   Value<DateTime?> journalAiConsentAt,
   Value<DateTime?> crashReportConsentAt,
@@ -11539,6 +11684,9 @@ typedef $$ProfilesTableUpdateCompanionBuilder = ProfilesCompanion Function({
   Value<String?> birthPlace,
   Value<double?> birthLatitude,
   Value<double?> birthLongitude,
+  Value<String?> homePlace,
+  Value<double?> homeLatitude,
+  Value<double?> homeLongitude,
   Value<DateTime?> aiConsentAt,
   Value<DateTime?> journalAiConsentAt,
   Value<DateTime?> crashReportConsentAt,
@@ -11616,6 +11764,15 @@ class $$ProfilesTableFilterComposer
   ColumnFilters<double> get birthLongitude => $composableBuilder(
       column: $table.birthLongitude,
       builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get homePlace => $composableBuilder(
+      column: $table.homePlace, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get homeLatitude => $composableBuilder(
+      column: $table.homeLatitude, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get homeLongitude => $composableBuilder(
+      column: $table.homeLongitude, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get aiConsentAt => $composableBuilder(
       column: $table.aiConsentAt, builder: (column) => ColumnFilters(column));
@@ -11716,6 +11873,17 @@ class $$ProfilesTableOrderingComposer
       column: $table.birthLongitude,
       builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get homePlace => $composableBuilder(
+      column: $table.homePlace, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get homeLatitude => $composableBuilder(
+      column: $table.homeLatitude,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get homeLongitude => $composableBuilder(
+      column: $table.homeLongitude,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get aiConsentAt => $composableBuilder(
       column: $table.aiConsentAt, builder: (column) => ColumnOrderings(column));
 
@@ -11806,6 +11974,15 @@ class $$ProfilesTableAnnotationComposer
   GeneratedColumn<double> get birthLongitude => $composableBuilder(
       column: $table.birthLongitude, builder: (column) => column);
 
+  GeneratedColumn<String> get homePlace =>
+      $composableBuilder(column: $table.homePlace, builder: (column) => column);
+
+  GeneratedColumn<double> get homeLatitude => $composableBuilder(
+      column: $table.homeLatitude, builder: (column) => column);
+
+  GeneratedColumn<double> get homeLongitude => $composableBuilder(
+      column: $table.homeLongitude, builder: (column) => column);
+
   GeneratedColumn<DateTime> get aiConsentAt => $composableBuilder(
       column: $table.aiConsentAt, builder: (column) => column);
 
@@ -11869,6 +12046,9 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<String?> birthPlace = const Value.absent(),
             Value<double?> birthLatitude = const Value.absent(),
             Value<double?> birthLongitude = const Value.absent(),
+            Value<String?> homePlace = const Value.absent(),
+            Value<double?> homeLatitude = const Value.absent(),
+            Value<double?> homeLongitude = const Value.absent(),
             Value<DateTime?> aiConsentAt = const Value.absent(),
             Value<DateTime?> journalAiConsentAt = const Value.absent(),
             Value<DateTime?> crashReportConsentAt = const Value.absent(),
@@ -11896,6 +12076,9 @@ class $$ProfilesTableTableManager extends RootTableManager<
             birthPlace: birthPlace,
             birthLatitude: birthLatitude,
             birthLongitude: birthLongitude,
+            homePlace: homePlace,
+            homeLatitude: homeLatitude,
+            homeLongitude: homeLongitude,
             aiConsentAt: aiConsentAt,
             journalAiConsentAt: journalAiConsentAt,
             crashReportConsentAt: crashReportConsentAt,
@@ -11923,6 +12106,9 @@ class $$ProfilesTableTableManager extends RootTableManager<
             Value<String?> birthPlace = const Value.absent(),
             Value<double?> birthLatitude = const Value.absent(),
             Value<double?> birthLongitude = const Value.absent(),
+            Value<String?> homePlace = const Value.absent(),
+            Value<double?> homeLatitude = const Value.absent(),
+            Value<double?> homeLongitude = const Value.absent(),
             Value<DateTime?> aiConsentAt = const Value.absent(),
             Value<DateTime?> journalAiConsentAt = const Value.absent(),
             Value<DateTime?> crashReportConsentAt = const Value.absent(),
@@ -11950,6 +12136,9 @@ class $$ProfilesTableTableManager extends RootTableManager<
             birthPlace: birthPlace,
             birthLatitude: birthLatitude,
             birthLongitude: birthLongitude,
+            homePlace: homePlace,
+            homeLatitude: homeLatitude,
+            homeLongitude: homeLongitude,
             aiConsentAt: aiConsentAt,
             journalAiConsentAt: journalAiConsentAt,
             crashReportConsentAt: crashReportConsentAt,

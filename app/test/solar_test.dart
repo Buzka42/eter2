@@ -205,4 +205,145 @@ void main() {
       );
     });
   });
+
+  /// Which horizon the register reads, which is *not* the one the chart uses.
+  ///
+  /// The bug this replaces: `dayPhaseAt` was fed the birth coordinates, because
+  /// they were the only ones stored. Someone born in Warsaw and living in
+  /// Vancouver got a register computed on Warsaw's sun — nine hours out, in the
+  /// default register, silently. These tests are all about telling "still there"
+  /// apart from "has moved" using nothing but the device clock.
+  group('registerCoordinates', () {
+    // Warsaw, and the offset a phone in Warsaw reports in summer.
+    const warsaw = (lat: 52.2297, lon: 21.0122);
+    const warsawOffset = Duration(hours: 2);
+    // Vancouver, and its own summer offset.
+    const vancouver = (lat: 49.2827, lon: -123.1207);
+    const vancouverOffset = Duration(hours: -7);
+
+    test('home coordinates win whenever they exist', () {
+      final at = registerCoordinates(
+        homeLatitude: vancouver.lat,
+        homeLongitude: vancouver.lon,
+        birthLatitude: warsaw.lat,
+        birthLongitude: warsaw.lon,
+        utcOffset: vancouverOffset,
+      );
+      expect(at?.latitude, vancouver.lat);
+      expect(at?.longitude, vancouver.lon);
+    });
+
+    test('a home place is honoured even where birth would have served', () {
+      // Someone who moved across their own country: the clock would never have
+      // caught it, and their explicit answer still has to be obeyed.
+      final at = registerCoordinates(
+        homeLatitude: 54.3520,
+        homeLongitude: 18.6466,
+        birthLatitude: warsaw.lat,
+        birthLongitude: warsaw.lon,
+        utcOffset: warsawOffset,
+      );
+      expect(at?.longitude, 18.6466);
+    });
+
+    test('birth coordinates serve someone who never moved', () {
+      final at = registerCoordinates(
+        birthLatitude: warsaw.lat,
+        birthLongitude: warsaw.lon,
+        utcOffset: warsawOffset,
+      );
+      expect(at?.longitude, warsaw.lon);
+    });
+
+    test('birth coordinates are refused once the clock disproves them', () {
+      // The whole defect, in one case: born in Warsaw, phone in Vancouver.
+      expect(
+        registerCoordinates(
+          birthLatitude: warsaw.lat,
+          birthLongitude: warsaw.lon,
+          utcOffset: vancouverOffset,
+        ),
+        isNull,
+      );
+    });
+
+    test('a zone running ahead of its meridian is not mistaken for a move', () {
+      // Spain sits on Greenwich's meridian and keeps central European time, so
+      // a Madrid phone is an hour off its own sun while being exactly where it
+      // was born. A tighter tolerance would strand every Spaniard on the clock
+      // fallback.
+      expect(
+        registerCoordinates(
+          birthLatitude: 40.4168,
+          birthLongitude: -3.7038,
+          utcOffset: const Duration(hours: 2),
+        ),
+        isNotNull,
+      );
+    });
+
+    test('the far edge of a single-zone country is still that country', () {
+      // Kashgar is about five hours of sun from Beijing and shares its offset.
+      expect(
+        registerCoordinates(
+          birthLatitude: 39.4704,
+          birthLongitude: 75.9898,
+          utcOffset: const Duration(hours: 8),
+        ),
+        isNotNull,
+      );
+    });
+
+    test('nothing known means nothing claimed', () {
+      expect(registerCoordinates(utcOffset: warsawOffset), isNull);
+      // Half a pair is not a location.
+      expect(
+        registerCoordinates(birthLatitude: 52.2297, utcOffset: warsawOffset),
+        isNull,
+      );
+    });
+
+    group('registerNeedsHomePlace', () {
+      test('asks only when it can prove the birth place cannot be current', () {
+        expect(
+          registerNeedsHomePlace(
+            birthLatitude: warsaw.lat,
+            birthLongitude: warsaw.lon,
+            utcOffset: vancouverOffset,
+          ),
+          isTrue,
+        );
+        expect(
+          registerNeedsHomePlace(
+            birthLatitude: warsaw.lat,
+            birthLongitude: warsaw.lon,
+            utcOffset: warsawOffset,
+          ),
+          isFalse,
+        );
+      });
+
+      test('does not nag someone who has already answered', () {
+        expect(
+          registerNeedsHomePlace(
+            homeLatitude: vancouver.lat,
+            homeLongitude: vancouver.lon,
+            birthLatitude: warsaw.lat,
+            birthLongitude: warsaw.lon,
+            utcOffset: vancouverOffset,
+          ),
+          isFalse,
+        );
+      });
+
+      test('does not nag someone who never gave a birth place either', () {
+        // Already served the dull 07:00–19:00 default, honestly. There is
+        // nothing here to correct, so there is nothing to ask about.
+        expect(
+          registerNeedsHomePlace(utcOffset: vancouverOffset),
+          isFalse,
+        );
+      });
+    });
+  });
 }

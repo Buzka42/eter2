@@ -127,6 +127,46 @@ class BirthContextService {
   }
 }
 
+/// Where the person lives now, for the register to read the sun from.
+///
+/// Shares [BirthplaceResolver] with [BirthContextService] and nothing else,
+/// because it is not birth data and must not be filed with it: the chart is cast
+/// where someone was born and never recast, while sunrise is a fact about where
+/// they are standing. Keeping the two apart in code is what stops the next
+/// change from conflating them again.
+class HomePlaceService {
+  HomePlaceService({required this.database, required this.resolver});
+
+  final AppDatabase database;
+  final BirthplaceResolver resolver;
+
+  /// Saves a place, or forgets it when [place] is blank.
+  ///
+  /// A failed lookup changes nothing, which matches how birth place already
+  /// behaves: half-writing a label without its coordinates would leave the
+  /// register reading a horizon nobody named.
+  Future<void> save(String place) async {
+    final normalized = place.trim();
+    if (normalized.isEmpty) {
+      await database.updateHomePlace();
+      return;
+    }
+    BirthplaceCoordinates coordinates;
+    try {
+      coordinates = await resolver.resolve(normalized);
+    } on BirthContextException {
+      rethrow;
+    } catch (_) {
+      throw const BirthContextException(BirthContextError.placeNotLocatedNow);
+    }
+    await database.updateHomePlace(
+      place: normalized,
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+    );
+  }
+}
+
 /// Why saving a birth context was refused.
 ///
 /// A code rather than a sentence. These are thrown from `static` parsers that

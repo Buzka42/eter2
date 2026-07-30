@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   /// fortnight of compressed notes guidance reads so it stops repeating itself;
   /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -162,6 +162,16 @@ class AppDatabase extends _$AppDatabase {
           await addMirrorId(nutritionEntries, nutritionEntries.mirrorId);
           await addMirrorId(lifestyleEntries, lifestyleEntries.mirrorId);
           await addMirrorId(journalEntries, journalEntries.mirrorId);
+
+          // New in v11, and left null on every existing install — which is the
+          // right answer rather than a gap. Null means "we have not been told
+          // where you live", and `registerCoordinates` keeps using the birth
+          // coordinates for as long as the device's clock agrees they could
+          // still be current. Guessing a home place from a birth place is how
+          // the bug this fixes was written in the first place.
+          await _addColumnIfMissing(m, profiles, profiles.homePlace);
+          await _addColumnIfMissing(m, profiles, profiles.homeLatitude);
+          await _addColumnIfMissing(m, profiles, profiles.homeLongitude);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();
@@ -310,6 +320,27 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Updates only shell-level preferences. Keeping this separate from
+  /// Records where the person lives, or forgets it when [place] is null.
+  ///
+  /// Deliberately *not* part of [updateBirthContext], and the separation is the
+  /// point: that method clears readings belonging to superseded chart hashes,
+  /// because it changes chart inputs. This changes none. The chart is cast where
+  /// someone was born and moving house does not recast it, so nothing composed
+  /// is invalidated here — only which horizon the register turns at.
+  Future<int> updateHomePlace({
+    String? place,
+    double? latitude,
+    double? longitude,
+  }) =>
+      (update(profiles)..where((row) => row.id.equals(1))).write(
+        ProfilesCompanion(
+          homePlace: Value(place),
+          homeLatitude: Value(latitude),
+          homeLongitude: Value(longitude),
+          syncedAt: const Value(null),
+        ),
+      );
+
   /// [saveProfile] prevents a settings tap from rewriting birth or consent
   /// data that the Sanctum did not display.
   Future<int> updateProfilePreferences({

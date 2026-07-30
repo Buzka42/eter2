@@ -503,6 +503,15 @@ abstract class EterStrings {
   String get noPagesOlderThanAYear;
   String clearedPageText(int pages);
 
+  /// Where the person lives — the register's horizon, not the chart's.
+  String get headingWhereYouLive;
+  String get whereYouLiveNote;
+  String get whereYouLivePrompt;
+  String get fieldHomePlace;
+  String homePlaceSaved(String place);
+  String get homePlaceForgotten;
+  String get usingBirthPlaceForNow;
+
   String get headingDeleteFromThisDevice;
   String get deleteLocalIntro;
   String get deleteLocalWarning;

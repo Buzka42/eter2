@@ -77,6 +77,21 @@ class Profiles extends Table {
   RealColumn get birthLatitude => real().nullable()();
   RealColumn get birthLongitude => real().nullable()();
 
+  /// Where the person lives now, which is what the register actually turns on.
+  ///
+  /// Separate from the birth columns above and never a substitute for them: the
+  /// chart is cast where you were born and cannot be recast, while sunrise and
+  /// sunset are facts about where you are standing. Conflating the two made the
+  /// night register arrive mid-morning for anyone who had moved — see
+  /// `registerCoordinates` in `core/symbolic/solar.dart`.
+  ///
+  /// Null is the ordinary state and stays null for the majority who still live
+  /// near where they were born; the resolver only needs this once the device's
+  /// clock proves the birth coordinates cannot be current.
+  TextColumn get homePlace => text().nullable()();
+  RealColumn get homeLatitude => real().nullable()();
+  RealColumn get homeLongitude => real().nullable()();
+
   /// When the user consented to AI processing, and to journal prose crossing
   /// the boundary specifically. Null means never — and with these null the
   /// guidance pipeline must not send prose. Separate fields because they are

@@ -92,6 +92,74 @@ SolarDay solarDayFor({
   );
 }
 
+/// Where the register should read the sun from, and whether it can.
+///
+/// The register turns at the user's real horizon, which means *where they live*
+/// — and the only coordinates this app has ever stored are the ones it needs for
+/// the natal chart, which are where they were **born**. Those are the same place
+/// for most people and nine hours apart for anyone who has moved. Fed birth
+/// coordinates, Eter turned symbolic mid-morning for every migrant, expat and
+/// student using it, in the default register, and never said so.
+///
+/// So: home coordinates when they have been given. Otherwise birth coordinates,
+/// but only while the device's own clock agrees they are plausible — a birth
+/// longitude implies a solar offset, and if the phone is hours away from it the
+/// person is demonstrably not there any more. When they disagree, this returns
+/// null and the register falls back to the clock rather than to a confident
+/// wrong answer, and the Sanctum asks where they live.
+///
+/// [utcOffset] is the device's current offset, passed in rather than read here
+/// so the whole decision stays pure and testable.
+({double latitude, double longitude})? registerCoordinates({
+  double? homeLatitude,
+  double? homeLongitude,
+  double? birthLatitude,
+  double? birthLongitude,
+  required Duration utcOffset,
+}) {
+  if (homeLatitude != null && homeLongitude != null) {
+    return (latitude: homeLatitude, longitude: homeLongitude);
+  }
+  if (birthLatitude == null || birthLongitude == null) return null;
+
+  // 15° of longitude is an hour of sun. Political timezones wander from solar
+  // time — Spain runs an hour ahead of its meridian, China spans five hours on
+  // one offset — so this tolerance has to be loose enough not to reject someone
+  // who never moved. Three hours clears every real zone/meridian mismatch and
+  // still catches an actual continental move, which is what it is for.
+  const tolerance = Duration(hours: 3);
+  final impliedHours = birthLongitude / 15.0;
+  final implied = Duration(minutes: (impliedHours * 60).round());
+  final drift = (utcOffset - implied).abs();
+  return drift <= tolerance
+      ? (latitude: birthLatitude, longitude: birthLongitude)
+      : null;
+}
+
+/// True when Eter is falling back to the clock and a home place would fix it.
+///
+/// Drives the Sanctum's prompt. Deliberately false when there are no birth
+/// coordinates either: that person has told Eter nothing about where they are
+/// and is already being served the dull default honestly, so there is nothing
+/// to correct.
+bool registerNeedsHomePlace({
+  double? homeLatitude,
+  double? homeLongitude,
+  double? birthLatitude,
+  double? birthLongitude,
+  required Duration utcOffset,
+}) =>
+    birthLatitude != null &&
+    birthLongitude != null &&
+    registerCoordinates(
+          homeLatitude: homeLatitude,
+          homeLongitude: homeLongitude,
+          birthLatitude: birthLatitude,
+          birthLongitude: birthLongitude,
+          utcOffset: utcOffset,
+        ) ==
+        null;
+
 /// Which half of the day [instant] falls in.
 ///
 /// [latitude]/[longitude] are nullable because birth place is an optional

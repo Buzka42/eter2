@@ -846,6 +846,28 @@ class EterStringsEn extends EterStrings {
       'Cleared the text of $pages page${pages == 1 ? '' : 's'}.';
 
   @override
+  String get headingWhereYouLive => 'WHERE YOU LIVE';
+  @override
+  String get whereYouLiveNote =>
+      'Eter turns at your own sunset. Your birth place sets the chart and never '
+      'changes; this sets the horizon.';
+  @override
+  String get whereYouLivePrompt =>
+      'Your clock does not match your birth place, so Eter is using plain hours '
+      'instead of your real sunset. Name the city you live in and it will turn '
+      'with the sun again.';
+  @override
+  String get fieldHomePlace => 'City';
+  @override
+  String homePlaceSaved(String place) => 'The register now turns at $place.';
+  @override
+  String get homePlaceForgotten =>
+      'Forgotten. Eter reads the sun from your birth place again, if it can.';
+  @override
+  String get usingBirthPlaceForNow =>
+      'Reading the sun from your birth place. Set this if you have moved.';
+
+  @override
   String get headingDeleteFromThisDevice => 'DELETE FROM THIS DEVICE';
   @override
   String get deleteLocalIntro =>

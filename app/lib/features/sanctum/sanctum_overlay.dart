@@ -19,7 +19,9 @@ import '../../core/privacy/local_data_export.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/profile/birth_context.dart';
 import '../../core/register.dart';
+import '../../core/clock.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
+import '../../core/symbolic/solar.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
 import 'account_section.dart';
@@ -117,6 +119,11 @@ class SanctumOverlay extends ConsumerWidget {
                       profile: profile,
                       resolver: ref.watch(birthplaceResolverProvider),
                     ),
+                    const SizedBox(height: EterSpace.s32),
+                    // Directly after birth context, because the two are
+                    // constantly confused and the adjacency is what teaches the
+                    // difference: one sets the chart, one sets the horizon.
+                    _WhereYouLive(database: db, profile: profile),
                     const SizedBox(height: EterSpace.s32),
                     Container(height: 1, color: ink.line),
                     const SizedBox(height: EterSpace.s24),
@@ -1043,6 +1050,170 @@ class _RetrospectiveView {
     } on FormatException {
       return null;
     }
+  }
+}
+
+/// Where the person lives, and why Eter wants to know.
+///
+/// The register turns at a real sunrise and sunset, and until this existed it
+/// computed them from the *birth* coordinates — the only ones stored, because
+/// they are what the natal chart needs. For anyone still living near where they
+/// were born that is the same answer. For anyone who has moved it was hours out,
+/// silently, in the default register.
+///
+/// So this asks, but only really presses when it can prove it needs to: when the
+/// device's own clock cannot be reconciled with the birth longitude, the note
+/// becomes the prompt. Eter never asks for location permission.
+class _WhereYouLive extends ConsumerStatefulWidget {
+  const _WhereYouLive({required this.database, required this.profile});
+
+  final AppDatabase database;
+  final ProfileRow? profile;
+
+  @override
+  ConsumerState<_WhereYouLive> createState() => _WhereYouLiveState();
+}
+
+class _WhereYouLiveState extends ConsumerState<_WhereYouLive> {
+  final _place = TextEditingController();
+  bool _editing = false;
+  bool _busy = false;
+  String? _message;
+
+  @override
+  void dispose() {
+    _place.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final strings = EterStrings.of(context);
+    final entered = _place.text;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await HomePlaceService(
+        database: widget.database,
+        resolver: ref.read(birthplaceResolverProvider),
+      ).save(entered);
+      if (!mounted) return;
+      setState(() {
+        _editing = false;
+        _message = entered.trim().isEmpty
+            ? strings.homePlaceForgotten
+            : strings.homePlaceSaved(entered.trim());
+      });
+    } on BirthContextException catch (error) {
+      if (!mounted) return;
+      setState(() => _message = strings.birthContextError(error.error));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _message = strings.somethingWentWrong);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+    final profile = widget.profile;
+    final home = profile?.homePlace;
+
+    // Only true when Eter can demonstrate the birth coordinates cannot be
+    // current. Otherwise this section stays a quiet setting rather than a nag.
+    final needed = registerNeedsHomePlace(
+      homeLatitude: profile?.homeLatitude,
+      homeLongitude: profile?.homeLongitude,
+      birthLatitude: profile?.birthLatitude,
+      birthLongitude: profile?.birthLongitude,
+      utcOffset: ref.watch(nowProvider)().timeZoneOffset,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(strings.headingWhereYouLive, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          needed
+              ? strings.whereYouLivePrompt
+              : home == null
+                  ? strings.usingBirthPlaceForNow
+                  : strings.whereYouLiveNote,
+          style: text.bodyMedium?.copyWith(
+            color: needed ? null : ink.labelMuted,
+          ),
+        ),
+        if (home != null && !_editing) ...[
+          const SizedBox(height: EterSpace.s8),
+          Text(home, style: text.bodyMedium),
+        ],
+        if (_editing) ...[
+          const SizedBox(height: EterSpace.s12),
+          TextField(
+            controller: _place,
+            decoration: InputDecoration(
+              labelText: strings.fieldHomePlace,
+              filled: false,
+              border:
+                  UnderlineInputBorder(borderSide: BorderSide(color: ink.line)),
+              enabledBorder:
+                  UnderlineInputBorder(borderSide: BorderSide(color: ink.line)),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: ink.lineStrong),
+              ),
+            ),
+          ),
+        ],
+        const SizedBox(height: EterSpace.s12),
+        Row(
+          children: [
+            EterAction(
+              label: _editing ? strings.save : strings.edit,
+              busy: _busy,
+              onPressed: _busy
+                  ? null
+                  : () {
+                      if (_editing) {
+                        unawaited(_save());
+                        return;
+                      }
+                      setState(() {
+                        _editing = true;
+                        _message = null;
+                        _place.text = home ?? '';
+                      });
+                    },
+            ),
+            if (_editing) ...[
+              const SizedBox(width: EterSpace.s12),
+              EterAction(
+                label: strings.cancel,
+                emphasis: EterActionEmphasis.quiet,
+                onPressed: _busy
+                    ? null
+                    : () => setState(() {
+                          _editing = false;
+                          _message = null;
+                        }),
+              ),
+            ],
+          ],
+        ),
+        if (_message != null) ...[
+          const SizedBox(height: EterSpace.s8),
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+        ],
+      ],
+    );
   }
 }
 

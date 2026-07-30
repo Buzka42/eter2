@@ -265,13 +265,26 @@ class _EterAppState extends ConsumerState<EterApp> {
     super.dispose();
   }
 
+  /// Where this device should read the sun from, or null to fall back to the
+  /// clock. The rule itself is in `core/symbolic/solar.dart`; this only supplies
+  /// the device's current offset, which is the one input that cannot be pure.
+  ({double latitude, double longitude})? _registerCoordinates(
+    ProfileRow? profile,
+  ) =>
+      registerCoordinates(
+        homeLatitude: profile?.homeLatitude,
+        homeLongitude: profile?.homeLongitude,
+        birthLatitude: profile?.birthLatitude,
+        birthLongitude: profile?.birthLongitude,
+        utcOffset: ref.read(nowProvider)().timeZoneOffset,
+      );
+
   /// The register turns at the user's real horizon. Schedule the one rebuild
   /// that matters — the next sunrise or sunset — rather than polling. Called
   /// from build, so it is idempotent on the boundary instant.
   void _schedulePhaseChange(ProfileRow? profile) {
-    final lat = profile?.birthLatitude;
-    final lng = profile?.birthLongitude;
-    if (lat == null || lng == null) {
+    final at = _registerCoordinates(profile);
+    if (at == null) {
       _phaseTimer?.cancel();
       _scheduledBoundary = null;
       return;
@@ -279,8 +292,8 @@ class _EterAppState extends ConsumerState<EterApp> {
     final now = ref.read(nowProvider)();
     final next = nextPhaseChangeAfter(
       instant: now,
-      latitude: lat,
-      longitude: lng,
+      latitude: at.latitude,
+      longitude: at.longitude,
     );
     if (next == _scheduledBoundary) return;
     _phaseTimer?.cancel();
@@ -309,10 +322,11 @@ class _EterAppState extends ConsumerState<EterApp> {
           'immersive' => GuidanceMode.immersive,
           _ => GuidanceMode.balanced,
         };
+        final at = _registerCoordinates(profile);
         final phase = dayPhaseAt(
           instant: ref.watch(nowProvider)(),
-          latitude: profile?.birthLatitude,
-          longitude: profile?.birthLongitude,
+          latitude: at?.latitude,
+          longitude: at?.longitude,
         );
         final register = EterRegister.resolve(mode, phase);
         final night = register == EterRegister.night;

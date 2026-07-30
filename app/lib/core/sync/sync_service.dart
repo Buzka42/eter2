@@ -210,6 +210,9 @@ class SyncService {
         'birthPlace': profile.birthPlace,
         'birthLatitude': profile.birthLatitude,
         'birthLongitude': profile.birthLongitude,
+        'homePlace': profile.homePlace,
+        'homeLatitude': profile.homeLatitude,
+        'homeLongitude': profile.homeLongitude,
       },
     );
     await (database.update(database.profiles)
@@ -492,6 +495,9 @@ class SyncService {
       birthPlace: Value(data['birthPlace'] as String?),
       birthLatitude: Value((data['birthLatitude'] as num?)?.toDouble()),
       birthLongitude: Value((data['birthLongitude'] as num?)?.toDouble()),
+      homePlace: Value(data['homePlace'] as String?),
+      homeLatitude: Value((data['homeLatitude'] as num?)?.toDouble()),
+      homeLongitude: Value((data['homeLongitude'] as num?)?.toDouble()),
       // Restoring the record does not restore the permissions. Consent is
       // given on a device, by a person, and a new phone has to ask again.
       //

@@ -891,6 +891,31 @@ class EterStringsPl extends EterStrings {
       'Wyczyszczono treść $pages ${_stron(pages)}.';
 
   @override
+  String get headingWhereYouLive => 'GDZIE MIESZKASZ';
+  @override
+  String get whereYouLiveNote =>
+      'Eter przełącza się o Twoim zachodzie słońca. Miejsce urodzenia ustala '
+      'wykres i nigdy się nie zmienia; to ustala horyzont.';
+  @override
+  String get whereYouLivePrompt =>
+      'Twój zegar nie zgadza się z miejscem urodzenia, więc Eter używa zwykłych '
+      'godzin zamiast Twojego prawdziwego zachodu słońca. Podaj miasto, w '
+      'którym mieszkasz, i znów będzie się przełączał ze słońcem.';
+  @override
+  String get fieldHomePlace => 'Miasto';
+  @override
+  String homePlaceSaved(String place) =>
+      'Rejestr przełącza się teraz w: $place.';
+  @override
+  String get homePlaceForgotten =>
+      'Zapomniane. Eter znów czyta słońce z Twojego miejsca urodzenia, jeśli '
+      'może.';
+  @override
+  String get usingBirthPlaceForNow =>
+      'Czyta słońce z Twojego miejsca urodzenia. Ustaw to, jeśli się '
+      'przeprowadziłeś.';
+
+  @override
   String get headingDeleteFromThisDevice => 'USUŃ Z TEGO URZĄDZENIA';
   @override
   String get deleteLocalIntro =>
