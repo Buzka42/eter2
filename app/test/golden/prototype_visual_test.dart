@@ -81,9 +81,14 @@ void main() {
     await tester.pump();
     await tester.tap(find.text(strings.lookDeeper));
     await tester.pump();
-    await tester.ensureVisible(find.text(section));
+    // `.last`, not the bare finder. In Polish the destination rail and the
+    // guidance section are both `WGLĄD` by design, so a plain `find.text` matches
+    // two widgets and throws "Too many elements". The section thresholds are
+    // below the rail, so the last match is the one this opens.
+    final target = find.text(section).last;
+    await tester.ensureVisible(target);
     await tester.pump();
-    await tester.tap(find.text(section));
+    await tester.tap(target);
     await tester.pump();
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 120)),

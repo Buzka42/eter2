@@ -71,9 +71,10 @@ decision.
    `app/test/golden/` are the honest source for screenshots.
 9. **Store subscription products.** Two of them — `eter.monthly` at $4.99 and
    `eter.yearly` at $39.99 — created in both consoles, with **regional pricing
-   set rather than a flat conversion**: $5 is about 36 PLN, and Polish
-   subscription apps land at 19–29. Polish is one of Eter's two languages and its
-   cheapest acquisition market, so a flat price throws that away. The prices in
+   set rather than a flat conversion**. Poland is set deliberately at
+   **20 PLN a month**, against a conversion of about 36. Polish is one of Eter's
+   two languages and its cheapest acquisition market, and Polish subscription apps
+   land at 19–29 — the conversion price would discard that. The prices in
    `_AetherAccess` are placeholders and must be replaced by the store's own
    localised strings, not translated.
 10. **Bind the rate limiter** (`server/wrangler.toml`) before there are paying

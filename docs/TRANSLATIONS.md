@@ -54,7 +54,7 @@ explains why translating one would break the symbolic engine.
 | Key | English | Polish |
 |---|---|---|
 | `destinationJournal` | JOURNAL | DZIENNIK |
-| `destinationDashboard` | DASHBOARD | TARCZA |
+| `destinationDashboard` | DASHBOARD | WGLĄD |
 | `sanctum` | Sanctum | Zacisze |
 | `openSanctumSemantic` | Open Sanctum | Otwórz Zacisze |
 
@@ -62,17 +62,17 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `guidanceNotComposedYet` | Today’s guidance has not been composed yet. | Dzisiejsze wskazania nie zostały jeszcze skomponowane. |
-| `composingTodaysGuidance` | Composing today’s guidance… | Komponuję dzisiejsze wskazania… |
+| `guidanceNotComposedYet` | Today’s guidance has not been composed yet. | Dzisiejszy wgląd nie został jeszcze skomponowany. |
+| `composingTodaysGuidance` | Composing today’s guidance… | Komponuję dzisiejszy wgląd… |
 | `composeNow` | Compose now | Skomponuj teraz |
-| `guidanceComposed` | Today’s guidance has been composed. | Dzisiejsze wskazania są gotowe. |
-| `guidanceAlreadyCurrent` | Guidance is already current for the available context. | Wskazania są już aktualne dla tego, co Eter wie o dzisiejszym dniu. |
+| `guidanceComposed` | Today’s guidance has been composed. | Dzisiejszy wgląd jest gotowy. |
+| `guidanceAlreadyCurrent` | Guidance is already current for the available context. | Wgląd jest już aktualny wobec tego, co Eter wie o dzisiejszym dniu. |
 | `aetherNotConnected` | Aether composition is not connected on this build yet. | Kompozycja Aether nie jest jeszcze podłączona w tej wersji. |
-| `enableAiBeforeComposing` | Enable AI guidance in the Sanctum before composing. | Włącz wskazania AI w Zaciszu, zanim zaczniesz komponować. |
+| `enableAiBeforeComposing` | Enable AI guidance in the Sanctum before composing. | Włącz wgląd AI w Zaciszu, zanim zaczniesz komponować. |
 | `responseNotAcceptedSafely` | The response could not be accepted safely. Nothing changed. | Odpowiedzi nie można było bezpiecznie przyjąć. Nic się nie zmieniło. |
-| `compositionUnavailable` | Composition is unavailable right now. Existing guidance remains. | Kompozycja jest teraz niedostępna. Dotychczasowe wskazania zostają. |
+| `compositionUnavailable` | Composition is unavailable right now. Existing guidance remains. | Kompozycja jest teraz niedostępna. Dotychczasowy wgląd zostaje. |
 | `lookDeeper` | LOOK DEEPER | GŁĘBIA |
-| `sectionGuidance` | GUIDANCE | WSKAZANIA |
+| `sectionGuidance` | GUIDANCE | WGLĄD |
 | `sectionBody` | THE BODY | CIAŁO |
 | `sectionVessel` | VESSEL | KRĄG |
 | `guidanceDimension()` | healthHEALTHmindMINDspiritSPIRITsynthesisSYNTHESIS | healthZDROWIEmindUMYSŁspiritDUCHsynthesisSYNTEZA |
@@ -172,7 +172,7 @@ explains why translating one would break the symbolic engine.
 | `readingToday` | Reading | Czytam |
 | `todaysReadingNotConnected` | Today’s reading is not connected on this build yet. The positions below are calculated on this device. | Dzisiejsze odczytanie nie jest jeszcze podłączone w tej wersji. Pozycje poniżej są wyliczone na tym urządzeniu. |
 | `todaysReadingCouldNotBeWritten` | Today’s reading could not be written. The positions below are unchanged. | Nie udało się zapisać dzisiejszego odczytania. Pozycje poniżej są bez zmian. |
-| `enableAiBeforeReadingToday` | Enable AI guidance in the Sanctum before reading today. | Włącz wskazania AI w Zaciszu, zanim przeczytasz dzisiejszy dzień. |
+| `enableAiBeforeReadingToday` | Enable AI guidance in the Sanctum before reading today. | Włącz wgląd AI w Zaciszu, zanim przeczytasz dzisiejszy dzień. |
 | `lifePathLabel()` | Life Path $value | Droga życia $value |
 | `signName()` | canonical | AriesBaranTaurusBykGeminiBliźniętaCancerRakLeoLewVirgoPannaLibraWagaScorpioSkorpionSagittariusStrzelecCapricornKoziorożecAquariusWodnikPiscesRyby |
 
@@ -205,8 +205,8 @@ explains why translating one would break the symbolic engine.
 | `keptFromAether` | Kept from Aether | Poza zasięgiem Aether |
 | `allowAether` | Allow Aether | Udostępnij Aether |
 | `keepLocal` | Keep local | Zatrzymaj lokalnie |
-| `allowAetherSemantic` | Allow this journal entry in Aether guidance | Pozwól, aby ten wpis trafił do wskazań Aether |
-| `keepLocalSemantic` | Keep this journal entry out of Aether guidance | Zatrzymaj ten wpis poza wskazaniami Aether |
+| `allowAetherSemantic` | Allow this journal entry in Aether guidance | Pozwól, aby ten wpis trafił do wglądu Aether |
+| `keepLocalSemantic` | Keep this journal entry out of Aether guidance | Zatrzymaj ten wpis poza wglądem Aether |
 | `undoInterpretation` | Undo interpretation | Cofnij interpretację |
 | `undoInterpretationSemantic` | Remove interpretation and derived records | Usuń interpretację i zapisy z niej wynikające |
 | `deleteEntrySemantic` | Delete this journal entry and anything derived from it | Usuń ten wpis dziennika i wszystko, co z niego wynikło |
@@ -215,7 +215,7 @@ explains why translating one would break the symbolic engine.
 | `fieldAddMissingDetail` | Add the missing detail | Dopisz brakujący szczegół |
 | `addMoreDetailFirst` | Add a little more detail first. | Najpierw dopisz trochę więcej szczegółów. |
 | `journalInterpretationNotConnected` | Journal interpretation is not connected on this build yet. | Interpretacja dziennika nie jest jeszcze podłączona w tej wersji. |
-| `enableAiBeforeSendingEntry` | Enable AI guidance in the Sanctum before sending this entry. | Włącz wskazania AI w Zaciszu, zanim wyślesz ten wpis. |
+| `enableAiBeforeSendingEntry` | Enable AI guidance in the Sanctum before sending this entry. | Włącz wgląd AI w Zaciszu, zanim wyślesz ten wpis. |
 | `entryNotInterpretedSafely` | This entry could not be interpreted safely. Try again. | Tego wpisu nie udało się bezpiecznie zinterpretować. Spróbuj ponownie. |
 | `interpretationUnavailable` | Interpretation is unavailable right now. Nothing changed. | Interpretacja jest teraz niedostępna. Nic się nie zmieniło. |
 | `interpretationAndDerivedRemoved` | The interpretation and its derived records were removed. | Interpretacja i wynikające z niej zapisy zostały usunięte. |
@@ -241,7 +241,7 @@ explains why translating one would break the symbolic engine.
 | `headingOpeningPage` | OPENING PAGE | STRONA OTWARCIA |
 | `choiceJournal` | Journal | Dziennik |
 | `choiceDashboard` | Dashboard | Pulpit |
-| `headingGuidanceRegister` | GUIDANCE REGISTER | REJESTR WSKAZAŃ |
+| `headingGuidanceRegister` | GUIDANCE REGISTER | REJESTR WGLĄDU |
 | `registerGrounded` | Grounded | Ugruntowany |
 | `registerBalanced` | Balanced | Zrównoważony |
 | `registerImmersive` | Immersive | Zanurzony |
@@ -252,11 +252,11 @@ explains why translating one would break the symbolic engine.
 | `languageDetail` | Changes every word Eter says, including what Aether writes. Composed passages are cleared so nothing is left in the language you just left. | Zmienia każde słowo, które mówi Eter, razem z tym, co pisze Aether. Skomponowane fragmenty zostają wyczyszczone, żeby nic nie zostało w języku, który właśnie opuszczasz. |
 | `languageChanged()` | Eter now speaks English. $clearedPassages composed ${clearedPassages == 1 ? : } cleared and will be written again; your records are untouched. | Eter mówi teraz po polsku. Wyczyszczono $clearedPassages ${_fragmenty(clearedPassages)} i zostaną napisane od nowa; twoje zapisy są nietknięte. |
 | `headingYourData` | YOUR DATA | TWOJE DANE |
-| `permissionsAreIndependent` | Each permission is independent and can be revoked. Revoking AI also turns off journal-aware guidance. | Każde pozwolenie jest niezależne i można je odwołać. Odwołanie AI wyłącza też wskazania czytające dziennik. |
-| `headingAiGuidance` | AI GUIDANCE | WSKAZANIA AI |
+| `permissionsAreIndependent` | Each permission is independent and can be revoked. Revoking AI also turns off journal-aware guidance. | Każde pozwolenie jest niezależne i można je odwołać. Odwołanie AI wyłącza też wgląd czytający dziennik. |
+| `headingAiGuidance` | AI GUIDANCE | WGLĄD AI |
 | `aiGuidanceOffDetail` | No health context leaves this device for AI. | Żaden kontekst zdrowotny nie opuszcza tego urządzenia na potrzeby AI. |
-| `aiGuidanceAllowedDetail` | Selected context may be sent to compose guidance. | Wybrany kontekst może zostać wysłany, żeby skomponować wskazania. |
-| `headingJournalAwareGuidance` | JOURNAL-AWARE GUIDANCE | WSKAZANIA CZYTAJĄCE DZIENNIK |
+| `aiGuidanceAllowedDetail` | Selected context may be sent to compose guidance. | Wybrany kontekst może zostać wysłany, żeby skomponować wgląd. |
+| `headingJournalAwareGuidance` | JOURNAL-AWARE GUIDANCE | WGLĄD CZYTAJĄCY DZIENNIK |
 | `journalAwareOffDetail` | Journal prose is never sent. | Treść dziennika nigdy nie jest wysyłana. |
 | `journalAwareAllowedDetail` | Only entries not marked Keep local may be included. | Wysłane mogą zostać tylko wpisy bez oznaczenia „Zatrzymaj lokalnie”. |
 | `headingCloudContinuity` | CLOUD CONTINUITY | KOPIA W CHMURZE |
@@ -301,7 +301,7 @@ explains why translating one would break the symbolic engine.
 | `notEnoughHistoryForWeekly` | There is not enough local history for a weekly view yet. | Za mało lokalnej historii na tygodniowy skrót. |
 | `sevenDayViewPrepared` | Seven-day view prepared on this device. | Skrót siedmiu dni przygotowany na tym urządzeniu. |
 | `patternDismissed` | Pattern dismissed. Aether will not use it. | Wzorzec odrzucony. Aether go nie użyje. |
-| `resetPersonalizationWarning` | This removes composed guidance, learned patterns, and retrospectives. Your journal and health history stay. | To usuwa skomponowane wskazania, wyuczone wzorce i skróty. Twój dziennik i historia zdrowia zostają. |
+| `resetPersonalizationWarning` | This removes composed guidance, learned patterns, and retrospectives. Your journal and health history stay. | To usuwa skomponowany wgląd, wyuczone wzorce i skróty. Twój dziennik i historia zdrowia zostają. |
 | `aetherMemoryAlreadyEmpty` | Aether memory was already empty. | Pamięć Aether była już pusta. |
 | `aetherMemoryCleared` | Aether memory cleared from this device. | Pamięć Aether wyczyszczona z tego urządzenia. |
 | `retrospectiveSemantic()` | $headline. $passages $caveat Window $window. | $headline. $passages $caveat Okno: $window. |
@@ -438,9 +438,9 @@ explains why translating one would break the symbolic engine.
 | `languageStepIntro` | Set from your phone to begin with. It changes every word, including what Aether writes, and you can change it any time in the Sanctum. | Na początek ustawiony według twojego telefonu. Zmienia każde słowo, razem z tym, co pisze Aether, i możesz go zmienić w każdej chwili w Zacisze. |
 | `consentStepTitle` | Choose what may leave this device | Wybierz, co może opuścić to urządzenie |
 | `consentStepIntro` | All of these are optional. Core journaling and local calculations still work if you decline. | Wszystko to jest opcjonalne. Prowadzenie dziennika i lokalne wyliczenia działają nawet wtedy, gdy odmówisz. |
-| `consentAiTitle` | AI guidance | Wskazania AI |
-| `consentAiDetail` | Send selected health context to compose guidance. | Wysyłaj wybrany kontekst zdrowotny, żeby skomponować wskazania. |
-| `consentJournalAiTitle` | Journal-aware guidance | Wskazania czytające dziennik |
+| `consentAiTitle` | AI guidance | Wgląd AI |
+| `consentAiDetail` | Send selected health context to compose guidance. | Wysyłaj wybrany kontekst zdrowotny, żeby skomponować wgląd. |
+| `consentJournalAiTitle` | Journal-aware guidance | Wgląd czytający dziennik |
 | `consentJournalAiDetail` | Allow included journal prose to be sent for reflection. | Pozwól wysyłać dołączoną treść dziennika do refleksji. |
 | `consentCloudTitle` | Cloud continuity | Ciągłość w chmurze |
 | `consentCloudDetail` | Keep an encrypted account copy for a future phone. | Trzymaj zaszyfrowaną kopię na koncie na potrzeby przyszłego telefonu. |
@@ -452,7 +452,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.PULPITDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wskazania przychodzą same każdego dnia. Zajrzyj głębiej po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.SANKTUARIUMTen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
+| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.PULPITDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.SANKTUARIUMTen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
 
 ## body fat
 

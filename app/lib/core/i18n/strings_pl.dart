@@ -21,13 +21,12 @@ import 'strings.dart';
 /// * **Eter**, **Aether** — never translated. The product's name, and the name
 ///   of the thing that writes. Aether keeps the Greek spelling in both
 ///   languages so a Polish reader meets the same character an English one does.
-/// * **Wskazania** — *guidance*. Chosen over `prowadzenie` because the whole
-///   visual language of this app is engraved instruments, and `wskazania` is
-///   what an instrument gives you: a reading, not advice.
-/// * **Krąg** — *the Vessel*. **Zacisze** — *the Sanctum*. Neither is the
-///   literal translation; see `docs/POLISH.md` for what each word was chosen
-///   over and why.
-///   **Dziennik** — *the Journal*. **Pulpit** — *the Dashboard*.
+/// * **Wgląd** — *guidance*, and also the right-hand destination. One word for
+///   both, by the product owner's choice: the surface is the insight, and the
+///   section within it is the pure form of it. See `docs/POLISH.md`.
+/// * **Krąg** — *the Vessel*. **Zacisze** — *the Sanctum*. **Głębia** — the
+///   disclosure. **Dziennik** — *the Journal*. None is the literal translation;
+///   `docs/POLISH.md` records what each was chosen over and why.
 /// * **Rejestr** — *register*, in the musical sense the English word carries
 ///   here, not a ledger.
 ///
@@ -104,7 +103,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get destinationJournal => 'DZIENNIK';
   @override
-  String get destinationDashboard => 'TARCZA';
+  String get destinationDashboard => 'WGLĄD';
   @override
   String get sanctum => 'Zacisze';
   @override
@@ -114,33 +113,33 @@ class EterStringsPl extends EterStrings {
 
   @override
   String get guidanceNotComposedYet =>
-      'Dzisiejsze wskazania nie zostały jeszcze skomponowane.';
+      'Dzisiejszy wgląd nie został jeszcze skomponowany.';
   @override
-  String get composingTodaysGuidance => 'Komponuję dzisiejsze wskazania…';
+  String get composingTodaysGuidance => 'Komponuję dzisiejszy wgląd…';
   @override
   String get composeNow => 'Skomponuj teraz';
   @override
-  String get guidanceComposed => 'Dzisiejsze wskazania są gotowe.';
+  String get guidanceComposed => 'Dzisiejszy wgląd jest gotowy.';
   @override
   String get guidanceAlreadyCurrent =>
-      'Wskazania są już aktualne dla tego, co Eter wie o dzisiejszym dniu.';
+      'Wgląd jest już aktualny wobec tego, co Eter wie o dzisiejszym dniu.';
   @override
   String get aetherNotConnected =>
       'Kompozycja Aether nie jest jeszcze podłączona w tej wersji.';
   @override
   String get enableAiBeforeComposing =>
-      'Włącz wskazania AI w Zaciszu, zanim zaczniesz komponować.';
+      'Włącz wgląd AI w Zaciszu, zanim zaczniesz komponować.';
   @override
   String get responseNotAcceptedSafely =>
       'Odpowiedzi nie można było bezpiecznie przyjąć. Nic się nie zmieniło.';
   @override
   String get compositionUnavailable =>
-      'Kompozycja jest teraz niedostępna. Dotychczasowe wskazania zostają.';
+      'Kompozycja jest teraz niedostępna. Dotychczasowy wgląd zostaje.';
 
   @override
   String get lookDeeper => 'GŁĘBIA';
   @override
-  String get sectionGuidance => 'WSKAZANIA';
+  String get sectionGuidance => 'WGLĄD';
   @override
   String get sectionBody => 'CIAŁO';
   @override
@@ -476,7 +475,7 @@ class EterStringsPl extends EterStrings {
       'zmian.';
   @override
   String get enableAiBeforeReadingToday =>
-      'Włącz wskazania AI w Zaciszu, zanim przeczytasz dzisiejszy dzień.';
+      'Włącz wgląd AI w Zaciszu, zanim przeczytasz dzisiejszy dzień.';
 
   @override
   String lifePathLabel(int value) => 'Droga życia $value';
@@ -558,10 +557,10 @@ class EterStringsPl extends EterStrings {
   String get keepLocal => 'Zatrzymaj lokalnie';
   @override
   String get allowAetherSemantic =>
-      'Pozwól, aby ten wpis trafił do wskazań Aether';
+      'Pozwól, aby ten wpis trafił do wglądu Aether';
   @override
   String get keepLocalSemantic =>
-      'Zatrzymaj ten wpis poza wskazaniami Aether';
+      'Zatrzymaj ten wpis poza wglądem Aether';
   @override
   String get undoInterpretation => 'Cofnij interpretację';
   @override
@@ -585,7 +584,7 @@ class EterStringsPl extends EterStrings {
       'Interpretacja dziennika nie jest jeszcze podłączona w tej wersji.';
   @override
   String get enableAiBeforeSendingEntry =>
-      'Włącz wskazania AI w Zaciszu, zanim wyślesz ten wpis.';
+      'Włącz wgląd AI w Zaciszu, zanim wyślesz ten wpis.';
   @override
   String get entryNotInterpretedSafely =>
       'Tego wpisu nie udało się bezpiecznie zinterpretować. Spróbuj ponownie.';
@@ -646,7 +645,7 @@ class EterStringsPl extends EterStrings {
   String get choiceDashboard => 'Pulpit';
 
   @override
-  String get headingGuidanceRegister => 'REJESTR WSKAZAŃ';
+  String get headingGuidanceRegister => 'REJESTR WGLĄDU';
   @override
   String get registerGrounded => 'Ugruntowany';
   @override
@@ -678,18 +677,18 @@ class EterStringsPl extends EterStrings {
   @override
   String get permissionsAreIndependent =>
       'Każde pozwolenie jest niezależne i można je odwołać. Odwołanie AI '
-      'wyłącza też wskazania czytające dziennik.';
+      'wyłącza też wgląd czytający dziennik.';
 
   @override
-  String get headingAiGuidance => 'WSKAZANIA AI';
+  String get headingAiGuidance => 'WGLĄD AI';
   @override
   String get aiGuidanceOffDetail =>
       'Żaden kontekst zdrowotny nie opuszcza tego urządzenia na potrzeby AI.';
   @override
   String get aiGuidanceAllowedDetail =>
-      'Wybrany kontekst może zostać wysłany, żeby skomponować wskazania.';
+      'Wybrany kontekst może zostać wysłany, żeby skomponować wgląd.';
   @override
-  String get headingJournalAwareGuidance => 'WSKAZANIA CZYTAJĄCE DZIENNIK';
+  String get headingJournalAwareGuidance => 'WGLĄD CZYTAJĄCY DZIENNIK';
   @override
   String get journalAwareOffDetail =>
       'Treść dziennika nigdy nie jest wysyłana.';
@@ -857,7 +856,7 @@ class EterStringsPl extends EterStrings {
       'Wzorzec odrzucony. Aether go nie użyje.';
   @override
   String get resetPersonalizationWarning =>
-      'To usuwa skomponowane wskazania, wyuczone wzorce i skróty. Twój dziennik '
+      'To usuwa skomponowany wgląd, wyuczone wzorce i skróty. Twój dziennik '
       'i historia zdrowia zostają.';
   @override
   String get aetherMemoryAlreadyEmpty => 'Pamięć Aether była już pusta.';
@@ -1297,12 +1296,12 @@ class EterStringsPl extends EterStrings {
       'Wszystko to jest opcjonalne. Prowadzenie dziennika i lokalne wyliczenia '
       'działają nawet wtedy, gdy odmówisz.';
   @override
-  String get consentAiTitle => 'Wskazania AI';
+  String get consentAiTitle => 'Wgląd AI';
   @override
   String get consentAiDetail =>
-      'Wysyłaj wybrany kontekst zdrowotny, żeby skomponować wskazania.';
+      'Wysyłaj wybrany kontekst zdrowotny, żeby skomponować wgląd.';
   @override
-  String get consentJournalAiTitle => 'Wskazania czytające dziennik';
+  String get consentJournalAiTitle => 'Wgląd czytający dziennik';
   @override
   String get consentJournalAiDetail =>
       'Pozwól wysyłać dołączoną treść dziennika do refleksji.';
@@ -1347,7 +1346,7 @@ class EterStringsPl extends EterStrings {
           eyebrow: 'PULPIT',
           lines: [
             'Druga strona tej samej przestrzeni odczytuje to, co znalazła.',
-            'Wskazania przychodzą same każdego dnia. Zajrzyj głębiej po ciało '
+            'Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało '
                 'albo po Krąg — twój kosmogram, twoją Drogę życia i to, '
                 'jak dzisiejsze niebo stoi wobec nich.',
           ],

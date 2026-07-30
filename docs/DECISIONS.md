@@ -39,9 +39,15 @@ code. Corrected there.
 
 ### Pricing: $5/month, said plainly to be a launch price
 
-30-day free trial, then **$4.99/month or $39.99/year**. The paywall says in words
-that $5 is a launch price and will rise. **No grandfathering** — early subscribers
-move to the new price rather than keeping the old one forever.
+30-day free trial, then **$4.99/month or $39.99/year**, and **20 PLN/month in
+Poland** — set as a regional price, not a conversion, which would have been about
+36. Polish is one of Eter's two languages and its cheapest acquisition market, and
+Polish subscription apps land at 19–29; pricing it at the dollar conversion would
+discard the one distribution advantage Eter starts with.
+
+The paywall says in words that $5 is a launch price and will rise.
+**No grandfathering** — early subscribers move to the new price rather than
+keeping the old one forever.
 
 **Trial length was 14 days and is 30, and the code decided that.** Eter's
 differentiator is a learned pattern about your own body, and

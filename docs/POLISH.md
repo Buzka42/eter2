@@ -35,18 +35,33 @@ software rather than to this product.
 | the app | Eter | **Eter** | Works unchanged, and sounds native. |
 | the intelligence | Aether | **Aether** | See above. |
 | left destination | JOURNAL | **DZIENNIK** | Kept. A *dziennik* is a diary and a day-book at once, which is precisely what this is. |
-| right destination | DASHBOARD | **TARCZA** | Was `PULPIT`, which is the Windows desktop. *Tarcza* is the **face of an instrument** — the dial of a clock, the plate of an astrolabe. The product is built out of engraved instruments; this is the one word in Polish that already belongs to them. |
+| right destination | DASHBOARD | **WGLĄD** | Was `PULPIT`, the Windows desktop. `TARCZA` was proposed — the face of an instrument — and rejected as clever rather than true. *Wgląd* is **insight**, and a look into something. |
 | settings and consents | SANCTUM | **ZACISZE** | Was `SANKTUARIUM`: eleven letterspaced caps, and churchy in a way the English is not. *Zacisze* is a still, quiet, private place — warmer, secular, and four characters shorter, which the shell's header has wanted for some time. |
 | the disclosure | LOOK DEEPER | **GŁĘBIA** | Was `ZAJRZYJ GŁĘBIEJ`: an imperative verb phrase among nouns, casual, and the longest label on the resting screen. *Głębia* is "the depth" — a place you go rather than an instruction, and it matches the shape of every other label. |
-| the reading | GUIDANCE | **WSKAZANIA** | Kept, and better than the English. *Wskazania* are **instrument readings** as well as indications, so the word quietly carries the astrolabe. |
+| the reading | GUIDANCE | **WGLĄD** | The same word as the destination, deliberately. *Wskazania* — instrument readings — was defensible but reads clinically beside the rest. See the note below. |
 | health section | THE BODY | **CIAŁO** | Kept. |
 | symbolic section | VESSEL | **KRĄG** | Was `NACZYNIE`, whose everyday sense is a dish — *naczynia* is what is in the sink. A *krąg* is a circle or ring, which is literally what a chart wheel is, and it is native rather than borrowed. |
 | the cloud copy | CLOUD CONTINUITY | **KOPIA W CHMURZE** | Was `CIĄGŁOŚĆ W CHMURZE`. *Ciągłość* is an abstraction from a consultancy deck; a person keeps a **copy**, and the whole section exists to say plainly what is kept where. |
 
+### One word doing two jobs
+
+`WGLĄD` names both the right-hand destination and the guidance section inside it,
+and they render **on the same screen, about 100 dp apart** — the rail says
+`WGLĄD` and the heading below it says `WGLĄD`.
+
+That is either elegant or confusing and only use will tell which. The reading
+that makes it elegant: the surface *is* the insight, and the section within it is
+the pure form of it, the way `DZIENNIK` names both a book and the act of keeping
+one. The reading that makes it confusing: two different tappable things wearing
+one name, on one screen.
+
+If it grates, the section is the one to change — the destination is the more
+load-bearing of the two. One line.
+
 ### Kept without change
 
 `CIAŁO` · `SEN` · `WAGA` · `KONTO` · `STARE STRONY` · `HISTORIA ZDROWIA` ·
-`DZIENNIK` · `WSKAZANIA` · `Słucham…` · `Dyktuj`
+`DZIENNIK` · `Słucham…` · `Dyktuj`
 
 These are already the words a Polish speaker would reach for.
 
@@ -61,8 +76,8 @@ a free one that sounds like something a person would say. Two tests, both cheap:
 sense once you know what it was, it is not finished.
 
 **Ask whether the word belongs to the product or to software.** `PULPIT`,
-`CIĄGŁOŚĆ`, `EKSPORT` are the vocabulary of an application. `TARCZA`, `GŁĘBIA`,
-`ZACISZE`, `KRĄG` are the vocabulary of this one.
+`CIĄGŁOŚĆ`, `EKSPORT` are the vocabulary of an application. `GŁĘBIA`,
+`ZACISZE`, `KRĄG`, `WGLĄD` are the vocabulary of this one.
 
 ## What this does not touch
 
