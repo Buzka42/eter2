@@ -88,8 +88,10 @@ class _EterShellState extends State<EterShell> {
                     // Chosen over four alternatives, on rendered pixels in both
                     // languages. A *word* here needs about 90 dp and has to take
                     // it from the rail, which pushes the destinations off the
-                    // wordmark's axis — and `SANKTUARIUM` is eleven letterspaced
-                    // caps where `SANCTUM` is seven, so Polish decided it. A
+                    // wordmark's axis. It was `SANKTUARIUM` — eleven letterspaced
+                    // caps against `SANCTUM`'s seven — that decided it; the
+                    // lexicon has since shortened that to `ZACISZE`, which does
+                    // not reopen the question, because 90 dp is still 90 dp. A
                     // glyph fits in the roughly 70 dp the two labels already
                     // leave between them, so nothing moves and no row is added.
                     //

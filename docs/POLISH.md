@@ -42,6 +42,7 @@ software rather than to this product.
 | health section | THE BODY | **CIAŁO** | Kept. |
 | symbolic section | VESSEL | **KRĄG** | Was `NACZYNIE`, whose everyday sense is a dish — *naczynia* is what is in the sink. A *krąg* is a circle or ring, which is literally what a chart wheel is, and it is native rather than borrowed. |
 | the cloud copy | CLOUD CONTINUITY | **KOPIA W CHMURZE** | Was `CIĄGŁOŚĆ W CHMURZE`. *Ciągłość* is an abstraction from a consultancy deck; a person keeps a **copy**, and the whole section exists to say plainly what is kept where. |
+| the export | LOCAL EXPORT | **EKSPORT LOKALNY** | Kept, reluctantly. It is application vocabulary by the second test, and the native replacement is *kopia* — which the cloud section above already owns. Two different things called *kopia*, one of which leaves the device and one of which never does, is worse than one borrowed word. |
 
 ### One word doing two jobs
 
@@ -88,9 +89,34 @@ explains what breaks when one does, and it breaks silently and only in Polish.
 The model's instructions are written in English in every language, and say so on
 purpose; see `AI_FLOW.md` §6a.
 
+## Gender, and the sentences that cannot be assembled
+
+Polish agreement is what breaks a string that was written by joining pieces, and
+it breaks invisibly — the app renders, the tests pass, and only a reader notices.
+Two shapes to watch for, both of which shipped in this branch:
+
+**An adjective after a name.** `seriesLabel` returns the name of a measurement
+and the sweep sentence puts *wyższy* after it, so every name needs a gender and
+the adjective has to be chosen from it. The same names must also be nouns: English
+can say "when how long you slept is higher", Polish cannot.
+
+**An adjective inside a counted phrase.** The numeral decides the case, so
+*1 zgłoszony sygnał* / *2 zgłoszone sygnały* / *5 zgłoszonych sygnałów* differ in
+both words. Tabulate the adjective with the noun in `_plural`, never join them.
+
+And the third: **do not address the reader with a past-tense verb.** *urodziłaś
+się lub urodziłeś* is not a sentence a person writes. Reach for the present
+tense, an impersonal (*zapisano*), or a noun.
+
+## The reader is addressed in lower case
+
+*twoja historia*, not *Twoja historia*, mid-sentence. The capitalised forms are
+the register of a letter to a stranger, and Eter is not that. Sentence-initial
+capitals are of course still capitals.
+
 ## Still to do
 
-The vocabulary above is applied. The **sentences** are not: roughly 380 strings in
+The vocabulary above is applied, and so is the Sanctum and the locally composed
+prose. The rest of the **sentences** are not: the remaining sections in
 `TRANSLATIONS.md` are still translated English rather than written Polish, and
-they should be reread against the two tests above — the guidance and Sanctum prose
-first, since those are the longest and the most read.
+they should be reread against the two tests above.

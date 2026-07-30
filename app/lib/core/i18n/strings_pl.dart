@@ -626,7 +626,7 @@ class EterStringsPl extends EterStrings {
   // ----------------------------------------------------------------- sanctum
 
   @override
-  String get headingSanctum => 'SANKTUARIUM';
+  String get headingSanctum => 'ZACISZE';
   @override
   String get howEterMeetsYou => 'Jak Eter się z tobą spotyka';
   @override
@@ -635,14 +635,14 @@ class EterStringsPl extends EterStrings {
       'wyłączona.';
   @override
   String get cloudContinuityAllowed =>
-      'Ciągłość w chmurze jest dozwolona. Możesz ją odwołać poniżej.';
+      'Kopia w chmurze jest włączona. Możesz ją odwołać poniżej.';
 
   @override
   String get headingOpeningPage => 'STRONA OTWARCIA';
   @override
   String get choiceJournal => 'Dziennik';
   @override
-  String get choiceDashboard => 'Pulpit';
+  String get choiceDashboard => 'Wgląd';
 
   @override
   String get headingGuidanceRegister => 'REJESTR WGLĄDU';
@@ -701,7 +701,7 @@ class EterStringsPl extends EterStrings {
   String get localOnly => 'Tylko lokalnie';
   @override
   String get cloudOffDetail =>
-      'Nowe kopie nie powstają. Kopia, która już jest na Twoim koncie, zostaje '
+      'Nowe kopie nie powstają. Kopia, która już jest na twoim koncie, zostaje '
       'do momentu usunięcia konta.';
   @override
   String get cloudAllowedDetail =>
@@ -759,7 +759,7 @@ class EterStringsPl extends EterStrings {
       'jest tymczasowy.';
   @override
   String get precisionUnknownDetail =>
-      'Kosmogram rysowany na południe — i tak to nazywa.';
+      'Kosmogram rysowany na południe — i tak też jest opisany.';
   @override
   String get headingWhichPartOfDay => 'KTÓRA PORA DNIA';
   @override
@@ -776,8 +776,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get offsetSuggestedFromPhone =>
       'Przesunięcie podpowiedziane ze strefy tego telefonu na tamtą datę, razem '
-      'z czasem letnim. Popraw je, jeśli urodziłaś się lub urodziłeś gdzie '
-      'indziej.';
+      'z czasem letnim. Popraw je, jeśli miejsce urodzenia było inne.';
   @override
   String get locatingBirthContext => 'Ustalam ten kontekst urodzenia…';
   @override
@@ -856,8 +855,8 @@ class EterStringsPl extends EterStrings {
       'Wzorzec odrzucony. Aether go nie użyje.';
   @override
   String get resetPersonalizationWarning =>
-      'To usuwa wgląd, który już powstał, wyuczone wzorce i skróty. Twój dziennik '
-      'i historia zdrowia zostają.';
+      'To usuwa wgląd, który już powstał, wyuczone wzorce i skróty. Twój '
+      'dziennik i historia zdrowia zostają.';
   @override
   String get aetherMemoryAlreadyEmpty => 'Pamięć Aether była już pusta.';
   @override
@@ -880,11 +879,11 @@ class EterStringsPl extends EterStrings {
   @override
   String get oldPagesNote =>
       'Treść dziennika starszą niż rok można wyczyścić, a posiłki, treningi i '
-      'wpisy, które z niej powstały, zostają.';
+      'wpisy samopoczucia, które z niej powstały, zostają.';
   @override
   String get pruneProseWarning =>
       'To czyści treść stron dziennika starszych niż rok. Posiłki, treningi i '
-      'wpisy z nich wynikające zostają.';
+      'wpisy samopoczucia, które z nich wynikły, zostają.';
   @override
   String get noPagesOlderThanAYear => 'Żadna strona nie jest starsza niż rok.';
   @override
@@ -895,26 +894,26 @@ class EterStringsPl extends EterStrings {
   String get headingWhereYouLive => 'GDZIE MIESZKASZ';
   @override
   String get whereYouLiveNote =>
-      'Eter przełącza się o Twoim zachodzie słońca. Miejsce urodzenia ustala '
-      'wykres i nigdy się nie zmienia; to ustala horyzont.';
+      'Eter przełącza się o twoim zachodzie słońca. Miejsce urodzenia ustala '
+      'kosmogram i nigdy się nie zmienia; to ustala horyzont.';
   @override
   String get whereYouLivePrompt =>
       'Twój zegar nie zgadza się z miejscem urodzenia, więc Eter używa zwykłych '
-      'godzin zamiast Twojego prawdziwego zachodu słońca. Podaj miasto, w '
-      'którym mieszkasz, i znów będzie się przełączał ze słońcem.';
+      'godzin zamiast twojego prawdziwego zachodu słońca. Podaj miasto, w '
+      'którym mieszkasz, a znów będzie się przełączał ze słońcem.';
   @override
   String get fieldHomePlace => 'Miasto';
   @override
   String homePlaceSaved(String place) =>
-      'Rejestr przełącza się teraz w: $place.';
+      'Rejestr przełącza się teraz ze słońcem w tym miejscu: $place.';
   @override
   String get homePlaceForgotten =>
-      'Zapomniane. Eter znów czyta słońce z Twojego miejsca urodzenia, jeśli '
+      'Zapomniane. Eter znów czyta słońce z twojego miejsca urodzenia, jeśli '
       'może.';
   @override
   String get usingBirthPlaceForNow =>
-      'Czyta słońce z Twojego miejsca urodzenia. Ustaw to, jeśli się '
-      'przeprowadziłeś.';
+      'Eter czyta słońce z twojego miejsca urodzenia. Ustaw to, jeśli '
+      'mieszkasz gdzie indziej.';
 
   @override
   String get headingDeleteFromThisDevice => 'USUŃ Z TEGO URZĄDZENIA';
@@ -924,26 +923,26 @@ class EterStringsPl extends EterStrings {
   @override
   String get deleteLocalWarning =>
       'To trwale usuwa lokalny profil, dziennik, historię zdrowia i wyliczone '
-      'odczytania. Nic z tego nie da się potem odzyskać.';
+      'odczyty. Nic z tego nie da się potem odzyskać.';
   @override
   String get deleteLocalWarningCopyRemains =>
       'To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i '
-      'wyliczone odczytania. Kopia na Twoim koncie zostaje, a Przywróć wróciłoby '
-      'z nią — usuń konto poniżej, żeby usunąć i ją.';
+      'wyliczone odczyty. Kopia na twoim koncie zostaje i „Przywróć” sprowadzi '
+      'ją z powrotem — usuń konto poniżej, żeby usunąć i ją.';
 
   @override
   String get headingHealthHistory => 'HISTORIA ZDROWIA';
   @override
   String get healthConnectedReconnect =>
-      'Połączone. Połącz ponownie, żeby wczytać ostatnie 30 dni; nakładające '
-      'się źródła są rozstrzygane co minutę.';
+      'Połączone. Połącz ponownie, żeby wczytać ostatnie 30 dni; gdy źródła się '
+      'nakładają, zostaje jedno na każdą minutę.';
   @override
   String get healthOffer =>
-      'Czytaj wybrane sygnały ruchu, snu i regeneracji z magazynu zdrowia '
-      'twojego telefonu.';
+      'Czytaj wybrane sygnały ruchu, snu i regeneracji z zapisu zdrowia w '
+      'twoim telefonie.';
   @override
   String get healthOnboardingOffer =>
-      'Czytaj ruch, sen i regenerację z magazynu zdrowia twojego telefonu, żeby '
+      'Czytaj ruch, sen i regenerację z zapisu zdrowia w twoim telefonie, żeby '
       'Ciało miało co pokazać od pierwszej chwili.';
   @override
   String get healthUnsupportedPlatform =>
@@ -968,16 +967,16 @@ class EterStringsPl extends EterStrings {
   @override
   String get writeBackNote =>
       'Wysyła wagi i potwierdzone posiłki do zapisu zdrowia w telefonie. Tylko '
-      'to, co wpisałeś tutaj — nigdy nic, co Eter z niego odczytał.';
+      'to, co wpisujesz tutaj — nigdy nic, co Eter stamtąd odczytał.';
   @override
   String healthWroteBack(int records) =>
-      'Zapisano $records ${_wpisy(records)}.';
+      'Zapisano $records ${_zapisy(records)}.';
   @override
   String get healthNothingToWriteBack =>
-      'Nie ma nic nowego do zapisania. Wszystko, co wpisałeś, już tam jest.';
+      'Nie ma nic nowego do zapisania. Wszystkie twoje wpisy już tam są.';
   @override
   String get healthCouldNotWriteBack =>
-      'Nie udało się zapisać do zapisu zdrowia. Nic nie zostało zmienione.';
+      'Nie udało się nic zapisać w telefonie. Nic nie zostało zmienione.';
   @override
   String get healthCouldNotBeRead =>
       'Nie udało się odczytać danych zdrowotnych. Dotychczasowa historia jest '
@@ -985,14 +984,14 @@ class EterStringsPl extends EterStrings {
   @override
   String get healthCouldNotBeReadOnboarding =>
       'Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w '
-      'Zacisze.';
+      'Zaciszu.';
 
   @override
   String get headingLocalExport => 'EKSPORT LOKALNY';
   @override
   String get localExportNote =>
-      'Przygotuj pełny zrzut JSON oraz pliki ruchu i sesji wygodne dla arkusza '
-      'kalkulacyjnego. Nic nie jest wysyłane.';
+      'Przygotuj pełny zrzut JSON oraz pliki ruchu i sesji do otwarcia w '
+      'arkuszu. Nic nie jest wysyłane.';
   @override
   String get localExportReady =>
       'Pliki JSON i CSV są gotowe na tym urządzeniu. Dane konta w chmurze nie '
@@ -1343,7 +1342,7 @@ class EterStringsPl extends EterStrings {
           ],
         ),
         TutorialPassage(
-          eyebrow: 'PULPIT',
+          eyebrow: 'WGLĄD',
           lines: [
             'Druga strona tej samej przestrzeni odczytuje to, co znalazła.',
             'Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało '
@@ -1353,7 +1352,7 @@ class EterStringsPl extends EterStrings {
         ),
         TutorialPassage(
           showsSanctumMark: true,
-          eyebrow: 'SANKTUARIUM',
+          eyebrow: 'ZACISZE',
           lines: [
             'Ten znak, na górze każdego ekranu, je otwiera.',
             'Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde '

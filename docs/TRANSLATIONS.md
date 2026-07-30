@@ -234,13 +234,13 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `headingSanctum` | SANCTUM | SANKTUARIUM |
+| `headingSanctum` | SANCTUM | ZACISZE |
 | `howEterMeetsYou` | How Eter meets you | Jak Eter się z tobą spotyka |
 | `historyStaysOnThisDevice` | Your history stays on this device. Cloud sync is off. | Twoja historia zostaje na tym urządzeniu. Kopia w chmurze jest wyłączona. |
-| `cloudContinuityAllowed` | Cloud continuity is allowed. You can revoke it below. | Ciągłość w chmurze jest dozwolona. Możesz ją odwołać poniżej. |
+| `cloudContinuityAllowed` | Cloud continuity is allowed. You can revoke it below. | Kopia w chmurze jest włączona. Możesz ją odwołać poniżej. |
 | `headingOpeningPage` | OPENING PAGE | STRONA OTWARCIA |
 | `choiceJournal` | Journal | Dziennik |
-| `choiceDashboard` | Dashboard | Pulpit |
+| `choiceDashboard` | Dashboard | Wgląd |
 | `headingGuidanceRegister` | GUIDANCE REGISTER | REJESTR WGLĄDU |
 | `registerGrounded` | Grounded | Ugruntowany |
 | `registerBalanced` | Balanced | Zrównoważony |
@@ -261,7 +261,7 @@ explains why translating one would break the symbolic engine.
 | `journalAwareAllowedDetail` | Only entries not marked Keep local may be included. | Wysłane mogą zostać tylko wpisy bez oznaczenia „Zatrzymaj lokalnie”. |
 | `headingCloudContinuity` | CLOUD CONTINUITY | KOPIA W CHMURZE |
 | `localOnly` | Local only | Tylko lokalnie |
-| `cloudOffDetail` | No new copies are made. Any copy already in your account stays until you delete the account. | Nowe kopie nie powstają. Kopia, która już jest na Twoim koncie, zostaje do momentu usunięcia konta. |
+| `cloudOffDetail` | No new copies are made. Any copy already in your account stays until you delete the account. | Nowe kopie nie powstają. Kopia, która już jest na twoim koncie, zostaje do momentu usunięcia konta. |
 | `cloudAllowedDetail` | Eligible documents may mirror to your account when sync is connected. | Kwalifikujące się dokumenty mogą trafiać na twoje konto, gdy synchronizacja jest połączona. |
 | `headingJournalInTheMirror` | JOURNAL IN THE MIRROR | DZIENNIK W KOPII |
 | `staysHere` | Stays here | Zostaje tutaj |
@@ -279,13 +279,13 @@ explains why translating one would break the symbolic engine.
 | `precisionUnknown` | Not at all | Wcale |
 | `precisionExactDetail` | From a record. The ascendant is stated plainly. | Z dokumentu. Ascendent podany wprost. |
 | `precisionApproximateDetail` | A remembered part of the day. The chart is drawn, and every angle says it is provisional. | Zapamiętana pora dnia. Kosmogram jest rysowany, a każdy kąt mówi, że jest tymczasowy. |
-| `precisionUnknownDetail` | The chart is drawn for noon and says so. | Kosmogram rysowany na południe — i tak to nazywa. |
+| `precisionUnknownDetail` | The chart is drawn for noon and says so. | Kosmogram rysowany na południe — i tak też jest opisany. |
 | `headingWhichPartOfDay` | WHICH PART OF THE DAY | KTÓRA PORA DNIA |
 | `fieldLocalBirthTime` | Local birth time · HH:MM | Lokalna godzina urodzenia · HH:MM |
 | `fieldUtcOffsetAtBirth` | UTC offset at birth · for example +01:00 | Przesunięcie UTC przy urodzeniu · na przykład +01:00 |
 | `fieldBirthCityAndCountry` | Birth city and country | Miasto i kraj urodzenia |
 | `placeLookupNote` | Place lookup uses the device geocoder. The label and coordinates are stored locally. | Wyszukiwanie miejsca korzysta z geokodera urządzenia. Nazwa i współrzędne są zapisywane lokalnie. |
-| `offsetSuggestedFromPhone` | Offset suggested from this phone’s timezone on that date, summer time included. Correct it if you were born elsewhere. | Przesunięcie podpowiedziane ze strefy tego telefonu na tamtą datę, razem z czasem letnim. Popraw je, jeśli urodziłaś się lub urodziłeś gdzie indziej. |
+| `offsetSuggestedFromPhone` | Offset suggested from this phone’s timezone on that date, summer time included. Correct it if you were born elsewhere. | Przesunięcie podpowiedziane ze strefy tego telefonu na tamtą datę, razem z czasem letnim. Popraw je, jeśli miejsce urodzenia było inne. |
 | `locatingBirthContext` | Locating this birth context… | Ustalam ten kontekst urodzenia… |
 | `birthContextSaved` | Birth context saved on this device. | Kontekst urodzenia zapisany na tym urządzeniu. |
 | `headingAetherMemory` | AETHER MEMORY | PAMIĘĆ AETHER |
@@ -307,37 +307,37 @@ explains why translating one would break the symbolic engine.
 | `retrospectiveSemantic()` | $headline. $passages $caveat Window $window. | $headline. $passages $caveat Okno: $window. |
 | `retrospectiveWindow()` | $from to $to | od $from do $to |
 | `headingOldPages` | OLD PAGES | STARE STRONY |
-| `oldPagesNote` | Journal text older than a year can be cleared while the meals, workouts and check-ins it produced stay. | Treść dziennika starszą niż rok można wyczyścić, a posiłki, treningi i wpisy, które z niej powstały, zostają. |
-| `pruneProseWarning` | This clears the text of journal pages older than a year. Meals, workouts and check-ins derived from them stay. | To czyści treść stron dziennika starszych niż rok. Posiłki, treningi i wpisy z nich wynikające zostają. |
+| `oldPagesNote` | Journal text older than a year can be cleared while the meals, workouts and check-ins it produced stay. | Treść dziennika starszą niż rok można wyczyścić, a posiłki, treningi i wpisy samopoczucia, które z niej powstały, zostają. |
+| `pruneProseWarning` | This clears the text of journal pages older than a year. Meals, workouts and check-ins derived from them stay. | To czyści treść stron dziennika starszych niż rok. Posiłki, treningi i wpisy samopoczucia, które z nich wynikły, zostają. |
 | `noPagesOlderThanAYear` | No pages are older than a year. | Żadna strona nie jest starsza niż rok. |
 | `clearedPageText()` | Cleared the text of $pages page${pages == 1 ? : }. | Wyczyszczono treść $pages ${_stron(pages)}. |
 | `headingWhereYouLive` | WHERE YOU LIVE | GDZIE MIESZKASZ |
-| `whereYouLiveNote` | Eter turns at your own sunset. Your birth place sets the chart and never changes; this sets the horizon. | Eter przełącza się o Twoim zachodzie słońca. Miejsce urodzenia ustala wykres i nigdy się nie zmienia; to ustala horyzont. |
-| `whereYouLivePrompt` | Your clock does not match your birth place, so Eter is using plain hours instead of your real sunset. Name the city you live in and it will turn with the sun again. | Twój zegar nie zgadza się z miejscem urodzenia, więc Eter używa zwykłych godzin zamiast Twojego prawdziwego zachodu słońca. Podaj miasto, w którym mieszkasz, i znów będzie się przełączał ze słońcem. |
+| `whereYouLiveNote` | Eter turns at your own sunset. Your birth place sets the chart and never changes; this sets the horizon. | Eter przełącza się o twoim zachodzie słońca. Miejsce urodzenia ustala kosmogram i nigdy się nie zmienia; to ustala horyzont. |
+| `whereYouLivePrompt` | Your clock does not match your birth place, so Eter is using plain hours instead of your real sunset. Name the city you live in and it will turn with the sun again. | Twój zegar nie zgadza się z miejscem urodzenia, więc Eter używa zwykłych godzin zamiast twojego prawdziwego zachodu słońca. Podaj miasto, w którym mieszkasz, a znów będzie się przełączał ze słońcem. |
 | `fieldHomePlace` | City | Miasto |
-| `homePlaceSaved()` | The register now turns at $place. | Rejestr przełącza się teraz w: $place. |
-| `homePlaceForgotten` | Forgotten. Eter reads the sun from your birth place again, if it can. | Zapomniane. Eter znów czyta słońce z Twojego miejsca urodzenia, jeśli może. |
-| `usingBirthPlaceForNow` | Reading the sun from your birth place. Set this if you have moved. | Czyta słońce z Twojego miejsca urodzenia. Ustaw to, jeśli się przeprowadziłeś. |
+| `homePlaceSaved()` | The register now turns at $place. | Rejestr przełącza się teraz ze słońcem w tym miejscu: $place. |
+| `homePlaceForgotten` | Forgotten. Eter reads the sun from your birth place again, if it can. | Zapomniane. Eter znów czyta słońce z twojego miejsca urodzenia, jeśli może. |
+| `usingBirthPlaceForNow` | Reading the sun from your birth place. Set this if you have moved. | Eter czyta słońce z twojego miejsca urodzenia. Ustaw to, jeśli mieszkasz gdzie indziej. |
 | `headingDeleteFromThisDevice` | DELETE FROM THIS DEVICE | USUŃ Z TEGO URZĄDZENIA |
 | `deleteLocalIntro` | Remove every local Eter record and return to onboarding. | Usuń każdy lokalny zapis Eteru i wróć do wprowadzenia. |
-| `deleteLocalWarning` | This permanently removes the local profile, journal, health history, and derived readings. Nothing here is recoverable afterwards. | To trwale usuwa lokalny profil, dziennik, historię zdrowia i wyliczone odczytania. Nic z tego nie da się potem odzyskać. |
-| `deleteLocalWarningCopyRemains` | This removes the local profile, journal, health history, and derived readings from this device. Your account copy stays, and Restore would bring it back — delete the account below to remove that too. | To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i wyliczone odczytania. Kopia na Twoim koncie zostaje, a Przywróć wróciłoby z nią — usuń konto poniżej, żeby usunąć i ją. |
+| `deleteLocalWarning` | This permanently removes the local profile, journal, health history, and derived readings. Nothing here is recoverable afterwards. | To trwale usuwa lokalny profil, dziennik, historię zdrowia i wyliczone odczyty. Nic z tego nie da się potem odzyskać. |
+| `deleteLocalWarningCopyRemains` | This removes the local profile, journal, health history, and derived readings from this device. Your account copy stays, and Restore would bring it back — delete the account below to remove that too. | To usuwa z tego urządzenia lokalny profil, dziennik, historię zdrowia i wyliczone odczyty. Kopia na twoim koncie zostaje i „Przywróć” sprowadzi ją z powrotem — usuń konto poniżej, żeby usunąć i ją. |
 | `headingHealthHistory` | HEALTH HISTORY | HISTORIA ZDROWIA |
-| `healthConnectedReconnect` | Connected. Reconnect to read the latest 30 days; source overlap is resolved per minute. | Połączone. Połącz ponownie, żeby wczytać ostatnie 30 dni; nakładające się źródła są rozstrzygane co minutę. |
-| `healthOffer` | Read selected movement, sleep, and recovery signals from your phone’s health store. | Czytaj wybrane sygnały ruchu, snu i regeneracji z magazynu zdrowia twojego telefonu. |
-| `healthOnboardingOffer` | Read movement, sleep and recovery from your phone’s health store, so the Body has something to show from the start. | Czytaj ruch, sen i regenerację z magazynu zdrowia twojego telefonu, żeby Ciało miało co pokazać od pierwszej chwili. |
+| `healthConnectedReconnect` | Connected. Reconnect to read the latest 30 days; source overlap is resolved per minute. | Połączone. Połącz ponownie, żeby wczytać ostatnie 30 dni; gdy źródła się nakładają, zostaje jedno na każdą minutę. |
+| `healthOffer` | Read selected movement, sleep, and recovery signals from your phone’s health store. | Czytaj wybrane sygnały ruchu, snu i regeneracji z zapisu zdrowia w twoim telefonie. |
+| `healthOnboardingOffer` | Read movement, sleep and recovery from your phone’s health store, so the Body has something to show from the start. | Czytaj ruch, sen i regenerację z zapisu zdrowia w twoim telefonie, żeby Ciało miało co pokazać od pierwszej chwili. |
 | `healthUnsupportedPlatform` | Health connection is available on iPhone and Android. | Połączenie ze zdrowiem jest dostępne na iPhonie i Androidzie. |
 | `healthRecordsRead()` | $records health records read. Eter kept one source per minute. | Wczytano $records ${_zapisy(records)} zdrowia. Eter zachował jedno źródło na minutę. |
 | `healthAccessNotGranted` | Access was not granted. No health values were imported. | Dostęp nie został przyznany. Nie zaimportowano żadnych wartości zdrowotnych. |
 | `healthAccessNotGrantedOnboarding` | Access was not granted. Nothing was imported, and you can connect later in the Sanctum. | Dostęp nie został przyznany. Nic nie zaimportowano, a połączyć możesz się później w Zaciszu. |
-| `writeBackNote` | Sends weights and confirmed meals to your phone’s health record. Only what you entered here — never anything Eter read from it. | Wysyła wagi i potwierdzone posiłki do zapisu zdrowia w telefonie. Tylko to, co wpisałeś tutaj — nigdy nic, co Eter z niego odczytał. |
-| `healthWroteBack()` | 1 record written.$records records written. | Zapisano $records ${_wpisy(records)}. |
-| `healthNothingToWriteBack` | Nothing new to write. Everything you entered is already there. | Nie ma nic nowego do zapisania. Wszystko, co wpisałeś, już tam jest. |
-| `healthCouldNotWriteBack` | Could not write to the health record. Nothing was changed. | Nie udało się zapisać do zapisu zdrowia. Nic nie zostało zmienione. |
+| `writeBackNote` | Sends weights and confirmed meals to your phone’s health record. Only what you entered here — never anything Eter read from it. | Wysyła wagi i potwierdzone posiłki do zapisu zdrowia w telefonie. Tylko to, co wpisujesz tutaj — nigdy nic, co Eter stamtąd odczytał. |
+| `healthWroteBack()` | 1 record written.$records records written. | Zapisano $records ${_zapisy(records)}. |
+| `healthNothingToWriteBack` | Nothing new to write. Everything you entered is already there. | Nie ma nic nowego do zapisania. Wszystkie twoje wpisy już tam są. |
+| `healthCouldNotWriteBack` | Could not write to the health record. Nothing was changed. | Nie udało się nic zapisać w telefonie. Nic nie zostało zmienione. |
 | `healthCouldNotBeRead` | Health data could not be read. Existing history is unchanged. | Nie udało się odczytać danych zdrowotnych. Dotychczasowa historia jest bez zmian. |
-| `healthCouldNotBeReadOnboarding` | Health data could not be read. You can try again later in the Sanctum. | Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w Zacisze. |
+| `healthCouldNotBeReadOnboarding` | Health data could not be read. You can try again later in the Sanctum. | Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w Zaciszu. |
 | `headingLocalExport` | LOCAL EXPORT | EKSPORT LOKALNY |
-| `localExportNote` | Prepare a complete JSON snapshot and spreadsheet-friendly movement and session files. Nothing is uploaded. | Przygotuj pełny zrzut JSON oraz pliki ruchu i sesji wygodne dla arkusza kalkulacyjnego. Nic nie jest wysyłane. |
+| `localExportNote` | Prepare a complete JSON snapshot and spreadsheet-friendly movement and session files. Nothing is uploaded. | Przygotuj pełny zrzut JSON oraz pliki ruchu i sesji do otwarcia w arkuszu. Nic nie jest wysyłane. |
 | `localExportReady` | Local JSON and CSV files are ready on this device. Cloud account data is not included. | Pliki JSON i CSV są gotowe na tym urządzeniu. Dane konta w chmurze nie są w nich zawarte. |
 | `localExportFailed` | The local export could not be prepared right now. | Nie udało się teraz przygotować lokalnego eksportu. |
 | `exportFolderCopied` | Export folder location copied. | Ścieżka folderu eksportu skopiowana. |
@@ -452,7 +452,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.PULPITDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.SANKTUARIUMTen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
+| `tutorialPassages` | ETEREter reads your days and tells you what it notices.It keeps everything on this device unless you say otherwise, and it never scores you.THE JOURNALEverything you record, you write or speak here.There are no forms elsewhere: meals, movement and how a day felt all come from what you wrote. Each page can be interpreted when you ask for it, and any page can be kept from Aether entirely.THE DASHBOARDThe other side of the same space reads back what it found.Guidance arrives on its own each day. Look deeper for the body, or for the Vessel — your chart, your Life Path, and where today’s sky stands against them.THE SANCTUMThis mark, at the top of every screen, opens it.Settings, your birth details, the health connection, and every permission — each one independent, each one revocable, and a way to take all of it back out again. | ETEREter czyta twoje dni i mówi ci, co zauważa.Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i nigdy cię nie ocenia.DZIENNIKWszystko, co zapisujesz, piszesz albo mówisz tutaj.Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął dzień, biorą się z tego, co napisałaś lub napisałeś. Każdą stronę można zinterpretować, a każdą można też całkowicie zatrzymać poza zasięgiem Aether.WGLĄDDruga strona tej samej przestrzeni odczytuje to, co znalazła.Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało albo po Krąg — twój kosmogram, twoją Drogę życia i to, jak dzisiejsze niebo stoi wobec nich.ZACISZETen znak, na górze każdego ekranu, je otwiera.Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby zabrać to wszystko z powrotem. |
 
 ## body fat
 
