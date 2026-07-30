@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:eter/core/account/account.dart';
 import 'package:eter/core/db/app_database.dart';

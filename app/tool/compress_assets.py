@@ -117,15 +117,9 @@ def main() -> None:
         encode_image(path, width=620, quality=82)
     total_after += account(backs)
 
-    # --- The Vessel plates ship as full-size PNGs. No surface draws them
-    # today; they are converted rather than deleted so the decision to keep or
-    # cut them stays the product owner's.
-    plates = sorted(glob.glob("assets/art/vessel/*.png"))
-    print(f"Vessel plates ({len(plates)}):")
-    total_before += account(plates)
-    for path in plates:
-        encode_image(path, width=720, quality=80, to_webp=True)
-    total_after += account(sorted(glob.glob("assets/art/vessel/*")))
+    # The Vessel plates used to be compressed here. That decision was taken:
+    # no surface ever drew them, so they were removed rather than shrunk. The
+    # masters remain in the v1 tree and in this repository's history.
 
     print(
         f"\nTotal: {total_before/1e6:.1f} -> {total_after/1e6:.1f} MB "

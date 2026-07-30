@@ -62,48 +62,11 @@ class ElementMedallion extends StatelessWidget {
   }
 }
 
-/// Zero-data ornament — a quiet gold engraving with a single line of copy,
-/// used where a surface has nothing to show yet
-/// (STATIC_ASSET_REQUESTS.md §C, 1200x900 transparent masters).
-class EmptyStateOrnament extends StatelessWidget {
-  const EmptyStateOrnament({
-    super.key,
-    required this.asset,
-    required this.caption,
-    this.width = 220,
-  });
-
-  final String asset;
-  final String caption;
-  final double width;
-
-  @override
-  Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ExcludeSemantics(
-          // Both dimensions are fixed so layout never depends on the
-          // asynchronously resolved intrinsic image size.
-          child: Image.asset(
-            asset,
-            width: width,
-            height: width * 0.75, // masters are 4:3 (1200x900)
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-          ),
-        ),
-        const SizedBox(height: EterSpace.s16),
-        Text(
-          caption,
-          style: text.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-}
+// `EmptyStateOrnament` was here, and nothing ever constructed it. It was the
+// only consumer of empty-ledger.png, empty-timeline.png and empty-balance.png,
+// so a widget with no call sites was keeping 284 KB of art alive in the asset
+// manifest. Every empty state Eter actually ships says its absence in words —
+// which the UI brief prefers anyway ("say what you cannot see").
 
 /// Circular progress ring, sky→gold sweep — spec 03 "AuraRing".
 class AuraRing extends StatelessWidget {

@@ -1427,6 +1427,26 @@ class AppDatabase extends _$AppDatabase {
         .go();
   }
 
+  /// Bounds the deduplicated minute record, which was growing forever.
+  ///
+  /// 1,440 rows a day — about 526,000 a year — on a phone, and nothing pruned
+  /// them. The reason that was tolerable is that it is the ingest detail rather
+  /// than the record: `DaySummaries` carries the result, is unbounded, and is
+  /// what every long-range surface reads.
+  ///
+  /// 400 days is chosen to be comfortably past every window anything actually
+  /// reads. `loadMinuteBuckets` and `watchMinuteBuckets` are only ever called
+  /// for a single day — the Body's activity-by-hour chart and
+  /// `DailyActivitySummary` — and the deepest re-import the Sanctum offers is
+  /// thirty days. So pruning here cannot change a number anyone can see, which
+  /// is the bar a retention rule has to clear.
+  Future<int> pruneMinuteBuckets({int retainDays = 400}) {
+    final cutoff = DateTime.now().toUtc().subtract(Duration(days: retainDays));
+    return (delete(minuteBuckets)
+          ..where((row) => row.minuteUtc.isSmallerThanValue(cutoff)))
+        .go();
+  }
+
   /// Removes raw heart-rate series after 180 days while preserving the
   /// session aggregate the user expects to keep.
   Future<int> pruneLiveHeartRateSeries({int retainDays = 180}) {
@@ -1492,12 +1512,14 @@ class AppDatabase extends _$AppDatabase {
   Future<
       ({
         int rawBuckets,
+        int minuteBuckets,
         int heartRateSeries,
         int guidance,
         int transits,
         int extractions,
       })> runLocalRetention() async {
     final raw = await pruneRawBuckets();
+    final minutes = await pruneMinuteBuckets();
     final heartRate = await pruneLiveHeartRateSeries();
     final guidance = await pruneGuidanceHistory();
     await pruneGuidanceRecalls();
@@ -1505,6 +1527,7 @@ class AppDatabase extends _$AppDatabase {
     final extractions = await pruneJournalExtractions();
     return (
       rawBuckets: raw,
+      minuteBuckets: minutes,
       heartRateSeries: heartRate,
       guidance: guidance,
       transits: transits,

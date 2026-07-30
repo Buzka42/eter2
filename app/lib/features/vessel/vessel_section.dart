@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/aether/guidance_mode.dart';
-import '../../core/arcana/animated_arcana_card.dart';
+import '../../core/arcana/arcana_card_media.dart';
 import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/matrix.dart';
 import '../../core/arcana/symbol_content.dart';

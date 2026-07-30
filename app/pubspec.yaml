@@ -29,11 +29,6 @@ dependencies:
   path: ^1.9.1
   path_provider: ^2.1.6
 
-  # Firebase. firebase_ai is deliberately temporary: it is the Phase 1-5
-  # client-direct transport and is removed in Phase 6 when the `aether`
-  # callable takes over. The steering brief is explicit that Gemini
-  # credentials must not ship in the mobile client.
-
   # Health hubs and sensors.
   health: ^13.3.1
 
@@ -48,7 +43,9 @@ dependencies:
   # localisations decide the floor.
   intl: ^0.20.2
 
-  # Birthplace geocoding; vendor OAuth hands off to a custom tab.
+  # Place lookup: the birth place the chart is cast from, and the city the
+  # register reads the sun from. No location permission — the person types a
+  # name and this turns it into coordinates.
   geocoding: ^4.0.0
 
 
@@ -118,20 +115,15 @@ flutter:
     # and under the automatic register that is a design rule, not a gap.
     - assets/art/bg-air-day-v6.webp
     - assets/art/bg-air-night-v1.webp
-    - assets/art/onboarding-hero.webp
     - assets/art/grain-subtle.webp
-    - assets/art/app-icon-air.webp
-    - assets/art/cloud-hero-cutout.png
+    # Resolved dynamically by `Zodiac.medallionAsset`, so grep for the literal
+    # path finds nothing — do not "clean these up".
     - assets/art/elem-air.png
     - assets/art/elem-fire.png
     - assets/art/elem-water.png
     - assets/art/elem-earth.png
-    - assets/art/empty-ledger.png
-    - assets/art/empty-timeline.png
-    - assets/art/empty-balance.png
     - assets/art/card-back-v2-light.webp
     - assets/art/card-back-v2-dark.webp
-    - assets/art/vessel/
     - assets/art/cards/
     - assets/art/animations/
     # Static symbolic attributes only. Long-form interpretations are composed

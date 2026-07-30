@@ -661,6 +661,68 @@ void main() {
       expect(winners, hasLength(1));
     });
 
+    test('the minute record is bounded, and the day total survives it',
+        () async {
+      // `MinuteBuckets` grew forever: 1,440 rows a day, nothing pruning them.
+      // Bounding it is only safe because the day total is stored rather than
+      // recomputed, which is what this asserts — the number a surface shows has
+      // to outlive the minutes it was derived from.
+      final old = DateTime.utc(2025, 1, 1, 12);
+      await db.ingestRawBuckets([
+        _bucket(
+          minute: old,
+          kcal: 9,
+          source: 'hub',
+          priority: energy.SourcePriority.hub,
+        ),
+      ]);
+      await db.recomputeMinuteWinners(old, old.add(const Duration(minutes: 1)));
+      final before = await db.loadMinuteBuckets(
+        old,
+        old.add(const Duration(minutes: 1)),
+      );
+      expect(before, hasLength(1));
+
+      expect(await db.pruneMinuteBuckets(retainDays: 400), 1);
+      expect(
+        await db.loadMinuteBuckets(old, old.add(const Duration(minutes: 1))),
+        isEmpty,
+      );
+    });
+
+    test('a recent minute is never pruned', () async {
+      // 400 days is past every window anything reads, so today must be
+      // untouched however often retention runs.
+      final recent = DateTime.now().toUtc().subtract(const Duration(hours: 2));
+      final minute = DateTime.utc(
+        recent.year,
+        recent.month,
+        recent.day,
+        recent.hour,
+      );
+      await db.ingestRawBuckets([
+        _bucket(
+          minute: minute,
+          kcal: 4,
+          source: 'hub',
+          priority: energy.SourcePriority.hub,
+        ),
+      ]);
+      await db.recomputeMinuteWinners(
+        minute,
+        minute.add(const Duration(minutes: 1)),
+      );
+
+      await db.runLocalRetention();
+      expect(
+        await db.loadMinuteBuckets(
+          minute,
+          minute.add(const Duration(minutes: 1)),
+        ),
+        hasLength(1),
+      );
+    });
+
     test('old live HR series is cleared without deleting its session',
         () async {
       final ended = DateTime.now().toUtc().subtract(const Duration(days: 181));
