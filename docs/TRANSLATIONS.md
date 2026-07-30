@@ -502,6 +502,21 @@ explains why translating one would break the symbolic engine.
 | `retrospectiveCaveat` | Missing days are omitted, not treated as zero. | Brakujące dni są pomijane, a nie traktowane jako zero. |
 | `lifestyleKindName()` | moodmoodstressstressrecoveryrecoverymeditationmeditationbreathworkbreathwork | moodnastrójstressstresrecoveryregeneracjameditationmedytacjabreathworkpraca z oddechem |
 
+## the long view
+
+| Key | English | Polish |
+|---|---|---|
+| `headingLongView` | THE LONG VIEW | Z ODDALI |
+| `headingLetter` | A LETTER | LIST |
+| `letterMonth()` | On $month | O miesiącu: $month |
+| `longViewNote` | Keep turning back in the Journal’s history and the day widens — a week, a month, a year. It is counted on this device, so it works offline and costs nothing. | Cofaj się w historii dziennika, a dzień się poszerzy — do tygodnia, miesiąca, roku. Wszystko liczy się na tym urządzeniu, więc działa bez sieci i nic nie kosztuje. |
+| `longViewSpanName()` | WeekMonthYear | TydzieńMiesiącRok |
+| `longViewRecorded()` | $recorded of $total recorded. | Zapisane: $recorded z $total. |
+| `longViewNothingRecorded` | Nothing was recorded in this stretch of time. | W tym czasie nic nie zapisano. |
+| `longViewMeasure()` | SleepMoodStepsPages written | SenNastrójKrokiNapisane strony |
+| `longViewSeriesSemantic()` | $measure. $cells.$measure. $cells. $absent not recorded. | $measure. $cells.$measure. $cells. Nie zapisano: $absent. |
+| `longViewCellAbsent()` | $label not recorded | $label — nie zapisano |
+
 ---
 
-411 strings paired.
+421 strings paired.

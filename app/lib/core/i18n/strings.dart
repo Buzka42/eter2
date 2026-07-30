@@ -811,6 +811,16 @@ abstract class EterStrings {
   /// gesture alone. `UI_BRIEF.md` non-negotiable 7.
   String get longViewNote;
 
+  // ---------------------------------------------------------------- the letter
+
+  /// Attribution for the monthly page. Everything Aether writes is labelled —
+  /// unattributed prose above someone's own journal reads as their own writing,
+  /// and a letter is the longest passage in the product.
+  String get headingLetter;
+
+  /// Which month the letter is about, under the heading.
+  String letterMonth(String month);
+
   /// Week, month or year, for the mark that says which scale you are on.
   String longViewSpanName(LongViewSpanName span);
 

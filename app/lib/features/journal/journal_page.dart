@@ -20,6 +20,7 @@ import '../../core/icons.dart';
 import '../../core/journal/classification_contract.dart';
 import '../../core/journal/auto_interpret.dart';
 import '../../core/journal/classifier.dart';
+import '../../core/aether/letter.dart';
 import '../../core/journal/day_story.dart';
 import '../../core/instruments.dart';
 import '../../core/longview/long_view.dart';
@@ -411,12 +412,22 @@ class _JournalPageState extends ConsumerState<JournalPage> {
                     ],
                   ),
                   const SizedBox(height: EterSpace.s16),
+                  // A letter takes the page for the day it arrives. It is not a
+                  // banner above the day story and not a sheet over it: it
+                  // stands where Aether's prose always stands, and the writing
+                  // field below is how it is answered — which is the whole
+                  // reason it arrives here rather than as a notification.
                   Expanded(
-                    child: _DayStory(
-                      key: _storyKey,
+                    child: _LetterArrival(
                       day: selectedDay,
                       isToday: isToday,
                       proseStyle: proseStyle,
+                      otherwise: _DayStory(
+                        key: _storyKey,
+                        day: selectedDay,
+                        isToday: isToday,
+                        proseStyle: proseStyle,
+                      ),
                     ),
                   ),
                   if (isToday) ...[
@@ -1607,5 +1618,129 @@ class _LongViewPanelState extends State<_LongViewPanel> {
           .format(DateTime(int.parse(parts[0]), int.parse(parts[1])));
     }
     return parts.last.replaceFirst(RegExp(r'^0'), '');
+  }
+}
+
+/// The monthly letter, on the page it arrives on.
+///
+/// Shows last month's letter in the place Aether's prose always occupies, and
+/// only until it has been read — a letter arrives once. Every other day, and
+/// every day that is not today, this is transparent and [otherwise] renders.
+///
+/// Composition is attempted here rather than on a schedule because the Journal
+/// opening is the only moment Eter reliably has: there is no background poll in
+/// this product, and `AI_FLOW.md` says so. The attempt is cheap after the first
+/// of the month, since the month is the cache key and `LetterComposer` returns
+/// the stored row without a request.
+class _LetterArrival extends ConsumerStatefulWidget {
+  const _LetterArrival({
+    required this.day,
+    required this.isToday,
+    required this.proseStyle,
+    required this.otherwise,
+  });
+
+  final DateTime day;
+  final bool isToday;
+  final TextStyle? proseStyle;
+  final Widget otherwise;
+
+  @override
+  ConsumerState<_LetterArrival> createState() => _LetterArrivalState();
+}
+
+class _LetterArrivalState extends ConsumerState<_LetterArrival> {
+  bool _asked = false;
+
+  /// The month a letter would be about: the one before the day in view.
+  String get _month {
+    final previous = DateTime(widget.day.year, widget.day.month - 1);
+    return '${previous.year.toString().padLeft(4, '0')}-'
+        '${previous.month.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(_compose());
+    });
+  }
+
+  /// Best-effort, exactly like auto-interpretation. Nothing was asked for, so a
+  /// month that cannot be written is not an error on anybody's screen — the
+  /// page simply carries the day story instead.
+  Future<void> _compose() async {
+    if (_asked || !widget.isToday) return;
+    _asked = true;
+    final provider = ref.read(letterProvider);
+    if (provider == null) return;
+    try {
+      await LetterComposer(
+        database: ref.read(databaseProvider),
+        provider: provider,
+      ).compose(month: _month, now: ref.read(nowProvider)());
+    } catch (_) {
+      // A letter that cannot be composed changes nothing about the page.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.isToday) return widget.otherwise;
+    final db = ref.watch(databaseProvider);
+    final ink = EterInk.of(context);
+    final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
+
+    return StreamBuilder<LetterRow?>(
+      stream: db.watchLetter(_month),
+      builder: (context, snapshot) {
+        final row = snapshot.data;
+        if (row == null || row.readAt || row.body.trim().isEmpty) {
+          return widget.otherwise;
+        }
+        return Padding(
+          padding: const EdgeInsets.only(bottom: EterSpace.s24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(strings.headingLetter, style: text.labelSmall),
+              const SizedBox(height: EterSpace.s4),
+              Text(
+                strings.letterMonth(row.month),
+                style: text.labelSmall?.copyWith(color: ink.labelMuted),
+              ),
+              const SizedBox(height: EterSpace.s8),
+              Expanded(
+                child: SingleChildScrollView(
+                  // A letter is longer than a day story and must not be shrunk
+                  // to fit — `_FittedProse` would take a full month's page down
+                  // to fine print. It scrolls instead.
+                  child: EterArrival.single(
+                    row.body,
+                    key: ValueKey('letter-${row.month}'),
+                    style: widget.proseStyle?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: ink.label,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: EterSpace.s12),
+              // Read once it has been seen. The writing field below is the
+              // reply, so there is no "dismiss": answering it, or simply
+              // having read it, is what closes it.
+              EterAction(
+                label: strings.close,
+                emphasis: EterActionEmphasis.quiet,
+                onPressed: () => unawaited(db.markLetterRead(row.month)),
+              ),
+              Container(height: 1, width: 64, color: ink.line),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

@@ -1719,6 +1719,10 @@ class EterStringsPl extends EterStrings {
   @override
   String get headingLongView => 'Z ODDALI';
   @override
+  String get headingLetter => 'LIST';
+  @override
+  String letterMonth(String month) => 'O miesiącu: $month';
+  @override
   String get longViewNote =>
       'Cofaj się w historii dziennika, a dzień się poszerzy — do tygodnia, '
       'miesiąca, roku. Wszystko liczy się na tym urządzeniu, więc działa bez '

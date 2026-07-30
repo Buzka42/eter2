@@ -1523,6 +1523,10 @@ class EterStringsEn extends EterStrings {
   @override
   String get headingLongView => 'THE LONG VIEW';
   @override
+  String get headingLetter => 'A LETTER';
+  @override
+  String letterMonth(String month) => 'On $month';
+  @override
   String get longViewNote =>
       'Keep turning back in the Journal’s history and the day widens — a week, '
       'a month, a year. It is counted on this device, so it works offline and '
