@@ -92,7 +92,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get reset => 'Zeruj';
   @override
-  String get composing => 'Komponuję';
+  String get composing => 'Powstaje';
   @override
   String get off => 'Wyłączone';
   @override
@@ -113,28 +113,28 @@ class EterStringsPl extends EterStrings {
 
   @override
   String get guidanceNotComposedYet =>
-      'Dzisiejszy wgląd nie został jeszcze skomponowany.';
+      'Dzisiejszy wgląd jeszcze nie powstał.';
   @override
-  String get composingTodaysGuidance => 'Komponuję dzisiejszy wgląd…';
+  String get composingTodaysGuidance => 'Dzisiejszy wgląd właśnie powstaje…';
   @override
-  String get composeNow => 'Skomponuj teraz';
+  String get composeNow => 'Niech powstanie';
   @override
   String get guidanceComposed => 'Dzisiejszy wgląd jest gotowy.';
   @override
   String get guidanceAlreadyCurrent =>
-      'Wgląd jest już aktualny wobec tego, co Eter wie o dzisiejszym dniu.';
+      'Wgląd już odpowiada temu, co Eter wie o dzisiejszym dniu.';
   @override
   String get aetherNotConnected =>
-      'Kompozycja Aether nie jest jeszcze podłączona w tej wersji.';
+      'Aether nie jest jeszcze podłączony w tej wersji.';
   @override
   String get enableAiBeforeComposing =>
-      'Włącz wgląd AI w Zaciszu, zanim zaczniesz komponować.';
+      'Włącz wgląd AI w Zaciszu, zanim o niego poprosisz.';
   @override
   String get responseNotAcceptedSafely =>
-      'Odpowiedzi nie można było bezpiecznie przyjąć. Nic się nie zmieniło.';
+      'Tej odpowiedzi nie dało się bezpiecznie przyjąć. Nic się nie zmieniło.';
   @override
   String get compositionUnavailable =>
-      'Kompozycja jest teraz niedostępna. Dotychczasowy wgląd zostaje.';
+      'Aether teraz nie odpowiada. Dotychczasowy wgląd zostaje.';
 
   @override
   String get lookDeeper => 'GŁĘBIA';
@@ -404,22 +404,22 @@ class EterStringsPl extends EterStrings {
   String get composeReadings => 'Skomponuj odczytania';
   @override
   String get personalReadingNotConnected =>
-      'Kompozycja osobistych odczytań nie jest jeszcze podłączona w tej wersji.';
+      'Osobiste odczytania nie są jeszcze podłączone w tej wersji.';
   @override
   String get everyReadingAlreadyComposed =>
-      'Wszystkie osobiste odczytania dla tego kosmogramu są już skomponowane.';
+      'Wszystkie osobiste odczytania dla tego kosmogramu już powstały.';
   @override
   String get missingReadingsComposed =>
-      'Brakujące osobiste odczytania zostały skomponowane.';
+      'Brakujące osobiste odczytania powstały.';
   @override
   String readingNotAccepted(String reason) =>
       'Nie udało się przyjąć odczytania: $reason. Nic się nie zmieniło.';
   @override
   String get compositionUnavailableCachedRemain =>
-      'Kompozycja jest teraz niedostępna. Zapisane odczytania zostają.';
+      'Aether teraz nie odpowiada. Zapisane odczytania zostają.';
   @override
   String get personalReadingNotComposedYet =>
-      'To osobiste odczytanie nie zostało jeszcze skomponowane. Słowa klucze są '
+      'To osobiste odczytanie jeszcze nie powstało. Słowa klucze są '
       'wbudowane w aplikację i mówią same za siebie.';
 
   @override
@@ -664,7 +664,7 @@ class EterStringsPl extends EterStrings {
   @override
   String get languageDetail =>
       'Zmienia każde słowo, które mówi Eter, razem z tym, co pisze Aether. '
-      'Skomponowane fragmenty zostają wyczyszczone, żeby nic nie zostało w '
+      'Fragmenty, które już powstały, zostają wyczyszczone, żeby nic nie zostało w '
       'języku, który właśnie opuszczasz.';
   @override
   String languageChanged(int clearedPassages) =>
@@ -686,7 +686,7 @@ class EterStringsPl extends EterStrings {
       'Żaden kontekst zdrowotny nie opuszcza tego urządzenia na potrzeby AI.';
   @override
   String get aiGuidanceAllowedDetail =>
-      'Wybrany kontekst może zostać wysłany, żeby skomponować wgląd.';
+      'Wybrany kontekst może zostać wysłany, żeby wgląd mógł powstać.';
   @override
   String get headingJournalAwareGuidance => 'WGLĄD CZYTAJĄCY DZIENNIK';
   @override
@@ -856,7 +856,7 @@ class EterStringsPl extends EterStrings {
       'Wzorzec odrzucony. Aether go nie użyje.';
   @override
   String get resetPersonalizationWarning =>
-      'To usuwa skomponowany wgląd, wyuczone wzorce i skróty. Twój dziennik '
+      'To usuwa wgląd, który już powstał, wyuczone wzorce i skróty. Twój dziennik '
       'i historia zdrowia zostają.';
   @override
   String get aetherMemoryAlreadyEmpty => 'Pamięć Aether była już pusta.';
@@ -1027,13 +1027,13 @@ class EterStringsPl extends EterStrings {
   String get aetherSubscribed => 'Aether komponuje.';
   @override
   String get aetherUnconfigured =>
-      'Ta wersja nie ma punktu końcowego wskazówek, więc Aether nie może w niej '
-      'komponować. Nic z tego, co masz, nie jest tym dotknięte.';
+      'Ta wersja nie ma punktu końcowego wskazówek, więc nic w niej nie '
+      'powstanie. Nic z tego, co masz, nie jest tym dotknięte.';
   @override
   String get aetherRecordKeepsWorking =>
       'Wszystko, co napisałeś i zapisałeś, zostaje i działa dalej — dziennik, '
       'historia zdrowia, wykresy, Twój astrogram. Zatrzymuje się samo '
-      'komponowanie.';
+      'powstawanie.';
   @override
   String subscribeMonthly(String price) => 'Subskrybuj · $price miesięcznie';
   @override
@@ -1299,7 +1299,7 @@ class EterStringsPl extends EterStrings {
   String get consentAiTitle => 'Wgląd AI';
   @override
   String get consentAiDetail =>
-      'Wysyłaj wybrany kontekst zdrowotny, żeby skomponować wgląd.';
+      'Wysyłaj wybrany kontekst zdrowotny, żeby wgląd mógł powstać.';
   @override
   String get consentJournalAiTitle => 'Wgląd czytający dziennik';
   @override
@@ -1760,8 +1760,8 @@ class EterStringsPl extends EterStrings {
       _plural(n, one: 'znak', few: 'znaki', many: 'znaków');
   static String _fragmenty(int n) => _plural(
         n,
-        one: 'skomponowany fragment',
-        few: 'skomponowane fragmenty',
-        many: 'skomponowanych fragmentów',
+        one: 'fragment',
+        few: 'fragmenty',
+        many: 'fragmentów',
       );
 }

@@ -45,7 +45,7 @@ explains why translating one would break the symbolic engine.
 | `clear` | Clear | Wyczyść |
 | `clearNow` | Clear now | Wyczyść teraz |
 | `reset` | Reset | Zeruj |
-| `composing` | Composing | Komponuję |
+| `composing` | Composing | Powstaje |
 | `off` | Off | Wyłączone |
 | `allowed` | Allowed | Dozwolone |
 
@@ -62,15 +62,15 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `guidanceNotComposedYet` | Today’s guidance has not been composed yet. | Dzisiejszy wgląd nie został jeszcze skomponowany. |
-| `composingTodaysGuidance` | Composing today’s guidance… | Komponuję dzisiejszy wgląd… |
-| `composeNow` | Compose now | Skomponuj teraz |
+| `guidanceNotComposedYet` | Today’s guidance has not been composed yet. | Dzisiejszy wgląd jeszcze nie powstał. |
+| `composingTodaysGuidance` | Composing today’s guidance… | Dzisiejszy wgląd właśnie powstaje… |
+| `composeNow` | Compose now | Niech powstanie |
 | `guidanceComposed` | Today’s guidance has been composed. | Dzisiejszy wgląd jest gotowy. |
-| `guidanceAlreadyCurrent` | Guidance is already current for the available context. | Wgląd jest już aktualny wobec tego, co Eter wie o dzisiejszym dniu. |
-| `aetherNotConnected` | Aether composition is not connected on this build yet. | Kompozycja Aether nie jest jeszcze podłączona w tej wersji. |
-| `enableAiBeforeComposing` | Enable AI guidance in the Sanctum before composing. | Włącz wgląd AI w Zaciszu, zanim zaczniesz komponować. |
-| `responseNotAcceptedSafely` | The response could not be accepted safely. Nothing changed. | Odpowiedzi nie można było bezpiecznie przyjąć. Nic się nie zmieniło. |
-| `compositionUnavailable` | Composition is unavailable right now. Existing guidance remains. | Kompozycja jest teraz niedostępna. Dotychczasowy wgląd zostaje. |
+| `guidanceAlreadyCurrent` | Guidance is already current for the available context. | Wgląd już odpowiada temu, co Eter wie o dzisiejszym dniu. |
+| `aetherNotConnected` | Aether composition is not connected on this build yet. | Aether nie jest jeszcze podłączony w tej wersji. |
+| `enableAiBeforeComposing` | Enable AI guidance in the Sanctum before composing. | Włącz wgląd AI w Zaciszu, zanim o niego poprosisz. |
+| `responseNotAcceptedSafely` | The response could not be accepted safely. Nothing changed. | Tej odpowiedzi nie dało się bezpiecznie przyjąć. Nic się nie zmieniło. |
+| `compositionUnavailable` | Composition is unavailable right now. Existing guidance remains. | Aether teraz nie odpowiada. Dotychczasowy wgląd zostaje. |
 | `lookDeeper` | LOOK DEEPER | GŁĘBIA |
 | `sectionGuidance` | GUIDANCE | WGLĄD |
 | `sectionBody` | THE BODY | CIAŁO |
@@ -155,12 +155,12 @@ explains why translating one would break the symbolic engine.
 | `readDeeper` | Read deeper | Czytaj głębiej |
 | `showLess` | Show less | Pokaż mniej |
 | `composeReadings` | Compose readings | Skomponuj odczytania |
-| `personalReadingNotConnected` | Personal reading composition is not connected on this build yet. | Kompozycja osobistych odczytań nie jest jeszcze podłączona w tej wersji. |
-| `everyReadingAlreadyComposed` | Every personal reading is already composed for this chart. | Wszystkie osobiste odczytania dla tego kosmogramu są już skomponowane. |
-| `missingReadingsComposed` | The missing personal readings have been composed. | Brakujące osobiste odczytania zostały skomponowane. |
+| `personalReadingNotConnected` | Personal reading composition is not connected on this build yet. | Osobiste odczytania nie są jeszcze podłączone w tej wersji. |
+| `everyReadingAlreadyComposed` | Every personal reading is already composed for this chart. | Wszystkie osobiste odczytania dla tego kosmogramu już powstały. |
+| `missingReadingsComposed` | The missing personal readings have been composed. | Brakujące osobiste odczytania powstały. |
 | `readingNotAccepted()` | The reading could not be accepted: $reason. Nothing changed. | Nie udało się przyjąć odczytania: $reason. Nic się nie zmieniło. |
-| `compositionUnavailableCachedRemain` | Composition is unavailable right now. Cached readings remain. | Kompozycja jest teraz niedostępna. Zapisane odczytania zostają. |
-| `personalReadingNotComposedYet` | This personal reading has not been composed yet. The keywords are shipped with the app and stand on their own. | To osobiste odczytanie nie zostało jeszcze skomponowane. Słowa klucze są wbudowane w aplikację i mówią same za siebie. |
+| `compositionUnavailableCachedRemain` | Composition is unavailable right now. Cached readings remain. | Aether teraz nie odpowiada. Zapisane odczytania zostają. |
+| `personalReadingNotComposedYet` | This personal reading has not been composed yet. The keywords are shipped with the app and stand on their own. | To osobiste odczytanie jeszcze nie powstało. Słowa klucze są wbudowane w aplikację i mówią same za siebie. |
 | `approximateTimeAndPlace` | Birth time and place are incomplete. Noon and zero coordinates are used provisionally; the Ascendant is not reliable. | Godzina i miejsce urodzenia są niepełne. Tymczasowo przyjęto południe i zerowe współrzędne; Ascendent nie jest wiarygodny. |
 | `approximateTime` | Birth time is unknown. Noon is used provisionally; the Ascendant is not reliable. | Godzina urodzenia jest nieznana. Tymczasowo przyjęto południe; Ascendent nie jest wiarygodny. |
 | `approximatePlace` | Birth place is incomplete. The Ascendant is provisional. | Miejsce urodzenia jest niepełne. Ascendent jest tymczasowy. |
@@ -249,13 +249,13 @@ explains why translating one would break the symbolic engine.
 | `registerBalancedDetail` | Changes with sunrise and sunset. | Zmienia się ze wschodem i zachodem. |
 | `registerImmersiveDetail` | The deeper night register. | Głębszy rejestr nocy. |
 | `headingLanguage` | LANGUAGE | JĘZYK |
-| `languageDetail` | Changes every word Eter says, including what Aether writes. Composed passages are cleared so nothing is left in the language you just left. | Zmienia każde słowo, które mówi Eter, razem z tym, co pisze Aether. Skomponowane fragmenty zostają wyczyszczone, żeby nic nie zostało w języku, który właśnie opuszczasz. |
+| `languageDetail` | Changes every word Eter says, including what Aether writes. Composed passages are cleared so nothing is left in the language you just left. | Zmienia każde słowo, które mówi Eter, razem z tym, co pisze Aether. Fragmenty, które już powstały, zostają wyczyszczone, żeby nic nie zostało w języku, który właśnie opuszczasz. |
 | `languageChanged()` | Eter now speaks English. $clearedPassages composed ${clearedPassages == 1 ? : } cleared and will be written again; your records are untouched. | Eter mówi teraz po polsku. Wyczyszczono $clearedPassages ${_fragmenty(clearedPassages)} i zostaną napisane od nowa; twoje zapisy są nietknięte. |
 | `headingYourData` | YOUR DATA | TWOJE DANE |
 | `permissionsAreIndependent` | Each permission is independent and can be revoked. Revoking AI also turns off journal-aware guidance. | Każde pozwolenie jest niezależne i można je odwołać. Odwołanie AI wyłącza też wgląd czytający dziennik. |
 | `headingAiGuidance` | AI GUIDANCE | WGLĄD AI |
 | `aiGuidanceOffDetail` | No health context leaves this device for AI. | Żaden kontekst zdrowotny nie opuszcza tego urządzenia na potrzeby AI. |
-| `aiGuidanceAllowedDetail` | Selected context may be sent to compose guidance. | Wybrany kontekst może zostać wysłany, żeby skomponować wgląd. |
+| `aiGuidanceAllowedDetail` | Selected context may be sent to compose guidance. | Wybrany kontekst może zostać wysłany, żeby wgląd mógł powstać. |
 | `headingJournalAwareGuidance` | JOURNAL-AWARE GUIDANCE | WGLĄD CZYTAJĄCY DZIENNIK |
 | `journalAwareOffDetail` | Journal prose is never sent. | Treść dziennika nigdy nie jest wysyłana. |
 | `journalAwareAllowedDetail` | Only entries not marked Keep local may be included. | Wysłane mogą zostać tylko wpisy bez oznaczenia „Zatrzymaj lokalnie”. |
@@ -301,7 +301,7 @@ explains why translating one would break the symbolic engine.
 | `notEnoughHistoryForWeekly` | There is not enough local history for a weekly view yet. | Za mało lokalnej historii na tygodniowy skrót. |
 | `sevenDayViewPrepared` | Seven-day view prepared on this device. | Skrót siedmiu dni przygotowany na tym urządzeniu. |
 | `patternDismissed` | Pattern dismissed. Aether will not use it. | Wzorzec odrzucony. Aether go nie użyje. |
-| `resetPersonalizationWarning` | This removes composed guidance, learned patterns, and retrospectives. Your journal and health history stay. | To usuwa skomponowany wgląd, wyuczone wzorce i skróty. Twój dziennik i historia zdrowia zostają. |
+| `resetPersonalizationWarning` | This removes composed guidance, learned patterns, and retrospectives. Your journal and health history stay. | To usuwa wgląd, który już powstał, wyuczone wzorce i skróty. Twój dziennik i historia zdrowia zostają. |
 | `aetherMemoryAlreadyEmpty` | Aether memory was already empty. | Pamięć Aether była już pusta. |
 | `aetherMemoryCleared` | Aether memory cleared from this device. | Pamięć Aether wyczyszczona z tego urządzenia. |
 | `retrospectiveSemantic()` | $headline. $passages $caveat Window $window. | $headline. $passages $caveat Okno: $window. |
@@ -351,8 +351,8 @@ explains why translating one would break the symbolic engine.
 | `aetherTrialExplainsItself` | Thirty days, because Aether needs about three weeks of your records before it can tell you something about yourself that you did not already know. | Trzydzieści dni, bo Aether potrzebuje około trzech tygodni Twoich zapisów, żeby powiedzieć Ci o Tobie coś, czego jeszcze nie wiedziałeś. |
 | `aetherLapsed` | Your trial has ended, so Aether is no longer composing. | Okres próbny się skończył, więc Aether już nie komponuje. |
 | `aetherSubscribed` | Aether is composing. | Aether komponuje. |
-| `aetherUnconfigured` | This build has no guidance endpoint, so Aether cannot compose on it. Nothing you have is affected. | Ta wersja nie ma punktu końcowego wskazówek, więc Aether nie może w niej komponować. Nic z tego, co masz, nie jest tym dotknięte. |
-| `aetherRecordKeepsWorking` | Everything you have written and recorded stays, and keeps working — the journal, your health history, the charts, your astrogram. It is the composing that stops. | Wszystko, co napisałeś i zapisałeś, zostaje i działa dalej — dziennik, historia zdrowia, wykresy, Twój astrogram. Zatrzymuje się samo komponowanie. |
+| `aetherUnconfigured` | This build has no guidance endpoint, so Aether cannot compose on it. Nothing you have is affected. | Ta wersja nie ma punktu końcowego wskazówek, więc nic w niej nie powstanie. Nic z tego, co masz, nie jest tym dotknięte. |
+| `aetherRecordKeepsWorking` | Everything you have written and recorded stays, and keeps working — the journal, your health history, the charts, your astrogram. It is the composing that stops. | Wszystko, co napisałeś i zapisałeś, zostaje i działa dalej — dziennik, historia zdrowia, wykresy, Twój astrogram. Zatrzymuje się samo powstawanie. |
 | `subscribeMonthly()` | Subscribe · $price a month | Subskrybuj · $price miesięcznie |
 | `subscribeYearly()` | Subscribe · $price a year | Subskrybuj · $price rocznie |
 | `launchPriceWillRise` | This is a launch price and will rise. Subscribing now does not lock it in — we would rather say so than surprise you later. A year bought now is a year at this price. | To cena startowa i wzrośnie. Subskrypcja teraz jej nie zamraża — wolimy to powiedzieć, niż zaskoczyć Cię później. Rok kupiony teraz to rok w tej cenie. |
@@ -439,7 +439,7 @@ explains why translating one would break the symbolic engine.
 | `consentStepTitle` | Choose what may leave this device | Wybierz, co może opuścić to urządzenie |
 | `consentStepIntro` | All of these are optional. Core journaling and local calculations still work if you decline. | Wszystko to jest opcjonalne. Prowadzenie dziennika i lokalne wyliczenia działają nawet wtedy, gdy odmówisz. |
 | `consentAiTitle` | AI guidance | Wgląd AI |
-| `consentAiDetail` | Send selected health context to compose guidance. | Wysyłaj wybrany kontekst zdrowotny, żeby skomponować wgląd. |
+| `consentAiDetail` | Send selected health context to compose guidance. | Wysyłaj wybrany kontekst zdrowotny, żeby wgląd mógł powstać. |
 | `consentJournalAiTitle` | Journal-aware guidance | Wgląd czytający dziennik |
 | `consentJournalAiDetail` | Allow included journal prose to be sent for reflection. | Pozwól wysyłać dołączoną treść dziennika do refleksji. |
 | `consentCloudTitle` | Cloud continuity | Ciągłość w chmurze |
