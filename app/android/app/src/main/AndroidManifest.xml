@@ -20,6 +20,16 @@
          means Health Connect returns nothing and says nothing, which is how a
          phone full of Garmin runs reported zero sessions. -->
     <uses-permission android:name="android.permission.health.READ_EXERCISE"/>
+    <!-- Writing back the two things Eter originates: a weight somebody typed
+         and a confirmed meal. Nothing Eter *read* is ever written back — that
+         would hand Health Connect its own data under a new name, and the next
+         read would count it twice. See core/health/write_back.dart.
+
+         Only these two, and deliberately no WRITE_STEPS, WRITE_EXERCISE or
+         WRITE_SLEEP: those are things Eter receives, and there is no version of
+         them it knows better than the watch does. -->
+    <uses-permission android:name="android.permission.health.WRITE_WEIGHT"/>
+    <uses-permission android:name="android.permission.health.WRITE_NUTRITION"/>
     <application
         android:label="Eter"
         android:name="${applicationName}"

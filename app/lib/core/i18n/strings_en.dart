@@ -910,6 +910,21 @@ class EterStringsEn extends EterStrings {
       'Access was not granted. Nothing was imported, and you can connect later '
       'in the Sanctum.';
   @override
+  String get writeBack => 'Write back';
+  @override
+  String get writeBackNote =>
+      'Sends weights and confirmed meals to your phone’s health record. Only '
+      'what you entered here — never anything Eter read from it.';
+  @override
+  String healthWroteBack(int records) =>
+      records == 1 ? '1 record written.' : '$records records written.';
+  @override
+  String get healthNothingToWriteBack =>
+      'Nothing new to write. Everything you entered is already there.';
+  @override
+  String get healthCouldNotWriteBack =>
+      'Could not write to the health record. Nothing was changed.';
+  @override
   String get healthCouldNotBeRead =>
       'Health data could not be read. Existing history is unchanged.';
   @override

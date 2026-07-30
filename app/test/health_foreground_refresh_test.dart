@@ -19,6 +19,22 @@ class _RecordingGateway implements HealthHubGateway {
   @override
   Future<bool> requestReadAccess() async => authorized;
 
+  // Refreshing never writes; a resume that added to somebody's health record
+  // would be doing something they did not ask for.
+  @override
+  Future<bool> requestWriteAccess() async =>
+      throw UnsupportedError('a refresh must not write');
+
+  @override
+  Future<bool> write({
+    required HubWritable metric,
+    required double value,
+    required DateTime at,
+    required String recordId,
+    String? label,
+  }) async =>
+      throw UnsupportedError('a refresh must not write');
+
   @override
   Future<List<HubSample>> read(DateTime start, DateTime end) async {
     reads += 1;

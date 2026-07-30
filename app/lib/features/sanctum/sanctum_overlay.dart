@@ -13,6 +13,7 @@ import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
+import '../../core/health/write_back.dart';
 import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/privacy/local_data_export.dart';
@@ -1325,6 +1326,40 @@ class _HealthConnectionState extends State<_HealthConnection> {
     }
   }
 
+  /// Sends what Eter owns into the platform's record.
+  ///
+  /// No Eter-level consent sits in front of this, on purpose. The platform's own
+  /// permission dialog *is* the gate — granted per data type, in Health Connect's
+  /// or Apple Health's own interface, revocable there — exactly as it is for
+  /// reading, which has no Eter toggle either. A second switch above it would be
+  /// asking the same question twice and implying Eter could write without the
+  /// first answer.
+  Future<void> _writeBack() async {
+    final strings = EterStrings.of(context);
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final written = await HealthWriteBack(
+        database: widget.database,
+        gateway: PlatformHealthGateway(),
+      ).run();
+      if (!mounted) return;
+      setState(() {
+        _message = written == 0
+            ? strings.healthNothingToWriteBack
+            : strings.healthWroteBack(written);
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() => _message = strings.healthCouldNotWriteBack);
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final supported = Platform.isAndroid || Platform.isIOS;
@@ -1354,10 +1389,31 @@ class _HealthConnectionState extends State<_HealthConnection> {
               style: text.bodyMedium,
             ),
             const SizedBox(height: EterSpace.s8),
-            EterAction(
-              label: connected ? strings.refresh : strings.connect,
-              busy: _busy,
-              onPressed: supported && !_busy ? _connect : null,
+            // `Wrap`, not `Row`. As a Row these two overflowed by 112 px in
+            // English and 175 in Polish at 320 dp with 200% text — the golden
+            // suite runs exactly that combination because it is where
+            // translation breaks layouts, and it caught this immediately.
+            Wrap(
+              spacing: EterSpace.s12,
+              runSpacing: EterSpace.s4,
+              children: [
+                EterAction(
+                  label: connected ? strings.refresh : strings.connect,
+                  busy: _busy,
+                  onPressed: supported && !_busy ? _connect : null,
+                ),
+                EterAction(
+                  label: strings.writeBack,
+                  emphasis: EterActionEmphasis.quiet,
+                  busy: _busy,
+                  onPressed: supported && !_busy ? _writeBack : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: EterSpace.s4),
+            Text(
+              strings.writeBackNote,
+              style: text.bodySmall?.copyWith(color: EterInk.of(context).labelMuted),
             ),
             if (_message != null)
               Semantics(

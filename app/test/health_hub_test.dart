@@ -360,4 +360,17 @@ class _FakeGateway implements HealthHubGateway {
 
   @override
   Future<bool> requestReadAccess() async => authorized;
+
+  @override
+  Future<bool> requestWriteAccess() async => authorized;
+
+  @override
+  Future<bool> write({
+    required HubWritable metric,
+    required double value,
+    required DateTime at,
+    required String recordId,
+    String? label,
+  }) async =>
+      throw UnsupportedError('reading must not write');
 }

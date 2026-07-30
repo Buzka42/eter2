@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   /// fortnight of compressed notes guidance reads so it stops repeating itself;
   /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -172,6 +172,16 @@ class AppDatabase extends _$AppDatabase {
           await _addColumnIfMissing(m, profiles, profiles.homePlace);
           await _addColumnIfMissing(m, profiles, profiles.homeLatitude);
           await _addColumnIfMissing(m, profiles, profiles.homeLongitude);
+
+          // New in v12. Null on every existing row, which correctly means "not
+          // written back yet" — nothing had been, because there was no way to.
+          // The first write-back after an upgrade therefore offers the whole
+          // history, and `clientRecordId` keeps that replaceable rather than
+          // duplicating anything.
+          await _addColumnIfMissing(
+              m, weightEntries, weightEntries.writtenBackAt);
+          await _addColumnIfMissing(
+              m, nutritionEntries, nutritionEntries.writtenBackAt);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();

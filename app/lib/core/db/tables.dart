@@ -306,6 +306,14 @@ class WeightEntries extends Table {
   TextColumn get source => text().withDefault(const Constant('manual'))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
 
+  /// When this row was written into the platform's own health record.
+  ///
+  /// Null means not yet, and the write-back only ever offers null rows — so a
+  /// failed write is retried and a successful one is never sent twice. Separate
+  /// from [syncedAt] because the mirror and the platform are different
+  /// destinations that succeed and fail independently.
+  DateTimeColumn get writtenBackAt => dateTime().nullable()();
+
   /// The key this row occupies in the mirror, once it has one.
   ///
   /// Null until the row is first pushed, and then never changes. It exists
@@ -336,6 +344,9 @@ class NutritionEntries extends Table {
   /// saved" -- unconfirmed rows must not count toward any total.
   BoolColumn get confirmed => boolean().withDefault(const Constant(true))();
   DateTimeColumn get syncedAt => dateTime().nullable()();
+
+  /// See [WeightEntries.writtenBackAt].
+  DateTimeColumn get writtenBackAt => dateTime().nullable()();
 
   /// See `WeightEntries.mirrorId`.
   TextColumn get mirrorId => text().nullable()();

@@ -5,6 +5,25 @@ import '../db/app_database.dart';
 import '../energy/energy.dart' as energy;
 import 'daily_activity_summary.dart';
 
+/// What Eter is willing to write back into the platform's own record.
+///
+/// A short list on purpose. Eter only writes what it *originated* — a weight
+/// somebody typed, a meal it estimated from a page — and never anything it read
+/// from the platform in the first place. Writing those back would be handing the
+/// hub its own data under a new name, and the next read would count it twice.
+///
+/// So nothing derived is here. Steps, active energy, heart rate, sleep and
+/// workouts are all things Eter *receives*; there is no version of them it knows
+/// better than the watch does.
+enum HubWritable {
+  /// Kilograms, at the moment it was recorded.
+  weight,
+
+  /// Kilocalories eaten. Confirmed rows only — an unconfirmed estimate is not a
+  /// fact and must not become one by being written somewhere more official.
+  dietaryEnergy,
+}
+
 enum HubMetric {
   activeEnergy,
   steps,
@@ -50,6 +69,29 @@ class HubSample {
 abstract interface class HealthHubGateway {
   String get vendor;
   Future<bool> requestReadAccess();
+
+  /// Asks for permission to *write* — a separate ask, deliberately.
+  ///
+  /// Reading someone's health record and adding to it are different
+  /// propositions, and both platforms treat them as different grants. Eter never
+  /// bundles them: a person who wants their watch data in Eter has not thereby
+  /// agreed that Eter may write into Apple Health.
+  Future<bool> requestWriteAccess();
+
+  /// Writes one measurement Eter owns back to the platform.
+  ///
+  /// [recordId] is a stable key for the row, handed to the platform so that
+  /// writing the same record twice replaces rather than duplicates it.
+  Future<bool> write({
+    required HubWritable metric,
+    required double value,
+    required DateTime at,
+    required String recordId,
+
+    /// The meal's name, where the record has one. Ignored by metrics that are
+    /// only a number.
+    String? label,
+  });
   Future<List<HubSample>> read(DateTime start, DateTime end);
 }
 

@@ -534,6 +534,13 @@ abstract class EterStrings {
   String get healthAccessNotGranted;
   String get healthAccessNotGrantedOnboarding;
   String get healthCouldNotBeRead;
+
+  /// Writing Eter's own records into the platform's health store.
+  String get writeBack;
+  String get writeBackNote;
+  String healthWroteBack(int records);
+  String get healthNothingToWriteBack;
+  String get healthCouldNotWriteBack;
   String get healthCouldNotBeReadOnboarding;
 
   String get headingLocalExport;

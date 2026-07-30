@@ -960,6 +960,24 @@ class EterStringsPl extends EterStrings {
       'Dostęp nie został przyznany. Nic nie zaimportowano, a połączyć możesz '
       'się później w Sanktuarium.';
   @override
+  // "Zapisz zwrotnie" is the precise phrase and overflowed the control by 24 px
+  // at 320 dp with 200% text. The note below carries the precision; the button
+  // only has to name the action.
+  String get writeBack => 'Odeślij';
+  @override
+  String get writeBackNote =>
+      'Wysyła wagi i potwierdzone posiłki do zapisu zdrowia w telefonie. Tylko '
+      'to, co wpisałeś tutaj — nigdy nic, co Eter z niego odczytał.';
+  @override
+  String healthWroteBack(int records) =>
+      'Zapisano $records ${_wpisy(records)}.';
+  @override
+  String get healthNothingToWriteBack =>
+      'Nie ma nic nowego do zapisania. Wszystko, co wpisałeś, już tam jest.';
+  @override
+  String get healthCouldNotWriteBack =>
+      'Nie udało się zapisać do zapisu zdrowia. Nic nie zostało zmienione.';
+  @override
   String get healthCouldNotBeRead =>
       'Nie udało się odczytać danych zdrowotnych. Dotychczasowa historia jest '
       'bez zmian.';

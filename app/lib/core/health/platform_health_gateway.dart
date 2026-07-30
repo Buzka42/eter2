@@ -48,6 +48,71 @@ class PlatformHealthGateway implements HealthHubGateway {
     );
   }
 
+  /// The two types Eter may add to, and nothing else. See [HubWritable].
+  ///
+  /// Nutrition is `NUTRITION`, not `DIETARY_ENERGY_CONSUMED`. The latter looked
+  /// like the obvious choice and is Apple-only: on a real Android phone
+  /// `isDataTypeAvailable` filtered it out silently, so the permission sheet
+  /// asked for Weight alone and nutrition write-back would have failed forever
+  /// without ever reporting why. Health Connect's own shape for a meal is a
+  /// nutrition record, written through `writeMeal`.
+  static const _writable = {
+    HubWritable.weight: HealthDataType.WEIGHT,
+    HubWritable.dietaryEnergy: HealthDataType.NUTRITION,
+  };
+
+  @override
+  Future<bool> requestWriteAccess() async {
+    await _configure();
+    final types = _writable.values
+        .where(_health.isDataTypeAvailable)
+        .toList(growable: false);
+    if (types.isEmpty) return false;
+    return _health.requestAuthorization(
+      types,
+      permissions: List.filled(types.length, HealthDataAccess.WRITE),
+    );
+  }
+
+  @override
+  Future<bool> write({
+    required HubWritable metric,
+    required double value,
+    required DateTime at,
+    required String recordId,
+    String? label,
+  }) async {
+    await _configure();
+    final type = _writable[metric]!;
+    if (!_health.isDataTypeAvailable(type)) return false;
+    // A meal is not a number with a unit; it is a record with a type and a
+    // name, and the plugin refuses `writeHealthData` for it.
+    if (metric == HubWritable.dietaryEnergy) {
+      return _health.writeMeal(
+        mealType: MealType.UNKNOWN,
+        startTime: at,
+        endTime: at,
+        caloriesConsumed: value,
+        name: label,
+        clientRecordId: recordId,
+        recordingMethod: RecordingMethod.manual,
+      );
+    }
+    return _health.writeHealthData(
+      value: value,
+      type: type,
+      startTime: at,
+      // Health Connect keys on this, so re-running a write-back replaces the
+      // record rather than adding a second one beside it. Eter's own row id is
+      // the natural key and never leaves the device in any other form.
+      clientRecordId: recordId,
+      // Somebody typed this, or confirmed an estimate of it. Saying `manual` is
+      // what lets the platform — and any other app reading it — tell it apart
+      // from something a sensor measured.
+      recordingMethod: RecordingMethod.manual,
+    );
+  }
+
   @override
   Future<List<HubSample>> read(DateTime start, DateTime end) async {
     await _configure();
