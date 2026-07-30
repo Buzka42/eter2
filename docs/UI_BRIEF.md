@@ -181,16 +181,32 @@ Three destinations. Not five, not a tab bar.
   astrological flavor is the shell's main ornamental signature. Keep it identical
   on Journal and Dashboard; exclude the engraving from semantics while exposing the
   complete 300×72 mark as an `Open Sanctum` button.
-- **The mark is not the only way into the Sanctum, and must not be.** This brief
-  once said it was, and that made the settings door an unexplained symbol —
-  precisely what non-negotiable 7 forbids. A named, borderless, letterspaced
-  `SANCTUM` word sits at the foot of the screen, right-aligned, out of the reading
-  path; the mark stays tappable for anyone who learned it. It is withdrawn while
-  the keyboard is up, because the Journal's field is the one place a person is
-  deliberately at the bottom of the screen and a settings button pinned above the
-  keyboard is a mis-tap waiting to happen. Earlier placements — under the wordmark,
-  and in the top corner — both failed: one read as a caption on the ornament, the
-  other put the settings door in the first thing anyone looked at.
+- **The way into the Sanctum is `EterSanctumMark`, centred on the destination
+  row.** An astrolabe's mater — two rings, a centre point, one index line — with a
+  soft static aura, sitting dead centre between `JOURNAL` and `DASHBOARD`, on the
+  same vertical axis as the arc, the wordmark and the plumb above it.
+
+  Chosen over four alternatives on rendered pixels, in both languages. A *word*
+  there needs about 90 dp and has to take it from the rail, which pushes the
+  destinations off the wordmark's axis; `SANKTUARIUM` is eleven letterspaced caps
+  where `SANCTUM` is seven, so Polish decided it. A glyph fits in the ~70 dp the
+  two labels already leave between them, so nothing moves and no row is added.
+
+  Two things keep it legitimate. The travelling hairline still belongs only to the
+  active destination, so it does not read as a third page. And the tutorial
+  **draws the mark** on first run — non-negotiable 7 forbids *unexplained*
+  symbols, and that is the explanation. Remove the tutorial passage and this
+  affordance becomes a violation.
+
+  The `ETER` mark stays tappable for anyone who learned it, and is now silent to
+  assistive technology: it carried `Open Sanctum` while it was the only way in,
+  and leaving the label announced the same door twice.
+
+  Earlier placements, all rejected: under the wordmark as a word (read as a
+  caption on the ornament), in the top corner (put the settings door in the first
+  thing anyone looked at), at the foot of the screen as a `SANCTUM` word (cost a
+  row and sat where the keyboard wants to be), and beside the rail (moved the
+  destinations off-axis).
 - **The Sanctum is also the index.** Anything reached by extension rather than by
   navigation — the Long View, Letters, the Correspondence — carries a named entry
   there too, so no feature exists only behind a gesture. See

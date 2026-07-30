@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/controls.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/icons.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
 import '../dashboard/dashboard_page.dart';
@@ -80,7 +81,52 @@ class _EterShellState extends State<EterShell> {
                   children: [
                     const SizedBox(height: EterSpace.s8),
                     EterShellHeader(onOpenSanctum: _openSanctum),
-                    DestinationSwitch(activeIndex: _active, onSelect: _goTo),
+                    // The way into the Sanctum: the mark alone, dead centre on
+                    // the destination row, on the same vertical axis as the arc,
+                    // the wordmark and the plumb above it.
+                    //
+                    // Chosen over four alternatives, on rendered pixels in both
+                    // languages. A *word* here needs about 90 dp and has to take
+                    // it from the rail, which pushes the destinations off the
+                    // wordmark's axis — and `SANKTUARIUM` is eleven letterspaced
+                    // caps where `SANCTUM` is seven, so Polish decided it. A
+                    // glyph fits in the roughly 70 dp the two labels already
+                    // leave between them, so nothing moves and no row is added.
+                    //
+                    // The travelling hairline still belongs only to the active
+                    // destination, which is what keeps this from reading as a
+                    // third page. What keeps it from being an *unexplained*
+                    // symbol — which non-negotiable 7 forbids — is that the
+                    // tutorial draws it on the first run.
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        DestinationSwitch(
+                          activeIndex: _active,
+                          onSelect: _goTo,
+                        ),
+                        Semantics(
+                          button: true,
+                          label: EterStrings.of(context).openSanctumSemantic,
+                          excludeSemantics: true,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: _openSanctum,
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Center(
+                                child: EterSanctumMark(
+                                  size: 18,
+                                  glow: true,
+                                  color: EterInk.of(context).lineStrong,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     Expanded(
                       child: PageView(
                         controller: _controller,
@@ -95,36 +141,6 @@ class _EterShellState extends State<EterShell> {
                         ],
                       ),
                     ),
-                    // The way into the Sanctum, named and out of the lockup.
-                    //
-                    // The mark alone was undiscoverable; a label under the mark
-                    // read as part of the wordmark, which is worse — ornament
-                    // that looks like a caption. It spent a while in the top
-                    // corner, which cost a whole row above the wordmark and put
-                    // the settings door in the first thing anyone looked at.
-                    // It belongs at the foot of the screen, under the day, out
-                    // of the way until it is wanted. The mark stays tappable
-                    // for anyone who learned it.
-                    //
-                    // Withdrawn while the keyboard is up: the journal's field
-                    // is the one place a person is deliberately at the bottom
-                    // of the screen, and a settings button pinned above the
-                    // keyboard is a mis-tap waiting to happen.
-                    if (MediaQuery.viewInsetsOf(context).bottom == 0)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(
-                            right: EterSpace.gutter,
-                            bottom: EterSpace.s4,
-                          ),
-                          child: EterAction(
-                            label: EterStrings.of(context).sanctum,
-                            emphasis: EterActionEmphasis.quiet,
-                            onPressed: _openSanctum,
-                          ),
-                        ),
-                      ),
                   ],
                 ),
               ),

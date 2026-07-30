@@ -44,20 +44,29 @@ void main() {
     expect(second, isNot(first));
   });
 
-  test('it is not derived from anything about the person', () async {
-    // A weak assertion of a strong intent, and worth making anyway: the profile
-    // is populated before the id is minted, and nothing in the id reflects it.
-    await database.saveProfile(ProfilesCompanion.insert(
-      dob: DateTime(1990, 3, 14),
-      sex: 'other',
-      weightKg: 70,
-      units: 'metric',
-    ));
-    final id = await EterInstallId.ensure(database);
-
-    for (final trace in ['1990', '03', '14', '70', 'other']) {
-      expect(id, isNot(startsWith(trace)));
+  test('is not derived from anything about the person', () async {
+    // Two installs holding the *same* profile still get different ids. That is
+    // the property worth asserting: an id derived from a birth date, a weight or
+    // a name would collide here, and no amount of it looking random would help.
+    //
+    // The first version of this test checked that the id did not *start with*
+    // '1990', '03', '14' or '70'. Those are all valid hex, so it failed about one
+    // run in two hundred and fifty — a flaky test asserting nothing.
+    final other = AppDatabase(NativeDatabase.memory());
+    addTearDown(other.close);
+    for (final store in [database, other]) {
+      await store.saveProfile(ProfilesCompanion.insert(
+        dob: DateTime(1990, 3, 14),
+        sex: 'other',
+        weightKg: 70,
+        units: 'metric',
+      ));
     }
+
+    expect(
+      await EterInstallId.ensure(database),
+      isNot(await EterInstallId.ensure(other)),
+    );
   });
 
   test('is not offered to the prompt builder as intake', () async {

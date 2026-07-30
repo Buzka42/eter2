@@ -77,11 +77,18 @@ class _EterShellHeaderState extends State<EterShellHeader>
         ? EterColors.aura500.withValues(alpha: 0.6)
         : EterColors.ink600.withValues(alpha: 0.8);
     final text = Theme.of(context).textTheme;
+    // The mark stays tappable and is *silent* to assistive technology.
+    //
+    // It used to carry the `Open Sanctum` label, which was right while it was the
+    // only way in. It is not any more: the glyph on the destination row is the
+    // named, explained affordance, and leaving the label here announced the same
+    // door twice on every screen — the golden harness found two widgets and could
+    // not decide which to tap, which is the machine noticing what a screen-reader
+    // user would have had to sit through.
+    //
+    // Kept tappable rather than made inert, for the people who learned it before
+    // the glyph existed.
     return Semantics(
-      button: widget.onOpenSanctum != null,
-      label: widget.onOpenSanctum == null
-          ? null
-          : EterStrings.of(context).openSanctumSemantic,
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
