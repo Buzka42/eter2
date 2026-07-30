@@ -4,6 +4,7 @@ import '../arcana/major_arcana.dart';
 import '../arcana/zodiac.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
+import '../health/sleep_totals.dart';
 import '../patterns/local_pattern_discovery.dart';
 import '../patterns/pattern_sweep.dart';
 import '../symbolic/natal_chart.dart';
@@ -95,17 +96,11 @@ class AetherContextAssembler {
 
     final summariesByDate = {for (final row in summaries) row.date: row};
     final vitalsByDate = {for (final row in vitals) row.date: row};
-    final sleepMinutes = <String, int>{};
-    for (final segment in sleep) {
-      final minutes = segment.endUtc.difference(segment.startUtc).inMinutes;
-      if (minutes > 0) {
-        sleepMinutes.update(
-          segment.nightOf,
-          (value) => value + minutes,
-          ifAbsent: () => minutes,
-        );
-      }
-    }
+    // Was summed here, inline, over every segment of every source including the
+    // ones marked awake -- so the figure Aether was told about a two-source night
+    // was close to double, with time awake counted as sleep on top. One answer
+    // now, shared with the Week in View and the correlation sweep.
+    final sleepMinutes = SleepTotals.byNight(sleep);
 
     final health = <AetherHealthContext>[];
     for (var day = firstDay;
@@ -120,7 +115,11 @@ class AetherContextAssembler {
         localDate: date,
         steps: summary?.steps,
         activeKcal: summary?.activeKcal,
-        sleepMinutes: slept,
+        // Rounded only at the boundary. The contract sends whole minutes — a
+        // model has no use for a fractional one — but the total is accumulated in
+        // seconds so a night of a dozen segments does not lose a minute to
+        // rounding each one.
+        sleepMinutes: slept?.round(),
         restingHeartRate: vital?.restingHr,
         hrvMs: vital?.hrvMs,
       ));

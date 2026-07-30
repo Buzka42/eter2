@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../db/app_database.dart';
+import '../health/sleep_totals.dart';
 import '../i18n/language.dart';
 import '../i18n/strings.dart';
 
@@ -67,7 +68,7 @@ class LocalWeeklyRetrospective {
       ));
     }
 
-    final sleepByNight = _sleepMinutesByNight(sleep);
+    final sleepByNight = SleepTotals.byNight(sleep);
     if (sleepByNight.isNotEmpty) {
       final average =
           sleepByNight.values.reduce((a, b) => a + b) / sleepByNight.length;
@@ -122,31 +123,6 @@ class LocalWeeklyRetrospective {
     );
   }
 
-  static Map<String, double> _sleepMinutesByNight(
-    List<SleepSegmentRow> rows,
-  ) {
-    final totals = <String, Map<String, _SleepSourceTotal>>{};
-    for (final row in rows) {
-      if (row.stage == 'awake') continue;
-      final minutes = row.endUtc.difference(row.startUtc).inSeconds / 60;
-      if (minutes <= 0) continue;
-      final sources = totals.putIfAbsent(row.nightOf, () => {});
-      final source = sources.putIfAbsent(
-        row.source,
-        () => _SleepSourceTotal(priority: row.priority),
-      );
-      source.minutes += minutes;
-      if (row.priority < source.priority) source.priority = row.priority;
-    }
-    return {
-      for (final night in totals.entries)
-        night.key: (night.value.values.toList()
-              ..sort((a, b) => a.priority.compareTo(b.priority)))
-            .first
-            .minutes,
-    };
-  }
-
   static String _isoDate(DateTime value) =>
       '${value.year.toString().padLeft(4, '0')}-'
       '${value.month.toString().padLeft(2, '0')}-'
@@ -165,11 +141,4 @@ class WeeklyRetrospectiveResult {
   final String periodStart;
   final String periodEnd;
   final List<String> passages;
-}
-
-class _SleepSourceTotal {
-  _SleepSourceTotal({required this.priority});
-
-  int priority;
-  double minutes = 0;
 }

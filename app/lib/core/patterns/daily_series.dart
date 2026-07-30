@@ -12,6 +12,7 @@
 library;
 
 import '../db/app_database.dart';
+import '../health/sleep_totals.dart';
 
 /// One measurable thing, and how to say it in a sentence.
 class SeriesDefinition {
@@ -105,20 +106,19 @@ class DailySeriesReader {
 
     // Sleep is summed per stage and belongs to the night's own date, which is
     // the morning it ended.
-    for (final row in await database.loadSleepForNights(from, to)) {
+    final sleepRows = await database.loadSleepForNights(from, to);
+    // Total slept comes from the shared answer, which excludes awake *and* lets
+    // one source win a night rather than every source adding to it. Summed here,
+    // a night reported by both a watch app and a ring came out close to double.
+    series['sleep']!.addAll(SleepTotals.byNight(sleepRows));
+    for (final row in sleepRows) {
       final minutes =
           row.endUtc.difference(row.startUtc).inMinutes.toDouble();
       if (minutes <= 0) continue;
-      // Time awake in the night is not time slept. Health Connect reports the
-      // two separately and so does everyone's watch; summing them gave a
-      // night four minutes longer than the person had.
-      if (row.stage != 'awake') {
-        series['sleep']!.update(
-          row.nightOf,
-          (value) => value + minutes,
-          ifAbsent: () => minutes,
-        );
-      }
+      // The per-stage series are left summing across sources, deliberately: a
+      // correlation against deep sleep is looking for a shape over time, and no
+      // source-precedence rule exists for stages that the ingest has not already
+      // applied. They are named as stage totals rather than as time asleep.
       final stage = switch (row.stage) {
         'deep' => 'deep',
         'rem' => 'rem',
