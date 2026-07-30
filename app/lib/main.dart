@@ -15,6 +15,7 @@ import 'core/ai/install_id.dart';
 import 'core/ai/transport.dart';
 import 'core/clock.dart';
 import 'core/db/app_database.dart';
+import 'core/entitlement/entitlement.dart';
 import 'core/diagnostics/crash_reporter.dart';
 import 'core/diagnostics/firebase_crash_reporter.dart';
 import 'core/journal/classification_contract.dart';
@@ -63,11 +64,16 @@ Future<void> main() async {
   // has it before the first composition, and bounded like everything else in
   // this chain — a store that will not answer must not decide whether Eter opens.
   String? installId;
+  DateTime? firstLaunch;
   try {
     installId = await EterInstallId.ensure(database)
         .timeout(const Duration(seconds: 5));
+    firstLaunch = await EterInstallId.firstLaunch(
+      database,
+      now: DateTime.now(),
+    ).timeout(const Duration(seconds: 5));
   } catch (error) {
-    debugPrint('Eter: install id unavailable, metering by address: $error');
+    debugPrint('Eter: install marks unavailable: $error');
   }
 
   // Accounts are optional, so their absence must not be fatal. A build with no
@@ -113,6 +119,7 @@ Future<void> main() async {
         accountServiceProvider.overrideWithValue(accounts),
         crashReporterProvider.overrideWithValue(reporter),
         installIdProvider.overrideWithValue(installId),
+        firstLaunchProvider.overrideWithValue(firstLaunch),
       ],
       child: const EterApp(),
     ),
@@ -181,7 +188,15 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
 ///
 /// See `docs/AI_FLOW.md` §6 and `core/ai/transport.dart` for why the endpoint
 /// belongs to the product owner and the model key never reaches this client.
+/// The single network transport, or null when this build has no endpoint **or**
+/// nothing entitles a call right now.
+///
+/// Gating here rather than in each composer is deliberate, and it is defence in
+/// depth rather than the primary mechanism: surfaces read `entitlementProvider` and
+/// say the right thing, and this makes a surface that forgot unable to spend money
+/// anyway. There is exactly one socket in the app and this is it.
 final aiTransportProvider = Provider<EterAiTransport?>((ref) {
+  if (!ref.watch(entitlementProvider).composes) return null;
   final config = EterAiConfig.fromEnvironment(
     installId: ref.watch(installIdProvider),
   );
@@ -194,6 +209,40 @@ final aiTransportProvider = Provider<EterAiTransport?>((ref) {
 /// through: the endpoint falls back to address-based metering, which is worse but
 /// not broken, and a build with no endpoint never reads this at all.
 final installIdProvider = Provider<String?>((ref) => null);
+
+/// When this install first ran, so the trial can be counted from it. Null until
+/// `main` has read it, which resolves to a full trial rather than a lapse.
+final firstLaunchProvider = Provider<DateTime?>((ref) => null);
+
+/// Somewhere to buy a subscription, or null on a build with no billing.
+///
+/// Null is a shipped configuration exactly as it is for accounts. It does not mean
+/// "unpaid": with no billing there is nothing to buy, so the trial runs and then
+/// lapses, and the record keeps working throughout.
+final subscriptionServiceProvider = Provider<SubscriptionService?>((ref) => null);
+
+final subscriptionProvider = StreamProvider<EterSubscription?>((ref) {
+  final service = ref.watch(subscriptionServiceProvider);
+  return service == null ? Stream.value(null) : service.changes();
+});
+
+/// **The one entitlement value.** Read this at section level; never assemble the
+/// rule again anywhere else.
+///
+/// `STEERING_BRIEF.md` warns twice against coupling subscription checks to
+/// individual widgets, so a surface asks what access exists and picks its sentence.
+/// It never asks whether somebody has paid.
+final entitlementProvider = Provider<EterEntitlement>((ref) {
+  return EterEntitlement.resolve(
+    // Not `aiTransportProvider`: that would be circular, since the transport is
+    // gated on this. The question here is only whether this build was compiled
+    // with an endpoint at all.
+    hasEndpoint: EterAiConfig.fromEnvironment() != null,
+    now: ref.watch(nowProvider)(),
+    trialStartedAt: ref.watch(firstLaunchProvider),
+    subscription: ref.watch(subscriptionProvider).value,
+  );
+});
 
 /// Live interpretation transport. Absent without an endpoint; the Journal then
 /// still exposes the explicit workflow and explains that state honestly.

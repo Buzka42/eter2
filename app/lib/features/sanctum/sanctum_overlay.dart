@@ -11,6 +11,7 @@ import '../../core/db/app_database.dart';
 import '../../core/profile/birth_offset.dart';
 import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
+import '../../core/entitlement/entitlement.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
 import '../../core/health/write_back.dart';
@@ -251,6 +252,8 @@ class SanctumOverlay extends ConsumerWidget {
                               );
                             },
                     ),
+                    const SizedBox(height: EterSpace.s32),
+                    const _AetherAccess(),
                     const SizedBox(height: EterSpace.s32),
                     AccountSection(
                       service: ref.watch(accountServiceProvider),
@@ -1051,6 +1054,103 @@ class _RetrospectiveView {
     } on FormatException {
       return null;
     }
+  }
+}
+
+/// Whether Aether may compose, and what it costs.
+///
+/// Reads `entitlementProvider` and nothing else. The rule itself lives in
+/// `core/entitlement/entitlement.dart` — this section asks what access exists and
+/// picks a sentence, and never asks whether somebody has paid.
+///
+/// Every state leads with the same reassurance, because it is the true one and
+/// because it is what people are actually afraid of: the record stays. A lapsed
+/// trial stops the composing and takes nothing away.
+class _AetherAccess extends ConsumerWidget {
+  const _AetherAccess();
+
+  /// Placeholder prices.
+  ///
+  /// The store holds the authoritative, locally formatted price for every market,
+  /// and these are what stand in until billing exists to ask it. They must be
+  /// replaced by the store's own strings rather than translated — a hard-coded
+  /// figure is wrong in most markets and stale in the rest.
+  static const _monthly = r'$4.99';
+  static const _yearly = r'$39.99';
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+    final entitlement = ref.watch(entitlementProvider);
+    final billing = ref.watch(subscriptionServiceProvider);
+
+    final state = switch (entitlement.access) {
+      AetherAccess.unconfigured => strings.aetherUnconfigured,
+      AetherAccess.subscribed => strings.aetherSubscribed,
+      AetherAccess.lapsed => strings.aetherLapsed,
+      AetherAccess.trial => entitlement.trialDaysLeft <= 1
+          ? strings.aetherTrialEndsToday
+          : strings.aetherTrialDaysLeft(entitlement.trialDaysLeft),
+    };
+    // Offered while the trial runs and after it ends, and not once subscribed or
+    // on a build that cannot compose at all — there is nothing to sell in either.
+    final offering = entitlement.access == AetherAccess.trial ||
+        entitlement.access == AetherAccess.lapsed;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(strings.headingAether, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(state, style: text.bodyMedium),
+        if (entitlement.access == AetherAccess.trial) ...[
+          const SizedBox(height: EterSpace.s8),
+          Text(
+            strings.aetherTrialExplainsItself,
+            style: text.bodySmall?.copyWith(color: ink.labelMuted),
+          ),
+        ],
+        if (entitlement.access == AetherAccess.lapsed) ...[
+          const SizedBox(height: EterSpace.s8),
+          Text(strings.aetherRecordKeepsWorking, style: text.bodySmall),
+        ],
+        if (offering) ...[
+          const SizedBox(height: EterSpace.s16),
+          if (billing == null)
+            Text(
+              strings.billingNotOnThisBuild,
+              style: text.bodySmall?.copyWith(color: ink.labelMuted),
+            )
+          else ...[
+            Wrap(
+              spacing: EterSpace.s12,
+              runSpacing: EterSpace.s4,
+              children: [
+                EterAction(
+                  label: strings.subscribeMonthly(_monthly),
+                  onPressed: () => unawaited(billing.purchase('eter.monthly')),
+                ),
+                EterAction(
+                  label: strings.subscribeYearly(_yearly),
+                  onPressed: () => unawaited(billing.purchase('eter.yearly')),
+                ),
+              ],
+            ),
+            const SizedBox(height: EterSpace.s8),
+            // Said before the buttons are pressed, not in a receipt afterwards.
+            Text(strings.launchPriceWillRise, style: text.bodySmall),
+            const SizedBox(height: EterSpace.s8),
+            EterAction(
+              label: strings.restorePurchases,
+              emphasis: EterActionEmphasis.quiet,
+              onPressed: () => unawaited(billing.restorePurchases()),
+            ),
+          ],
+        ],
+      ],
+    );
   }
 }
 

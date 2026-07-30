@@ -549,6 +549,28 @@ abstract class EterStrings {
   String get localExportFailed;
   String get exportFolderCopied;
 
+  // ------------------------------------------------------------------ aether
+
+  /// Whether Aether may compose, and what it costs.
+  ///
+  /// Prices arrive as parameters rather than living in these tables. The stores
+  /// hold the authoritative, locally formatted price for every market — currency,
+  /// separators, tax inclusion — and a number written here would be wrong in most
+  /// of them and stale in the rest.
+  String get headingAether;
+  String aetherTrialDaysLeft(int days);
+  String get aetherTrialEndsToday;
+  String get aetherTrialExplainsItself;
+  String get aetherLapsed;
+  String get aetherSubscribed;
+  String get aetherUnconfigured;
+  String get aetherRecordKeepsWorking;
+  String subscribeMonthly(String price);
+  String subscribeYearly(String price);
+  String get launchPriceWillRise;
+  String get restorePurchases;
+  String get billingNotOnThisBuild;
+
   // ---------------------------------------------------------------- account
 
   String get headingAccount;

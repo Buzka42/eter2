@@ -950,6 +950,47 @@ class EterStringsEn extends EterStrings {
   // ----------------------------------------------------------------- account
 
   @override
+  String get headingAether => 'AETHER';
+  @override
+  String aetherTrialDaysLeft(int days) => days == 1
+      ? 'One day left of your trial.'
+      : '$days days left of your trial.';
+  @override
+  String get aetherTrialEndsToday => 'Your trial ends today.';
+  @override
+  String get aetherTrialExplainsItself =>
+      'Thirty days, because Aether needs about three weeks of your records '
+      'before it can tell you something about yourself that you did not '
+      'already know.';
+  @override
+  String get aetherLapsed =>
+      'Your trial has ended, so Aether is no longer composing.';
+  @override
+  String get aetherSubscribed => 'Aether is composing.';
+  @override
+  String get aetherUnconfigured =>
+      'This build has no guidance endpoint, so Aether cannot compose on it. '
+      'Nothing you have is affected.';
+  @override
+  String get aetherRecordKeepsWorking =>
+      'Everything you have written and recorded stays, and keeps working — the '
+      'journal, your health history, the charts, your astrogram. It is the '
+      'composing that stops.';
+  @override
+  String subscribeMonthly(String price) => 'Subscribe · $price a month';
+  @override
+  String subscribeYearly(String price) => 'Subscribe · $price a year';
+  @override
+  String get launchPriceWillRise =>
+      'This is a launch price and will rise. Subscribing now does not lock it '
+      'in — we would rather say so than surprise you later. A year bought now '
+      'is a year at this price.';
+  @override
+  String get restorePurchases => 'Restore purchase';
+  @override
+  String get billingNotOnThisBuild =>
+      'This build cannot take payment yet.';
+  @override
   String get headingAccount => 'ACCOUNT';
   @override
   String get buildHasNoAccountSystem =>

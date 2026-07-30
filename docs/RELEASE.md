@@ -26,6 +26,7 @@ account, a credential or a deployment that only the product owner can create.
 | Release build | `flutter build apk --release` produces an **80.1 MB** APK, under Play's 150 MB ceiling. |
 | Account deletion | In-app, two-tap, in the Sanctum. Clears the mirror **then** the account — see `DATA_STORAGE.md` §2 for why that order is not optional. Required by Apple 5.1.1(v) and Play's data-deletion policy for any app offering account creation. |
 | Health write-back | Weights and confirmed meals only, and only what Eter originated. See `DATA_STORAGE.md` §5. |
+| Entitlements | One resolver, `core/entitlement/entitlement.dart`, read at section level and never inside a control — the coupling `STEERING_BRIEF.md` warns about twice. 30-day trial from first launch; the transport is gated on it as defence in depth, so a surface that forgot cannot spend money. **No billing behind it yet** — `SubscriptionService` has no implementation, exactly as `AccountService` once had none, and null is a shipped configuration. |
 | AI transport | `core/ai/transport.dart` posts one bounded payload to an owner-controlled endpoint. No model key in the client. `server/worker.js` is the deployable endpoint; `docs/AI_ENDPOINT.md` is its contract. |
 | Accounts | Optional. Email with confirmation, and Google. Firebase project `eter-39165`, billing disabled. Apple sign-in is one provider away and needs a membership. |
 | Cloud mirror | `core/sync/`. Measured record under one consent, journal prose under its own. Restore refuses on a device with history. |
@@ -68,7 +69,16 @@ decision.
    Apple too.
 8. **Store listing copy and screenshots.** The golden captures under
    `app/test/golden/` are the honest source for screenshots.
-9. **Rotate the development Gemini key** before any public build. It has been
+9. **Store subscription products.** Two of them — `eter.monthly` at $4.99 and
+   `eter.yearly` at $39.99 — created in both consoles, with **regional pricing
+   set rather than a flat conversion**: $5 is about 36 PLN, and Polish
+   subscription apps land at 19–29. Polish is one of Eter's two languages and its
+   cheapest acquisition market, so a flat price throws that away. The prices in
+   `_AetherAccess` are placeholders and must be replaced by the store's own
+   localised strings, not translated.
+10. **Bind the rate limiter** (`server/wrangler.toml`) before there are paying
+    users. Without it the worker logs `limits=kv-approximate` and means it.
+11. **Rotate the development Gemini key** before any public build. It has been
    handled in plain text during development and belongs only to
    `tool/dev_endpoint.secret`, which is gitignored and has never been
    committed.

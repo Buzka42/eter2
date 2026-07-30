@@ -22,6 +22,15 @@ import '../db/app_database.dart';
 abstract final class EterInstallId {
   static const answerKey = 'ai_install_id';
 
+  /// When this install first ran, which is when the trial starts.
+  ///
+  /// Written beside the install id and for the same reason: this is the earliest
+  /// moment Eter has, and it is before there is a profile row to hang anything on.
+  /// Deliberately *not* when onboarding finished — somebody who opens Eter, looks
+  /// around and returns a week later has used a week, and a countdown that
+  /// disagreed with the calendar would be the kind of thing people notice.
+  static const firstLaunchKey = 'first_launch_at';
+
   /// The id for this install, minting one on first use.
   ///
   /// Read through [AppDatabase] rather than a preferences plugin so it lives in
@@ -39,6 +48,23 @@ abstract final class EterInstallId {
       tier: 'optional',
     );
     return minted;
+  }
+
+  /// When this install first ran, recording it if nobody has.
+  static Future<DateTime> firstLaunch(
+    AppDatabase database, {
+    required DateTime now,
+  }) async {
+    final stored = (await database.loadIntakeAnswers())[firstLaunchKey]?.value;
+    final parsed = stored == null ? null : DateTime.tryParse(stored);
+    if (parsed != null) return parsed;
+    final at = now.toUtc();
+    await database.saveIntakeAnswer(
+      key: firstLaunchKey,
+      value: at.toIso8601String(),
+      tier: 'optional',
+    );
+    return at;
   }
 
   static String _mint() {

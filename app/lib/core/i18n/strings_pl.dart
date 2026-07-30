@@ -1006,6 +1006,48 @@ class EterStringsPl extends EterStrings {
   // ----------------------------------------------------------------- account
 
   @override
+  String get headingAether => 'AETHER';
+  @override
+  String aetherTrialDaysLeft(int days) => switch (days) {
+        1 => 'Został jeden dzień okresu próbnego.',
+        _ => 'Zostało $days ${_dni(days)} okresu próbnego.',
+      };
+  @override
+  String get aetherTrialEndsToday =>
+      'Twój okres próbny kończy się dzisiaj.';
+  @override
+  String get aetherTrialExplainsItself =>
+      'Trzydzieści dni, bo Aether potrzebuje około trzech tygodni Twoich '
+      'zapisów, żeby powiedzieć Ci o Tobie coś, czego jeszcze nie wiedziałeś.';
+  @override
+  String get aetherLapsed =>
+      'Okres próbny się skończył, więc Aether już nie komponuje.';
+  @override
+  String get aetherSubscribed => 'Aether komponuje.';
+  @override
+  String get aetherUnconfigured =>
+      'Ta wersja nie ma punktu końcowego wskazówek, więc Aether nie może w niej '
+      'komponować. Nic z tego, co masz, nie jest tym dotknięte.';
+  @override
+  String get aetherRecordKeepsWorking =>
+      'Wszystko, co napisałeś i zapisałeś, zostaje i działa dalej — dziennik, '
+      'historia zdrowia, wykresy, Twój astrogram. Zatrzymuje się samo '
+      'komponowanie.';
+  @override
+  String subscribeMonthly(String price) => 'Subskrybuj · $price miesięcznie';
+  @override
+  String subscribeYearly(String price) => 'Subskrybuj · $price rocznie';
+  @override
+  String get launchPriceWillRise =>
+      'To cena startowa i wzrośnie. Subskrypcja teraz jej nie zamraża — wolimy '
+      'to powiedzieć, niż zaskoczyć Cię później. Rok kupiony teraz to rok w tej '
+      'cenie.';
+  @override
+  String get restorePurchases => 'Przywróć zakup';
+  @override
+  String get billingNotOnThisBuild =>
+      'Ta wersja nie może jeszcze przyjąć płatności.';
+  @override
   String get headingAccount => 'KONTO';
   @override
   String get buildHasNoAccountSystem =>
