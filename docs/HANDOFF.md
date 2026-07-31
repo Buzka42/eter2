@@ -105,6 +105,15 @@ reasoning for each choice. In brief:
   returns, accept either on save. Candidates are named by reverse-geocoding
   each hit, capped at four. `test/place_suggestions_test.dart` drives the
   debounce, staleness and failure paths under `fake_async`.
+
+  The rows have their **own** widget test, and they need one: the platform
+  geocoder is the only real `PlaceSuggester` and it throws under a test
+  binding, so nothing else in the suite renders a single suggestion. Writing
+  it found two defects immediately — the rows were keyed on the label, so two
+  Springfields in the same state threw `Duplicate keys found`, and they stood
+  at 44 dp against the product's own 48 dp tap floor. Both fixed. If you add
+  anything to that list, put it in `place_suggestions_widget_test.dart`,
+  because no other test can see it.
 - **Astrogram "go deeper"** — a `THE CHART` / `KOSMOGRAM` action under the
   wheel opens per-planet passages (Mercury through Neptune) composed through
   the **same** `VesselReadingComposer`, same `inputHash` cache, same
@@ -479,7 +488,8 @@ widgets ended up sharing a semantics label. When they fail, read the failure bef
 re-recording — **four** times in this branch the failure was a real defect, not a
 stale image. Two of the four were on 1 August: `Go deeper into the chart` ran 181 px
 past the action row in Polish and 9.4 px past it in English, which is how that
-button ended up a two-word noun in both languages.
+button ended up a short noun in both languages. The action row at 320 dp × 200 %
+has room for roughly nine characters; budget for that before writing a verb.
 
 **An overflow fails `--update-goldens` too**, which is the behaviour you want:
 the capture throws before it is written, so a bad layout cannot be recorded as
@@ -492,6 +502,15 @@ always the tree never being disposed: `eterTestDatabase()` leaves Drift a
 zero-duration close timer, and `closeShell` in `shell_test.dart` is what flushes
 it. Put new shell-level tests in that file rather than standing up a second
 harness — one was written on 1 August and hung until it moved.
+
+**A surface behind a platform plugin is a surface no test renders.**
+`eterRunningTests()` disables video outright and the geocoder throws under the
+test binding, so the Arcana loops and the birth-place suggestion rows are both
+invisible to the whole suite — they pass every run without ever being drawn.
+Give anything in that position its own test with a fake, and drive the widget
+directly rather than through the surface that owns it. Doing that for the
+suggestion rows found a `Duplicate keys found` crash and a 44 dp tap target on
+the first run.
 
 **Polish decides layout more often than English.** But not always: `DASHBOARD` is
 nine letterspaced caps against `PULPIT`'s six, so the Sanctum mark collided in

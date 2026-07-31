@@ -124,9 +124,21 @@ class PlaceSuggestionList extends StatelessWidget {
           children: [
             for (final candidate in candidates)
               InkWell(
-                key: ValueKey('place-suggestion-${candidate.label}'),
+                // Keyed on the coordinates, which the suggester has already
+                // deduplicated, rather than on the label — two Springfields
+                // in the same state share a name, and two identical keys
+                // among siblings is a framework error, not a cosmetic one.
+                key: ValueKey(
+                  'place-suggestion-'
+                  '${candidate.latitude},${candidate.longitude}',
+                ),
                 onTap: () => onChosen(candidate),
-                child: Padding(
+                child: Container(
+                  // The product's own tap floor. The padding alone left the
+                  // rows at 44 dp, and these are the smallest targets in
+                  // onboarding.
+                  constraints: const BoxConstraints(minHeight: 48),
+                  alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   child: Text(candidate.label, style: text.bodyMedium),
                 ),
