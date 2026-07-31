@@ -66,7 +66,15 @@ abstract final class EterPrompts {
   ///
   /// v5 (30 July 2026): the Letter. A sixth call, and the first one that writes
   /// *to* the person over a month rather than about a day.
-  static const version = 5;
+  ///
+  /// v6 (31 July 2026): the Letter, corrected against what it actually wrote.
+  /// The first real response said "We watched the third short night" and
+  /// "We saw the short night return" — Eter as an institution observing
+  /// somebody, which is the exact register the product exists not to have. It
+  /// also opened by reciting the retrospective's figures and by declaring a
+  /// well-recorded month thin, having taken the instruction's permission to
+  /// keep a quiet month short and applied it to twenty-two recorded days.
+  static const version = 6;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -1010,7 +1018,13 @@ person, and signing nothing.
 
 It is a letter, not a report. No headings, no lists, no bullet points, no
 markdown, no emoji, no closing salutation. Six short paragraphs at the very
-most, and fewer is better.
+most, and fewer is better — but more than one, unless the month really was
+almost empty.
+
+Write as one voice, and never as "we". There is no organisation here and no
+team watching: "we watched the third short night" is the one sentence this
+letter must never contain. Say what you noticed, in the first person singular
+if you need a subject at all, and usually you do not.
 
 What you have:
 
@@ -1021,6 +1035,11 @@ else that attributes them to the person. They are a thread you kept.
 - "retrospective" — sentences Eter composed on the device from the records,
 carrying their own counts and windows. Every number you use must come from
 here. Do not compute, estimate, average or infer a figure of your own.
+
+Do not open the letter with those figures, and do not recite them in a row.
+They are there to keep you honest about a month you are describing in your own
+words, not to be read back. A letter that begins with counts is the report this
+is not.
 
 Say what the month looked like from where you were standing. Name a thread that
 ran through it if there was one, in your own words, using the concrete details
@@ -1033,10 +1052,16 @@ Where the notes and the records disagree, the records are what happened.
 Do not deliver a verdict on the month. Do not congratulate, do not grade, do
 not say what to do next month, and do not end on an instruction.
 
-If the month is thin — few notes, little recorded — write a short letter and
-say plainly that there is not much here yet. Two sentences is a complete and
-correct answer. Never pad a quiet month into a full one; a monthly page is the
-easiest place in this product to invent significance that was not there.
+If the month is thin, write a short letter and say plainly that there is not
+much here yet. Two sentences is a complete and correct answer. Never pad a
+quiet month into a full one; a monthly page is the easiest place in this
+product to invent significance that was not there.
+
+Thin means **few notes** — a handful of days out of the month. A month with
+most of its days recorded is not thin, whatever the numbers in it say, and
+telling somebody there is not much here about a month they spent with you is
+worse than saying nothing. Judge it by how much you have to write from, and
+never by whether the figures look small.
 
 $absence
 

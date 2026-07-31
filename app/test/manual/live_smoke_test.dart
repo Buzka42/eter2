@@ -22,6 +22,7 @@ import 'package:drift/native.dart';
 import 'package:eter/core/i18n/language.dart';
 import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
+import 'package:eter/core/aether/letter.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
 import 'package:eter/core/aether/request_contract.dart';
 import 'package:eter/core/ai/prompts.dart';
@@ -43,6 +44,29 @@ const _endpoint = String.fromEnvironment(
   defaultValue: 'http://127.0.0.1:8787',
 );
 
+/// Empty for the local dev endpoint, which does not check one. The deployed
+/// worker does, and answers 401 without it.
+const _token = String.fromEnvironment('ETER_AI_TOKEN');
+
+/// A directory to record what the model actually said, or empty for none.
+///
+/// This is how the prompt fixtures get made. Every parser in the app is tested
+/// against hand-written JSON, which proves the parser and proves nothing about
+/// the prompt: a contract can drift until the model stops answering the shape
+/// the parser expects, and only a recorded real response shows it. Written
+/// under a name per call so a later run overwrites rather than accumulates.
+const _record = String.fromEnvironment('ETER_RECORD');
+
+Future<String> _recorded(String call, Future<String> Function() run) async {
+  final raw = await run();
+  if (_record.isNotEmpty) {
+    final file = File('$_record/$call.json');
+    await file.parent.create(recursive: true);
+    await file.writeAsString(raw);
+  }
+  return raw;
+}
+
 void main() {
   // SymbolContent reads an asset, so the composer path needs a binding. The
   // binding also stubs every HttpClient to answer 400, which is right for an
@@ -52,21 +76,22 @@ void main() {
   HttpOverrides.global = null;
 
   final transport = EterAiTransport(
-    config: const EterAiConfig(endpoint: _endpoint, token: ''),
+    config: const EterAiConfig(endpoint: _endpoint, token: _token),
     timeout: const Duration(seconds: 90),
   );
 
   group('live · $_endpoint', () {
-    test('guidance composes and parses', () => _guidance(transport));
-    test('the day story composes and parses', () => _dayStory(transport));
+    test('guidance composes and parses', () => _recorded('guidance', () => _guidance(transport)));
+    test('the day story composes and parses', () => _recorded('journalDayStory', () => _dayStory(transport)));
     test(
-        'interpretation composes and parses', () => _interpretation(transport));
+        'interpretation composes and parses', () => _recorded('journalInterpretation', () => _interpretation(transport)));
     test('interpretation reads weight, a run and lifted work',
         () => _bodyInterpretation(transport));
-    test('vessel readings compose and parse', () => _vesselReadings(transport));
+    test('vessel readings compose and parse', () => _recorded('vesselReadings', () => _vesselReadings(transport)));
     test('the real composer writes the initial readings',
         () => _vesselThroughComposer(transport));
-    test('positions compose and parse', () => _positions(transport));
+    test('positions compose and parse', () => _recorded('positions', () => _positions(transport)));
+    test('the letter composes and parses', () => _recorded('letter', () => _letter(transport)));
   },
       skip: _enabled
           ? false
@@ -303,5 +328,47 @@ Future<String> _positions(EterAiTransport transport) async {
       decoded['guidanceNote'] is! String) {
     throw const FormatException('No passage and note in the response');
   }
+  return raw;
+}
+
+/// The sixth call, and the only one that composes over a month.
+///
+/// The recalls it is handed here are shaped like the ones guidance writes —
+/// telegraphic, no articles, its own words about what it had already said —
+/// because the instruction's hardest constraint is that the letter must never
+/// attribute them to the person. A live pass proves the schema and the ceiling
+/// hold; whether it *obeys* that constraint is what reading the output is for,
+/// which is why this prints it.
+Future<String> _letter(EterAiTransport transport) async {
+  final prompt = EterPrompts.letter(
+    mode: GuidanceMode.balanced,
+    language: AppLanguage.english,
+    month: '2026-06',
+    recalls: const [
+      'third short night. hrv down. deadline friday. offered early wind-down.',
+      'slept 8h. hrv recovering. lighter mood. suggested keeping the evening.',
+      'no movement logged. wrote about a hard conversation.',
+      'long walk. steps double the week. said it felt like clearing.',
+      'short night again. same week pattern as before the deadline.',
+      'rest day taken deliberately. first time this month.',
+      'steady. nothing to flag.',
+    ],
+    retrospective: const [
+      'Movement was recorded on 22 of 30 days, 9100 steps across 22 measured '
+          'days.',
+      'Sleep was available for 19 of 30 nights, averaging 6.8 hours.',
+      'You made 11 journal entries during this window.',
+      'Missing days are omitted, not treated as zero.',
+    ],
+  );
+  final raw = await TransportLetterProvider(transport).compose(
+    LetterProviderRequest(
+      system: prompt.system,
+      context: prompt.user,
+      responseSchema: prompt.responseSchema,
+    ),
+  );
+  // The real parser, including the safety policy.
+  const LetterParser().parse(raw);
   return raw;
 }

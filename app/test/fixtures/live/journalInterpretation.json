@@ -1,0 +1,24 @@
+{
+  "status": "classified",
+  "food": [
+    {
+      "meal": "Two poached eggs on rye with butter, and a flat white",
+      "kcal": 380,
+      "proteinG": 18,
+      "carbsG": 32,
+      "fatG": 18,
+      "confidence": 0.8,
+      "assumptions": [
+        "assumed two standard poached eggs",
+        "assumed two slices of rye bread with a moderate spread of butter",
+        "assumed a flat white made with whole milk in a standard cafe size"
+      ]
+    }
+  ],
+  "lifestyle": [
+    {
+      "kind": "sleep",
+      "note": "Slept about seven hours, woke twice."
+    }
+  ]
+}

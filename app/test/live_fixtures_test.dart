@@ -1,0 +1,98 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:eter/core/aether/guidance_contract.dart';
+import 'package:eter/core/aether/guidance_mode.dart';
+import 'package:eter/core/aether/letter.dart';
+import 'package:eter/core/journal/day_story.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+/// Every parser, over what the model actually said.
+///
+/// The rest of the suite tests these against JSON somebody wrote by hand, which
+/// proves the parser and proves nothing about the prompt. The failure this
+/// cannot otherwise see is drift: an instruction edited until the model stops
+/// answering the shape the parser expects, with both halves still internally
+/// consistent and every hand-written test still green.
+///
+/// So these are recorded responses from the deployed endpoint, replayed with no
+/// network. Re-record with
+/// `test/manual/live_smoke_test.dart --dart-define=ETER_RECORD=<dir>` after
+/// changing a prompt — and read what comes back, because a fixture that parses
+/// is not the same as a fixture that reads well. The first letter captured here
+/// opened with "We watched the third short night", which parsed perfectly.
+void main() {
+  final directory = Directory('test/fixtures/live');
+
+  String fixture(String call) =>
+      File('${directory.path}/$call.json').readAsStringSync();
+
+  setUpAll(() {
+    if (!directory.existsSync()) {
+      fail('No recorded responses in ${directory.path}');
+    }
+  });
+
+  test('guidance parses, and its evidence is inside its own payload', () {
+    final parsed = const AetherGuidanceParser().parse(
+      fixture('guidance'),
+      mode: GuidanceMode.balanced,
+    );
+    expect(parsed.dimensions, hasLength(4));
+    for (final dimension in parsed.dimensions) {
+      expect(dimension.sentences, isNotEmpty);
+      expect(dimension.primaryAction.trim(), isNotEmpty);
+    }
+    expect(parsed.recall, isNotNull);
+  });
+
+  test('the day story parses, story and digest both', () {
+    final parsed = const JournalDayStoryParser().parse(fixture('journalDayStory'));
+    expect(parsed.story.trim(), isNotEmpty);
+  });
+
+  test('the letter parses, and the safety policy accepts it', () {
+    final letter = const LetterParser().parse(fixture('letter'));
+    expect(letter.trim(), isNotEmpty);
+  });
+
+  group('what the recorded output is not allowed to contain', () {
+    test('the letter never speaks as "we"', () {
+      // It did, on the first real call: "We watched the third short night" —
+      // Eter as an institution observing somebody, which is the register this
+      // product exists not to have. `EterPrompts.version` 6 forbids it, and
+      // this is the check that notices if it comes back.
+      final letter = const LetterParser().parse(fixture('letter'));
+      expect(
+        RegExp(r'\b[Ww]e\b').hasMatch(letter),
+        isFalse,
+        reason: letter,
+      );
+    });
+
+    test('the synthesis carries no figure, so it may cross to a correspondent',
+        () {
+      // `CorrespondencePolicy` refuses any shared line containing a digit, on
+      // the grounds that Eter's synthesis never quotes one — the numbers live
+      // in `evidence`, which does not cross. That is an assumption about what
+      // the model writes, and this is the only place it can be checked against
+      // what the model actually wrote.
+      final decoded =
+          jsonDecode(fixture('guidance')) as Map<String, dynamic>;
+      final synthesis = decoded['synthesis'] as Map<String, dynamic>;
+      final sentences = (synthesis['sentences'] as List).join(' ');
+      expect(RegExp(r'\d').hasMatch(sentences), isFalse, reason: sentences);
+    });
+
+    test('the recall is telegraphic, not the prose it came from', () {
+      final decoded = jsonDecode(fixture('guidance')) as Map<String, dynamic>;
+      final recall = decoded['recall'] as String;
+      expect(recall.length, lessThanOrEqualTo(160));
+      // A note that came back as a paragraph means the instruction stopped
+      // landing, and the next day's request would carry prose instead of a
+      // thread.
+      expect(recall.split(RegExp(r'[.!?]')).where((s) => s.trim().length > 40),
+          isEmpty, reason: recall);
+    });
+  });
+}
