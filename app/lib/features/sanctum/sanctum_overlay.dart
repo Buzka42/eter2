@@ -1614,7 +1614,7 @@ class _LocalExportState extends State<_LocalExport> {
       final bundle = await LocalDataExporter(widget.database).export();
       if (!mounted) return;
       setState(() {
-        _path = bundle.directory.path;
+        _path = bundle.readablePath;
         _message = strings.localExportReady;
       });
     } catch (_) {

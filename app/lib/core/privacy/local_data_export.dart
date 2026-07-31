@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart' show MissingPluginException;
+import 'package:flutter/services.dart' show MethodChannel;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -12,11 +12,19 @@ class LocalExportBundle {
     required this.directory,
     required this.snapshot,
     required this.csvFiles,
+    this.publishedTo,
   });
 
   final Directory directory;
   final File snapshot;
   final List<File> csvFiles;
+
+  /// Where the copy in the phone's Downloads folder went, if one was made.
+  /// Null on a platform with no shared Downloads, which is not a failure.
+  final String? publishedTo;
+
+  /// The path worth showing somebody: the one they can navigate to.
+  String get readablePath => publishedTo ?? directory.path;
 }
 
 /// Writes a user-readable local export without involving an account or
@@ -31,40 +39,23 @@ class LocalDataExporter {
 
   final AppDatabase database;
 
-  /// Where an export lands, in order of preference.
+  /// The platform side of publishing into the shared Downloads collection.
+  /// See `MainActivity.kt` for why it is MediaStore rather than a file write.
+  static const _downloads = MethodChannel('eter/downloads');
+
+  /// Two copies, on purpose.
   ///
-  /// The Downloads directory, because the old destination was the application
-  /// documents directory — app-private, invisible to every file manager, and
-  /// unreachable by the document picker, so you could export a record and then
-  /// not be able to hand it to anything, including Eter's own restore.
+  /// The bundle is written to storage this app owns — that copy always exists,
+  /// needs no permission and no platform support, and is what the tests read.
+  /// It is then *published* into the phone's shared Downloads, which is the
+  /// copy a person can actually reach: the documents directory is invisible to
+  /// every file manager and every document picker, so an export that only
+  /// lived there could not be handed to anything, including Eter's own restore.
   ///
-  /// This is Android's **app-specific** Downloads
-  /// (`Android/data/<package>/files/Download`), not the shared one. Writing to
-  /// the shared folder needs `MANAGE_EXTERNAL_STORAGE`, which is a permission
-  /// to read every file on the phone, and a product whose whole argument is
-  /// that your record stays yours does not get to ask for that in order to
-  /// save a JSON file. The app-specific folder is on external storage: the
-  /// picker can see it, USB can see it, and it survives uninstall no better or
-  /// worse than the documents directory did.
-  ///
-  /// Falls back to documents when the platform has no Downloads to offer.
-  static Future<Directory> defaultDestination() async {
-    try {
-      final downloads = await getDownloadsDirectory();
-      if (downloads != null) {
-        await downloads.create(recursive: true);
-        return downloads;
-      }
-    } on MissingPluginException {
-      // Desktop test hosts and anything without the plugin registered.
-    } on UnsupportedError {
-      // A platform path_provider has no Downloads for.
-    }
-    return getApplicationDocumentsDirectory();
-  }
+  /// Publishing is best-effort and its failure is not the export's failure.
 
   Future<LocalExportBundle> export({Directory? destination}) async {
-    final base = destination ?? await defaultDestination();
+    final base = destination ?? await getApplicationDocumentsDirectory();
     final stamp = DateTime.now()
         .toUtc()
         .toIso8601String()
@@ -109,11 +100,44 @@ class LocalDataExporter {
       flush: true,
     );
 
+    // And a copy where a person can actually find it.
+    //
+    // Everything above wrote to storage this app owns, which is the copy Eter
+    // itself reads and the one that is guaranteed to exist. This publishes the
+    // same files into the phone's Downloads, where a file manager, a cable and
+    // Eter's own restore can all reach them. Best-effort on purpose: an export
+    // that succeeded and could not be published is still an export.
+    final published = await _publish(directory);
+
     return LocalExportBundle(
       directory: directory,
       snapshot: snapshot,
       csvFiles: csvFiles,
+      publishedTo: published,
     );
+  }
+
+  /// Copies [directory] into the shared Downloads folder, returning the path a
+  /// person would recognise, or null where the platform has no such place.
+  static Future<String?> _publish(Directory directory) async {
+    final folder = p.basename(directory.path);
+    String? published;
+    try {
+      for (final file in directory.listSync().whereType<File>()) {
+        final at = await _downloads.invokeMethod<String>('publish', {
+          'path': file.path,
+          'folder': folder,
+        });
+        published ??= at == null ? null : p.dirname(at);
+      }
+    } catch (_) {
+      // Deliberately everything. Not Android, no plugin registered, MediaStore
+      // refused, a test host with no binding — the answer is the same in every
+      // case and it is not an error: the bundle above is already written, and
+      // this copy only ever adds discoverability. An export that succeeded
+      // must not be reported as failed because a convenience did not.
+    }
+    return published;
   }
 
   static String _toCsv(List<Map<String, Object?>> rows) {
