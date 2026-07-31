@@ -246,11 +246,28 @@ different job: those are foreign shapes, not Eter's own snapshot.
 document picker filters by MIME type and would hide a `.json` the file manager
 reports as `application/octet-stream`, which is most of them.
 
-**One thing that surprised me:** the app's own export lands in app-private
-storage, which the document picker cannot reach. So you cannot export and
-re-import on the same phone — fine for the case this exists for (a new phone, a
-file copied across) but it means the obvious way to try the feature does not
-work.
+**The export now lands in the phone's Downloads folder**, which is the owner's
+decision and fixes the thing that made the feature untryable: it used to be
+written to the application documents directory, invisible to every file manager
+and every document picker, so you could export your record and then hand it to
+nothing — including Eter's own restore.
+
+Two attempts, and the first was wrong. `getDownloadsDirectory()` on Android is
+the **app-specific** external Downloads, and `Android/data` is hidden from the
+picker on Android 11+; browsing to it on the device showed `Android/` containing
+only `media/`. So it publishes through **MediaStore** instead, which needs no
+permission at all on API 29+ — see `MainActivity.kt`. Writing to
+`/storage/emulated/0/Download` directly would need `MANAGE_EXTERNAL_STORAGE`,
+permission to read every file on the phone, which this product must never ask
+for.
+
+There are two copies by design: the bundle in storage the app owns, which always
+exists and needs no platform support, and the published copy a person can reach.
+Publishing catches every failure on purpose — an export that succeeded must not
+report failure because a convenience did not.
+
+**Not yet seen on screen:** the published copy actually appearing in Downloads.
+Built, installed, and the cable dropped before the tap.
 
 **Prompt fixtures — still blocked.** All *six* parsers are tested against
 hand-written JSON, never against recorded model output. Record good, malformed,
