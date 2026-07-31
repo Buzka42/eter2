@@ -143,11 +143,19 @@ class LocalNotificationSink implements InvitationSink {
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _plugin.initialize(
       settings: const InitializationSettings(
-        // Not the launcher icon. Android draws the small icon as an alpha
-        // mask and tints it, so a full-colour adaptive icon arrives as a
-        // white blob. `ic_notification` is the mark reduced to what survives
-        // at 24dp — see the comment in the drawable.
-        android: AndroidInitializationSettings('@drawable/ic_notification'),
+        // A bare resource name, not `@drawable/ic_notification`.
+        //
+        // The plugin resolves this with
+        // `getIdentifier(name, "drawable", packageName)`, which returns **0**
+        // for anything carrying an `@drawable/` or `@mipmap/` prefix — and
+        // `setSmallIcon(0)` means the notification is never posted at all.
+        // Silently: the alarm fires, the receiver runs, and nothing appears.
+        //
+        // Which is what happened. The original `@mipmap/ic_launcher` was
+        // never going to render as the white blob an adaptive icon usually
+        // gives you; it was never going to render. The device found this by
+        // firing on time and staying quiet.
+        android: AndroidInitializationSettings('ic_notification'),
         iOS: DarwinInitializationSettings(
           // Asked for explicitly in [requestPermission], not on first launch.
           // Eter does not open with a permission dialog for something that is
