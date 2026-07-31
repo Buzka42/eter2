@@ -1527,6 +1527,24 @@ class EterStringsEn extends EterStrings {
   @override
   String letterMonth(String month) => 'On $month';
   @override
+  String get headingEveningInvitation => 'AN EVENING INVITATION';
+  @override
+  String get eveningInvitationOffDetail =>
+      'Eter never speaks first. Nothing arrives unless you open it.';
+  @override
+  String get eveningInvitationAllowedDetail =>
+      'One quiet invitation to write, at your own sunset. Not if you have '
+      'already written that day, and nothing else — no mornings, no streaks, '
+      'no reminders to come back.';
+  @override
+  String get eveningInvitationNotPermitted =>
+      'Your phone did not allow notifications, so nothing was turned on. You '
+      'can grant them in your phone’s settings.';
+  @override
+  String get invitationTitle => 'The evening';
+  @override
+  String get invitationBody => 'A page, if you want one.';
+  @override
   String get longViewNote =>
       'Keep turning back in the Journal’s history and the day widens — a week, '
       'a month, a year. It is counted on this device, so it works offline and '

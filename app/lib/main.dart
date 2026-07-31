@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ import 'core/diagnostics/crash_reporter.dart';
 import 'core/diagnostics/firebase_crash_reporter.dart';
 import 'core/journal/classification_contract.dart';
 import 'core/aether/letter.dart';
+import 'core/invitation/invitation_scheduler.dart';
 import 'core/journal/day_story.dart';
 import 'core/profile/birth_context.dart';
 import 'core/register.dart';
@@ -280,6 +282,16 @@ final positionsTransportProvider = Provider<PositionsProvider?>((ref) {
 final journalDayStoryProvider = Provider<JournalDayStoryProvider?>((ref) {
   final transport = ref.watch(aiTransportProvider);
   return transport == null ? null : TransportJournalDayStoryProvider(transport);
+});
+/// Null on a platform with no notifications to post. Everything else in the
+/// feature is pure and lives in `core/invitation/evening_invitation.dart`.
+final eveningInvitationSchedulerProvider =
+    Provider<EveningInvitationScheduler?>((ref) {
+  if (!Platform.isAndroid && !Platform.isIOS) return null;
+  return EveningInvitationScheduler(
+    database: ref.watch(databaseProvider),
+    sink: LocalNotificationSink(),
+  );
 });
 final letterProvider = Provider<LetterProvider?>((ref) {
   final transport = ref.watch(aiTransportProvider);

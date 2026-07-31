@@ -108,6 +108,15 @@ class Profiles extends Table {
   /// promise is kept rather than merely stated.
   DateTimeColumn get crashReportConsentAt => dateTime().nullable()();
 
+  /// When the user allowed Eter to speak first. Null means it does not, which
+  /// is the default and stays the default on upgrade.
+  ///
+  /// It buys exactly one thing: a single quiet local notification in the
+  /// evening, inviting a page, at the real sunset. No morning reading, no
+  /// streak, no re-engagement — `DECISIONS.md`. Nothing leaves the device for
+  /// it; there is no server involved in a local notification.
+  DateTimeColumn get eveningInvitationConsentAt => dateTime().nullable()();
+
   /// When the user consented to cloud sync. Null means local-only.
   ///
   /// This covers the measured record: weights, meals, sessions, sleep, day

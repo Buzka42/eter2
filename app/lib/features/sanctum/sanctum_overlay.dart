@@ -44,6 +44,21 @@ class SanctumOverlay extends ConsumerWidget {
     final ink = EterInk.of(context);
     final strings = EterStrings.of(context);
 
+    /// Granting asks the OS first and stores nothing if it refuses — a consent
+    /// showing ALLOWED that the system will not honour is a lie in the one
+    /// place in this product that must not tell one. Revoking cancels the
+    /// pending invitation in the same breath, so it takes effect now rather
+    /// than after the next sunset.
+    Future<void> setEveningInvitation({required bool allowed}) async {
+      final scheduler = ref.read(eveningInvitationSchedulerProvider);
+      if (scheduler == null) return;
+      if (allowed) {
+        await scheduler.grant(now: ref.read(nowProvider)());
+      } else {
+        await scheduler.revoke();
+      }
+    }
+
     return SurfaceIntentScope(
       intent: SurfaceIntent.plain,
       child: ColoredBox(
@@ -219,6 +234,33 @@ class SanctumOverlay extends ConsumerWidget {
                           ? null
                           : (value) => db.updateProfileConsents(
                                 journalCloudSyncAllowed: value == 'allowed',
+                              ),
+                    ),
+                    const SizedBox(height: EterSpace.s24),
+                    // The only consent here that is not about data leaving the
+                    // device. Nothing leaves for a local notification; what it
+                    // grants is the right to interrupt, which is why it sits
+                    // with the others rather than in a "preferences" list.
+                    _ChoiceGroup(
+                      id: 'evening-invitation',
+                      heading: strings.headingEveningInvitation,
+                      value: profile?.eveningInvitationConsentAt == null
+                          ? 'off'
+                          : 'allowed',
+                      choices: {
+                        'off': strings.off,
+                        'allowed': strings.allowed,
+                      },
+                      descriptions: {
+                        'off': strings.eveningInvitationOffDetail,
+                        'allowed': strings.eveningInvitationAllowedDetail,
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) => unawaited(
+                                setEveningInvitation(
+                                  allowed: value == 'allowed',
+                                ),
                               ),
                     ),
                     const SizedBox(height: EterSpace.s24),

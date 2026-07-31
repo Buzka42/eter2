@@ -8,6 +8,17 @@
          recogniser and never reaches Eter as sound: only the transcript does,
          and only into the entry the person is already writing. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- The evening invitation, and nothing else. Deliberately stripped once,
+         when Eter had no reason to interrupt anybody; it is back because
+         DECISIONS.md grants exactly one quiet local notification, off by
+         default, at the real sunset. There is no server behind it — nothing
+         leaves the device to schedule a local alarm — and no other
+         notification exists in the product to attach itself to this. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- The invitation is placed at a computed sunset, so it has to survive a
+         reboot; otherwise a phone restarted at lunchtime is silent that
+         evening and there is no background poll to notice. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION"/>
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
     <uses-permission android:name="android.permission.health.READ_STEPS"/>

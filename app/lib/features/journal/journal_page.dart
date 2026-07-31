@@ -70,6 +70,17 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     // endpoint was unreachable — is read when the Journal next opens.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) unawaited(_autoInterpret());
+      // The app's own comings and goings are the only clock the invitation
+      // has. Cheap and idempotent: it reads consent, and with none it cancels
+      // and returns.
+      if (mounted) {
+        unawaited(
+          ref
+                  .read(eveningInvitationSchedulerProvider)
+                  ?.sync(now: ref.read(nowProvider)()) ??
+              Future<void>.value(),
+        );
+      }
     });
   }
 
@@ -175,6 +186,13 @@ class _JournalPageState extends ConsumerState<JournalPage> {
       unawaited(_storyKey.currentState?.refresh() ?? Future<void>.value());
       // And the page that was just kept is read, without being asked about.
       unawaited(_autoInterpret());
+      // Somebody who has now written does not need inviting tonight. There is
+      // no background job in this product, so a save is one of the few moments
+      // the pending invitation can be brought up to date.
+      unawaited(
+        ref.read(eveningInvitationSchedulerProvider)?.sync(now: now) ??
+            Future<void>.value(),
+      );
     } finally {
       _saving = false;
     }

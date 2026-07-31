@@ -1723,6 +1723,25 @@ class EterStringsPl extends EterStrings {
   @override
   String letterMonth(String month) => 'O miesiącu: $month';
   @override
+  String get headingEveningInvitation => 'WIECZORNE ZAPROSZENIE';
+  @override
+  String get eveningInvitationOffDetail =>
+      'Eter nigdy nie odzywa się pierwszy. Nic nie przyjdzie, dopóki go nie '
+      'otworzysz.';
+  @override
+  String get eveningInvitationAllowedDetail =>
+      'Jedno ciche zaproszenie do pisania, o twoim zachodzie słońca. Nie w '
+      'dniu, w którym już piszesz, i nic poza tym — żadnych poranków, serii '
+      'ani przypomnień, żeby wrócić.';
+  @override
+  String get eveningInvitationNotPermitted =>
+      'Telefon nie zgodził się na powiadomienia, więc nic nie zostało '
+      'włączone. Możesz je włączyć w ustawieniach telefonu.';
+  @override
+  String get invitationTitle => 'Wieczór';
+  @override
+  String get invitationBody => 'Strona, jeśli masz ochotę.';
+  @override
   String get longViewNote =>
       'Cofaj się w historii dziennika, a dzień się poszerzy — do tygodnia, '
       'miesiąca, roku. Wszystko liczy się na tym urządzeniu, więc działa bez '

@@ -509,6 +509,12 @@ explains why translating one would break the symbolic engine.
 | `headingLongView` | THE LONG VIEW | Z ODDALI |
 | `headingLetter` | A LETTER | LIST |
 | `letterMonth()` | On $month | O miesiącu: $month |
+| `headingEveningInvitation` | AN EVENING INVITATION | WIECZORNE ZAPROSZENIE |
+| `eveningInvitationOffDetail` | Eter never speaks first. Nothing arrives unless you open it. | Eter nigdy nie odzywa się pierwszy. Nic nie przyjdzie, dopóki go nie otworzysz. |
+| `eveningInvitationAllowedDetail` | One quiet invitation to write, at your own sunset. Not if you have already written that day, and nothing else — no mornings, no streaks, no reminders to come back. | Jedno ciche zaproszenie do pisania, o twoim zachodzie słońca. Nie w dniu, w którym już piszesz, i nic poza tym — żadnych poranków, serii ani przypomnień, żeby wrócić. |
+| `eveningInvitationNotPermitted` | Your phone did not allow notifications, so nothing was turned on. You can grant them in your phone’s settings. | Telefon nie zgodził się na powiadomienia, więc nic nie zostało włączone. Możesz je włączyć w ustawieniach telefonu. |
+| `invitationTitle` | The evening | Wieczór |
+| `invitationBody` | A page, if you want one. | Strona, jeśli masz ochotę. |
 | `longViewNote` | Keep turning back in the Journal’s history and the day widens — a week, a month, a year. It is counted on this device, so it works offline and costs nothing. | Cofaj się w historii dziennika, a dzień się poszerzy — do tygodnia, miesiąca, roku. Wszystko liczy się na tym urządzeniu, więc działa bez sieci i nic nie kosztuje. |
 | `longViewSpanName()` | WeekMonthYear | TydzieńMiesiącRok |
 | `longViewRecorded()` | $recorded of $total recorded. | Zapisane: $recorded z $total. |
@@ -519,4 +525,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-421 strings paired.
+427 strings paired.

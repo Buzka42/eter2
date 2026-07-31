@@ -821,6 +821,24 @@ abstract class EterStrings {
   /// Which month the letter is about, under the heading.
   String letterMonth(String month);
 
+  // ----------------------------------------------------- the evening invitation
+
+  /// The one thing in Eter that can interrupt somebody, and the Sanctum entry
+  /// that governs it. Off by default; `DECISIONS.md` grants exactly this and
+  /// nothing else.
+  String get headingEveningInvitation;
+  String get eveningInvitationOffDetail;
+  String get eveningInvitationAllowedDetail;
+
+  /// Shown when the system permission was refused, so the Sanctum does not
+  /// claim a consent the OS will not honour.
+  String get eveningInvitationNotPermitted;
+
+  /// The notification itself. Short, because it is read on a lock screen, and
+  /// an invitation rather than an instruction.
+  String get invitationTitle;
+  String get invitationBody;
+
   /// Week, month or year, for the mark that says which scale you are on.
   String longViewSpanName(LongViewSpanName span);
 

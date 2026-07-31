@@ -58,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
   /// fortnight of compressed notes guidance reads so it stops repeating itself;
   /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -189,6 +189,13 @@ class AppDatabase extends _$AppDatabase {
           // asks the schema rather than trusting `from`, exactly as
           // `_addColumnIfMissing` does.
           await _createTableIfMissing(m, letters);
+
+          // New in v14. Null, so nobody acquires a notification by upgrading.
+          // Consent is given, never inherited — the same reasoning as the
+          // cloud-mirror column above, and it matters more here, because this
+          // one is the only thing in Eter that can interrupt somebody.
+          await _addColumnIfMissing(
+              m, profiles, profiles.eveningInvitationConsentAt);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();
@@ -1211,6 +1218,16 @@ class AppDatabase extends _$AppDatabase {
   /// [journalAllowed] false drops notes written from journal material. A note
   /// composed while that consent was on may paraphrase a page, so withdrawing
   /// the consent has to withdraw the note with it.
+  /// Grants or withdraws the one permission that lets Eter speak first.
+  /// Null revokes; the scheduler cancels the pending invitation in the same
+  /// breath, so revoking takes effect now rather than after the next sunset.
+  Future<void> setEveningInvitationConsent(DateTime? at) async {
+    final current = await loadProfile();
+    if (current == null) return;
+    await (update(profiles)..where((row) => row.id.equals(current.id)))
+        .write(ProfilesCompanion(eveningInvitationConsentAt: Value(at)));
+  }
+
   /// The letter for a month, or null. The cache key of the sixth call: a month
   /// already written is never composed again, so a Letter costs one request per
   /// person per month and no more.
