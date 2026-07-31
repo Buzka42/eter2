@@ -47,7 +47,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 766 pass, 9 skipped
+flutter test          # expect 769 pass, 9 skipped
 flutter analyze       # expect clean
 ```
 
@@ -328,46 +328,34 @@ The parts that are load-bearing rather than incidental:
 **Not built, deliberately:** any notification that a line arrived. It appears
 when you next look, which is the whole register of the feature.
 
-### 8 · Verify nutrition write-back · *half proved, and blocked on something else*
+### 8 · Nutrition write-back · *done, and it was broken*
 
-The device run answered most of this and moved the blocker somewhere unexpected.
+Proven on the phone, end to end and by the route the product intends: a journal
+page about food → interpretation → two unconfirmed estimates in the Body →
+confirm one → `WRITE BACK` → *"[Health Connect] Meal was successfully added!"*
+The surface said "1 record written", the estimate left unconfirmed beside it was
+correctly not sent, and a second tap wrote nothing.
 
-**Weights: done.** Both rows on the device carry `writtenBackAt`, so weight
-write-back has succeeded against a real hub. Health Connect's permission sheet
-now offers only *Nutrition*, which is how you can tell `WRITE_WEIGHT` was already
-granted and used.
+Getting there found two real defects, both of the kind only a device produces:
 
-**Dedupe: done.** A second `WRITE BACK` reports "Nothing new to write."
+- **`writeMeal` passed a zero-length interval.** Health Connect's nutrition
+  record is an interval and rejects `startTime == endTime` — *"startTime must be
+  before endTime"*. The plugin catches it, returns false, the write-back skips
+  the row. Meals get one minute now: not a guess at how long somebody ate, the
+  smallest interval the platform will accept for something Eter holds as an
+  instant.
+- **Every unhappy path said the same reassuring thing.** `run()` returned an
+  `int`, so access refused, every record rejected, and nothing to do all
+  collapsed into zero and produced *"Nothing new to write. Everything you
+  entered is already there."* The second sentence was false while a confirmed
+  meal sat unwritten. It returns `HealthWriteBackResult` now and the Sanctum
+  distinguishes four outcomes.
 
-**Nutrition: still unproven, and not because of permissions** — those are granted
-now. `nutrition_entries` is **empty**, so `Health.writeMeal` has nothing to send
-and cannot be reached.
-
-And the reason it is empty is not a bug. **The Dashboard reads; the Journal
-writes** — the product rule of 28 July 2026, stated at the top of
-`body_section.dart`, which removed every capture control the Body used to carry.
-So the only way a meal enters Eter is by writing a page and letting
-interpretation derive one, and that needs the guidance endpoint.
-
-`ManualMealService` still exists, still records a confirmed meal, and still has
-its own tests — the class comment on `BodySection` says explicitly that the write
-services were kept when their surfaces went. But it has **no caller anywhere in
-`lib/`**, which makes it the only path that could produce a meal offline and the
-only path nothing can reach.
-
-That leaves a decision rather than a task, and it is the owner's:
-
-- **Deploy the endpoint**, write a page about a meal, confirm the estimate, then
-  `WRITE BACK`. This is the intended route and needs nothing new built.
-- **Or give `ManualMealService` a surface anyway** — which contradicts the
-  product rule above, so it wants a line in `DECISIONS.md` rather than a quiet
-  widget. There is a real argument for it: without one, a person with no network
-  cannot record eating at all, and the Body's balance is half-blind.
-
-Do not add the surface without deciding that second point out loud. Whichever
-way it goes, `Health.writeMeal` stays untested until a confirmed meal exists, and
-`DIETARY_ENERGY_CONSUMED` being Apple-only and *silently* filtered on Android is
-still the failure to watch for.
+**Left on the phone:** a test journal page dated 31 July, its day story, two
+derived meals (one confirmed and written to Health Connect), and the Health
+Connect record itself. Deleting the page removes the local rows through
+`revertJournalEntryRows` but *not* the Health Connect record, so tidy in that
+order if you want it gone.
 
 ---
 
