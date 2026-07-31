@@ -151,11 +151,32 @@ product question, so it is not built.
   since there is no background poll — and is best-effort.
 - `Letters` has **no retention expiry**, deliberately. `AI_FLOW.md` §6 says why.
 
-**Not proven:** no recorded model output has ever been run through
-`LetterParser`, because the endpoint is not deployed. It is the sixth entry for
-the prompt-fixture work in item 5, and the first one worth capturing — a letter
-is the longest thing Aether writes and the likeliest to drift past 2400
-characters or into the phrasing `AetherSafetyPolicy` blocks.
+**The endpoint is deployed, and it is stale.** `https://eter-ai.eter-ai.workers.dev`
+answers, returns 401 without a bearer token, and both `ETER_CLIENT_TOKEN` and
+`GEMINI_API_KEY` are set. But the last deployment is **29 July** and
+`server/worker.js` has three commits on top of it — including the one that added
+`letter` to `CALLS`. So **the Letter will come back `400 Unknown call: letter`
+until the worker is redeployed**:
+
+```bash
+cd server && npx wrangler deploy
+```
+
+**Also live and unmetered.** Both rate-limiter bindings are still commented out
+in `wrangler.toml`, so there is no per-install cap of any kind — not even the KV
+fallback. The worker logs `limits=kv-approximate` when it is running on the weak
+one; right now it is running on neither. `RELEASE.md` §2.2.
+
+**Still not proven:** no recorded model output has been through `LetterParser`.
+Building the app against the endpoint needs the token, which only the owner has:
+
+```bash
+flutter build apk --debug   --dart-define=ETER_AI_ENDPOINT=https://eter-ai.eter-ai.workers.dev   --dart-define=ETER_AI_TOKEN=<the client token>
+```
+
+A letter is the longest thing Aether writes and the likeliest to drift past 2400
+characters or into the phrasing `AetherSafetyPolicy` blocks, so it is the first
+fixture worth capturing.
 
 ### 4 · The evening invitation · *built; delivery unverified*
 
