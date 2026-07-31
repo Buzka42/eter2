@@ -193,14 +193,42 @@ cannot be built or verified here at all.
 
 One sentence from today's synthesis, already sitting in `GuidanceHistory`.
 
-### 7 · The Correspondence · *no device; needs new backend*
+### 7 · The Correspondence · *built; the rules are not deployed*
 
-Last, because it is the only feature needing a server surface that does not exist:
-pairing, a new Firestore collection, new security rules.
+`core/correspondence/` — the policy, the pairing, and the Firestore gateway.
+`firestore.rules` carries the server half and **validates**, but has never run
+against the live project.
 
-Two people, each with a wholly private record, sharing **only the day's composed
-sentence** — nothing measured, nothing written, no health data. It appears as one
-extra line beneath today's guidance. Pairing setup lives in the Sanctum.
+The parts that are load-bearing rather than incidental:
+
+- **`CorrespondencePolicy` runs on the way out and again on the way in.**
+  Neither makes the other redundant: outbound protects them from this device,
+  inbound protects this device from a compromised peer or a stale document. It
+  refuses any sentence containing a digit — Eter's synthesis never quotes a
+  figure, so a digit means something upstream changed, and trimming it would
+  leave a sentence still *about* the measurement.
+- **The rule is the third check**, and the only one an attacker cannot skip by
+  not running our client. A line document may hold exactly `date` and
+  `sentence`. Membership can never change. `list` on invitations is denied, so
+  the code's length actually buys something.
+- **Leaving is unilateral on both sides**, in the rules as well as the client.
+- Schema 15 stores the pair id and **nothing about the other person** — no name,
+  no address, no history of their lines. Today's line is read, shown, not kept.
+- The Polish label is `DZIEŃ OBOK`. Eter does not know who the other person is,
+  so `JEJ`/`JEGO` is out.
+
+**What is not done, and needs two accounts and a deployed project:**
+
+1. `firebase deploy --only firestore:rules`. The live project's rules predate
+   all of this and will deny every path here — see `RELEASE.md` §2.5.
+2. Pair two real accounts end to end: offer, read the code aloud, redeem.
+3. Confirm the code is dead after one use, and after 24 hours.
+4. Confirm a **non-member** is refused on `correspondences/{pairId}` and on a
+   line document. This is the one that matters; everything else is convenience.
+5. End it from each side in turn and confirm the other side notices and forgets.
+
+**Not built, deliberately:** any notification that a line arrived. It appears
+when you next look, which is the whole register of the feature.
 
 ### 8 · Verify nutrition write-back · *needs the phone*
 
