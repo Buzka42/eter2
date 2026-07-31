@@ -826,6 +826,42 @@ abstract class EterStrings {
   /// The one thing in Eter that can interrupt somebody, and the Sanctum entry
   /// that governs it. Off by default; `DECISIONS.md` grants exactly this and
   /// nothing else.
+  // ------------------------------------------------------- the Correspondence
+
+  /// The Sanctum's entry. Pairing lives there and nowhere else; the feature
+  /// itself is one line beneath today's guidance, not a screen.
+  String get headingCorrespondence;
+
+  /// What it is, said plainly enough that somebody can decide. This is the one
+  /// place in Eter where another person sees anything, so the note has to say
+  /// exactly what they see and exactly what they do not.
+  String get correspondenceNote;
+
+  String get correspondenceNotPaired;
+  String get correspondencePaired;
+
+  /// Offer a code, or redeem one.
+  String get correspondenceOffer;
+  String get correspondenceAccept;
+  String get correspondenceEnd;
+
+  /// The code, shown to be read aloud, and how long it lasts.
+  String correspondenceCodeIs(String code);
+  String get correspondenceCodeNote;
+
+  /// Where the other person types it.
+  String get fieldPairingCode;
+
+  /// Refusals, worded for a person.
+  String get correspondenceNeedsAccount;
+  String get correspondenceCodeNotRecognised;
+  String get correspondenceOwnCode;
+  String get correspondenceFailed;
+
+  /// The attribution on the shared line. Unlabelled prose beneath your own
+  /// guidance would read as your own.
+  String get correspondenceTheirDay;
+
   // ---------------------------------------------------------- bringing it back
 
   /// The other half of export. Named separately from the cloud `Restore`,

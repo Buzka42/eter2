@@ -1527,6 +1527,45 @@ class EterStringsEn extends EterStrings {
   @override
   String letterMonth(String month) => 'On $month';
   @override
+  String get headingCorrespondence => 'A CORRESPONDENCE';
+  @override
+  String get correspondenceNote =>
+      'One other person sees the single sentence Aether writes you each day, '
+      'and you see theirs. Nothing measured, nothing you wrote, no health '
+      'data — one sentence, and only today’s.';
+  @override
+  String get correspondenceNotPaired => 'Nobody sees anything.';
+  @override
+  String get correspondencePaired =>
+      'One correspondence is open. Either of you can end it at any time, '
+      'without the other agreeing.';
+  @override
+  String get correspondenceOffer => 'Offer a code';
+  @override
+  String get correspondenceAccept => 'Use a code';
+  @override
+  String get correspondenceEnd => 'End it';
+  @override
+  String correspondenceCodeIs(String code) => 'Your code is $code';
+  @override
+  String get correspondenceCodeNote =>
+      'Read it to them. It works once, and only for a day.';
+  @override
+  String get fieldPairingCode => 'Their code';
+  @override
+  String get correspondenceNeedsAccount =>
+      'A correspondence needs an account on both sides. Sign in above.';
+  @override
+  String get correspondenceCodeNotRecognised =>
+      'That code has been used, or has expired.';
+  @override
+  String get correspondenceOwnCode => 'That is your own code.';
+  @override
+  String get correspondenceFailed =>
+      'That did not go through. Nothing was changed.';
+  @override
+  String get correspondenceTheirDay => 'THEIR DAY';
+  @override
   String get headingLocalImport => 'BRING A RECORD BACK';
   @override
   String get localImportNote =>

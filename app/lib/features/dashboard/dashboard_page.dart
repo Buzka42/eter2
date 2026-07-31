@@ -10,6 +10,7 @@ import '../../core/aether/guidance_contract.dart';
 import '../../core/aether/request_contract.dart';
 import '../../core/ai/transport.dart';
 import '../../core/clock.dart';
+import '../../core/correspondence/correspondence.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/i18n/strings.dart';
@@ -192,6 +193,11 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                 );
               },
             ),
+            // One extra line beneath today's guidance, and that is the whole
+            // surface of the Correspondence. Not a screen, not a feed, and
+            // nothing when there is no correspondence or they have not written
+            // today — see `DECISIONS.md` on extension over destinations.
+            _CorrespondingLine(today: today, now: now),
             const SizedBox(height: EterSpace.s48),
             if (_expandedSection == 'guidance')
               _ExpandedGuidance(
@@ -643,5 +649,85 @@ class _GuidanceContent {
       // Fall through to the bare-string treatment.
     }
     return _GuidanceContent(contentJson, null);
+  }
+}
+
+/// The other person's day, in one line.
+///
+/// Renders nothing at all unless there is a correspondence, they have written
+/// today, and their sentence passes the policy on the way in. Every one of
+/// those is an ordinary state rather than an error, so none of them produces a
+/// message: an empty space is the correct rendering of "they have not written
+/// yet", and a placeholder saying so would turn a quiet feature into a nag
+/// about somebody else's habits.
+class _CorrespondingLine extends ConsumerStatefulWidget {
+  const _CorrespondingLine({required this.today, required this.now});
+
+  final String today;
+  final DateTime now;
+
+  @override
+  ConsumerState<_CorrespondingLine> createState() => _CorrespondingLineState();
+}
+
+class _CorrespondingLineState extends ConsumerState<_CorrespondingLine> {
+  Future<CorrespondenceLine?>? _line;
+  String? _exchangedDay;
+
+  Future<CorrespondenceLine?> _exchange() async {
+    final service = ref.read(correspondenceServiceProvider);
+    if (service == null) return null;
+    final db = ref.read(databaseProvider);
+    // Ours goes out with theirs coming back, in one pass: the synthesis is
+    // already on the device by the time this builds, and a second trip to
+    // publish it would be a second failure to handle.
+    final synthesis = (await db.loadGuidanceForDate(widget.today))
+        .where((row) => row.dimension == 'synthesis')
+        .firstOrNull;
+    return service.exchange(
+      now: widget.now,
+      todaysSentence: synthesis == null
+          ? null
+          : _GuidanceContent.parse(synthesis.contentJson).passage,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_exchangedDay != widget.today) {
+      _exchangedDay = widget.today;
+      _line = _exchange();
+    }
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+
+    return FutureBuilder<CorrespondenceLine?>(
+      future: _line,
+      builder: (context, snapshot) {
+        final line = snapshot.data;
+        if (line == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: EterSpace.s24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Attributed, like everything else on this page that somebody
+              // else wrote. Unlabelled prose beneath your own guidance reads
+              // as your own, and this sentence is about another person's day.
+              Text(strings.correspondenceTheirDay, style: text.labelSmall),
+              const SizedBox(height: EterSpace.s8),
+              Text(
+                line.sentence,
+                style: text.bodyMedium?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: ink.labelMuted,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

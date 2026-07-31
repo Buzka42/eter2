@@ -1723,6 +1723,49 @@ class EterStringsPl extends EterStrings {
   @override
   String letterMonth(String month) => 'O miesiącu: $month';
   @override
+  String get headingCorrespondence => 'KORESPONDENCJA';
+  @override
+  String get correspondenceNote =>
+      'Jedna druga osoba widzi to jedno zdanie, które Aether pisze ci każdego '
+      'dnia, a ty widzisz jej zdanie. Nic zmierzonego, nic z tego, co piszesz, '
+      'żadnych danych o zdrowiu — jedno zdanie, i tylko dzisiejsze.';
+  @override
+  String get correspondenceNotPaired => 'Nikt niczego nie widzi.';
+  @override
+  String get correspondencePaired =>
+      'Jedna korespondencja jest otwarta. Każde z was może ją zakończyć w '
+      'dowolnej chwili, bez zgody drugiej strony.';
+  @override
+  String get correspondenceOffer => 'Podaj kod';
+  @override
+  String get correspondenceAccept => 'Użyj kodu';
+  @override
+  String get correspondenceEnd => 'Zakończ';
+  @override
+  String correspondenceCodeIs(String code) => 'Twój kod to $code';
+  @override
+  String get correspondenceCodeNote =>
+      'Przeczytaj go tej osobie. Działa raz i tylko przez dobę.';
+  @override
+  String get fieldPairingCode => 'Kod drugiej osoby';
+  @override
+  String get correspondenceNeedsAccount =>
+      'Korespondencja wymaga konta po obu stronach. Zaloguj się powyżej.';
+  @override
+  String get correspondenceCodeNotRecognised =>
+      'Ten kod został już użyty albo wygasł.';
+  @override
+  String get correspondenceOwnCode => 'To twój własny kod.';
+  @override
+  String get correspondenceFailed =>
+      'Nie udało się. Nic nie zostało zmienione.';
+  @override
+  // Not `JEJ DZIEŃ` or `JEGO DZIEŃ`: Eter does not know who the other person
+  // is and must not guess. `DZIEŃ DRUGIEJ OSOBY` is neutral and correct and
+  // nineteen letterspaced caps. *Dzień obok* — the day alongside — is neutral,
+  // native, and belongs to this product rather than to an application.
+  String get correspondenceTheirDay => 'DZIEŃ OBOK';
+  @override
   String get headingLocalImport => 'PRZYWRÓĆ ZAPIS';
   @override
   String get localImportNote =>

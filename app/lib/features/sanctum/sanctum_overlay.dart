@@ -8,6 +8,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
+import '../../core/correspondence/correspondence.dart';
+import '../../core/correspondence/correspondence_service.dart';
 import '../../core/db/app_database.dart';
 import '../../core/profile/birth_offset.dart';
 import '../../core/profile/birth_time.dart';
@@ -304,6 +306,12 @@ class SanctumOverlay extends ConsumerWidget {
                       account: ref.watch(accountProvider).value,
                       sync: ref.watch(syncServiceProvider),
                     ),
+                    const SizedBox(height: EterSpace.s32),
+                    // Directly after the account, because it is the only
+                    // feature in Eter that needs one, and because somebody who
+                    // has just signed out should find the way to end this in
+                    // the next thing they read.
+                    _Correspondence(profile: profile),
                     const SizedBox(height: EterSpace.s32),
                     _HealthConnection(database: db),
                     const SizedBox(height: EterSpace.s32),
@@ -1868,6 +1876,161 @@ class _ChoiceGroup extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Pairing, and the only place in the Sanctum that names another person.
+///
+/// The Correspondence itself is one line beneath today's guidance. This is the
+/// index entry and the switch — `DECISIONS.md` puts every feature's name here
+/// so nothing lives only behind a gesture, and this one additionally has to be
+/// somewhere you can *end* it, which is the part that must never be hard to
+/// find.
+class _Correspondence extends ConsumerStatefulWidget {
+  const _Correspondence({required this.profile});
+
+  final ProfileRow? profile;
+
+  @override
+  ConsumerState<_Correspondence> createState() => _CorrespondenceState();
+}
+
+class _CorrespondenceState extends ConsumerState<_Correspondence> {
+  final _code = TextEditingController();
+  bool _busy = false;
+  String? _offered;
+  String? _message;
+
+  @override
+  void dispose() {
+    _code.dispose();
+    super.dispose();
+  }
+
+  Future<void> _run(
+    Future<void> Function(CorrespondenceService service) action,
+  ) async {
+    final strings = EterStrings.of(context);
+    final service = ref.read(correspondenceServiceProvider);
+    if (service == null) {
+      setState(() => _message = strings.correspondenceNeedsAccount);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      await action(service);
+    } on CorrespondenceRefusal catch (refusal) {
+      if (!mounted) return;
+      // The service's reasons are written for a reader of this code. The
+      // person gets the localised one, matched on what went wrong.
+      setState(() => _message = switch (refusal.reason) {
+            final reason when reason.contains('needs an account') =>
+              strings.correspondenceNeedsAccount,
+            final reason when reason.contains('your own code') =>
+              strings.correspondenceOwnCode,
+            final reason when reason.contains('used, or has expired') ||
+                reason.contains('not a pairing code') =>
+              strings.correspondenceCodeNotRecognised,
+            _ => strings.correspondenceFailed,
+          });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _message = strings.correspondenceFailed);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+    final paired = widget.profile?.correspondencePairId != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(strings.headingCorrespondence, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(strings.correspondenceNote, style: text.bodyMedium),
+        const SizedBox(height: EterSpace.s8),
+        Text(
+          paired
+              ? strings.correspondencePaired
+              : strings.correspondenceNotPaired,
+          style: text.bodySmall?.copyWith(color: ink.labelMuted),
+        ),
+        if (paired)
+          EterAction(
+            label: strings.correspondenceEnd,
+            busy: _busy,
+            onPressed: _busy
+                ? null
+                : () => _run((service) async {
+                      await service.end();
+                      if (mounted) setState(() => _offered = null);
+                    }),
+          )
+        else ...[
+          EterAction(
+            label: strings.correspondenceOffer,
+            emphasis: EterActionEmphasis.quiet,
+            busy: _busy,
+            onPressed: _busy
+                ? null
+                : () => _run((service) async {
+                      final code =
+                          await service.offer(now: ref.read(nowProvider)());
+                      if (mounted) setState(() => _offered = code);
+                    }),
+          ),
+          if (_offered case final code?) ...[
+            const SizedBox(height: EterSpace.s8),
+            SelectableText(
+              strings.correspondenceCodeIs(code),
+              style: text.bodyMedium,
+            ),
+            Text(
+              strings.correspondenceCodeNote,
+              style: text.bodySmall?.copyWith(color: ink.labelMuted),
+            ),
+          ],
+          const SizedBox(height: EterSpace.s12),
+          TextField(
+            key: const ValueKey('correspondence-code'),
+            controller: _code,
+            enabled: !_busy,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(
+              labelText: strings.fieldPairingCode,
+            ),
+          ),
+          EterAction(
+            label: strings.correspondenceAccept,
+            emphasis: EterActionEmphasis.quiet,
+            busy: _busy,
+            onPressed: _busy
+                ? null
+                : () => _run((service) async {
+                      await service.accept(
+                        _code.text,
+                        now: ref.read(nowProvider)(),
+                      );
+                      _code.clear();
+                    }),
+          ),
+        ],
+        if (_message != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
           ),
       ],
     );

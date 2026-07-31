@@ -21,6 +21,8 @@ import 'core/diagnostics/crash_reporter.dart';
 import 'core/diagnostics/firebase_crash_reporter.dart';
 import 'core/journal/classification_contract.dart';
 import 'core/aether/letter.dart';
+import 'core/correspondence/correspondence_service.dart';
+import 'core/correspondence/firestore_correspondence.dart';
 import 'core/invitation/invitation_scheduler.dart';
 import 'core/journal/day_story.dart';
 import 'core/profile/birth_context.dart';
@@ -291,6 +293,16 @@ final eveningInvitationSchedulerProvider =
   return EveningInvitationScheduler(
     database: ref.watch(databaseProvider),
     sink: LocalNotificationSink(),
+  );
+});
+/// Null with no Firebase project configured, which is the same condition that
+/// leaves the mirror null: a correspondence needs an account, and it is the
+/// only feature in Eter that does.
+final correspondenceServiceProvider = Provider<CorrespondenceService?>((ref) {
+  if (Firebase.apps.isEmpty) return null;
+  return CorrespondenceService(
+    database: ref.watch(databaseProvider),
+    gateway: FirestoreCorrespondence(),
   );
 });
 final letterProvider = Provider<LetterProvider?>((ref) {

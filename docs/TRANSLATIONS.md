@@ -509,6 +509,20 @@ explains why translating one would break the symbolic engine.
 | `headingLongView` | THE LONG VIEW | Z ODDALI |
 | `headingLetter` | A LETTER | LIST |
 | `letterMonth()` | On $month | O miesiącu: $month |
+| `headingCorrespondence` | A CORRESPONDENCE | KORESPONDENCJA |
+| `correspondenceNote` | One other person sees the single sentence Aether writes you each day, and you see theirs. Nothing measured, nothing you wrote, no health data — one sentence, and only today’s. | Jedna druga osoba widzi to jedno zdanie, które Aether pisze ci każdego dnia, a ty widzisz jej zdanie. Nic zmierzonego, nic z tego, co piszesz, żadnych danych o zdrowiu — jedno zdanie, i tylko dzisiejsze. |
+| `correspondenceNotPaired` | Nobody sees anything. | Nikt niczego nie widzi. |
+| `correspondencePaired` | One correspondence is open. Either of you can end it at any time, without the other agreeing. | Jedna korespondencja jest otwarta. Każde z was może ją zakończyć w dowolnej chwili, bez zgody drugiej strony. |
+| `correspondenceOffer` | Offer a code | Podaj kod |
+| `correspondenceAccept` | Use a code | Użyj kodu |
+| `correspondenceEnd` | End it | Zakończ |
+| `correspondenceCodeIs()` | Your code is $code | Twój kod to $code |
+| `correspondenceCodeNote` | Read it to them. It works once, and only for a day. | Przeczytaj go tej osobie. Działa raz i tylko przez dobę. |
+| `fieldPairingCode` | Their code | Kod drugiej osoby |
+| `correspondenceNeedsAccount` | A correspondence needs an account on both sides. Sign in above. | Korespondencja wymaga konta po obu stronach. Zaloguj się powyżej. |
+| `correspondenceCodeNotRecognised` | That code has been used, or has expired. | Ten kod został już użyty albo wygasł. |
+| `correspondenceOwnCode` | That is your own code. | To twój własny kod. |
+| `correspondenceFailed` | That did not go through. Nothing was changed. | Nie udało się. Nic nie zostało zmienione. |
 | `headingLocalImport` | BRING A RECORD BACK | PRZYWRÓĆ ZAPIS |
 | `localImportNote` | Read an Eter export back onto this device. Only onto a device with no history of its own — nothing here is ever overwritten. | Wczytaj eksport Eteru z powrotem na to urządzenie. Tylko na urządzenie bez własnej historii — nic tutaj nie zostanie nadpisane. |
 | `importRecord` | Choose a file | Wybierz plik |
@@ -534,4 +548,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-436 strings paired.
+450 strings paired.
