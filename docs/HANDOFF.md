@@ -28,15 +28,22 @@ Verified on a Blade V 5G, Android 14, against the owner's own record:
   table restored whole into an empty database — see
   `test/manual/real_export_round_trip_test.dart`, which is the strongest test in
   the repository and is skipped by default because the file is somebody's record.
-- **The document picker opens unfiltered**, so a `.json` is selectable.
-- **Write-back dedupe.** A second `WRITE BACK` says "Nothing new to write."
+- **The document picker opens unfiltered**, so a `.json` is selectable, and the
+  export lands in the *shared* Downloads folder through MediaStore.
+- **All six model calls, against the deployed endpoint**, plus guidance, the day
+  story and interpretation composing on the phone itself.
+- **Nutrition write-back**, the whole chain — see item 8.
+- **The Long View's birth-date clamp.** Ninety taps of the earlier bead stop at
+  the twelve months ending with the birth month; before the clamp, seventy-five
+  reached 1981.
 
 Still unproven, and why:
 
 | Thing | Blocked on |
 |---|---|
-| The invitation actually appearing | It fires at the scheduled hour; nobody has watched one land |
-| `ic_notification` on the status bar | Same — it compiles, it has not been seen |
+| The invitation appearing | Fires **tomorrow at 20:00**. Tonight's fired on time and posted nothing — the icon name was wrong; see item 4 |
+| `ic_notification` on the status bar | Same firing |
+| The Letter arriving on a page | Needs five recall notes in a month; the device has one, and they accrue one a day |
 | **Nutrition write-back** | See below. Not permissions |
 | The Letter arriving on a page | Needs five recall notes in a month; see item 3 |
 | The Correspondence | Needs an account on both sides and the rules deployed |
