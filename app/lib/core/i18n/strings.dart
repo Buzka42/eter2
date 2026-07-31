@@ -826,6 +826,30 @@ abstract class EterStrings {
   /// The one thing in Eter that can interrupt somebody, and the Sanctum entry
   /// that governs it. Off by default; `DECISIONS.md` grants exactly this and
   /// nothing else.
+  // ---------------------------------------------------------- bringing it back
+
+  /// The other half of export. Named separately from the cloud `Restore`,
+  /// because this one reads a file you are holding rather than an account.
+  String get headingLocalImport;
+  String get localImportNote;
+  String get importRecord;
+
+  /// Rows restored. Deliberately a count rather than "done": a restore that
+  /// silently brought back a fraction of a record is the failure this feature
+  /// has to be unable to hide.
+  String localImportRestored(int records);
+
+  /// Some of the file could not be read — a table or a column this build does
+  /// not know. The restore happened; it was not complete, and that difference
+  /// is the person's to know.
+  String localImportPartly(int records);
+
+  /// The refusals, worded for a person. Each is a sentence, not a code.
+  String get localImportNotAnExport;
+  String get localImportNewerVersion;
+  String get localImportDeviceHasHistory;
+  String get localImportFailed;
+
   String get headingEveningInvitation;
   String get eveningInvitationOffDetail;
   String get eveningInvitationAllowedDetail;

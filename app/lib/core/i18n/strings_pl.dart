@@ -1723,6 +1723,32 @@ class EterStringsPl extends EterStrings {
   @override
   String letterMonth(String month) => 'O miesiącu: $month';
   @override
+  String get headingLocalImport => 'PRZYWRÓĆ ZAPIS';
+  @override
+  String get localImportNote =>
+      'Wczytaj eksport Eteru z powrotem na to urządzenie. Tylko na urządzenie '
+      'bez własnej historii — nic tutaj nie zostanie nadpisane.';
+  @override
+  String get importRecord => 'Wybierz plik';
+  @override
+  String localImportRestored(int records) =>
+      'Przywrócono $records ${_zapisy(records)}.';
+  @override
+  String localImportPartly(int records) =>
+      'Przywrócono $records ${_zapisy(records)}. Część tego pliku napisał '
+      'nowszy Eter i nie dało się jej odczytać.';
+  @override
+  String get localImportNotAnExport => 'To nie jest eksport Eteru.';
+  @override
+  String get localImportNewerVersion =>
+      'Ten eksport pochodzi z nowszego Eteru. Najpierw zaktualizuj ten.';
+  @override
+  String get localImportDeviceHasHistory =>
+      'To urządzenie ma już historię, więc nic nie zostało przywrócone.';
+  @override
+  String get localImportFailed =>
+      'Nie udało się odczytać tego pliku. Nic nie zostało zmienione.';
+  @override
   String get headingEveningInvitation => 'WIECZORNE ZAPROSZENIE';
   @override
   String get eveningInvitationOffDetail =>

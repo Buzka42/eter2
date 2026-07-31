@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
@@ -18,6 +19,7 @@ import '../../core/health/write_back.dart';
 import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/privacy/local_data_export.dart';
+import '../../core/privacy/local_data_import.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/profile/birth_context.dart';
 import '../../core/register.dart';
@@ -1591,6 +1593,8 @@ class _LocalExportState extends State<_LocalExport> {
   bool _busy = false;
   String? _message;
   String? _path;
+  bool _importing = false;
+  String? _importMessage;
 
   Future<void> _prepare() async {
     final strings = EterStrings.of(context);
@@ -1650,8 +1654,76 @@ class _LocalExportState extends State<_LocalExport> {
             liveRegion: true,
             child: Text(_message!, style: text.bodySmall),
           ),
+        const SizedBox(height: EterSpace.s24),
+        // The other half of the promise. An export nothing could read back was
+        // a record you could take out and never put in.
+        Text(strings.headingLocalImport, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(strings.localImportNote, style: text.bodyMedium),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: strings.importRecord,
+          emphasis: EterActionEmphasis.quiet,
+          busy: _importing,
+          onPressed: _importing ? null : _import,
+        ),
+        if (_importMessage != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_importMessage!, style: text.bodySmall),
+          ),
       ],
     );
+  }
+
+  Future<void> _import() async {
+    final strings = EterStrings.of(context);
+    setState(() {
+      _importing = true;
+      _importMessage = null;
+    });
+    try {
+      final picked = await FilePicker.pickFiles(
+        // Not `FileType.custom` with a `json` extension: Android's document
+        // picker filters by MIME type and hides a `.json` a file manager
+        // reports as `application/octet-stream`, which is most of them. A file
+        // that is not an export is refused by the importer with a sentence,
+        // which is a better failure than a file the person cannot see.
+        withData: false,
+      );
+      final path = picked?.files.singleOrNull?.path;
+      if (path == null) {
+        if (mounted) setState(() => _importing = false);
+        return;
+      }
+      final result =
+          await LocalDataImporter(widget.database).importFile(File(path));
+      if (!mounted) return;
+      setState(() {
+        _importMessage = result.isPartial
+            ? strings.localImportPartly(result.rows)
+            : strings.localImportRestored(result.rows);
+      });
+    } on LocalImportException catch (failure) {
+      if (!mounted) return;
+      // The importer's reasons are already sentences, but they are English and
+      // written for a developer reading a stack. The person gets the localised
+      // one, matched on what actually went wrong.
+      setState(() => _importMessage = switch (failure.reason) {
+            final reason when reason.contains('newer Eter') =>
+              strings.localImportNewerVersion,
+            final reason when reason.contains('already has history') =>
+              strings.localImportDeviceHasHistory,
+            final reason when reason.contains('not an Eter export') =>
+              strings.localImportNotAnExport,
+            _ => strings.localImportFailed,
+          });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _importMessage = strings.localImportFailed);
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
   }
 }
 

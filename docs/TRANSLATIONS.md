@@ -509,6 +509,15 @@ explains why translating one would break the symbolic engine.
 | `headingLongView` | THE LONG VIEW | Z ODDALI |
 | `headingLetter` | A LETTER | LIST |
 | `letterMonth()` | On $month | O miesiącu: $month |
+| `headingLocalImport` | BRING A RECORD BACK | PRZYWRÓĆ ZAPIS |
+| `localImportNote` | Read an Eter export back onto this device. Only onto a device with no history of its own — nothing here is ever overwritten. | Wczytaj eksport Eteru z powrotem na to urządzenie. Tylko na urządzenie bez własnej historii — nic tutaj nie zostanie nadpisane. |
+| `importRecord` | Choose a file | Wybierz plik |
+| `localImportRestored()` | $records records restored. | Przywrócono $records ${_zapisy(records)}. |
+| `localImportPartly()` | $records records restored. Part of that file was written by a newer Eter and could not be read. | Przywrócono $records ${_zapisy(records)}. Część tego pliku napisał nowszy Eter i nie dało się jej odczytać. |
+| `localImportNotAnExport` | That file is not an Eter export. | To nie jest eksport Eteru. |
+| `localImportNewerVersion` | That export came from a newer Eter. Update this one first. | Ten eksport pochodzi z nowszego Eteru. Najpierw zaktualizuj ten. |
+| `localImportDeviceHasHistory` | This device already has history, so nothing was restored. | To urządzenie ma już historię, więc nic nie zostało przywrócone. |
+| `localImportFailed` | That file could not be read. Nothing was changed. | Nie udało się odczytać tego pliku. Nic nie zostało zmienione. |
 | `headingEveningInvitation` | AN EVENING INVITATION | WIECZORNE ZAPROSZENIE |
 | `eveningInvitationOffDetail` | Eter never speaks first. Nothing arrives unless you open it. | Eter nigdy nie odzywa się pierwszy. Nic nie przyjdzie, dopóki go nie otworzysz. |
 | `eveningInvitationAllowedDetail` | One quiet invitation to write, at your own sunset. Not if you have already written that day, and nothing else — no mornings, no streaks, no reminders to come back. | Jedno ciche zaproszenie do pisania, o twoim zachodzie słońca. Nie w dniu, w którym już piszesz, i nic poza tym — żadnych poranków, serii ani przypomnień, żeby wrócić. |
@@ -525,4 +534,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-427 strings paired.
+436 strings paired.

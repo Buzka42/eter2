@@ -1527,6 +1527,31 @@ class EterStringsEn extends EterStrings {
   @override
   String letterMonth(String month) => 'On $month';
   @override
+  String get headingLocalImport => 'BRING A RECORD BACK';
+  @override
+  String get localImportNote =>
+      'Read an Eter export back onto this device. Only onto a device with no '
+      'history of its own — nothing here is ever overwritten.';
+  @override
+  String get importRecord => 'Choose a file';
+  @override
+  String localImportRestored(int records) => '$records records restored.';
+  @override
+  String localImportPartly(int records) =>
+      '$records records restored. Part of that file was written by a newer '
+      'Eter and could not be read.';
+  @override
+  String get localImportNotAnExport => 'That file is not an Eter export.';
+  @override
+  String get localImportNewerVersion =>
+      'That export came from a newer Eter. Update this one first.';
+  @override
+  String get localImportDeviceHasHistory =>
+      'This device already has history, so nothing was restored.';
+  @override
+  String get localImportFailed =>
+      'That file could not be read. Nothing was changed.';
+  @override
   String get headingEveningInvitation => 'AN EVENING INVITATION';
   @override
   String get eveningInvitationOffDetail =>
