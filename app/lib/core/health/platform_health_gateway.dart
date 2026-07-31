@@ -91,7 +91,18 @@ class PlatformHealthGateway implements HealthHubGateway {
       return _health.writeMeal(
         mealType: MealType.UNKNOWN,
         startTime: at,
-        endTime: at,
+        // A meal has to *last*. Health Connect's nutrition record is an
+        // interval, and it rejects a zero-length one outright:
+        // `startTime must be before endTime`. The plugin catches that, returns
+        // false, and the write-back skips the row without a word — which is
+        // how a confirmed meal sat unwritten while the Sanctum said there was
+        // nothing new to write. Found on a device; no test could have.
+        //
+        // Eter records a meal as an instant, because that is what a person
+        // writing "porridge for breakfast" tells it. One minute is the
+        // smallest honest interval to give it: long enough to be legal, short
+        // enough not to invent a duration nobody reported.
+        endTime: at.add(_mealDuration),
         caloriesConsumed: value,
         name: label,
         clientRecordId: recordId,
@@ -112,6 +123,10 @@ class PlatformHealthGateway implements HealthHubGateway {
       recordingMethod: RecordingMethod.manual,
     );
   }
+
+  /// See [write]. Not a guess at how long somebody ate for — the smallest
+  /// interval Health Connect will accept for a record Eter holds as an instant.
+  static const _mealDuration = Duration(minutes: 1);
 
   @override
   Future<List<HubSample>> read(DateTime start, DateTime end) async {

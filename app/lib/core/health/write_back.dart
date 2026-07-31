@@ -40,24 +40,36 @@ class HealthWriteBack {
 
   /// Writes everything eligible that has not been written yet.
   ///
-  /// Returns how many records the platform accepted. Idempotent: each row is
-  /// written under a stable `clientRecordId`, so running this twice replaces
-  /// rather than duplicates, and `writtenBackAt` stops it re-offering work.
-  Future<int> run() async {
-    if (!await gateway.requestWriteAccess()) return 0;
-
-    var written = 0;
-    written += await _weights();
-    written += await _nutrition();
-    return written;
+  /// Idempotent: each row goes under a stable `clientRecordId`, so running
+  /// this twice replaces rather than duplicates, and `writtenBackAt` stops it
+  /// re-offering work.
+  ///
+  /// Returns what happened rather than just a count. It used to return an
+  /// `int`, and every unhappy path collapsed into zero: access refused, every
+  /// record rejected by the platform, and genuinely nothing to do all produced
+  /// the same "Nothing new to write. Everything you entered is already there."
+  /// The second sentence of that was simply false while a confirmed meal sat
+  /// unwritten, which is the failure mode this whole feature most needed not
+  /// to have.
+  Future<HealthWriteBackResult> run() async {
+    if (!await gateway.requestWriteAccess()) {
+      return const HealthWriteBackResult(accessRefused: true);
+    }
+    final weights = await _weights();
+    final meals = await _nutrition();
+    return HealthWriteBackResult(
+      written: weights.written + meals.written,
+      offered: weights.offered + meals.offered,
+    );
   }
 
-  Future<int> _weights() async {
+  Future<HealthWriteBackResult> _weights() async {
     final rows = await (database.select(database.weightEntries)
           ..where((row) => row.writtenBackAt.isNull()))
         .get();
+    final ours = rows.where((row) => _isOurs(row.source)).toList();
     var written = 0;
-    for (final row in rows.where((row) => _isOurs(row.source))) {
+    for (final row in ours) {
       final accepted = await gateway.write(
         metric: HubWritable.weight,
         value: row.kg,
@@ -72,15 +84,16 @@ class HealthWriteBack {
       );
       written += 1;
     }
-    return written;
+    return HealthWriteBackResult(written: written, offered: ours.length);
   }
 
-  Future<int> _nutrition() async {
+  Future<HealthWriteBackResult> _nutrition() async {
     final rows = await (database.select(database.nutritionEntries)
           ..where((row) => row.writtenBackAt.isNull() & row.confirmed))
         .get();
+    final ours = rows.where((row) => _isOurs(row.source)).toList();
     var written = 0;
-    for (final row in rows.where((row) => _isOurs(row.source))) {
+    for (final row in ours) {
       final accepted = await gateway.write(
         metric: HubWritable.dietaryEnergy,
         value: row.kcal,
@@ -96,6 +109,33 @@ class HealthWriteBack {
       );
       written += 1;
     }
-    return written;
+    return HealthWriteBackResult(written: written, offered: ours.length);
   }
+}
+
+/// What a write-back actually did.
+///
+/// [offered] is how many rows were eligible; [written] is how many the platform
+/// accepted. They differ when the platform refuses a record, which it does
+/// silently as far as the caller is concerned — and a surface that cannot tell
+/// the difference will tell somebody everything they entered is already there
+/// while it is not.
+class HealthWriteBackResult {
+  const HealthWriteBackResult({
+    this.written = 0,
+    this.offered = 0,
+    this.accessRefused = false,
+  });
+
+  final int written;
+  final int offered;
+
+  /// The person, or the platform, said no to write access. Nothing was tried.
+  final bool accessRefused;
+
+  /// Eligible rows the platform would not take. Not an exception — the write
+  /// simply did not happen, and saying so is the whole point of this class.
+  int get refused => offered - written;
+
+  bool get isNothingToDo => !accessRefused && offered == 0;
 }

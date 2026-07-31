@@ -1502,15 +1502,22 @@ class _HealthConnectionState extends State<_HealthConnection> {
       _message = null;
     });
     try {
-      final written = await HealthWriteBack(
+      final result = await HealthWriteBack(
         database: widget.database,
         gateway: PlatformHealthGateway(),
       ).run();
       if (!mounted) return;
       setState(() {
-        _message = written == 0
-            ? strings.healthNothingToWriteBack
-            : strings.healthWroteBack(written);
+        // Four outcomes, four sentences. They used to be two: anything that
+        // wrote nothing said "Everything you entered is already there", which
+        // was a lie whenever the platform had refused a record — and Health
+        // Connect refuses one without raising anything the caller can see.
+        _message = switch (result) {
+          _ when result.accessRefused => strings.healthAccessNotGranted,
+          _ when result.isNothingToDo => strings.healthNothingToWriteBack,
+          _ when result.written == 0 => strings.healthCouldNotWriteBack,
+          _ => strings.healthWroteBack(result.written),
+        };
       });
     } catch (_) {
       if (mounted) {

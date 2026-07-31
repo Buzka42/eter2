@@ -51,14 +51,14 @@ void main() {
 
   test('a typed weight is written back', () async {
     await weight(81.4, source: 'manual');
-    expect(await subject().run(), 1);
+    expect((await subject().run()).written, 1);
     expect(gateway.written.single.value, 81.4);
     expect(gateway.written.single.metric, HubWritable.weight);
   });
 
   test('a weight read from the hub is never written back', () async {
     await weight(81.4, source: 'healthConnect:garmin');
-    expect(await subject().run(), 0);
+    expect((await subject().run()).written, 0);
     expect(gateway.written, isEmpty);
   });
 
@@ -68,7 +68,7 @@ void main() {
     // with forever.
     await weight(80, source: 'healthConnect:samsung');
     await weight(79, source: 'appleHealth');
-    expect(await subject().run(), 0);
+    expect((await subject().run()).written, 0);
     expect(gateway.written, isEmpty);
   });
 
@@ -77,40 +77,40 @@ void main() {
     // somebody confirms it. Writing it into Apple Health would be laundering it
     // into a fact by moving it somewhere more authoritative.
     await meal(600, confirmed: false);
-    expect(await subject().run(), 0);
+    expect((await subject().run()).written, 0);
     expect(gateway.written, isEmpty);
   });
 
   test('a confirmed meal is written back', () async {
     await meal(600);
-    expect(await subject().run(), 1);
+    expect((await subject().run()).written, 1);
     expect(gateway.written.single.metric, HubWritable.dietaryEnergy);
   });
 
   test('running twice writes nothing the second time', () async {
     await weight(81.4, source: 'manual');
     await meal(600);
-    expect(await subject().run(), 2);
-    expect(await subject().run(), 0);
+    expect((await subject().run()).written, 2);
+    expect((await subject().run()).written, 0);
     expect(gateway.written, hasLength(2));
   });
 
   test('a refused write is retried rather than marked done', () async {
     await weight(81.4, source: 'manual');
     gateway.accept = false;
-    expect(await subject().run(), 0);
+    expect((await subject().run()).written, 0);
 
     final row = (await database.select(database.weightEntries).get()).single;
     expect(row.writtenBackAt, isNull);
 
     gateway.accept = true;
-    expect(await subject().run(), 1);
+    expect((await subject().run()).written, 1);
   });
 
   test('no write permission means nothing is attempted', () async {
     await weight(81.4, source: 'manual');
     gateway.permitted = false;
-    expect(await subject().run(), 0);
+    expect((await subject().run()).written, 0);
     expect(gateway.written, isEmpty);
   });
 
@@ -120,6 +120,31 @@ void main() {
     // Health Connect deduplicates on `clientRecordId`. The row id is the natural
     // key and is the reason a repeat write cannot duplicate a record.
     expect(gateway.written.single.recordId, 'eter-weight-1');
+  });
+
+  group('what the surface is told', () {
+    // Health Connect rejected a confirmed meal on a real device — a nutrition
+    // record is an interval and the write passed a zero-length one — and the
+    // Sanctum reported "Nothing new to write. Everything you entered is already
+    // there." The second sentence was false while the meal sat unwritten, and
+    // an `int` return could not have expressed the difference.
+    test('a record the platform refused is not "already there"', () {
+      const result = HealthWriteBackResult(written: 0, offered: 1);
+      expect(result.isNothingToDo, isFalse);
+      expect(result.refused, 1);
+    });
+
+    test('nothing eligible is distinguishable from nothing accepted', () {
+      const idle = HealthWriteBackResult();
+      expect(idle.isNothingToDo, isTrue);
+      expect(idle.refused, 0);
+    });
+
+    test('refused access is neither of those', () {
+      const refused = HealthWriteBackResult(accessRefused: true);
+      expect(refused.isNothingToDo, isFalse);
+      expect(refused.written, 0);
+    });
   });
 }
 
