@@ -4,12 +4,41 @@ Written 30 July 2026, at the end of a long session on branch `eter-audit-fixes`.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **707 tests
-pass, 7 skipped** — the seven are live-provider tests that need a deployed
-endpoint. Schema is at **13**; the twelve migrations were verified on a real
-Android device with real data, but **13 was not** — `Letters` is created through
-`_createTableIfMissing`, so it repairs itself, and it still wants one upgrade run
-on a device with existing data before release.
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **752 tests
+pass, 8 skipped** — seven live-provider tests that need a deployed endpoint, and
+one manual test that needs an export file. Schema is at **15**, and the upgrade
+**12 → 15 was run on a real device with 3.3 MB of real data**: nothing lost,
+`letters` created, both new profile columns added, and neither new consent
+inherited.
+
+## What the phone has and has not proved
+
+Verified on a Blade V 5G, Android 14, against the owner's own record:
+
+- **Schema 12 → 15 in place.** Row counts before and after in the commit.
+- **The Android build.** Three things failed on the first device build that no
+  test could see — core library desugaring, `file_picker` under AGP 9, and a
+  Kotlin/Java target mismatch. All fixed; release build clean at 82.5 MB.
+- **The evening invitation schedules.** One `RTC_WAKEUP` alarm, at the right
+  hour, through the plugin's receiver. Refusing the OS prompt leaves the control
+  reading **Off** and stores nothing; allowing it stores the consent with its
+  offset.
+- **The export/import round trip, at real scale.** A 4.8 MB snapshot with every
+  table restored whole into an empty database — see
+  `test/manual/real_export_round_trip_test.dart`, which is the strongest test in
+  the repository and is skipped by default because the file is somebody's record.
+- **The document picker opens unfiltered**, so a `.json` is selectable.
+- **Write-back dedupe.** A second `WRITE BACK` says "Nothing new to write."
+
+Still unproven, and why:
+
+| Thing | Blocked on |
+|---|---|
+| The invitation actually appearing | It fires at the scheduled hour; nobody has watched one land |
+| `ic_notification` on the status bar | Same — it compiles, it has not been seen |
+| **Nutrition write-back** | See below. Not permissions |
+| The Letter | No guidance endpoint on this build |
+| The Correspondence | Needs an account on both sides and the rules deployed |
 
 ---
 
@@ -17,7 +46,7 @@ on a device with existing data before release.
 
 ```bash
 cd app
-flutter test          # expect 707 pass, 7 skipped
+flutter test          # expect 752 pass, 8 skipped
 flutter analyze       # expect clean
 ```
 
@@ -134,24 +163,33 @@ grants is the right to interrupt.
 - `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED` are back in the manifest,
   each with a comment saying why.
 
-**What the phone has to prove**, none of which a test can:
+**What the phone proved:** the sheet appears once per attempt; refusing leaves
+the control reading OFF and stores nothing; allowing stores the consent with its
+UTC offset intact; and exactly one `RTC_WAKEUP` alarm is registered against the
+plugin's receiver.
 
-1. Sanctum → `AN EVENING INVITATION` → ALLOWED. The system sheet should appear
-   **once**, and refusing it must leave the control reading OFF.
-2. One notification that evening, silent and low-importance, and **only one**.
-3. Write a page during the day; that evening must stay silent.
-4. Turn it off; anything pending must disappear immediately.
-5. Reboot mid-afternoon; that evening's invitation must survive.
+**Still to watch, none of which a test can:**
 
-**Also unverified:** `flutter_local_notifications` has never been built for
-Android here, so the plugin's Gradle side is untested in this project.
+1. One notification that evening, silent and low-importance, and **only one**.
+2. Write a page during the day; that evening must stay silent.
+3. Turn it off; anything pending must disappear immediately.
+4. Reboot mid-afternoon; that evening's invitation must survive.
 
-**And one thing that is probably wrong already.** The notification is scheduled
-against `@mipmap/ic_launcher`, which exists but is an *adaptive, full-colour*
-icon. Android's small icon must be a monochrome alpha mask, and a colour one
-renders as a white blob. Expect to add a dedicated silhouette drawable — it is a
-one-line change once you have seen it on the status bar, and not worth guessing
-at blind.
+**And the thing the device changed about the design.** The profile carries
+`birth_place = 'Warsaw'` and **no coordinates**, so `registerCoordinates` returns
+null and the invitation is scheduled at the flat fallback hour — the alarm landed
+at 20:00, not at sunset. That branch was named `polarFallbackHour` and documented
+as an Arctic edge case; it is the ordinary path for anyone whose place was typed
+and never geocoded. Renamed, documented, and the Sanctum copy now says "at your
+own sunset — or at eight, if Eter does not know where you are" rather than
+promising a sunset it may not have.
+
+**The icon was wrong and is fixed.** It was scheduled against
+`@mipmap/ic_launcher`, which is adaptive and full-colour, and Android draws a
+small icon as an alpha mask — it would have rendered as a white blob.
+`res/drawable/ic_notification.xml` is the mark reduced to what survives at 24dp:
+the arc and the plumb. It compiles into the APK; nobody has seen it on a status
+bar yet.
 
 ### 5 · Import · *done*, and the prompt fixtures · *blocked on the endpoint*
 
@@ -171,12 +209,15 @@ Sanctum under `BRING A RECORD BACK`, directly beneath the export it undoes.
 Apple Health XML. That is the version that gets somebody to switch, and it is a
 different job: those are foreign shapes, not Eter's own snapshot.
 
-**Not verified without a phone:** `file_picker` has never been built for Android
-here. The picker is deliberately opened **unfiltered** rather than restricted to
-`json` — Android's document picker filters by MIME type and hides a `.json` that
-the file manager reports as `application/octet-stream`, which is most of them. A
-wrong file is refused with a sentence, which is a better failure than a right
-file the person cannot see. Worth confirming a `.json` is actually selectable.
+**Verified on the device.** The picker opens unfiltered, as intended — Android's
+document picker filters by MIME type and would hide a `.json` the file manager
+reports as `application/octet-stream`, which is most of them.
+
+**One thing that surprised me:** the app's own export lands in app-private
+storage, which the document picker cannot reach. So you cannot export and
+re-import on the same phone — fine for the case this exists for (a new phone, a
+file copied across) but it means the obvious way to try the feature does not
+work.
 
 **Prompt fixtures — still blocked.** All *six* parsers are tested against
 hand-written JSON, never against recorded model output. Record good, malformed,
@@ -230,19 +271,31 @@ The parts that are load-bearing rather than incidental:
 **Not built, deliberately:** any notification that a line arrived. It appears
 when you next look, which is the whole register of the feature.
 
-### 8 · Verify nutrition write-back · *needs the phone*
+### 8 · Verify nutrition write-back · *half proved, and blocked on something else*
 
-`37b455f` built it and the device run stopped at the permission sheet — I did not
-grant health-write access on the owner's behalf. Still unproven:
+The device run answered most of this and moved the blocker somewhere unexpected.
 
-1. Grant `WRITE_WEIGHT` and `WRITE_NUTRITION` in Health Connect.
-2. Sanctum → `WRITE BACK`.
-3. Confirm a weight **and a confirmed meal** appear in Health Connect.
-4. Tap again; confirm nothing duplicates (`clientRecordId` dedupe).
+**Weights: done.** Both rows on the device carry `writtenBackAt`, so weight
+write-back has succeeded against a real hub. Health Connect's permission sheet
+now offers only *Nutrition*, which is how you can tell `WRITE_WEIGHT` was already
+granted and used.
 
-Nutrition goes through `Health.writeMeal`, which has never run against a real hub.
-`DIETARY_ENERGY_CONSUMED` is Apple-only and was filtered out *silently* on
-Android — that class of failure is why this needs a device and not an argument.
+**Dedupe: done.** A second `WRITE BACK` reports "Nothing new to write."
+
+**Nutrition: still unproven, and not because of permissions** — those are granted
+now. `nutrition_entries` is **empty**, so `Health.writeMeal` has nothing to send
+and cannot be reached.
+
+And the reason it is empty is the finding: **`ManualMealService` has no caller.**
+`core/nutrition/manual_meal.dart` records a *confirmed* meal — exactly what
+write-back needs — and nothing in `lib/features/` invokes it. Every meal in Eter
+therefore comes from journal interpretation, which needs the guidance endpoint.
+On a build without one there is no way to record eating at all.
+
+So the order is: give `ManualMealService` a surface, record one meal, then
+`WRITE BACK` and look in Health Connect. Until then `Health.writeMeal` stays
+untested, and `DIETARY_ENERGY_CONSUMED` being Apple-only and *silently* filtered
+on Android is still the failure to watch for.
 
 ---
 
