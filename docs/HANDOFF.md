@@ -4,9 +4,10 @@ Written 30 July 2026, at the end of a long session on branch `eter-audit-fixes`.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **752 tests
-pass, 8 skipped** — seven live-provider tests that need a deployed endpoint, and
-one manual test that needs an export file. Schema is at **15**, and the upgrade
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **766 tests
+pass, 9 skipped** — the skips are the live-provider suite, which needs the
+endpoint token, and one manual test that needs an export file. The live suite
+*has* been run and passes; see item 3. Schema is at **15**, and the upgrade
 **12 → 15 was run on a real device with 3.3 MB of real data**: nothing lost,
 `letters` created, both new profile columns added, and neither new consent
 inherited.
@@ -37,7 +38,7 @@ Still unproven, and why:
 | The invitation actually appearing | It fires at the scheduled hour; nobody has watched one land |
 | `ic_notification` on the status bar | Same — it compiles, it has not been seen |
 | **Nutrition write-back** | See below. Not permissions |
-| The Letter | No guidance endpoint on this build |
+| The Letter arriving on a page | Needs five recall notes in a month; see item 3 |
 | The Correspondence | Needs an account on both sides and the rules deployed |
 
 ---
@@ -46,7 +47,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 752 pass, 8 skipped
+flutter test          # expect 766 pass, 9 skipped
 flutter analyze       # expect clean
 ```
 
@@ -151,32 +152,30 @@ product question, so it is not built.
   since there is no background poll — and is best-effort.
 - `Letters` has **no retention expiry**, deliberately. `AI_FLOW.md` §6 says why.
 
-**The endpoint is deployed, and it is stale.** `https://eter-ai.eter-ai.workers.dev`
-answers, returns 401 without a bearer token, and both `ETER_CLIENT_TOKEN` and
-`GEMINI_API_KEY` are set. But the last deployment is **29 July** and
-`server/worker.js` has three commits on top of it — including the one that added
-`letter` to `CALLS`. So **the Letter will come back `400 Unknown call: letter`
-until the worker is redeployed**:
+**Proven against the deployed endpoint.** `https://eter-ai.eter-ai.workers.dev`
+is live and current, and all eight live-smoke cases pass — prompt built on the
+device, transport, worker, model, and each contract's own parser over the answer:
 
 ```bash
-cd server && npx wrangler deploy
+flutter test test/manual/live_smoke_test.dart   --dart-define=ETER_LIVE_SMOKE=true   --dart-define=ETER_AI_ENDPOINT=https://eter-ai.eter-ai.workers.dev   --dart-define=ETER_AI_TOKEN=<the client token>
 ```
 
-**Also live and unmetered.** Both rate-limiter bindings are still commented out
-in `wrangler.toml`, so there is no per-install cap of any kind — not even the KV
-fallback. The worker logs `limits=kv-approximate` when it is running on the weak
-one; right now it is running on neither. `RELEASE.md` §2.2.
+**And reading the answer found what passing it could not.** The first real
+letter opened *"We watched the third short night"* — Eter as an institution
+observing somebody. It also recited the retrospective's figures in a row and
+called a month with twenty-two recorded days thin. All three parsed perfectly.
+`EterPrompts.version` is 6 because of it; see the version note for what changed.
 
-**Still not proven:** no recorded model output has been through `LetterParser`.
-Building the app against the endpoint needs the token, which only the owner has:
+**Still not exercised end to end in the app:** `LetterComposer` needs five
+recall notes in a month before it will ask, and this device has none — recalls
+accumulate one per day as guidance composes. Either compose for five days or
+lower `minimumRecalls` temporarily to watch a letter arrive on a Journal page.
 
-```bash
-flutter build apk --debug   --dart-define=ETER_AI_ENDPOINT=https://eter-ai.eter-ai.workers.dev   --dart-define=ETER_AI_TOKEN=<the client token>
-```
-
-A letter is the longest thing Aether writes and the likeliest to drift past 2400
-characters or into the phrasing `AetherSafetyPolicy` blocks, so it is the first
-fixture worth capturing.
+**One live thing still wrong.** Both rate-limiter bindings are commented out in
+`wrangler.toml`, so the worker has no per-install cap of any kind — not even the
+KV fallback whose weakness it logs as `limits=kv-approximate`. Google's free tier
+is the only ceiling, on an endpoint reachable by anyone holding the token.
+`RELEASE.md` §2.2.
 
 ### 4 · The evening invitation · *built; delivery unverified*
 
@@ -269,11 +268,19 @@ report failure because a convenience did not.
 **Not yet seen on screen:** the published copy actually appearing in Downloads.
 Built, installed, and the cable dropped before the tap.
 
-**Prompt fixtures — still blocked.** All *six* parsers are tested against
-hand-written JSON, never against recorded model output. Record good, malformed,
-unsafe and empty responses per call once the endpoint is deployed. Start with the
-Letter: it is the longest thing Aether writes and the likeliest to drift past its
-ceiling or into blocked phrasing.
+**Prompt fixtures — done, and they earned their keep immediately.**
+`test/fixtures/live/` holds one recorded response per call and
+`live_fixtures_test.dart` replays them through the real parsers with no network.
+Their inputs are invented, so nothing in them is anybody's record.
+
+Two of those checks are about drift rather than shape, and are the reason the
+directory is worth its weight: **the letter must never say "we" again**, and the
+**synthesis must carry no digit** — `CorrespondencePolicy` refuses a shared line
+containing one, which is an assumption about what the model writes that only
+recorded output can test.
+
+Re-record after changing a prompt, and *read* what comes back. A fixture that
+parses is not a fixture that reads well; that is the whole lesson of v6.
 
 ### 6 · The home-screen widget · *needs a device, and a Mac for iOS*
 
