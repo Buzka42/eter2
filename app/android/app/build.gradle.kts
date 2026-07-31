@@ -28,6 +28,11 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+        // Required by `flutter_local_notifications`, which reaches
+        // `java.time` to schedule the evening invitation. minSdk is 26 and
+        // `java.time` landed in 26, but the plugin declares the requirement
+        // unconditionally and Gradle fails the build without it.
+        isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
@@ -68,6 +73,10 @@ android {
             )
         }
     }
+}
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
 
 kotlin {
