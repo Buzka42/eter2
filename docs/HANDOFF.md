@@ -4,7 +4,7 @@ Written 30 July 2026, at the end of a long session on branch `eter-audit-fixes`.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **766 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **769 tests
 pass, 9 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -44,8 +44,6 @@ Still unproven, and why:
 | The invitation appearing | Fires **tomorrow at 20:00**. Tonight's fired on time and posted nothing — the icon name was wrong; see item 4 |
 | `ic_notification` on the status bar | Same firing |
 | The Letter arriving on a page | Needs five recall notes in a month; the device has one, and they accrue one a day |
-| **Nutrition write-back** | See below. Not permissions |
-| The Letter arriving on a page | Needs five recall notes in a month; see item 3 |
 | The Correspondence | Needs an account on both sides and the rules deployed |
 
 ---
@@ -100,7 +98,7 @@ member whose comment sits between `@override` and the signature.
 but it is not what Polish astronomy says, and every alternative reads worse inside
 `Księżyc w fazie …`. A decision, not an oversight.
 
-### 2 · The Long View surface · *built; wants a look on a real device*
+### 2 · The Long View surface · *done, and rendered on a phone*
 
 `LongViewSource` loads a window, `EngravedLongView` draws it, and the History
 sheet widens on its own as you turn back. No charting package, no model call, no
@@ -121,27 +119,27 @@ The parts worth knowing before changing any of it:
 - A week ends on the anchor day; a year is the twelve months ending with the
   anchor's month. Both are in `long_view_source.dart` with the reasoning.
 
-**Rendered on a device**, all three spans: `Week · 11 Jul – 17 Jul` with the
-peak day in strong ink, and an empty `Year · July 1981 – June 1982` saying
-"0 of 12 recorded. Nothing was recorded in this stretch of time." One defect came
-out of that and is fixed — a week nobody wrote in drew seven one-pixel stubs,
-because pages is the one measure with a real zero and the bar floor applied to it.
+- **The axis stops at the date of birth.** Owner's decision, and the right one:
+  the months before your first record are still months you lived and did not
+  spend with Eter, and the axis saying so is true; before you were born it is not
+  your time at all. Without the floor, seventy-five taps reached **1981**,
+  because each tap is a whole year once the span widens.
+
+**Rendered on a phone**, all three spans, and two defects came out of it:
+
+- A week nobody wrote in drew seven one-pixel stubs — pages is the only measure
+  with a real zero, and the bar floor applied to it, putting marks a pixel away
+  from the open ticks that mean something else. A zero draws nothing now.
+- `Year · August 1992 – July 1993` is thirty characters and was ellipsised before
+  the second year could be read. Abbreviated months on that span.
 
 **Not done:** no golden covers a widened sheet. The panel is behind fourteen taps
 of a bead and the capture harness drives the shell, not the sheet.
 
-**A decision you may want to make.** The axis has no floor. Seventy-five taps of
-the earlier bead reached **1981** — once you are in year mode each tap is a whole
-year, which is the acceleration working as designed, but it means you can wander
-decades into a record that starts in 2026 and read empty window after empty
-window. Clamping at the earliest record is cheap and probably right; leaving it
-open is defensible if the axis is meant to be time rather than your time. It is a
-product question, so it is not built.
-
-### 3 · The Letter · *built; never run against a real model*
+### 3 · The Letter · *built, and run against the real model*
 
 `core/aether/letter.dart`, schema 13's `Letters` table, `letter` in `CALLS` at
-0.7, and `EterPrompts.version` at 5. `AI_FLOW.md` now documents six calls.
+0.7, and `EterPrompts.version` now at 7. `AI_FLOW.md` now documents six calls.
 
 - **The cache key is the month.** One request per person per month, and a month
   already written is never composed again. There is a test for that specifically,
