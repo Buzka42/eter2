@@ -772,14 +772,20 @@ abstract class EterStrings {
 
   String retrospectiveHeadline({required bool complete});
 
-  /// The movement sentence, which grows a clause when step counts exist.
+  /// The movement sentence, assembled from whichever figures exist.
   ///
-  /// `steps` and `stepDays` are null together: the v1 schema cannot tell an
-  /// unavailable step count from its default zero, so only positive counts are
-  /// described as measured and a week without any simply omits the clause.
+  /// **Every figure is nullable and null means not recorded**, which is the
+  /// rule this whole file exists under. The v1 schema cannot tell an
+  /// unavailable count from its default zero, so only positive values are
+  /// described as measured and a week without any omits the clause rather than
+  /// averaging zeroes into a decline that did not happen.
+  ///
+  /// `averageActiveKcal` was not nullable until a real device produced a week
+  /// of `activeKcal = 0` — steps recorded, active energy never supplied — and
+  /// the retrospective said "averaging 0 active kcal on recorded days".
   String retrospectiveMovement({
     required int days,
-    required int averageActiveKcal,
+    int? averageActiveKcal,
     int? averageSteps,
     int? stepDays,
   });

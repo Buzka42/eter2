@@ -50,13 +50,20 @@ abstract final class EveningInvitation {
   /// an hour later the evening has actually started.
   static const after = Duration(minutes: 30);
 
-  /// The hour used where the sun does not set.
+  /// The hour used when there is no sunset to compute.
   ///
-  /// A polar summer would otherwise mean no invitation for months, and a polar
-  /// winter would mean one at a sunset that never happens. The register already
-  /// degrades to the clock when it has no horizon to read; this degrades the
-  /// same way rather than inventing a second policy.
-  static const polarFallbackHour = 20;
+  /// Two cases, and the common one is not the interesting one. A polar summer
+  /// has no sunset at all, which is the case this reads like it is for. The
+  /// case that actually fires is **no coordinates** — a person whose birth
+  /// place was typed but never geocoded, or who has moved far enough that
+  /// `registerCoordinates` refuses to trust the birth longitude. On a real
+  /// device with `birth_place = 'Warsaw'` and no latitude, this is the branch
+  /// taken, and the invitation lands at eight rather than at sunset.
+  ///
+  /// It degrades the same way the register does rather than inventing a second
+  /// policy, and it is a fallback rather than a failure — but the Sanctum's
+  /// copy has to admit it exists, which is why that string names both.
+  static const fallbackHour = 20;
 
   /// When the next invitation should fire, in local time.
   ///
@@ -124,6 +131,6 @@ abstract final class EveningInvitation {
         );
       }
     }
-    return DateTime(day.year, day.month, day.day, polarFallbackHour);
+    return DateTime(day.year, day.month, day.day, fallbackHour);
   }
 }

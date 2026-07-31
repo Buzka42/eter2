@@ -1470,18 +1470,20 @@ class EterStringsEn extends EterStrings {
   @override
   String retrospectiveMovement({
     required int days,
-    required int averageActiveKcal,
+    int? averageActiveKcal,
     int? averageSteps,
     int? stepDays,
   }) {
-    final sentence = StringBuffer(
-      'Movement was recorded on $days of 7 days, averaging '
-      '$averageActiveKcal active kcal on recorded days',
-    );
+    final sentence = StringBuffer('Movement was recorded on $days of 7 days');
+    if (averageActiveKcal != null) {
+      sentence.write(
+        ', averaging $averageActiveKcal active kcal on recorded days',
+      );
+    }
     if (averageSteps != null && stepDays != null) {
       sentence.write(
-        ' and $averageSteps steps across $stepDays measured '
-        '${stepDays == 1 ? 'day' : 'days'}',
+        '${averageActiveKcal == null ? ',' : ' and'} $averageSteps steps '
+        'across $stepDays measured ${stepDays == 1 ? 'day' : 'days'}',
       );
     }
     return '$sentence.';
@@ -1597,9 +1599,10 @@ class EterStringsEn extends EterStrings {
       'Eter never speaks first. Nothing arrives unless you open it.';
   @override
   String get eveningInvitationAllowedDetail =>
-      'One quiet invitation to write, at your own sunset. Not if you have '
-      'already written that day, and nothing else — no mornings, no streaks, '
-      'no reminders to come back.';
+      'One quiet invitation to write, at your own sunset — or at eight, if '
+      'Eter does not know where you are. Not if you have already written that '
+      'day, and nothing else: no mornings, no streaks, no reminders to come '
+      'back.';
   @override
   String get eveningInvitationNotPermitted =>
       'Your phone did not allow notifications, so nothing was turned on. You '

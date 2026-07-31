@@ -51,15 +51,22 @@ class LocalWeeklyRetrospective {
 
     final passages = <String>[];
     if (summaries.isNotEmpty) {
-      final activeAverage =
-          summaries.fold<double>(0, (sum, row) => sum + row.activeKcal) /
-              summaries.length;
-      // The v1 schema cannot distinguish an unavailable step count from its
-      // default zero, so only positive counts are described as measured.
+      // The v1 schema cannot distinguish an unavailable count from its default
+      // zero, so only positive values are described as measured. This applies
+      // to **active energy as well as steps**, which it did not until a real
+      // device produced seven days of `activeKcal = 0` — Health Connect on that
+      // phone supplies steps and no active energy — and the week read back
+      // "averaging 0 active kcal on recorded days". That is the absent-not-zero
+      // rule broken in the one place the rule was written down.
+      final activeDays = summaries.where((row) => row.activeKcal > 0).toList();
       final stepDays = summaries.where((row) => row.steps > 0).toList();
       passages.add(strings.retrospectiveMovement(
         days: summaries.length,
-        averageActiveKcal: activeAverage.round(),
+        averageActiveKcal: activeDays.isEmpty
+            ? null
+            : (activeDays.fold<double>(0, (sum, row) => sum + row.activeKcal) /
+                    activeDays.length)
+                .round(),
         averageSteps: stepDays.isEmpty
             ? null
             : stepDays.fold<int>(0, (sum, row) => sum + row.steps) ~/

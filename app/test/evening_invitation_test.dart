@@ -88,13 +88,26 @@ void main() {
   });
 
   group('where there is no horizon to read', () {
+    test('the common case is no coordinates, not a polar night', () {
+      // A real profile carried `birth_place = 'Warsaw'` and no latitude, so
+      // this branch is the ordinary one rather than the exotic one.
+      final decision = EveningInvitation.nextAt(
+        now: DateTime(2026, 7, 31, 9),
+        consented: true,
+        wroteToday: false,
+        latitude: null,
+        longitude: 21.01,
+      );
+      expect(decision.at!.hour, EveningInvitation.fallbackHour);
+    });
+
     test('no coordinates falls back to a clock hour rather than silence', () {
       final decision = EveningInvitation.nextAt(
         now: DateTime(2026, 7, 31, 9),
         consented: true,
         wroteToday: false,
       );
-      expect(decision.at, DateTime(2026, 7, 31, EveningInvitation.polarFallbackHour));
+      expect(decision.at, DateTime(2026, 7, 31, EveningInvitation.fallbackHour));
     });
 
     test('a polar summer still gets an invitation', () {
@@ -109,7 +122,7 @@ void main() {
         longitude: 15.63,
       );
       expect(decision.isScheduled, isTrue);
-      expect(decision.at!.hour, EveningInvitation.polarFallbackHour);
+      expect(decision.at!.hour, EveningInvitation.fallbackHour);
     });
   });
 }

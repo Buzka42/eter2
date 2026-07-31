@@ -397,6 +397,24 @@ void main() {
         expect(withSteps.length, greaterThan(withoutSteps.length));
         expect(withoutSteps, endsWith('.'));
         expect(withSteps, endsWith('.'));
+
+        // A week Health Connect gave steps for and no active energy. It said
+        // "averaging 0 active kcal on recorded days" on a real phone for seven
+        // days running, which is the absent-not-zero rule broken in the one
+        // sentence that also carries the caveat about it.
+        final stepsOnly = strings.retrospectiveMovement(
+          days: 7,
+          averageSteps: 11177,
+          stepDays: 7,
+        );
+        expect(stepsOnly, isNot(contains('0 ')));
+        expect(stepsOnly, contains('11177'));
+        expect(stepsOnly, endsWith('.'));
+
+        // And a week with neither is still a sentence about seven days.
+        final neither = strings.retrospectiveMovement(days: 7);
+        expect(neither, contains('7'));
+        expect(neither, endsWith('.'));
       });
 
       test('${language.code}: a lifestyle sentence names its kinds', () {

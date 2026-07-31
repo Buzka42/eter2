@@ -1668,18 +1668,20 @@ class EterStringsPl extends EterStrings {
   @override
   String retrospectiveMovement({
     required int days,
-    required int averageActiveKcal,
+    int? averageActiveKcal,
     int? averageSteps,
     int? stepDays,
   }) {
-    final sentence = StringBuffer(
-      'Ruch zapisano w $days z 7 dni, średnio $averageActiveKcal kcal '
-      'aktywności w zapisanych dniach',
-    );
+    final sentence = StringBuffer('Ruch zapisano w $days z 7 dni');
+    if (averageActiveKcal != null) {
+      sentence.write(
+        ', średnio $averageActiveKcal kcal aktywności w zapisanych dniach',
+      );
+    }
     if (averageSteps != null && stepDays != null) {
       sentence.write(
-        ' oraz $averageSteps kroków w $stepDays zmierzonych '
-        '${_dniGen(stepDays)}',
+        '${averageActiveKcal == null ? ',' : ' oraz'} $averageSteps kroków w '
+        '$stepDays zmierzonych ${_dniGen(stepDays)}',
       );
     }
     return '$sentence.';
@@ -1799,9 +1801,10 @@ class EterStringsPl extends EterStrings {
       'otworzysz.';
   @override
   String get eveningInvitationAllowedDetail =>
-      'Jedno ciche zaproszenie do pisania, o twoim zachodzie słońca. Nie w '
-      'dniu, w którym już piszesz, i nic poza tym — żadnych poranków, serii '
-      'ani przypomnień, żeby wrócić.';
+      'Jedno ciche zaproszenie do pisania, o twoim zachodzie słońca — albo o '
+      'dwudziestej, jeśli Eter nie wie, gdzie jesteś. Nie w dniu, w którym już '
+      'piszesz, i nic poza tym: żadnych poranków, serii ani przypomnień, żeby '
+      'wrócić.';
   @override
   String get eveningInvitationNotPermitted =>
       'Telefon nie zgodził się na powiadomienia, więc nic nie zostało '
