@@ -143,7 +143,11 @@ class LocalNotificationSink implements InvitationSink {
     tz.setLocalLocation(tz.getLocation(zone.identifier));
     await _plugin.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        // Not the launcher icon. Android draws the small icon as an alpha
+        // mask and tints it, so a full-colour adaptive icon arrives as a
+        // white blob. `ic_notification` is the mark reduced to what survives
+        // at 24dp — see the comment in the drawable.
+        android: AndroidInitializationSettings('@drawable/ic_notification'),
         iOS: DarwinInitializationSettings(
           // Asked for explicitly in [requestPermission], not on first launch.
           // Eter does not open with a permission dialog for something that is
