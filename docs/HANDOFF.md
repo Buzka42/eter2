@@ -113,10 +113,22 @@ The parts worth knowing before changing any of it:
 - A week ends on the anchor day; a year is the twelve months ending with the
   anchor's month. Both are in `long_view_source.dart` with the reasoning.
 
+**Rendered on a device**, all three spans: `Week · 11 Jul – 17 Jul` with the
+peak day in strong ink, and an empty `Year · July 1981 – June 1982` saying
+"0 of 12 recorded. Nothing was recorded in this stretch of time." One defect came
+out of that and is fixed — a week nobody wrote in drew seven one-pixel stubs,
+because pages is the one measure with a real zero and the bar floor applied to it.
+
 **Not done:** no golden covers a widened sheet. The panel is behind fourteen taps
-of a bead, and the capture harness drives the shell rather than the sheet. Worth
-adding if the sheet changes again; worth *looking at on a phone* either way,
-because a twelve-cell year axis at 320 dp with 200 % text has never been rendered.
+of a bead and the capture harness drives the shell, not the sheet.
+
+**A decision you may want to make.** The axis has no floor. Seventy-five taps of
+the earlier bead reached **1981** — once you are in year mode each tap is a whole
+year, which is the acceleration working as designed, but it means you can wander
+decades into a record that starts in 2026 and read empty window after empty
+window. Clamping at the earliest record is cheap and probably right; leaving it
+open is defensible if the axis is meant to be time rather than your time. It is a
+product question, so it is not built.
 
 ### 3 · The Letter · *built; never run against a real model*
 
