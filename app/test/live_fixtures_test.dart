@@ -70,18 +70,33 @@ void main() {
       );
     });
 
-    test('the synthesis carries no figure, so it may cross to a correspondent',
-        () {
-      // `CorrespondencePolicy` refuses any shared line containing a digit, on
-      // the grounds that Eter's synthesis never quotes one — the numbers live
-      // in `evidence`, which does not cross. That is an assumption about what
-      // the model writes, and this is the only place it can be checked against
-      // what the model actually wrote.
-      final decoded =
-          jsonDecode(fixture('guidance')) as Map<String, dynamic>;
+    test('the synthesis carries no figure at all, in digits or in words', () {
+      // The synthesis sentences are the *only* thing the Correspondence sends
+      // to another person — `_GuidanceContent.passage` is the sentences joined,
+      // and the primaryAction becomes `supporting`, which does not cross.
+      //
+      // `CorrespondencePolicy` refuses a shared line containing a digit, and
+      // that wall catches numerals only. A real response read "rest settled
+      // near six hours and thirty-eight minutes" — a measurement, in words,
+      // straight past it. `EterPrompts` v7 is the prevention half; this is
+      // where it gets checked against what the model actually wrote.
+      final decoded = jsonDecode(fixture('guidance')) as Map<String, dynamic>;
       final synthesis = decoded['synthesis'] as Map<String, dynamic>;
       final sentences = (synthesis['sentences'] as List).join(' ');
       expect(RegExp(r'\d').hasMatch(sentences), isFalse, reason: sentences);
+      // The spelled-out kind, which is the one that got through.
+      const spelled = [
+        'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+        'nine', 'ten', 'eleven', 'twelve', 'twenty', 'thirty', 'forty',
+        'fifty', 'sixty', 'hundred', 'thousand',
+      ];
+      for (final word in spelled) {
+        expect(
+          RegExp('\b$word\b', caseSensitive: false).hasMatch(sentences),
+          isFalse,
+          reason: '"$word" in: $sentences',
+        );
+      }
     });
 
     test('the recall is telegraphic, not the prose it came from', () {
@@ -90,9 +105,16 @@ void main() {
       expect(recall.length, lessThanOrEqualTo(160));
       // A note that came back as a paragraph means the instruction stopped
       // landing, and the next day's request would carry prose instead of a
-      // thread.
-      expect(recall.split(RegExp(r'[.!?]')).where((s) => s.trim().length > 40),
-          isEmpty, reason: recall);
+      // thread. Telegram style is the tell, and it is the one property that is
+      // objectively checkable: the real notes read "long week. sleep short.
+      // desk meals." — fragments, uncapitalised. Measuring clause *length*
+      // was the first attempt and it was a bad proxy; a legitimate note
+      // ("offered screen break and clearing workspace") tripped it.
+      expect(
+        RegExp(r'^[A-Z]').hasMatch(recall.trim()),
+        isFalse,
+        reason: recall,
+      );
     });
   });
 }

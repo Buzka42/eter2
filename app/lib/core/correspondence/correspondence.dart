@@ -60,14 +60,21 @@ abstract final class CorrespondencePolicy {
   /// this by its own parser; the ceiling here is the wall, not the target.
   static const maxSentenceCharacters = 400;
 
-  /// Anything that looks like a measurement being smuggled through the one
-  /// field that is allowed to travel.
+  /// A numeral in the one field that is allowed to travel.
   ///
-  /// A sentence is prose, and Eter's own guidance never quotes a figure into
-  /// the synthesis — the numbers live in `evidence`, which does not cross. So
-  /// a digit here means something upstream changed, and the honest response is
-  /// to refuse rather than to trim: the sentence would still be *about* the
-  /// measurement with the number removed.
+  /// **This catches digits and only digits, and that is worth stating plainly
+  /// rather than describing it as catching measurements.** A real synthesis
+  /// came back reading "rest settled near six hours and thirty-eight minutes" —
+  /// a measurement, in words, which this would pass. Recognising spelled-out
+  /// numbers reliably means a word list per language, and a word list is a
+  /// thing that is always slightly out of date in exactly the place it matters.
+  ///
+  /// So the division is the one the whole product uses: **prevention in the
+  /// prompt, defence here.** `EterPrompts` v7 forbids the synthesis from
+  /// carrying a figure in digits *or* words, because it is the only line that
+  /// can reach another person. This stays as the wall for the case the
+  /// instruction stops landing, and refuses rather than trims — a sentence with
+  /// the number taken out is still *about* the measurement.
   static final _carriesFigures = RegExp(r'\d');
 
   static CorrespondenceLine check(CorrespondenceLine line) {

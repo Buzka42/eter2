@@ -74,7 +74,13 @@ abstract final class EterPrompts {
   /// also opened by reciting the retrospective's figures and by declaring a
   /// well-recorded month thin, having taken the instruction's permission to
   /// keep a quiet month short and applied it to twenty-two recorded days.
-  static const version = 6;
+  ///
+  /// v7 (31 July 2026): the synthesis carries no figure, in digits or in
+  /// words. It is the one line the Correspondence shares with another person,
+  /// and the first real response wrote "rest settled near six hours and
+  /// thirty-eight minutes" — a measurement, past a filter that refuses
+  /// numerals. Prevention here; the filter stays as the wall.
+  static const version = 7;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -397,6 +403,12 @@ Exactly four dimensions, as JSON, and nothing outside the JSON:
 - "synthesis" — the day in one breath. This is the only text most people will
   read: it opens the app. Two sentences at most. No preamble, no greeting, no
   "today's guidance is". Begin with the observation itself.
+  **Carry no figure here — not as digits and not spelled out in words.** Say
+  "rest settled short of what the week had been", never "rest settled near six
+  hours and thirty-eight minutes". The numbers belong in the three dimensions
+  below and in "evidence"; this one line is the only thing that can be shared
+  with another person, and it has to be sayable without handing over a
+  measurement.
 - "health" — the body: movement, recovery, sleep, energy.
 - "mind" — attention, load, what the day can reasonably hold.
 - "spirit" — meaning, orientation, what this stretch of days is about. In

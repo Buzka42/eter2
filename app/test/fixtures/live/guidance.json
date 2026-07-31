@@ -1,39 +1,33 @@
 {
   "synthesis": {
     "sentences": [
-      "Steady physical rhythms have carried you through a demanding week of desk work and broken sleep.",
-      "A quiet evening offers space to settle the nervous system before tomorrow begins."
+      "Rest settled slightly short through a demanding week while movement remained steady.",
+      "A quiet evening can anchor the space between work and sleep."
     ],
-    "primaryAction": "Step away from the workspace early and take a twenty-minute walk without your phone.",
-    "evidence": {
-      }
+    "primaryAction": "Close the laptop twenty minutes before resting."
   },
   "health": {
     "sentences": [
-      "Your step counts remained steady around nine thousand daily with consistent recovery metrics.",
-      "Sleep lingered just under seven hours each night following late hours at the desk."
+      "Sleep held near six hours and forty-seven minutes each night as the deadline approached.",
+      "Resting heart rate stayed calm at fifty-four beats per minute throughout."
     ],
-    "primaryAction": "Aim for a slightly earlier bedtime to help restore deeper sleep cycles.",
+    "primaryAction": "Step away from screens an hour before bed.",
     "evidence": {
       }
   },
   "mind": {
     "sentences": [
-      "Attention has been anchored tightly to a looming deadline and professional pressure.",
-      "Eating at your workstation blurred the boundary between output and rest."
+      "Attention fractured over desk lunches and late tasks.",
+      "Focus returns more readily when the physical workspace is cleared."
     ],
-    "primaryAction": "Eat your next meal away from any screens to give your attention a clean break.",
-    "evidence": {
-      }
+    "primaryAction": "Clear the desk completely before ending the workday."
   },
   "spirit": {
     "sentences": [
-      "Enduring an intense stretch requires deliberate pauses to reclaim your own time.",
-      "Purpose right now is found simply in recovery rather than further achievement."
+      "Endurance carried through the pressure of completion.",
+      "Quiet hours offer a chance to reclaim equilibrium."
     ],
-    "primaryAction": "Write down one thing you can safely leave unfinished until next week.",
-    "evidence": {
-      }
+    "primaryAction": "Take ten minutes of unhurried silence in the evening."
   },
-  "recall": "long week. desk work. sleep under 7 hours. ate at desk. steady steps. offered early screen-free walk and rest."
+  "recall": "long week. sleep short. desk meals. offered screen break and clearing workspace."
 }
