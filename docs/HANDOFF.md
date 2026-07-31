@@ -1,10 +1,11 @@
 # Eter · where the work stands, and what to do next
 
-Written 30 July 2026, at the end of a long session on branch `eter-audit-fixes`.
+Written 30–31 July 2026 across two long sessions on branch `eter-audit-fixes`,
+the second of them with a real phone attached.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **769 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **778 tests
 pass, 9 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -37,11 +38,18 @@ Verified on a Blade V 5G, Android 14, against the owner's own record:
   the twelve months ending with the birth month; before the clamp, seventy-five
   reached 1981.
 
+**Left on the phone**, deliberately, so it can be inspected or tidied: a debug
+build carrying the endpoint defines, a test journal page dated 31 July with its
+day story and two derived meals (one written to Health Connect), the evening
+invitation switched **on**, and Health Connect write access granted for weight
+and nutrition. Deleting the journal page removes the local rows but not the
+Health Connect record, so tidy in that order.
+
 Still unproven, and why:
 
 | Thing | Blocked on |
 |---|---|
-| The invitation appearing | Fires **tomorrow at 20:00**. Tonight's fired on time and posted nothing — the icon name was wrong; see item 4 |
+| The invitation appearing | Next fires **1 August, 20:00**. The 31 July one fired on time and posted nothing — the icon name was wrong, and is fixed; see item 4 |
 | `ic_notification` on the status bar | Same firing |
 | The Letter arriving on a page | Needs five recall notes in a month; the device has one, and they accrue one a day |
 | The Correspondence | Needs an account on both sides and the rules deployed |
@@ -52,12 +60,91 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 769 pass, 9 skipped
+flutter test          # expect 778 pass, 9 skipped
 flutter analyze       # expect clean
 ```
 
 If either disagrees with those numbers, something in the working tree is wrong —
 fix that before starting anything below.
+
+---
+
+## What the owner asked for after testing it
+
+31 July, after a session with the app on a real phone. Seven items; three are
+done and four are not. **Read this before the queue below** — the queue is the
+original audit backlog, and this is what use actually threw up.
+
+### Done
+
+- **The birth date types its own hyphens.** `core/profile/date_input.dart`. Not
+  a picker, deliberately: a birth date is four digits somebody knows by heart,
+  and a calendar widget means spinning back thirty years.
+- **Onboarding asks for the birth time.** Precision, a self-punctuating clock
+  field, or a part of the day — reusing the `BirthTimePrecision` machinery the
+  Sanctum already had. The UTC offset is suggested from the phone rather than
+  asked about.
+- **Onboarding resolves the birth place.** It used to write `birthPlace` as a
+  bare string and stop, which is why a real profile carried
+  `birth_place = 'Warsaw'` with a null latitude — and why the register *and* the
+  evening invitation both fell back to a clock hour for somebody who had said
+  exactly where they were born. Bounded to four seconds; the Sanctum still
+  resolves it later if the lookup fails.
+
+### Still to do
+
+**Birth-place autocomplete, in both languages.** The field is a plain
+`TextField` today and only resolves on save. Wanted: suggestions as you type.
+`BirthplaceResolver` currently exposes `resolve(String) → coordinates` only, so
+this needs a second method returning *candidates*, debounced, plus a suggestion
+list under the field. The two-language part is the interesting half: the device
+geocoder answers in the device locale, so a Polish phone searching "Warsaw"
+and an English phone searching "Warszawa" both have to work. Resolve against
+the geocoder in both `AppLanguage` locales and merge, or accept either spelling
+and display whatever came back — worth deciding before building.
+
+**A full astrogram explanation behind "go deeper".** The Life Path cards each
+have a written passage; the chart itself has none. This should follow
+`vessel/reading_composer.dart` exactly — the same per-position pattern, the same
+`inputHash` cache so a chart is paid for once — rather than becoming a seventh
+call. `docs/AI_FLOW.md` is the authority.
+
+**Animated cards in every position, and larger secondary cards.** Today only
+some positions animate, and the secondary cards are smaller than the main one.
+Wanted: animation everywhere, and secondary cards at the main card's size **on
+night mode in the immersive and balanced registers** — so it is register- and
+brightness-conditional, not a flat size change. Check the 320 dp × 200 % goldens
+after: the Vessel is already the tightest surface in the app.
+
+### Two that want a decision first
+
+Both are design changes where the owner's taste governs, and both are expensive
+to undo. Neither is started.
+
+**Restructuring the Sanctum.** It is agreed to be chaotic. The current order is
+roughly "who you are → what leaves → what is connected → what you can take
+away", with later features bolted on wherever they landed. Three groupings were
+put to the owner:
+
+1. **By consequence** — *Your record* (export, import, delete), *What leaves
+   this device* (every consent), *How Eter behaves* (register, language, opening
+   page, the invitation), *Connections* (health, account, correspondence).
+2. **By frequency** — the few things people change often at the top, the
+   once-ever setup below.
+3. **Collapsible sections** — much shorter, but introduces a disclosure idiom
+   the product does not use anywhere else, which `UI_BRIEF.md` would want an
+   argument for.
+
+**The guidance → body / vessel / spirit flow.** The single `LOOK DEEPER` that
+expands one of three sections *in place* is what makes it feel like a shell
+game: you lose your place, and the three are not siblings — the body is data,
+the Vessel is symbolic, guidance is prose.
+
+The proposal put to the owner: keep the resting screen exactly as it is and make
+the disclosure **horizontal** — the three named in a row under the hairline,
+tapping one slides it in beside rather than expanding downward, so the guidance
+stays put and you can move between the three without collapsing back to the top.
+That is a bigger change than it sounds and was not started without an answer.
 
 ---
 
@@ -400,14 +487,22 @@ not logged food that they were 828 kcal down. `long_view.dart` and
 None of these can be done from the repo. `RELEASE.md` §2 is the full list; the ones
 that block the most:
 
-1. **Upload keystore** — create it early; losing it means losing the ability to
+1. **Bind the rate limiter.** Both bindings are still commented out in
+   `server/wrangler.toml`, so the deployed worker has no per-install cap of any
+   kind — not even the KV fallback whose weakness it logs as
+   `limits=kv-approximate`. Google's free tier is the only ceiling, on an
+   endpoint anybody holding the client token can reach. This moved to the top of
+   the list the moment the endpoint went live.
+2. **Upload keystore** — create it early; losing it means losing the ability to
    update the listing.
-2. **Deploy `server/worker.js`**, and **bind the rate limiter** in
-   `wrangler.toml`. Without it the worker logs `limits=kv-approximate` and means
-   it.
-3. **Store subscription products** — `eter.monthly` $4.99, `eter.yearly` $39.99,
+3. **Redeploy `server/worker.js` whenever it changes.** It is deployed and
+   current as of 31 July, but it drifted three commits behind once already and
+   the symptom was `400 Unknown call: letter` with nothing wrong in the
+   repository. `test/worker_contract_test.dart` catches the half that lives
+   here; only `npx wrangler deploy` catches the other half.
+4. **Store subscription products** — `eter.monthly` $4.99, `eter.yearly` $39.99,
    **20 PLN/month in Poland** as a regional price, not a conversion.
-4. **A public privacy-policy URL**, and the health-data declarations.
-5. **Firestore rules deploy** — the live project's rules predate the mirror and
+5. **A public privacy-policy URL**, and the health-data declarations.
+6. **Firestore rules deploy** — the live project's rules predate the mirror and
    would deny it.
-6. **Rotate the development Gemini key** before any public build.
+7. **Rotate the development Gemini key** before any public build.
