@@ -116,14 +116,42 @@ the prompt-fixture work in item 5, and the first one worth capturing — a lette
 is the longest thing Aether writes and the likeliest to drift past 2400
 characters or into the phrasing `AetherSafetyPolicy` blocks.
 
-### 4 · The evening invitation · *needs a device to verify delivery*
+### 4 · The evening invitation · *built; delivery unverified*
 
-Decided and not built. One quiet local notification inviting a page, **off by
-default**, scheduled on the **real sunset** `registerCoordinates` already
-computes rather than a clock time.
+`core/invitation/` is the feature, split so the rule is testable and only the
+platform call is not. Schema 14 carries the consent, null on upgrade. The
+Sanctum has the toggle, beside the other consents rather than in a preferences
+list — it is the only one that is not about data leaving the device, and what it
+grants is the right to interrupt.
 
-Needs `POST_NOTIFICATIONS` back in the manifest — it was deliberately stripped —
-a permission request, a consent column, and a notification package. No server.
+- Half an hour **after** the real sunset. At sunset the register turns, and a
+  notification on the same minute reads as the app announcing its own theme.
+- Somebody who already wrote today is moved to tomorrow. An invitation, not a
+  reminder.
+- Above the Arctic Circle it degrades to 20:00 rather than falling silent for a
+  season — the same way the register degrades with no horizon to read.
+- Granting asks the OS first and stores nothing if refused.
+- `POST_NOTIFICATIONS` and `RECEIVE_BOOT_COMPLETED` are back in the manifest,
+  each with a comment saying why.
+
+**What the phone has to prove**, none of which a test can:
+
+1. Sanctum → `AN EVENING INVITATION` → ALLOWED. The system sheet should appear
+   **once**, and refusing it must leave the control reading OFF.
+2. One notification that evening, silent and low-importance, and **only one**.
+3. Write a page during the day; that evening must stay silent.
+4. Turn it off; anything pending must disappear immediately.
+5. Reboot mid-afternoon; that evening's invitation must survive.
+
+**Also unverified:** `flutter_local_notifications` has never been built for
+Android here, so the plugin's Gradle side is untested in this project.
+
+**And one thing that is probably wrong already.** The notification is scheduled
+against `@mipmap/ic_launcher`, which exists but is an *adaptive, full-colour*
+icon. Android's small icon must be a monochrome alpha mask, and a colour one
+renders as a white blob. Expect to add a dedicated silhouette drawable — it is a
+one-line change once you have seen it on the status bar, and not worth guessing
+at blind.
 
 ### 5 · Import, and the prompt fixtures · *no device*
 
