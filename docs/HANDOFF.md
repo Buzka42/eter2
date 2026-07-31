@@ -153,17 +153,36 @@ renders as a white blob. Expect to add a dedicated silhouette drawable — it is
 one-line change once you have seen it on the status bar, and not worth guessing
 at blind.
 
-### 5 · Import, and the prompt fixtures · *no device*
+### 5 · Import · *done*, and the prompt fixtures · *blocked on the endpoint*
 
-Two bounded robustness items from the audit that never got done.
+**Import is built.** `core/privacy/local_data_import.dart`, reached from the
+Sanctum under `BRING A RECORD BACK`, directly beneath the export it undoes.
 
-**Import.** `LocalDataExporter` writes a versioned JSON snapshot and nothing can
-read one back. The format is already versioned, so the restore path is small. The
-more valuable version reads *other* apps — Daylio, Bearable, Apple Health XML.
+- It only fills an empty device, the same promise cloud Restore makes.
+  "Empty" **excludes the profile row** — a new phone has one by the time anybody
+  reaches the Sanctum, and counting it would make the feature refuse in exactly
+  the case it exists for.
+- A snapshot from a newer schema is refused outright; anything else unreadable is
+  *reported* — how many records came back, and that part of the file did not.
+- The insert is raw SQL. Drift's `validateIntegrity` is written for rows the app
+  is composing; a restore is putting back bytes this same schema wrote.
 
-**Prompt fixtures.** All five parsers are tested against hand-written JSON, never
-against recorded real model output. Record good, malformed, unsafe and empty
-responses per call. Needs the endpoint deployed to capture them.
+**Still worth doing, and not started:** reading *other* apps — Daylio, Bearable,
+Apple Health XML. That is the version that gets somebody to switch, and it is a
+different job: those are foreign shapes, not Eter's own snapshot.
+
+**Not verified without a phone:** `file_picker` has never been built for Android
+here. The picker is deliberately opened **unfiltered** rather than restricted to
+`json` — Android's document picker filters by MIME type and hides a `.json` that
+the file manager reports as `application/octet-stream`, which is most of them. A
+wrong file is refused with a sentence, which is a better failure than a right
+file the person cannot see. Worth confirming a `.json` is actually selectable.
+
+**Prompt fixtures — still blocked.** All *six* parsers are tested against
+hand-written JSON, never against recorded model output. Record good, malformed,
+unsafe and empty responses per call once the endpoint is deployed. Start with the
+Letter: it is the longest thing Aether writes and the likeliest to drift past its
+ceiling or into blocked phrasing.
 
 ### 6 · The home-screen widget · *needs a device, and a Mac for iOS*
 
