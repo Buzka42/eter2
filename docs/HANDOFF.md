@@ -286,16 +286,31 @@ granted and used.
 now. `nutrition_entries` is **empty**, so `Health.writeMeal` has nothing to send
 and cannot be reached.
 
-And the reason it is empty is the finding: **`ManualMealService` has no caller.**
-`core/nutrition/manual_meal.dart` records a *confirmed* meal — exactly what
-write-back needs — and nothing in `lib/features/` invokes it. Every meal in Eter
-therefore comes from journal interpretation, which needs the guidance endpoint.
-On a build without one there is no way to record eating at all.
+And the reason it is empty is not a bug. **The Dashboard reads; the Journal
+writes** — the product rule of 28 July 2026, stated at the top of
+`body_section.dart`, which removed every capture control the Body used to carry.
+So the only way a meal enters Eter is by writing a page and letting
+interpretation derive one, and that needs the guidance endpoint.
 
-So the order is: give `ManualMealService` a surface, record one meal, then
-`WRITE BACK` and look in Health Connect. Until then `Health.writeMeal` stays
-untested, and `DIETARY_ENERGY_CONSUMED` being Apple-only and *silently* filtered
-on Android is still the failure to watch for.
+`ManualMealService` still exists, still records a confirmed meal, and still has
+its own tests — the class comment on `BodySection` says explicitly that the write
+services were kept when their surfaces went. But it has **no caller anywhere in
+`lib/`**, which makes it the only path that could produce a meal offline and the
+only path nothing can reach.
+
+That leaves a decision rather than a task, and it is the owner's:
+
+- **Deploy the endpoint**, write a page about a meal, confirm the estimate, then
+  `WRITE BACK`. This is the intended route and needs nothing new built.
+- **Or give `ManualMealService` a surface anyway** — which contradicts the
+  product rule above, so it wants a line in `DECISIONS.md` rather than a quiet
+  widget. There is a real argument for it: without one, a person with no network
+  cannot record eating at all, and the Body's balance is half-blind.
+
+Do not add the surface without deciding that second point out loud. Whichever
+way it goes, `Health.writeMeal` stays untested until a confirmed meal exists, and
+`DIETARY_ENERGY_CONSUMED` being Apple-only and *silently* filtered on Android is
+still the failure to watch for.
 
 ---
 
