@@ -111,6 +111,94 @@ service cloud.firestore {
       }
     }
 
+    // ------------------------------------------------------ the Correspondence
+    //
+    // The only place in Eter where one person's device reads another person's
+    // document, and therefore the only rule here that has to be strict about
+    // *values* as well as ownership. Everything above is the writer's own data
+    // and the app is the only thing that ever reads it back; this is not.
+    //
+    // What crosses is one sentence a day. Nothing measured, nothing written,
+    // no health data. The client enforces that too — `CorrespondencePolicy`,
+    // on the way out and on the way in — and this is the third check, because
+    // it is the only one an attacker cannot skip by not running our client.
+
+    function isMember(members) {
+      return request.auth != null && request.auth.uid in members;
+    }
+
+    match /correspondences/{pairId} {
+      allow read: if isMember(resource.data.members);
+
+      // Created by whoever redeems the code, naming both sides at once. Two
+      // members exactly, and the creator must be one of them — otherwise a
+      // caller could pair two strangers to each other.
+      allow create: if request.auth != null
+        && request.resource.data.members is list
+        && request.resource.data.members.size() == 2
+        && request.auth.uid in request.resource.data.members
+        && request.resource.data.createdAt is string;
+
+      // Membership never changes. A pair that could gain a third member is a
+      // pair that could gain an audience, and the person who left the door
+      // open would not be the one who notices.
+      allow update: if false;
+
+      // Either side can end it, and ending it is unilateral by design: leaving
+      // a correspondence must never require the other person's agreement.
+      allow delete: if isMember(resource.data.members);
+
+      // One document per member, named for them, writable only by them.
+      match /lines/{authorId} {
+        allow read: if isMember(
+          get(/databases/$(database)/documents/correspondences/$(pairId))
+            .data.members
+        );
+        allow write: if request.auth != null
+          && request.auth.uid == authorId
+          && isMember(
+            get(/databases/$(database)/documents/correspondences/$(pairId))
+              .data.members
+          )
+          // The bound the whole feature rests on. A sentence, a day, and
+          // nothing else in the document at all.
+          && request.resource.data.keys().hasOnly(['date', 'sentence'])
+          && request.resource.data.date is string
+          && request.resource.data.date.size() == 10
+          && request.resource.data.sentence is string
+          && request.resource.data.sentence.size() > 0
+          && request.resource.data.sentence.size() <= 400;
+        allow delete: if request.auth != null && request.auth.uid == authorId;
+      }
+    }
+
+    // A pairing code, held only long enough to be read aloud once.
+    //
+    // The code *is* the credential, which is why the document keyed by it
+    // carries nothing but who offered it: anybody who can name the code can
+    // read this, and that is the design rather than a hole in it. It carries
+    // no name, no email and nothing about the person on either side.
+    match /invitations/{code} {
+      // Deliberately readable by any signed-in caller who can name the code.
+      // Enumerating them is the attack, and the code's length is the defence;
+      // see `PairingCode`.
+      allow get: if request.auth != null;
+      // Not list. Otherwise every code is one query away and the length buys
+      // nothing.
+      allow list: if false;
+
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly(['from', 'expiresAt'])
+        && request.resource.data.from == request.auth.uid
+        && request.resource.data.expiresAt is string;
+
+      allow update: if false;
+
+      // Redeemed or withdrawn. The redeemer deletes it as the last step of
+      // pairing, so a code is good exactly once.
+      allow delete: if request.auth != null;
+    }
+
     // Anything not named above is denied, including collections a future
     // version might add and forget to write a rule for.
     match /{document=**} {

@@ -58,7 +58,7 @@ class AppDatabase extends _$AppDatabase {
   /// fortnight of compressed notes guidance reads so it stops repeating itself;
   /// v9 records which language Eter speaks.
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   /// Timestamps are stored as ISO-8601 text, not unix seconds.
   ///
@@ -196,6 +196,10 @@ class AppDatabase extends _$AppDatabase {
           // one is the only thing in Eter that can interrupt somebody.
           await _addColumnIfMissing(
               m, profiles, profiles.eveningInvitationConsentAt);
+
+          // New in v15. Null: nobody acquires a correspondent by upgrading.
+          await _addColumnIfMissing(
+              m, profiles, profiles.correspondencePairId);
 
           await _repairDoubleCountedSleep();
           await _createIndexes();

@@ -117,6 +117,18 @@ class Profiles extends Table {
   /// it; there is no server involved in a local notification.
   DateTimeColumn get eveningInvitationConsentAt => dateTime().nullable()();
 
+  /// The correspondence this device is half of, or null.
+  ///
+  /// One at a time, deliberately. The feature is two people sharing a sentence
+  /// a day, and a list of correspondents would be a feed — which is the thing
+  /// `STEERING_BRIEF.md` says Eter must never become. Pairing again replaces
+  /// this rather than adding to it.
+  ///
+  /// Only the pair's id lives here. Nothing about the other person is stored
+  /// on this device at all: not a name, not an address, not a history of their
+  /// lines. Today's line is read and shown and not kept.
+  TextColumn get correspondencePairId => text().nullable()();
+
   /// When the user consented to cloud sync. Null means local-only.
   ///
   /// This covers the measured record: weights, meals, sessions, sleep, day
