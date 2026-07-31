@@ -398,6 +398,13 @@ class EterStringsPl extends EterStrings {
 
   @override
   String get readDeeper => 'Czytaj głębiej';
+
+  // Rzeczownik, i krótki — jak w angielskim. Przy 320 dp i podwojonym tekście
+  // 'Czytaj kosmogram' wychodziło 77 px poza wiersz akcji.
+  //
+  // Komentarz nad `@override`, nie pod nim — patrz uwaga w wersji angielskiej.
+  @override
+  String get chartGoDeeper => 'Kosmogram';
   @override
   String get showLess => 'Pokaż mniej';
   @override

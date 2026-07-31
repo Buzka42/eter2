@@ -379,6 +379,17 @@ class EterStringsEn extends EterStrings {
 
   @override
   String get readDeeper => 'Read deeper';
+
+  // A noun, and a short one. The action row at 320 dp with text doubled has
+  // room for about nine characters — 'Read the chart' overflowed it by 9.4 px
+  // — and a verb here would have read as a second 'READ DEEPER' anyway, which
+  // is the button directly beneath it.
+  //
+  // Above the `@override`, not below it: `tool/pair_translations.py` drops any
+  // member whose comment sits between the annotation and the signature, and a
+  // string missing from `TRANSLATIONS.md` is a string nobody reviews.
+  @override
+  String get chartGoDeeper => 'The chart';
   @override
   String get showLess => 'Show less';
   @override

@@ -15,6 +15,7 @@ import '../../core/profile/birth_offset.dart';
 import '../../core/profile/birth_time.dart';
 import '../../core/profile/body_fat.dart';
 import '../../core/profile/date_input.dart';
+import '../../core/profile/place_suggestions.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
@@ -65,6 +66,11 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   var _saving = false;
   String? _birthError;
 
+  /// Suggestions as the birth place is typed. Null when the resolver cannot
+  /// suggest — a test fake, or any resolver that only knows how to save —
+  /// in which case the field stays the plain field it always was.
+  PlaceSuggestionController? _placeSuggestions;
+
   /// Chosen on the first step, and pre-filled from the phone.
   ///
   /// Held in local state and written with the profile at the end, like every
@@ -85,6 +91,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _language = AppLanguage.forProfile(profile?.language);
     _name.text = profile?.firstName ?? '';
     _birthPlace.text = profile?.birthPlace ?? '';
+    if (widget.resolver case final PlaceSuggester suggester) {
+      final suggestions = PlaceSuggestionController(suggester: suggester);
+      _placeSuggestions = suggestions;
+      _birthPlace.addListener(
+        () => suggestions.onQueryChanged(_birthPlace.text),
+      );
+    }
     _sex = profile?.sex ?? 'other';
     _register = profile?.guidanceMode ?? 'balanced';
     _bodyFat = EterBodyFat.normalize(profile?.bodyFatPercent);
@@ -103,6 +116,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   void dispose() {
     _name.dispose();
     _intention.dispose();
+    _placeSuggestions?.dispose();
     _birthPlace.dispose();
     _birthTime.dispose();
     _dob.dispose();
@@ -329,6 +343,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                               onPeriod: (value) =>
                                   setState(() => _period = value),
                               error: _birthError,
+                              suggestions: _placeSuggestions,
                             ),
                           3 => _RegisterStep(
                               key: const ValueKey(3),
@@ -505,6 +520,7 @@ class _BirthStep extends StatelessWidget {
     required this.onPrecision,
     required this.period,
     required this.onPeriod,
+    required this.suggestions,
   });
   final TextEditingController dob;
   final TextEditingController weight;
@@ -520,6 +536,7 @@ class _BirthStep extends StatelessWidget {
   final BirthTimePeriod? period;
   final ValueChanged<BirthTimePeriod> onPeriod;
   final String? error;
+  final PlaceSuggestionController? suggestions;
 
   @override
   Widget build(BuildContext context) {
@@ -593,6 +610,16 @@ class _BirthStep extends StatelessWidget {
           label: strings.fieldBirthPlaceOptional,
           hint: strings.hintCityOrRegion,
         ),
+        if (suggestions != null)
+          PlaceSuggestionList(
+            controller: suggestions!,
+            onChosen: (candidate) {
+              // Setting the text re-triggers the listener, so the dismissal
+              // has to come second to cancel the lookup it just scheduled.
+              place.text = candidate.label;
+              suggestions!.dismiss();
+            },
+          ),
 
         // The birth time, asked here rather than deferred to the Sanctum.
         //

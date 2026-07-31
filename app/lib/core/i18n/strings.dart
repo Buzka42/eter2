@@ -264,6 +264,10 @@ abstract class EterStrings {
 
   String get readDeeper;
   String get showLess;
+
+  /// Opens the written explanation of the astrogram itself — the rest of the
+  /// chart's bodies, each with its own passage.
+  String get chartGoDeeper;
   String get composeReadings;
   String get personalReadingNotConnected;
   String get everyReadingAlreadyComposed;

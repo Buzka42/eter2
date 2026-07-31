@@ -24,6 +24,7 @@ import '../../core/privacy/local_data_export.dart';
 import '../../core/privacy/local_data_import.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/profile/birth_context.dart';
+import '../../core/profile/place_suggestions.dart';
 import '../../core/register.dart';
 import '../../core/clock.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
@@ -135,16 +136,34 @@ class SanctumOverlay extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: EterSpace.s32),
-                    _BirthContext(
-                      database: db,
-                      profile: profile,
-                      resolver: ref.watch(birthplaceResolverProvider),
+                    // In the top band with the register rather than among the
+                    // consents, although it is stored as one: the page is
+                    // ordered by how often a thing is changed, and turning the
+                    // invitation on and off with the seasons is the one consent
+                    // people actually revisit. It is still the right to
+                    // interrupt, and granting still asks the OS first.
+                    _ChoiceGroup(
+                      id: 'evening-invitation',
+                      heading: strings.headingEveningInvitation,
+                      value: profile?.eveningInvitationConsentAt == null
+                          ? 'off'
+                          : 'allowed',
+                      choices: {
+                        'off': strings.off,
+                        'allowed': strings.allowed,
+                      },
+                      descriptions: {
+                        'off': strings.eveningInvitationOffDetail,
+                        'allowed': strings.eveningInvitationAllowedDetail,
+                      },
+                      onChanged: profile == null
+                          ? null
+                          : (value) => unawaited(
+                                setEveningInvitation(
+                                  allowed: value == 'allowed',
+                                ),
+                              ),
                     ),
-                    const SizedBox(height: EterSpace.s32),
-                    // Directly after birth context, because the two are
-                    // constantly confused and the adjacency is what teaches the
-                    // difference: one sets the chart, one sets the horizon.
-                    _WhereYouLive(database: db, profile: profile),
                     const SizedBox(height: EterSpace.s32),
                     Container(height: 1, color: ink.line),
                     const SizedBox(height: EterSpace.s24),
@@ -241,33 +260,6 @@ class SanctumOverlay extends ConsumerWidget {
                               ),
                     ),
                     const SizedBox(height: EterSpace.s24),
-                    // The only consent here that is not about data leaving the
-                    // device. Nothing leaves for a local notification; what it
-                    // grants is the right to interrupt, which is why it sits
-                    // with the others rather than in a "preferences" list.
-                    _ChoiceGroup(
-                      id: 'evening-invitation',
-                      heading: strings.headingEveningInvitation,
-                      value: profile?.eveningInvitationConsentAt == null
-                          ? 'off'
-                          : 'allowed',
-                      choices: {
-                        'off': strings.off,
-                        'allowed': strings.allowed,
-                      },
-                      descriptions: {
-                        'off': strings.eveningInvitationOffDetail,
-                        'allowed': strings.eveningInvitationAllowedDetail,
-                      },
-                      onChanged: profile == null
-                          ? null
-                          : (value) => unawaited(
-                                setEveningInvitation(
-                                  allowed: value == 'allowed',
-                                ),
-                              ),
-                    ),
-                    const SizedBox(height: EterSpace.s24),
                     _ChoiceGroup(
                       id: 'crash-reports',
                       heading: strings.headingCrashReports,
@@ -298,6 +290,21 @@ class SanctumOverlay extends ConsumerWidget {
                               );
                             },
                     ),
+                    const SizedBox(height: EterSpace.s32),
+                    // Down here with the once-ever setup: a birth context is
+                    // written once and corrected rarely, which under a page
+                    // ordered by frequency outweighs it being about who you
+                    // are.
+                    _BirthContext(
+                      database: db,
+                      profile: profile,
+                      resolver: ref.watch(birthplaceResolverProvider),
+                    ),
+                    const SizedBox(height: EterSpace.s32),
+                    // Directly after birth context, because the two are
+                    // constantly confused and the adjacency is what teaches the
+                    // difference: one sets the chart, one sets the horizon.
+                    _WhereYouLive(database: db, profile: profile),
                     const SizedBox(height: EterSpace.s32),
                     const _AetherAccess(),
                     const SizedBox(height: EterSpace.s32),
@@ -438,10 +445,23 @@ class _BirthContextState extends State<_BirthContext> {
   bool _busy = false;
   String? _message;
 
+  /// Null when the resolver cannot suggest — a test fake — in which case the
+  /// place field stays plain and only resolves on save, as it always did.
+  PlaceSuggestionController? _placeSuggestions;
+
   @override
   void initState() {
     super.initState();
     _syncFields();
+    if (widget.resolver case final PlaceSuggester suggester) {
+      final suggestions = PlaceSuggestionController(suggester: suggester);
+      _placeSuggestions = suggestions;
+      _place.addListener(() {
+        // Suggestions belong to typing; syncing from the profile row or
+        // leaving edit mode must not summon a list under a read-only field.
+        if (_editing) suggestions.onQueryChanged(_place.text);
+      });
+    }
   }
 
   @override
@@ -454,6 +474,7 @@ class _BirthContextState extends State<_BirthContext> {
   void dispose() {
     _time.dispose();
     _offset.dispose();
+    _placeSuggestions?.dispose();
     _place.dispose();
     super.dispose();
   }
@@ -518,6 +539,7 @@ class _BirthContextState extends State<_BirthContext> {
       setState(() {
         _busy = false;
         _editing = false;
+        _placeSuggestions?.dismiss();
         _message = strings.birthContextSaved;
       });
     } on BirthContextException catch (failure) {
@@ -635,6 +657,16 @@ class _BirthContextState extends State<_BirthContext> {
               labelText: strings.fieldBirthCityAndCountry,
             ),
           ),
+          if (_placeSuggestions != null)
+            PlaceSuggestionList(
+              controller: _placeSuggestions!,
+              onChosen: (candidate) {
+                // Setting the text re-triggers the listener, so the dismissal
+                // has to come second to cancel the lookup it just scheduled.
+                _place.text = candidate.label;
+                _placeSuggestions!.dismiss();
+              },
+            ),
           const SizedBox(height: EterSpace.s8),
           Text(
             strings.placeLookupNote,
@@ -668,6 +700,10 @@ class _BirthContextState extends State<_BirthContext> {
                     : () => setState(() {
                           _editing = false;
                           _message = null;
+                          // Before the resync, which writes the profile's own
+                          // place back into the field and would otherwise leave
+                          // a list of candidates for text nobody typed.
+                          _placeSuggestions?.dismiss();
                           _syncFields();
                         }),
               ),

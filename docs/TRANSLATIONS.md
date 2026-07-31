@@ -153,6 +153,7 @@ explains why translating one would break the symbolic engine.
 | `sunCardSemantic()` | $cardTitle, your Sun card | $cardTitle, twoja karta Słońca |
 | `sunSitsIn()` | Your Sun sits in ${canonicalSign == null ? : signName(canonicalSign)}, which is what sets this card. It does not change. | Twoje Słońce stoi we własnym znaku, i to wyznacza tę kartę. To się nie zmienia.Twoje Słońce stoi ${_wZnaku(canonicalSign)}, i to wyznacza tę kartę. To się nie zmienia. |
 | `readDeeper` | Read deeper | Czytaj głębiej |
+| `chartGoDeeper` | The chart | Kosmogram |
 | `showLess` | Show less | Pokaż mniej |
 | `composeReadings` | Compose readings | Niech powstaną |
 | `personalReadingNotConnected` | Personal reading composition is not connected on this build yet. | Osobiste odczytania nie są jeszcze podłączone w tej wersji. |
@@ -548,4 +549,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-450 strings paired.
+451 strings paired.

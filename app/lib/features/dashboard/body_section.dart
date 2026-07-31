@@ -37,10 +37,18 @@ class BodySection extends ConsumerStatefulWidget {
     super.key,
     required this.expanded,
     required this.onToggle,
+    this.showHeading = true,
   });
 
   final bool expanded;
   final ValueChanged<bool> onToggle;
+
+  /// Whether to draw its own rule and name while expanded. False when
+  /// something above already names this section — the Dashboard's threshold
+  /// row does, and printing the name twice two lines apart reads as a
+  /// mistake. Ignored while collapsed: the disclosure line is the whole
+  /// surface then.
+  final bool showHeading;
 
   @override
   ConsumerState<BodySection> createState() => _BodySectionState();
@@ -102,14 +110,18 @@ class _BodySectionState extends ConsumerState<BodySection> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(height: 1, color: ink.line),
+                    if (!widget.expanded || widget.showHeading)
+                      Container(height: 1, color: ink.line),
                     if (!widget.expanded)
                       _DisclosureLine(
                         fact: _fact(vitals, summary, strings),
                         onTap: () => widget.onToggle(true),
                       )
                     else
-                      _ExpandedHeader(onClose: () => widget.onToggle(false)),
+                      _ExpandedHeader(
+                        onClose: () => widget.onToggle(false),
+                        showTitle: widget.showHeading,
+                      ),
                     AnimatedSize(
                       duration: MediaQuery.disableAnimationsOf(context)
                           ? EterMotion.durMicro
@@ -234,9 +246,10 @@ class _DisclosureLine extends StatelessWidget {
 }
 
 class _ExpandedHeader extends StatelessWidget {
-  const _ExpandedHeader({required this.onClose});
+  const _ExpandedHeader({required this.onClose, this.showTitle = true});
 
   final VoidCallback onClose;
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -245,11 +258,14 @@ class _ExpandedHeader extends StatelessWidget {
     return Row(
       children: [
         // See the Vessel's header: a fixed heading beside a fixed action leaves
-        // the Spacer nothing to give up when either word grows.
-        Expanded(
-          child: Text(EterStrings.of(context).theBody,
-              style: text.labelSmall?.copyWith(color: ink.label)),
-        ),
+        // the Spacer nothing to give up when either word grows. With no title
+        // there is nothing to push against, and the action sits left like
+        // everything else in this column.
+        if (showTitle)
+          Expanded(
+            child: Text(EterStrings.of(context).theBody,
+                style: text.labelSmall?.copyWith(color: ink.label)),
+          ),
         EterAction(
           label: EterStrings.of(context).close,
           emphasis: EterActionEmphasis.quiet,

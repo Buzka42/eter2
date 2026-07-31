@@ -9,6 +9,74 @@ This file is not a changelog. It records choices, not work.
 
 ---
 
+## 1 August 2026
+
+### The Sanctum orders by frequency
+
+The band at the top holds what people actually change — opening page, language,
+register, and the evening invitation — and everything once-ever (birth context,
+the consents, export, deletion, connections) sinks below the hairline.
+
+**Chosen over** grouping by consequence, which read better as philosophy but
+put the register three screens down, and over collapsible sections, which would
+have introduced a disclosure idiom the product uses nowhere else. The evening
+invitation moved into the top band *although it is stored as a consent*: it is
+the one consent people revisit with the seasons.
+
+**The cost:** the "what leaves this device" story is no longer a single
+contiguous block — the invitation sits apart from its siblings. The copy on the
+toggle still says what it grants.
+
+### The guidance depths slide sideways, by tap
+
+`LOOK DEEPER` now opens a persistent row — guidance · body · vessel, each with
+a drawn glyph — and the chosen depth slides in horizontally beneath it while
+the day's guidance stays put. Switching depths never scrolls you back to the
+top, which was the whole complaint.
+
+**Chosen over** the in-place vertical expansion (the "shell game"), and over a
+swipeable nested pager: the shell's pager already owns the horizontal *gesture*
+for journal ↔ dashboard, so the depths borrow only the horizontal *motion*. A
+swipe that meant "next depth" here and "other surface" a centimetre higher
+would be one gesture with two meanings.
+
+**The glyphs are placeholders** in the engraved language (a risen point, a
+graduated rule, a bowl), drawn so generated artwork can replace the painters
+without touching the row. The text label stays beside each mark —
+non-negotiable 7 forbids an unexplained symbol, and nothing has taught these
+yet.
+
+### The chart's own writing is not a seventh call
+
+The astrogram explanation behind `THE CHART` composes one passage per
+remaining body through the existing `VesselReadingComposer`, into the existing
+`VesselReadings` table, under the existing `inputHash`.
+
+**Chosen over** a dedicated `astrogram` call returning one long essay. The
+per-position shape means a chart is still paid for **once** — the cache key
+already keys on the birth inputs, so re-opening the panel costs nothing and a
+reader who composes the named positions today and the planets next week is
+billed for exactly the passages they asked for. A single essay would also have
+been a seventh contract to parse, version and safety-check.
+
+**The cost:** seven passages read as seven passages, not as one account of a
+chart. If that turns out to be the wrong register, the fix is prompt work
+inside the same call rather than a new one.
+
+### Birth-place suggestions answer in the geocoder's tongue
+
+The autocomplete asks the device geocoder once, in the device locale, and shows
+whatever spelling comes back; either "Warsaw" or "Warszawa" is accepted as
+typed.
+
+**Chosen over** resolving in both app languages and merging, which would have
+cost two lookups per debounced keystroke to translate a name the person did not
+type. The cost: a Polish interface can show an English suggestion on an
+English-locale phone. The typed text still resolves on save either way, so the
+suggestion list is a convenience, never a gate.
+
+---
+
 ## 30 July 2026
 
 ### Navigation: extension, not a menu

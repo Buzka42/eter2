@@ -168,6 +168,106 @@ class _MicPainter extends CustomPainter {
       old.color != color || old.active != active;
 }
 
+/// The three depths behind the Dashboard's threshold, each as a drawn mark.
+///
+/// Placeholders in the shell's own engraved language — a hairline, a point, an
+/// arc — so the row reads as one instrument rather than three borrowed icons.
+/// The label stays beside each mark: non-negotiable 7 forbids an unexplained
+/// symbol, and these are new enough that nothing has taught them yet. If
+/// generated artwork replaces them later, only the painters change.
+enum EterSectionGlyph { guidance, body, vessel }
+
+class EterSectionMark extends StatelessWidget {
+  const EterSectionMark({
+    super.key,
+    required this.glyph,
+    this.size = 18,
+    this.color,
+  });
+
+  final EterSectionGlyph glyph;
+  final double size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: SizedBox.square(
+          dimension: size,
+          child: CustomPaint(
+            painter: _SectionPainter(
+              glyph,
+              color ?? EterInk.of(context).labelMuted,
+            ),
+          ),
+        ),
+      );
+}
+
+class _SectionPainter extends CustomPainter {
+  const _SectionPainter(this.glyph, this.color);
+
+  final EterSectionGlyph glyph;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final scale = size.shortestSide / 18;
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1 * scale
+      ..strokeCap = StrokeCap.round;
+    final fill = Paint()..color = color;
+    final cx = size.width / 2;
+    switch (glyph) {
+      case EterSectionGlyph.guidance:
+        // A point risen above the horizon: the day's word arriving.
+        canvas.drawLine(
+          Offset(2 * scale, 13 * scale),
+          Offset(16 * scale, 13 * scale),
+          stroke,
+        );
+        canvas.drawCircle(Offset(cx, 6.5 * scale), 2.4 * scale, stroke);
+        canvas.drawCircle(Offset(cx, 6.5 * scale), 0.9 * scale, fill);
+      case EterSectionGlyph.body:
+        // A graduated rule: measure, the recorded body.
+        canvas.drawLine(
+          Offset(cx, 3 * scale),
+          Offset(cx, 15 * scale),
+          stroke,
+        );
+        for (final (dy, reach) in [(5.0, 3.4), (9.0, 2.2), (13.0, 3.4)]) {
+          canvas.drawLine(
+            Offset(cx, dy * scale),
+            Offset(cx + reach * scale, dy * scale),
+            stroke,
+          );
+        }
+      case EterSectionGlyph.vessel:
+        // An open bowl on its foot: the vessel, holding what it is given.
+        final rect = Rect.fromCircle(
+          center: Offset(cx, 7.5 * scale),
+          radius: 5.2 * scale,
+        );
+        canvas.drawArc(rect, 0, 3.14159, false, stroke);
+        canvas.drawLine(
+          Offset(cx, 12.7 * scale),
+          Offset(cx, 15 * scale),
+          stroke,
+        );
+        canvas.drawLine(
+          Offset(cx - 2.6 * scale, 15 * scale),
+          Offset(cx + 2.6 * scale, 15 * scale),
+          stroke,
+        );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_SectionPainter old) =>
+      old.color != color || old.glyph != glyph;
+}
+
 /// The way into the Sanctum: an astrolabe's mater, seen face on.
 ///
 /// Two concentric rings, a centre point, and one short index line at the upper

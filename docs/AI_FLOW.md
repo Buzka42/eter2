@@ -21,7 +21,7 @@ streaming, no background poll.
 | **guidance** | Dashboard composes for the day (`AetherComposer`) | `aiConsentAt`; journal material additionally needs `journalAiConsentAt` | 4 `GuidanceHistory` rows + 1 `GuidanceRecalls` row |
 | **journalInterpretation** | **Automatic**, on every kept entry — `JournalAutoInterpreter`, max 5 per pass, when the Journal opens | `aiConsentAt` | `JournalEntries.extractionJson` + unconfirmed `NutritionEntries` + `LifestyleEntries` |
 | **journalDayStory** | Journal opens, and after each entry saves | `aiConsentAt` **and** `journalAiConsentAt` | One `JournalDayStories` row (story + digest) |
-| **vesselReadings** | Once at account creation, then `COMPOSE READINGS` | `aiConsentAt` | One `VesselReadings` row per position |
+| **vesselReadings** | Once at account creation, then `COMPOSE READINGS`; the astrogram's own "go deeper" composes the seven remaining planets through the same call and cache | `aiConsentAt` | One `VesselReadings` row per position |
 | **positions** | `READ TODAY` in the Vessel | `aiConsentAt` | One `TransitReadings` row per (date, chart hash) |
 | **letter** | The Journal opens in a new month (`LetterComposer`) | `aiConsentAt`; journal-derived recalls additionally need `journalAiConsentAt` | One `Letters` row per month |
 

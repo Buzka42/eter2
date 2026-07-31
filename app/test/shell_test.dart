@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
+import 'package:eter/core/icons.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/register.dart';
@@ -142,6 +143,88 @@ void main() {
       ),
       findsOneWidget,
     );
+    await closeShell(tester);
+  });
+
+  // The threshold row: three depths that stay siblings.
+  //
+  // The disclosure used to expand one section *in place*, so reaching a second
+  // one meant collapsing back to the top and starting again — the "shell game"
+  // the owner reported. The row now survives the opening, and these are the
+  // assertions that would catch that regressing.
+
+  testWidgets('the row names all three depths and marks the open one',
+      (tester) async {
+    await pumpShell(tester);
+    // At rest the threshold is one quiet line, as it always was.
+    expect(find.byType(EterSectionMark), findsNothing);
+
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+    expect(find.text('GUIDANCE'), findsOneWidget);
+    expect(find.text('THE BODY'), findsOneWidget);
+    expect(find.text('VESSEL'), findsOneWidget);
+
+    await tester.tap(find.text('THE BODY'));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    // The row survived the opening: the other two are still one tap away.
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+    expect(find.text('VESSEL'), findsOneWidget);
+    expect(find.text('CLOSE'), findsOneWidget);
+
+    // The open one is the only one marked selected, so a screen reader can
+    // say where it is.
+    final selected = tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .where((widget) => widget.properties.selected ?? false)
+        .map((widget) => widget.properties.label)
+        .toList();
+    expect(selected, contains('the body'));
+    expect(selected, isNot(contains('vessel')));
+    await closeShell(tester);
+  });
+
+  testWidgets('a second depth is reachable without collapsing to the top',
+      (tester) async {
+    await pumpShell(tester);
+    await expandBody(tester);
+    expect(find.textContaining('1,610 kcal'), findsOneWidget);
+
+    // Straight across to the Vessel — no CLOSE, no LOOK DEEPER in between.
+    // This is the move the old in-place expansion made impossible.
+    final vessel = find.text('VESSEL');
+    await tester.ensureVisible(vessel);
+    await tester.pump();
+    await tester.tap(vessel);
+    // Three pumps, not one: the slide runs, then `AnimatedSwitcher` drops the
+    // outgoing section from its stack on the frame *after* the animation
+    // reports done, and the Vessel reads the chart off the device in between.
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 300)),
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(find.byType(VesselSection), findsOneWidget);
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+    expect(find.textContaining('1,610 kcal'), findsNothing);
+    expect(find.text('LOOK DEEPER'), findsNothing);
+    await closeShell(tester);
+  });
+
+  testWidgets('the open section does not print its own name a second time',
+      (tester) async {
+    await pumpShell(tester);
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('GUIDANCE'));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    // The row is the heading. A second `GUIDANCE` two lines below it reads as
+    // a mistake, and did until the sections learned to drop their own.
+    expect(find.text('GUIDANCE'), findsOneWidget);
     await closeShell(tester);
   });
 
@@ -601,6 +684,70 @@ void main() {
       find.textContaining('has not been composed yet'),
       findsNWidgets(3 + MatrixPosition.values.length),
     );
+    await closeShell(tester);
+  });
+
+  testWidgets('the chart panel writes about the rest of the astrogram',
+      (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    final provider = _VesselProvider();
+    await pumpShell(tester, vesselProvider: provider);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+    );
+    await tester.pump();
+
+    await tester.tap(find.text('LOOK DEEPER'));
+    await tester.pump();
+    await tester.tap(find.text('VESSEL'));
+    await tester.pump();
+    await waitForWidget(tester, find.text('READ DEEPER'));
+
+    // The wheel was the only surface in the Vessel with no writing behind it.
+    expect(find.text('MERCURY'), findsNothing);
+
+    final chart = find.text('THE CHART');
+    await tester.ensureVisible(chart);
+    await tester.pump();
+    tester
+        .widget<EterAction>(
+          find.ancestor(of: chart, matching: find.byType(EterAction)),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    // The seven the three named positions leave out. Named from the engine's
+    // own bodies, so adding one to the chart cannot silently skip it here.
+    for (final body in const [
+      'MERCURY',
+      'VENUS',
+      'MARS',
+      'JUPITER',
+      'SATURN',
+      'URANUS',
+      'NEPTUNE',
+    ]) {
+      expect(find.text(body), findsOneWidget, reason: '$body is missing');
+    }
+
+    final compose = find.text('COMPOSE READINGS');
+    await tester.ensureVisible(compose);
+    await tester.pump();
+    await tester.tap(compose);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pump();
+
+    // Composed through the same call and cache as every other reading — the
+    // chart is not a seventh model call. `AI_FLOW.md` is the authority.
+    expect(find.text('Composed reflection for mercury.'), findsOneWidget);
+    expect(find.text('Composed reflection for neptune.'), findsOneWidget);
+    // And it asked for the chart's bodies only, not for the whole Vessel
+    // again: the named positions were not part of this request.
+    expect(provider.requestedKeys, isNot(contains('lifePath')));
+    expect(provider.requestedKeys, contains('mercury'));
     await closeShell(tester);
   });
 

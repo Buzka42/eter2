@@ -4,6 +4,7 @@ import 'package:eter/core/i18n/language.dart';
 import 'package:eter/core/i18n/strings.dart';
 import 'package:eter/core/instruments.dart';
 import 'package:eter/core/register.dart';
+import 'package:eter/features/vessel/vessel_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -217,7 +218,13 @@ void main() {
           () => Future<void>.delayed(const Duration(milliseconds: 300)),
         );
         await tester.pump();
-        expect(find.text(strings.theVessel), findsOneWidget);
+        // The type, not a string. In Polish the heading and the threshold
+        // row's own choice are both `KRĄG` now that the row stays visible
+        // while a depth is open, so no single text identifies the opened
+        // section — and asserting on text the *loaded* section renders would
+        // make this a race against the on-device chart calculation rather
+        // than a check that the tap landed.
+        expect(find.byType(VesselSection), findsOneWidget);
         await expectLater(
           find.byType(ProviderScope),
           matchesGoldenFile(vesselCaptureName),
@@ -342,8 +349,10 @@ void main() {
       );
       await tester.pump();
       // The capture is worthless if the section never opened, and at this size
-      // it silently did not. Assert the heading rather than trusting the tap.
-      expect(find.text(strings.theVessel), findsOneWidget);
+      // it silently did not. Assert the section itself rather than trusting
+      // the tap — and not the heading, which in Polish is `KRĄG` twice now
+      // that the threshold row stays visible.
+      expect(find.byType(VesselSection), findsOneWidget);
       await expectLater(
         find.byType(ProviderScope),
         matchesGoldenFile(vesselSmallCaptureName),

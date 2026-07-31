@@ -2,13 +2,50 @@ import 'package:geocoding/geocoding.dart' as geocoding;
 
 import '../db/app_database.dart';
 import 'birth_time.dart';
+import 'place_suggestions.dart';
 
 abstract interface class BirthplaceResolver {
   Future<BirthplaceCoordinates> resolve(String place);
 }
 
-class PlatformBirthplaceResolver implements BirthplaceResolver {
+class PlatformBirthplaceResolver
+    implements BirthplaceResolver, PlaceSuggester {
   const PlatformBirthplaceResolver();
+
+  /// The geocoder's forward lookup returns coordinates without names, so each
+  /// candidate is named by reverse-geocoding it. Capped low: this runs per
+  /// debounced keystroke and every extra candidate is another platform call.
+  static const _maximumCandidates = 4;
+
+  @override
+  Future<List<PlaceCandidate>> suggest(String query) async {
+    final locations = await geocoding.locationFromAddress(query);
+    final seen = <String>{};
+    final candidates = <PlaceCandidate>[];
+    for (final location in locations.take(_maximumCandidates)) {
+      // Two candidates within ~1 km are the same place answered twice.
+      final key = '${location.latitude.toStringAsFixed(2)},'
+          '${location.longitude.toStringAsFixed(2)}';
+      if (!seen.add(key)) continue;
+      final placemarks = await geocoding.placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+      final mark = placemarks.isEmpty ? null : placemarks.first;
+      final label = [
+        mark?.locality,
+        mark?.administrativeArea,
+        mark?.country,
+      ].whereType<String>().where((part) => part.isNotEmpty).join(', ');
+      if (label.isEmpty) continue;
+      candidates.add(PlaceCandidate(
+        label: label,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      ));
+    }
+    return candidates;
+  }
 
   @override
   Future<BirthplaceCoordinates> resolve(String place) async {

@@ -33,11 +33,17 @@ class VesselSection extends ConsumerStatefulWidget {
     required this.db,
     required this.now,
     required this.onClose,
+    this.showHeading = true,
   });
 
   final AppDatabase db;
   final DateTime now;
   final VoidCallback onClose;
+
+  /// Whether to draw its own rule and name. False when something above
+  /// already names this section — the Dashboard's threshold row does, and
+  /// printing the name twice two lines apart reads as a mistake.
+  final bool showHeading;
 
   @override
   ConsumerState<VesselSection> createState() => _VesselSectionState();
@@ -48,6 +54,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   StreamSubscription<ProfileRow?>? _profileSubscription;
   String? _profileFingerprint;
   bool _readingOpen = false;
+  bool _chartOpen = false;
   bool _composing = false;
   String? _compositionMessage;
 
@@ -83,6 +90,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     _profileFingerprint = fingerprint;
     setState(() {
       _readingOpen = false;
+      _chartOpen = false;
       _compositionMessage = null;
       _data = _load();
     });
@@ -132,6 +140,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         'moon',
         'ascendant',
         for (final position in MatrixPosition.values) position.key,
+        for (final name in _VesselData.chartBodies) name.toLowerCase(),
       ])
         key: await widget.db.loadVesselReading(
           inputHash: hash,
@@ -162,7 +171,10 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     );
   }
 
-  Future<void> _compose(_VesselData data) async {
+  Future<void> _compose(
+    _VesselData data,
+    List<_VesselPosition> targets,
+  ) async {
     if (_composing) return;
     final strings = EterStrings.of(context);
     final provider = ref.read(vesselReadingTransportProvider);
@@ -189,7 +201,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
           // instruction that travels with this says which language to answer
           // in; see `core/ai/prompts.dart`.
           positions: [
-            for (final position in data.positions(strings))
+            for (final position in targets)
               VesselReadingPosition(
                 key: position.key,
                 label: position.label(strings),
@@ -251,16 +263,19 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(height: 1, color: ink.line),
+            if (widget.showHeading) Container(height: 1, color: ink.line),
             Row(
               children: [
                 // Expanded rather than a bare Text beside a Spacer: the heading
                 // and the close action together are wider than 320 dp at 200%
                 // text once either word grows, and a Spacer cannot give back
-                // space a fixed child has already claimed.
-                Expanded(
-                  child: Text(strings.theVessel, style: text.labelSmall),
-                ),
+                // space a fixed child has already claimed. With no heading
+                // there is nothing to push against, and the action sits left
+                // like everything else in this column.
+                if (widget.showHeading)
+                  Expanded(
+                    child: Text(strings.theVessel, style: text.labelSmall),
+                  ),
                 EterAction(
                   label: strings.close,
                   emphasis: EterActionEmphasis.quiet,
@@ -299,6 +314,53 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                   style: text.bodySmall?.copyWith(color: ink.labelMuted),
                 ),
               ],
+              const SizedBox(height: EterSpace.s16),
+              // The written astrogram. The wheel above is the only surface in
+              // the Vessel with no passage behind it; this is that passage,
+              // one per remaining body, composed through the same composer
+              // and cached under the same inputHash as every other reading —
+              // a chart is paid for once (AI_FLOW.md is the authority).
+              EterAction(
+                label: _chartOpen ? strings.showLess : strings.chartGoDeeper,
+                emphasis: EterActionEmphasis.secondary,
+                onPressed: () => setState(() => _chartOpen = !_chartOpen),
+              ),
+              if (_chartOpen) ...[
+                const SizedBox(height: EterSpace.s16),
+                for (final position in data.chartPositions())
+                  _ComposedReading(
+                    position: position,
+                    reading: data.readings[position.key],
+                    fullWidth: Theme.of(context).brightness ==
+                            Brightness.dark &&
+                        data.mode != GuidanceMode.grounded,
+                  ),
+                if (data
+                    .chartPositions()
+                    .any((position) => data.readings[position.key] == null))
+                  EterAction(
+                    label: _composing
+                        ? strings.composing
+                        : strings.composeReadings,
+                    emphasis: EterActionEmphasis.quiet,
+                    busy: _composing,
+                    onPressed: () =>
+                        _compose(data, data.chartPositions()),
+                  ),
+                // Guarded so the same live message is never announced from
+                // two places when both panels are open — the readings panel
+                // below already carries it then.
+                if (_compositionMessage != null && !_readingOpen) ...[
+                  const SizedBox(height: EterSpace.s8),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      _compositionMessage!,
+                      style: text.bodySmall,
+                    ),
+                  ),
+                ],
+              ],
               const SizedBox(height: EterSpace.s24),
               // One list at two depths, never two lists. Read deeper used to
               // append a second copy of the same four positions underneath the
@@ -313,6 +375,15 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                     // lines above; a position resolving to the same card does
                     // not print it twice.
                     showCard: position.key != 'sun',
+                    // At night in the balanced and immersive registers the
+                    // deck is the point, and every card takes the Sun card's
+                    // measure. Grounded keeps them small in both skies — that
+                    // register asked for less theatre — and day keeps them
+                    // small because still art at full width four times over
+                    // reads as a gallery, not a reading.
+                    fullWidth: Theme.of(context).brightness ==
+                            Brightness.dark &&
+                        data.mode != GuidanceMode.grounded,
                   )
                 else
                   _PositionLine(position: position),
@@ -331,7 +402,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                         : strings.composeReadings,
                     emphasis: EterActionEmphasis.quiet,
                     busy: _composing,
-                    onPressed: () => _compose(data),
+                    onPressed: () => _compose(data, data.positions(strings)),
                   ),
                 if (_compositionMessage != null) ...[
                   const SizedBox(height: EterSpace.s8),
@@ -732,11 +803,16 @@ class _ComposedReading extends StatelessWidget {
     required this.position,
     required this.reading,
     this.showCard = true,
+    this.fullWidth = false,
   });
 
   final _VesselPosition position;
   final VesselReadingRow? reading;
   final bool showCard;
+
+  /// Whether this card takes the Sun card's measure rather than the 132 dp
+  /// thumbnail. Decided by the caller, who knows the sky and the register.
+  final bool fullWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -756,12 +832,18 @@ class _ComposedReading extends StatelessWidget {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(EterSpace.rChip),
-                child: EterArcanaPlate(
-                  card: position.card,
-                  width: 132,
-                  semanticLabel: strings.positionCardSemantic(
-                    cardTitle: title,
-                    positionLabel: position.label(strings),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => EterArcanaPlate(
+                    card: position.card,
+                    // The same clamp the Sun card uses, so "full" means equal
+                    // rather than merely bigger.
+                    width: fullWidth
+                        ? constraints.maxWidth.clamp(200.0, 420.0)
+                        : 132,
+                    semanticLabel: strings.positionCardSemantic(
+                      cardTitle: title,
+                      positionLabel: position.label(strings),
+                    ),
                   ),
                 ),
               ),
@@ -827,30 +909,52 @@ class _VesselData {
   final bool usedApproximateTime;
   final bool usedApproximatePlace;
 
-  List<_VesselPosition> positions(EterStrings strings) {
-    _VesselPosition signPosition(
-      String key,
-      String bodyCanonical,
-      ZodiacPosition point,
-    ) {
-      // `point.sign` is the engine's English name, and `Zodiac.label` is the
-      // English canon it is matched against. Neither is ever localised, which
-      // is what keeps this lookup working in Polish.
-      final sign =
-          Zodiac.values.firstWhere((value) => value.label == point.sign);
-      final card = MajorArcana.forZodiac(sign);
-      final attributes = content.card(card)!;
-      return _VesselPosition(
-        key: key,
-        bodyCanonical: bodyCanonical,
-        card: card,
-        keywords: attributes.keywords,
-        signCanonical: point.sign,
-        degrees: point.degreeInSign,
-        retrograde: point.retrograde,
-      );
-    }
+  /// The bodies the astrogram explanation covers, beyond the three the main
+  /// list already reads. The engine's own English names; keys are these,
+  /// lowercased.
+  static const chartBodies = [
+    'Mercury',
+    'Venus',
+    'Mars',
+    'Jupiter',
+    'Saturn',
+    'Uranus',
+    'Neptune',
+  ];
 
+  /// The rest of the chart, one position per planet, for "go deeper" under
+  /// the wheel. Same shape as [positions] so the same composer, cache and
+  /// row widget serve both — the whole point of not making this a new call.
+  List<_VesselPosition> chartPositions() => [
+        for (final name in chartBodies)
+          for (final point in chart.positions.where((p) => p.name == name))
+            _signPosition(name.toLowerCase(), name, point),
+      ];
+
+  _VesselPosition _signPosition(
+    String key,
+    String bodyCanonical,
+    ZodiacPosition point,
+  ) {
+    // `point.sign` is the engine's English name, and `Zodiac.label` is the
+    // English canon it is matched against. Neither is ever localised, which
+    // is what keeps this lookup working in Polish.
+    final sign =
+        Zodiac.values.firstWhere((value) => value.label == point.sign);
+    final card = MajorArcana.forZodiac(sign);
+    final attributes = content.card(card)!;
+    return _VesselPosition(
+      key: key,
+      bodyCanonical: bodyCanonical,
+      card: card,
+      keywords: attributes.keywords,
+      signCanonical: point.sign,
+      degrees: point.degreeInSign,
+      retrograde: point.retrograde,
+    );
+  }
+
+  List<_VesselPosition> positions(EterStrings strings) {
     final lifeCard = MajorArcana.forLifePath(lifePath);
     return [
       _VesselPosition(
@@ -859,9 +963,9 @@ class _VesselData {
         card: lifeCard,
         keywords: content.lifePath(lifePath)!.keywords,
       ),
-      signPosition('sun', 'Sun', chart.sun),
-      signPosition('moon', 'Moon', chart.moon),
-      signPosition('ascendant', 'Ascendant', chart.ascendant),
+      _signPosition('sun', 'Sun', chart.sun),
+      _signPosition('moon', 'Moon', chart.moon),
+      _signPosition('ascendant', 'Ascendant', chart.ascendant),
       // The figure reads after the chart, because it explains where the Life
       // Path card at the top came from.
       for (final entry in buildArcanaMatrix(dob).inReadingOrder)

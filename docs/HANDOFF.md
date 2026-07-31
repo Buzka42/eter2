@@ -1,11 +1,11 @@
 # Eter · where the work stands, and what to do next
 
-Written 30–31 July 2026 across two long sessions on branch `eter-audit-fixes`,
-the second of them with a real phone attached.
+Written 30 July – 1 August 2026 across three long sessions on branch
+`eter-audit-fixes`, the second of them with a real phone attached.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **778 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **791 tests
 pass, 9 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -60,7 +60,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 778 pass, 9 skipped
+flutter test          # expect 791 pass, 9 skipped
 flutter analyze       # expect clean
 ```
 
@@ -71,9 +71,10 @@ fix that before starting anything below.
 
 ## What the owner asked for after testing it
 
-31 July, after a session with the app on a real phone. Seven items; three are
-done and four are not. **Read this before the queue below** — the queue is the
-original audit backlog, and this is what use actually threw up.
+31 July, after a session with the app on a real phone. Seven items; all seven
+are now done (the last four on 1 August, below). **Read this before the queue
+below** — the queue is the original audit backlog, and this is what use
+actually threw up.
 
 ### Done
 
@@ -91,60 +92,73 @@ original audit backlog, and this is what use actually threw up.
   exactly where they were born. Bounded to four seconds; the Sanctum still
   resolves it later if the lookup fails.
 
-### Still to do
+### Done, 1 August (all seven now)
 
-**Birth-place autocomplete, in both languages.** The field is a plain
-`TextField` today and only resolves on save. Wanted: suggestions as you type.
-`BirthplaceResolver` currently exposes `resolve(String) → coordinates` only, so
-this needs a second method returning *candidates*, debounced, plus a suggestion
-list under the field. The two-language part is the interesting half: the device
-geocoder answers in the device locale, so a Polish phone searching "Warsaw"
-and an English phone searching "Warszawa" both have to work. Resolve against
-the geocoder in both `AppLanguage` locales and merge, or accept either spelling
-and display whatever came back — worth deciding before building.
+Decided and built in one session; `DECISIONS.md` 1 August carries the
+reasoning for each choice. In brief:
 
-**A full astrogram explanation behind "go deeper".** The Life Path cards each
-have a written passage; the chart itself has none. This should follow
-`vessel/reading_composer.dart` exactly — the same per-position pattern, the same
-`inputHash` cache so a chart is paid for once — rather than becoming a seventh
-call. `docs/AI_FLOW.md` is the authority.
+- **Birth-place autocomplete** — `core/profile/place_suggestions.dart`.
+  A `PlaceSuggester` interface separate from `BirthplaceResolver` (so the four
+  test fakes stayed untouched), a debounced controller with latest-query-wins,
+  and a suggestion list under the field in onboarding *and* the Sanctum.
+  Owner chose single-locale: show whatever spelling the device geocoder
+  returns, accept either on save. Candidates are named by reverse-geocoding
+  each hit, capped at four. `test/place_suggestions_test.dart` drives the
+  debounce, staleness and failure paths under `fake_async`.
+- **Astrogram "go deeper"** — a `THE CHART` / `KOSMOGRAM` action under the
+  wheel opens per-planet passages (Mercury through Neptune) composed through
+  the **same** `VesselReadingComposer`, same `inputHash` cache, same
+  `VesselReadings` table — not a seventh call. `AI_FLOW.md`'s call table notes
+  it, and `shell_test.dart` asserts both the seven bodies and that composing
+  them asks for *only* them. The label is a bare noun because the action row
+  at 320 dp × 200 % has room for about nine characters; the verb forms
+  overflowed in both languages. **Not yet composed against the live
+  endpoint** — the fixture provider is what these tests exercise, so the first
+  real run should be read for sense the way v6's letter was.
+- **Cards — and why only some of them animated.** Every reading card was
+  already an `EterArcanaPlate` asking for its night loop, so "animate
+  everywhere" was true in the code and false on the phone. The reason is
+  arithmetic: with the readings *and* the new chart panel open the Vessel puts
+  **eighteen plates in one column**, each allocating a hardware video decoder,
+  and a mid-range phone has nowhere near eighteen. Past the limit
+  `initialize()` fails, the plate keeps its still art, and an arbitrary
+  subset animates — different every build. That is exactly the reported
+  symptom.
 
-**Animated cards in every position, and larger secondary cards.** Today only
-some positions animate, and the secondary cards are smaller than the main one.
-Wanted: animation everywhere, and secondary cards at the main card's size **on
-night mode in the immersive and balanced registers** — so it is register- and
-brightness-conditional, not a flat size change. Check the 320 dp × 200 % goldens
-after: the Vessel is already the tightest surface in the app.
+  So `core/arcana/loop_budget.dart` caps concurrent loops at six, and
+  `ArcanaCardMedia` now only holds a decoder while it is **on or near the
+  screen** (240 dp margin), handing it back when scrolled away. The plate you
+  are looking at is the one that moves. The still art is still mandatory
+  underneath, so a refused slot costs nothing but motion.
 
-### Two that want a decision first
+  Secondary cards take the Sun card's clamp **at night outside the grounded
+  register**; day and grounded keep the 132 dp thumbnail.
 
-Both are design changes where the owner's taste governs, and both are expensive
-to undo. Neither is started.
+  **This is the one change in this batch that a device has to confirm.**
+  `eterRunningTests()` disables the video plugin outright, so the budget is
+  unit-tested (`test/arcana_loop_budget_test.dart`) and the visibility half
+  is not testable here at all. On the phone, at night, in the balanced or
+  immersive register: open the Vessel, `Read deeper`, and scroll the whole
+  column — every card should be moving by the time you have looked at it for
+  a moment, and none should stutter.
+- **Sanctum, by frequency** (owner's pick over by-consequence and
+  collapsible): opening page, language, register, evening invitation on top;
+  birth context, where-you-live, consents, and the rest below the hairline.
+- **Guidance depths slide horizontally** (owner approved): `LOOK DEEPER`
+  opens a persistent glyph row — the three depths stay visible, the open one
+  in full ink — and the chosen section slides in beneath by tap. Tap, not
+  swipe: the shell's pager owns the horizontal gesture. Glyphs are drawn
+  placeholders in `core/icons.dart` (`EterSectionMark`); the owner may
+  replace them with generated art, which touches only the painters. The
+  label stays beside every mark — non-negotiable 7 forbids an unexplained
+  symbol and nothing has taught these yet.
 
-**Restructuring the Sanctum.** It is agreed to be chaotic. The current order is
-roughly "who you are → what leaves → what is connected → what you can take
-away", with later features bolted on wherever they landed. Three groupings were
-put to the owner:
-
-1. **By consequence** — *Your record* (export, import, delete), *What leaves
-   this device* (every consent), *How Eter behaves* (register, language, opening
-   page, the invitation), *Connections* (health, account, correspondence).
-2. **By frequency** — the few things people change often at the top, the
-   once-ever setup below.
-3. **Collapsible sections** — much shorter, but introduces a disclosure idiom
-   the product does not use anywhere else, which `UI_BRIEF.md` would want an
-   argument for.
-
-**The guidance → body / vessel / spirit flow.** The single `LOOK DEEPER` that
-expands one of three sections *in place* is what makes it feel like a shell
-game: you lose your place, and the three are not siblings — the body is data,
-the Vessel is symbolic, guidance is prose.
-
-The proposal put to the owner: keep the resting screen exactly as it is and make
-the disclosure **horizontal** — the three named in a row under the hairline,
-tapping one slides it in beside rather than expanding downward, so the guidance
-stays put and you can move between the three without collapsing back to the top.
-That is a bigger change than it sounds and was not started without an answer.
+  The sections also stopped printing their own name: the row *is* the
+  heading now, and `GUIDANCE` appearing twice two lines apart read as a bug.
+  Each of the three takes `showHeading: false` from the Dashboard and keeps
+  only its actions. Three tests in `shell_test.dart` cover it — the row
+  surviving an opening, crossing from the Body to the Vessel without
+  collapsing, and the name not being printed twice.
 
 ---
 
@@ -179,7 +193,11 @@ says otherwise, and change the *section* rather than the destination.
 **Watch for:** no test reads Polish for sense, so a spliced or ungrammatical
 sentence passes everything. Read every string you touch, out loud if it helps.
 `python tool/pair_translations.py` regenerates the pairing — and note it drops any
-member whose comment sits between `@override` and the signature.
+member whose comment sits between `@override` and the signature. **That is not a
+hypothetical**: `chartGoDeeper` was added on 1 August with its note in exactly
+that position and vanished from `TRANSLATIONS.md` silently, so nobody would have
+reviewed either language. Put the comment *above* the annotation, and check the
+string count moved after regenerating — it is printed on the last line.
 
 **Left deliberately:** *rosnący garb* for a waxing gibbous moon. It is transparent
 but it is not what Polish astronomy says, and every alternative reads worse inside
@@ -256,7 +274,8 @@ flutter test test/manual/live_smoke_test.dart   --dart-define=ETER_LIVE_SMOKE=tr
 letter opened *"We watched the third short night"* — Eter as an institution
 observing somebody. It also recited the retrospective's figures in a row and
 called a month with twenty-two recorded days thin. All three parsed perfectly.
-`EterPrompts.version` is 6 because of it; see the version note for what changed.
+`EterPrompts.version` was raised because of it; it is **7** in
+`core/ai/prompts.dart` today. See the version note for what changed.
 
 **Still not exercised end to end in the app:** `LetterComposer` needs five
 recall notes in a month before it will ask, and this device has none — recalls
@@ -457,8 +476,22 @@ order if you want it gone.
 200 % text, which is where translation breaks layouts. They caught a 112 px English
 overflow and a 175 px Polish one on the same row, and they refused to tap when two
 widgets ended up sharing a semantics label. When they fail, read the failure before
-re-recording — twice in this branch the failure was a real defect, not a stale
-image.
+re-recording — **four** times in this branch the failure was a real defect, not a
+stale image. Two of the four were on 1 August: `Go deeper into the chart` ran 181 px
+past the action row in Polish and 9.4 px past it in English, which is how that
+button ended up a two-word noun in both languages.
+
+**An overflow fails `--update-goldens` too**, which is the behaviour you want:
+the capture throws before it is written, so a bad layout cannot be recorded as
+truth. It also means a red run under `--update-goldens` is worth reading rather
+than re-running.
+
+**A widget test with no teardown hangs for ten minutes and then says
+`TimeoutException`**, with a stack pointing at `dart:isolate`. It is almost
+always the tree never being disposed: `eterTestDatabase()` leaves Drift a
+zero-duration close timer, and `closeShell` in `shell_test.dart` is what flushes
+it. Put new shell-level tests in that file rather than standing up a second
+harness — one was written on 1 August and hung until it moved.
 
 **Polish decides layout more often than English.** But not always: `DASHBOARD` is
 nine letterspaced caps against `PULPIT`'s six, so the Sanctum mark collided in

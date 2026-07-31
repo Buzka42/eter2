@@ -37,6 +37,23 @@ class DashboardPage extends ConsumerStatefulWidget {
 class _DashboardPageState extends ConsumerState<DashboardPage> {
   String? _expandedSection;
   bool _choosingSection = false;
+
+  /// Which way the incoming depth slides. The three are ordered — guidance,
+  /// body, vessel — and the motion says so: moving rightward along the row
+  /// brings the next one in from the right.
+  bool _slideFromRight = true;
+
+  static const _sectionOrder = ['guidance', 'body', 'vessel'];
+
+  void _chooseSection(String section) {
+    setState(() {
+      final from = _expandedSection;
+      _slideFromRight = from == null ||
+          _sectionOrder.indexOf(section) >= _sectionOrder.indexOf(from);
+      _expandedSection = section;
+      _choosingSection = false;
+    });
+  }
   final _scrollController = ScrollController();
   Stream<List<GuidanceHistoryRow>>? _guidanceStream;
   String? _streamedDay;
@@ -199,37 +216,56 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             // today — see `DECISIONS.md` on extension over destinations.
             _CorrespondingLine(today: today, now: now),
             const SizedBox(height: EterSpace.s48),
-            if (_expandedSection == 'guidance')
-              _ExpandedGuidance(
-                rows: db.loadGuidanceForDate(today),
-                composing: _composing,
-                message: _compositionMessage,
-                onRefresh: () => _compose(db, now),
-                onClose: () => setState(() => _expandedSection = null),
-              )
-            else if (_expandedSection == 'body')
-              SurfaceIntentScope(
-                intent: SurfaceIntent.plain,
-                child: BodySection(
-                  expanded: true,
-                  onToggle: (_) => setState(() => _expandedSection = null),
-                ),
-              )
-            else if (_expandedSection == 'vessel')
-              VesselSection(
-                db: db,
-                now: now,
-                onClose: () => setState(() => _expandedSection = null),
-              )
-            else
+            if (_expandedSection == null)
               _SectionThreshold(
                 choosing: _choosingSection,
                 onOpen: () => setState(() => _choosingSection = true),
-                onChoose: (section) => setState(() {
-                  _expandedSection = section;
-                  _choosingSection = false;
-                }),
+                onChoose: _chooseSection,
+              )
+            else ...[
+              // The row stays put while the depths change hands beneath it,
+              // which is the whole repair: the three are visible peers you
+              // move between, not a menu you fall through and climb out of.
+              _SectionThreshold(
+                choosing: true,
+                selected: _expandedSection,
+                onOpen: () {},
+                onChoose: _chooseSection,
               ),
+              _SlidingSection(
+                sectionKey: _expandedSection!,
+                fromRight: _slideFromRight,
+                child: switch (_expandedSection!) {
+                  // None of the three draws its own name here: the row above
+                  // is the heading now, and it stays put while they change
+                  // hands beneath it.
+                  'body' => SurfaceIntentScope(
+                      intent: SurfaceIntent.plain,
+                      child: BodySection(
+                        expanded: true,
+                        showHeading: false,
+                        onToggle: (_) =>
+                            setState(() => _expandedSection = null),
+                      ),
+                    ),
+                  'vessel' => VesselSection(
+                      db: db,
+                      now: now,
+                      showHeading: false,
+                      onClose: () => setState(() => _expandedSection = null),
+                    ),
+                  _ => _ExpandedGuidance(
+                      rows: db.loadGuidanceForDate(today),
+                      composing: _composing,
+                      message: _compositionMessage,
+                      showHeading: false,
+                      onRefresh: () => _compose(db, now),
+                      onClose: () =>
+                          setState(() => _expandedSection = null),
+                    ),
+                },
+              ),
+            ],
             const SizedBox(height: EterSpace.s48),
           ],
         ),
@@ -291,11 +327,16 @@ class _SectionThreshold extends StatelessWidget {
     required this.choosing,
     required this.onOpen,
     required this.onChoose,
+    this.selected,
   });
 
   final bool choosing;
   final VoidCallback onOpen;
   final ValueChanged<String> onChoose;
+
+  /// The depth currently open beneath the row, if any. Marks its choice and
+  /// makes tapping it again a no-op rather than a re-entry.
+  final String? selected;
 
   @override
   Widget build(BuildContext context) {
@@ -333,18 +374,20 @@ class _SectionThreshold extends StatelessWidget {
             spacing: EterSpace.s24,
             runSpacing: EterSpace.s4,
             children: [
-              _ThresholdChoice(
-                label: strings.sectionGuidance,
-                onTap: () => onChoose('guidance'),
-              ),
-              _ThresholdChoice(
-                label: strings.sectionBody,
-                onTap: () => onChoose('body'),
-              ),
-              _ThresholdChoice(
-                label: strings.sectionVessel,
-                onTap: () => onChoose('vessel'),
-              ),
+              for (final (section, glyph, label) in [
+                ('guidance', EterSectionGlyph.guidance,
+                    strings.sectionGuidance),
+                ('body', EterSectionGlyph.body, strings.sectionBody),
+                ('vessel', EterSectionGlyph.vessel, strings.sectionVessel),
+              ])
+                _ThresholdChoice(
+                  label: label,
+                  glyph: glyph,
+                  selected: selected == section,
+                  onTap: selected == section
+                      ? null
+                      : () => onChoose(section),
+                ),
             ],
           ),
       ],
@@ -353,28 +396,92 @@ class _SectionThreshold extends StatelessWidget {
 }
 
 class _ThresholdChoice extends StatelessWidget {
-  const _ThresholdChoice({required this.label, required this.onTap});
+  const _ThresholdChoice({
+    required this.label,
+    required this.glyph,
+    required this.onTap,
+    this.selected = false,
+  });
 
   final String label;
-  final VoidCallback onTap;
+  final EterSectionGlyph glyph;
+  final VoidCallback? onTap;
+  final bool selected;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-        button: true,
-        label: label.toLowerCase(),
-        excludeSemantics: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(label, style: Theme.of(context).textTheme.labelSmall),
-            ),
+  Widget build(BuildContext context) {
+    final ink = EterInk.of(context);
+    final text = Theme.of(context).textTheme;
+    // The open one is drawn in full ink, the others recede — state carried by
+    // weight of line, the same way the mic mark carries "listening".
+    final color = selected ? ink.lineStrong : ink.labelMuted;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label.toLowerCase(),
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              EterSectionMark(glyph: glyph, size: 15, color: color),
+              const SizedBox(width: EterSpace.s8),
+              Text(label, style: text.labelSmall?.copyWith(color: color)),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
+}
+
+/// Slides an incoming depth in beside the row, from the side it sits on.
+///
+/// Tap-driven on purpose: the shell's pager already owns the horizontal
+/// *gesture* for journal ↔ dashboard, so the depths borrow only the horizontal
+/// *motion* — a swipe here would give one gesture two meanings depending on
+/// where a finger lands.
+class _SlidingSection extends StatelessWidget {
+  const _SlidingSection({
+    required this.sectionKey,
+    required this.fromRight,
+    required this.child,
+  });
+
+  final String sectionKey;
+  final bool fromRight;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.of(context).disableAnimations;
+    return AnimatedSwitcher(
+      duration: still ? Duration.zero : const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (incoming, animation) {
+        final offset = Tween<Offset>(
+          begin: Offset(fromRight ? 0.12 : -0.12, 0),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(position: offset, child: incoming),
+        );
+      },
+      // Ships pass without stacking: the outgoing depth only fades, so two
+      // full sections never occupy the column at once and jump the scroll.
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topLeft,
+        children: [...previous, if (current != null) current],
+      ),
+      child: KeyedSubtree(key: ValueKey(sectionKey), child: child),
+    );
+  }
 }
 
 class _ExpandedGuidance extends StatelessWidget {
@@ -384,6 +491,7 @@ class _ExpandedGuidance extends StatelessWidget {
     required this.message,
     required this.onRefresh,
     required this.onClose,
+    this.showHeading = true,
   });
 
   final Future<List<GuidanceHistoryRow>> rows;
@@ -391,6 +499,11 @@ class _ExpandedGuidance extends StatelessWidget {
   final String? message;
   final VoidCallback onRefresh;
   final VoidCallback onClose;
+
+  /// Whether to draw its own rule and name. False when the threshold row
+  /// above already names it — printing `GUIDANCE` twice, two lines apart,
+  /// reads as a mistake rather than as structure.
+  final bool showHeading;
 
   @override
   Widget build(BuildContext context) {
@@ -408,8 +521,14 @@ class _ExpandedGuidance extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(height: 1, color: ink.line),
-            if (largeText) ...[
+            if (showHeading) Container(height: 1, color: ink.line),
+            if (!showHeading)
+              _GuidanceHeaderActions(
+                composing: composing,
+                onRefresh: onRefresh,
+                onClose: onClose,
+              )
+            else if (largeText) ...[
               Text(strings.sectionGuidance, style: text.labelSmall),
               _GuidanceHeaderActions(
                 composing: composing,
