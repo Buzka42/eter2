@@ -953,6 +953,14 @@ class _LongViewPainter extends CustomPainter {
         );
         continue;
       }
+      // A real zero draws nothing above the line.
+      //
+      // The floor below keeps a small value visible, and applying it to zero
+      // as well put a one-pixel stub on every day of a week nobody wrote in —
+      // seven marks that look like data and say nothing, sitting a pixel away
+      // from the absent ticks that mean something else entirely. Seen on a
+      // device; it is exactly the confusion the open tick exists to prevent.
+      if (value <= 0) continue;
       final barHeight = (bottom - top) * (value / scale);
       canvas.drawLine(
         Offset(x, bottom),
