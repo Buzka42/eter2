@@ -338,7 +338,7 @@ explains why translating one would break the symbolic engine.
 | `healthCouldNotBeReadOnboarding` | Health data could not be read. You can try again later in the Sanctum. | Nie udało się odczytać danych zdrowotnych. Możesz spróbować później w Zaciszu. |
 | `headingLocalExport` | LOCAL EXPORT | EKSPORT LOKALNY |
 | `localExportNote` | Prepare a complete JSON snapshot and spreadsheet-friendly movement and session files. Nothing is uploaded. | Przygotuj pełny zrzut JSON oraz pliki ruchu i sesji do otwarcia w arkuszu. Nic nie jest wysyłane. |
-| `localExportReady` | Local JSON and CSV files are ready on this device. Cloud account data is not included. | Pliki JSON i CSV są gotowe na tym urządzeniu. Dane konta w chmurze nie są w nich zawarte. |
+| `localExportReady` | Written to this phone’s Downloads folder. Cloud account data is not included. | Zapisane w folderze Pobrane na tym telefonie. Dane konta w chmurze nie są w nich zawarte. |
 | `localExportFailed` | The local export could not be prepared right now. | Nie udało się teraz przygotować lokalnego eksportu. |
 | `exportFolderCopied` | Export folder location copied. | Ścieżka folderu eksportu skopiowana. |
 

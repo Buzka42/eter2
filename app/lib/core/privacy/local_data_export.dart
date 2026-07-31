@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/services.dart' show MissingPluginException;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -30,8 +31,40 @@ class LocalDataExporter {
 
   final AppDatabase database;
 
+  /// Where an export lands, in order of preference.
+  ///
+  /// The Downloads directory, because the old destination was the application
+  /// documents directory — app-private, invisible to every file manager, and
+  /// unreachable by the document picker, so you could export a record and then
+  /// not be able to hand it to anything, including Eter's own restore.
+  ///
+  /// This is Android's **app-specific** Downloads
+  /// (`Android/data/<package>/files/Download`), not the shared one. Writing to
+  /// the shared folder needs `MANAGE_EXTERNAL_STORAGE`, which is a permission
+  /// to read every file on the phone, and a product whose whole argument is
+  /// that your record stays yours does not get to ask for that in order to
+  /// save a JSON file. The app-specific folder is on external storage: the
+  /// picker can see it, USB can see it, and it survives uninstall no better or
+  /// worse than the documents directory did.
+  ///
+  /// Falls back to documents when the platform has no Downloads to offer.
+  static Future<Directory> defaultDestination() async {
+    try {
+      final downloads = await getDownloadsDirectory();
+      if (downloads != null) {
+        await downloads.create(recursive: true);
+        return downloads;
+      }
+    } on MissingPluginException {
+      // Desktop test hosts and anything without the plugin registered.
+    } on UnsupportedError {
+      // A platform path_provider has no Downloads for.
+    }
+    return getApplicationDocumentsDirectory();
+  }
+
   Future<LocalExportBundle> export({Directory? destination}) async {
-    final base = destination ?? await getApplicationDocumentsDirectory();
+    final base = destination ?? await defaultDestination();
     final stamp = DateTime.now()
         .toUtc()
         .toIso8601String()

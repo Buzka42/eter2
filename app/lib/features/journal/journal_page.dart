@@ -630,6 +630,11 @@ class _JournalHistorySheet extends ConsumerStatefulWidget {
 
 class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   late DateTime _day = widget.initialDay;
+
+  /// Read once when the sheet opens. A date of birth does not change while
+  /// somebody is turning pages, and re-reading it on every tap would put a
+  /// query behind a bead.
+  DateTime? _dateOfBirth;
   Stream<List<JournalEntryRow>>? _entries;
   String? _streamedDay;
 
@@ -639,6 +644,16 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   /// reader on a 12-hour clock and disagree with the sleep summary two screens
   /// away.
   static final _marginal = DateFormat('HH:mm');
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(
+      widget.db.loadProfile().then((profile) {
+        if (mounted) setState(() => _dateOfBirth = profile?.dob);
+      }),
+    );
+  }
 
   Stream<List<JournalEntryRow>> _entriesFor(DateTime day) {
     final date = eterIsoDate(day);
@@ -670,13 +685,17 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   /// reaching last spring from being ninety taps.
   void _move(int delta) {
     final span = _span;
-    final DateTime target;
+    DateTime target;
     if (span == null) {
       target = _day.add(Duration(days: delta));
     } else {
       final window = LongViewWindow.of(span, _day);
       target = delta < 0 ? window.earlier(span) : window.later(span);
     }
+    // The axis stops at the day the person was born. Travel accelerates once
+    // the span widens — a tap is a whole year in year mode — so without a floor
+    // the beads walk off into decades that are not anybody's time.
+    target = clampToFloor(target, longViewFloor(_dateOfBirth));
     if (target.isAfter(widget.today)) {
       // Stepping forward out of a wide span lands past today; the axis narrows
       // back to today rather than refusing to move.

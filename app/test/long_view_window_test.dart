@@ -125,4 +125,57 @@ void main() {
       }
     });
   });
+
+  group('the axis stops at the day you were born', () {
+    // There was no floor, and travel accelerates: seventy-five taps of the
+    // earlier bead reached 1981 on a device, in a record that starts in 2026.
+    final born = DateTime(1990, 4, 17);
+
+    test('a day before birth is pulled back to it', () {
+      expect(
+        clampToFloor(DateTime(1981, 7, 1), longViewFloor(born)),
+        DateTime(1990, 4, 17),
+      );
+    });
+
+    test('the birthday itself is reachable', () {
+      expect(
+        clampToFloor(DateTime(1990, 4, 17), longViewFloor(born)),
+        DateTime(1990, 4, 17),
+      );
+    });
+
+    test('anything after it is untouched', () {
+      expect(
+        clampToFloor(DateTime(2026, 7, 31), longViewFloor(born)),
+        DateTime(2026, 7, 31),
+      );
+    });
+
+    test('the floor never pushes the axis forward', () {
+      // Clamping is a floor, not a snap: a day after the floor must come back
+      // unchanged however far after it is.
+      for (final day in [
+        DateTime(1990, 4, 18),
+        DateTime(1991, 1, 1),
+        DateTime(2026, 12, 31),
+      ]) {
+        expect(clampToFloor(day, longViewFloor(born)), day);
+      }
+    });
+
+    test('a time of day on the birth date does not defeat the floor', () {
+      // The profile stores a birth *instant*; the floor is the date.
+      final withTime = DateTime(1990, 4, 17, 23, 59);
+      expect(longViewFloor(withTime), DateTime(1990, 4, 17));
+    });
+
+    test('no date of birth means no floor rather than no travel', () {
+      expect(longViewFloor(null), isNull);
+      expect(
+        clampToFloor(DateTime(1900, 1, 1), longViewFloor(null)),
+        DateTime(1900, 1, 1),
+      );
+    });
+  });
 }

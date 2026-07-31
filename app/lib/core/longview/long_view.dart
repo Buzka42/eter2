@@ -47,6 +47,30 @@ LongViewSpan? longViewSpanFor(int daysBack) => switch (daysBack) {
       _ => LongViewSpan.year,
     };
 
+/// The earliest day the axis will travel to.
+///
+/// There was no floor, and travel accelerates: once the axis is in year mode
+/// each turn of the bead is a whole year, so seventy-five taps on a real device
+/// reached **1981** — empty window after empty window, in a record that starts
+/// this year.
+///
+/// The floor is the person's **date of birth** rather than their earliest
+/// record. A record has a first day, but the months before it are still months
+/// they lived and did not spend with Eter, and the axis saying "nothing was
+/// recorded in this stretch of time" about them is true and worth being able to
+/// see. Before they were born it is not a stretch of their time at all.
+///
+/// Null with no date of birth, which means no floor — there is nothing to
+/// clamp to, and refusing to travel would be worse than travelling too far.
+DateTime? longViewFloor(DateTime? dateOfBirth) => dateOfBirth == null
+    ? null
+    : DateTime(dateOfBirth.year, dateOfBirth.month, dateOfBirth.day);
+
+/// [candidate], or the floor if it would travel past it. Never returns a day
+/// after [candidate]: turning back stops rather than jumping forward.
+DateTime clampToFloor(DateTime candidate, DateTime? floor) =>
+    floor != null && candidate.isBefore(floor) ? floor : candidate;
+
 /// One period on the axis, and what is known about it.
 ///
 /// Every measure is nullable and null means *not recorded*. A cell can be

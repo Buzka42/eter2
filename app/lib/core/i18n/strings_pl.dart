@@ -994,7 +994,7 @@ class EterStringsPl extends EterStrings {
       'arkuszu. Nic nie jest wysyłane.';
   @override
   String get localExportReady =>
-      'Pliki JSON i CSV są gotowe na tym urządzeniu. Dane konta w chmurze nie '
+      'Zapisane w folderze Pobrane na tym telefonie. Dane konta w chmurze nie '
       'są w nich zawarte.';
   @override
   String get localExportFailed =>

@@ -939,8 +939,8 @@ class EterStringsEn extends EterStrings {
       'session files. Nothing is uploaded.';
   @override
   String get localExportReady =>
-      'Local JSON and CSV files are ready on this device. Cloud account data '
-      'is not included.';
+      'Written to this phone’s Downloads folder. Cloud account data is not '
+      'included.';
   @override
   String get localExportFailed =>
       'The local export could not be prepared right now.';
