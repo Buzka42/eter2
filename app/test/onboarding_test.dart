@@ -73,6 +73,7 @@ void main() {
     expect(find.textContaining('provisional'), findsOneWidget);
 
     await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 500));
     // The register is chosen here rather than discovered in the Sanctum later.
@@ -81,6 +82,7 @@ void main() {
     await tester.pump();
 
     await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Choose what may leave this device'), findsOneWidget);
@@ -92,11 +94,20 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Journal-aware guidance'));
     await tester.pump();
+    // Both consents expand a description under themselves, so the action has
+    // moved by the time it is tapped.
+    await tester.ensureVisible(find.text('ENTER ETER'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('ENTER ETER'));
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
-    );
-    await tester.pump();
+    // Finishing now also writes the birth context, which resolves the place
+    // through the geocoder — absent under a test binding, so it fails fast,
+    // but it is still a real await and 30 ms is not a guarantee.
+    for (var attempt = 0; attempt < 40 && !completed; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
 
     expect(completed, isTrue);
     final saved = (await db.loadProfile())!;
@@ -181,6 +192,7 @@ void main() {
     await tester.enterText(weight, '62');
     await tester.enterText(height, '168');
     await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CONTINUE'));
     await tester.pump();
     expect(find.textContaining('aged 16 and over'), findsOneWidget);
@@ -188,22 +200,30 @@ void main() {
     await tester.enterText(dob, '1995-06-14');
     await tester.tap(find.text('Female'));
     await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('How Eter should speak'), findsOneWidget);
 
     // Left untouched: the default has to survive someone walking past it.
     await tester.ensureVisible(find.text('CONTINUE'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('CONTINUE'));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.text('Choose what may leave this device'), findsOneWidget);
 
     await tester.ensureVisible(find.text('ENTER ETER'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('ENTER ETER'));
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
-    );
-    await tester.pump();
+    // Finishing now also writes the birth context, which resolves the place
+    // through the geocoder — absent under a test binding, so it fails fast,
+    // but it is still a real await and 30 ms is not a guarantee.
+    for (var attempt = 0; attempt < 40 && !completed; attempt++) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump();
+    }
 
     expect(completed, isTrue);
     final saved = await emptyDb.loadProfile();

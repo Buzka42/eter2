@@ -310,7 +310,7 @@ final letterProvider = Provider<LetterProvider?>((ref) {
   return transport == null ? null : TransportLetterProvider(transport);
 });
 final birthplaceResolverProvider = Provider<BirthplaceResolver>(
-  (ref) => PlatformBirthplaceResolver(),
+  (ref) => const PlatformBirthplaceResolver(),
 );
 
 /// Copies the record up on its own, so the mirror is not limited to what
@@ -481,6 +481,7 @@ class _EterAppState extends ConsumerState<EterApp> {
                     return OnboardingFlow(
                       database: db,
                       profile: profile,
+                      resolver: ref.watch(birthplaceResolverProvider),
                       onComplete: () {
                         setState(() => _onboardingCompletedNow = true);
                         // The chart is fixed for life, so its passages are

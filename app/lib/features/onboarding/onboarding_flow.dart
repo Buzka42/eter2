@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show TextInputFormatter;
 
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
@@ -9,7 +10,11 @@ import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
 import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/profile/birth_context.dart';
+import '../../core/profile/birth_offset.dart';
+import '../../core/profile/birth_time.dart';
 import '../../core/profile/body_fat.dart';
+import '../../core/profile/date_input.dart';
 import '../../core/register.dart';
 import '../../core/theme.dart';
 import '../../core/tokens.dart';
@@ -21,11 +26,20 @@ class OnboardingFlow extends StatefulWidget {
     required this.database,
     required this.profile,
     required this.onComplete,
+    this.resolver = const PlatformBirthplaceResolver(),
   });
 
   final AppDatabase database;
   final ProfileRow? profile;
   final VoidCallback onComplete;
+
+  /// Turns a typed birth place into coordinates.
+  ///
+  /// Defaulted rather than required so a widget test that only cares about the
+  /// steps does not have to know about geocoding — the platform one throws a
+  /// `MissingPluginException` under a test binding, which the save already
+  /// treats as "the place stays as typed".
+  final BirthplaceResolver resolver;
 
   @override
   State<OnboardingFlow> createState() => _OnboardingFlowState();
@@ -35,6 +49,9 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   final _name = TextEditingController();
   final _intention = TextEditingController();
   final _birthPlace = TextEditingController();
+  final _birthTime = TextEditingController();
+  BirthTimePrecision _precision = BirthTimePrecision.unknown;
+  BirthTimePeriod? _period;
   final _dob = TextEditingController();
   final _weight = TextEditingController();
   final _height = TextEditingController();
@@ -87,6 +104,7 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
     _name.dispose();
     _intention.dispose();
     _birthPlace.dispose();
+    _birthTime.dispose();
     _dob.dispose();
     _weight.dispose();
     _height.dispose();
@@ -137,6 +155,44 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
               language: Value(_language?.code),
             );
     await widget.database.saveProfile(profile);
+
+    // The birth context, through the same service the Sanctum uses.
+    //
+    // Onboarding used to write `birthPlace` as a bare string and stop there —
+    // no coordinates, ever. That is why a real profile carried
+    // `birth_place = 'Warsaw'` with a null latitude, and why the register and
+    // the evening invitation both fell back to a clock hour for somebody who
+    // had told Eter exactly where they were born. Resolving here is what makes
+    // the answer worth asking for.
+    //
+    // Best-effort: a geocoder that cannot reach the network, or a place it does
+    // not recognise, must not strand somebody on the last step of onboarding
+    // with everything else already saved. The Sanctum can still resolve it
+    // later, and says so.
+    try {
+      await BirthContextService(
+        database: widget.database,
+        resolver: widget.resolver,
+      )
+          .save(
+            time: _birthTime.text,
+            utcOffset: _suggestedOffset(dob),
+            place: _birthPlace.text,
+            precision: _precision,
+            period: _period,
+          )
+          // Bounded, because this is the last step of onboarding and the
+          // geocoder is a network call. A fast lookup is worth waiting for —
+          // the chart is cast the moment the shell opens and is better with
+          // coordinates — but nobody stands on the doorstep while a lookup
+          // times out. The Sanctum can resolve it later and says so.
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // Timed out, offline, or a place the geocoder does not know. The typed
+      // place is already on the profile row above; only the coordinates are
+      // missing, which is the state the whole birth-context UI is built for.
+    }
+
     await widget.database.saveIntakeAnswer(
       key: 'primary_intention',
       value: _intention.text.trim(),
@@ -148,6 +204,18 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
       tier: 'essential',
     );
     if (mounted) widget.onComplete();
+  }
+
+  /// The offset this phone implies for that date, formatted the way
+  /// `parseUtcOffsetMinutes` reads it.
+  ///
+  /// Not asked for. Onboarding is not the place to explain UTC offsets, and
+  /// the overwhelmingly common case is somebody born where their phone thinks
+  /// it is. The Sanctum exposes the field for the case it is wrong, and its
+  /// note already says to correct it if the birth place was elsewhere.
+  String _suggestedOffset(DateTime dob) {
+    final minutes = BirthOffset.suggestMinutes(dob);
+    return minutes == null ? '' : BirthOffset.format(minutes);
   }
 
   bool _validateBirth(EterStrings strings) {
@@ -253,6 +321,13 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
                               sex: _sex,
                               onSex: (value) => setState(() => _sex = value),
                               place: _birthPlace,
+                              birthTime: _birthTime,
+                              precision: _precision,
+                              onPrecision: (value) =>
+                                  setState(() => _precision = value),
+                              period: _period,
+                              onPeriod: (value) =>
+                                  setState(() => _period = value),
                               error: _birthError,
                             ),
                           3 => _RegisterStep(
@@ -425,6 +500,11 @@ class _BirthStep extends StatelessWidget {
     required this.error,
     required this.bodyFat,
     required this.onBodyFat,
+    required this.birthTime,
+    required this.precision,
+    required this.onPrecision,
+    required this.period,
+    required this.onPeriod,
   });
   final TextEditingController dob;
   final TextEditingController weight;
@@ -434,6 +514,11 @@ class _BirthStep extends StatelessWidget {
   final String sex;
   final ValueChanged<String> onSex;
   final TextEditingController place;
+  final TextEditingController birthTime;
+  final BirthTimePrecision precision;
+  final ValueChanged<BirthTimePrecision> onPrecision;
+  final BirthTimePeriod? period;
+  final ValueChanged<BirthTimePeriod> onPeriod;
   final String? error;
 
   @override
@@ -448,7 +533,10 @@ class _BirthStep extends StatelessWidget {
           controller: dob,
           label: strings.fieldBirthDate,
           hint: strings.hintBirthDateFormat,
-          keyboardType: TextInputType.datetime,
+          keyboardType: TextInputType.number,
+          // The hyphens type themselves. Asking somebody to punctuate their own
+          // birthday to satisfy `DateTime.parse` is the parser's problem.
+          formatters: const [BirthDateInputFormatter()],
         ),
         // The message belongs under the field that raised it. It used to sit
         // at the foot of the step, below the optional birth place, several
@@ -505,11 +593,70 @@ class _BirthStep extends StatelessWidget {
           label: strings.fieldBirthPlaceOptional,
           hint: strings.hintCityOrRegion,
         ),
-        const SizedBox(height: EterSpace.s16),
+
+        // The birth time, asked here rather than deferred to the Sanctum.
+        //
+        // It used to say "Exact birth time can be added later" and almost
+        // nobody did, which left every chart cast for noon with a hedge on
+        // every angle — the ascendant crosses a sign about every two hours, so
+        // a chart without a time is a chart missing the fastest thing in it.
+        // Asking once, here, while somebody is already looking up where they
+        // were born, is the only moment it is cheap to ask.
+        const SizedBox(height: EterSpace.s24),
         Text(
-          strings.exactBirthTimeLater,
-          style: Theme.of(context).textTheme.bodySmall,
+          strings.headingHowWellIsTimeKnown,
+          style: Theme.of(context).textTheme.labelSmall,
         ),
+        Wrap(
+          spacing: EterSpace.s16,
+          children: [
+            for (final option in {
+              BirthTimePrecision.exact: strings.precisionExact,
+              BirthTimePrecision.approximate: strings.precisionApproximate,
+              BirthTimePrecision.unknown: strings.precisionUnknown,
+            }.entries)
+              _TextChoice(
+                label: option.value,
+                selected: precision == option.key,
+                onTap: () => onPrecision(option.key),
+              ),
+          ],
+        ),
+        if (precision == BirthTimePrecision.exact) ...[
+          const SizedBox(height: EterSpace.s12),
+          _LineField(
+            controller: birthTime,
+            label: strings.fieldLocalBirthTime,
+            hint: '07:42',
+            keyboardType: TextInputType.number,
+            formatters: const [ClockInputFormatter()],
+          ),
+        ],
+        if (precision == BirthTimePrecision.approximate) ...[
+          const SizedBox(height: EterSpace.s12),
+          Text(
+            strings.headingWhichPartOfDay,
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+          Wrap(
+            spacing: EterSpace.s16,
+            children: [
+              for (final option in BirthTimePeriod.values)
+                _TextChoice(
+                  label: strings.birthPeriodLabel(option),
+                  selected: period == option,
+                  onTap: () => onPeriod(option),
+                ),
+            ],
+          ),
+        ],
+        if (precision != BirthTimePrecision.unknown) ...[
+          const SizedBox(height: EterSpace.s4),
+          Text(
+            strings.offsetSuggestedFromPhone,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
       ],
     );
   }
@@ -803,12 +950,14 @@ class _LineField extends StatelessWidget {
     this.hint,
     this.lines = 1,
     this.keyboardType,
+    this.formatters,
   });
   final TextEditingController controller;
   final String label;
   final String? hint;
   final int lines;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? formatters;
 
   @override
   Widget build(BuildContext context) {
@@ -818,6 +967,7 @@ class _LineField extends StatelessWidget {
       minLines: lines,
       maxLines: lines,
       keyboardType: keyboardType,
+      inputFormatters: formatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

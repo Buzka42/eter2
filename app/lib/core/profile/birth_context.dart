@@ -8,6 +8,8 @@ abstract interface class BirthplaceResolver {
 }
 
 class PlatformBirthplaceResolver implements BirthplaceResolver {
+  const PlatformBirthplaceResolver();
+
   @override
   Future<BirthplaceCoordinates> resolve(String place) async {
     final results = await geocoding.locationFromAddress(place);
