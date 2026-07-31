@@ -843,7 +843,11 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
       LongViewSpan.month => LongViewSpanName.month,
       LongViewSpan.year => LongViewSpanName.year,
     });
-    final pattern = span == LongViewSpan.year ? 'MMMM yyyy' : 'd MMM';
+    // Abbreviated months on the year span. `MMMM yyyy` on both ends gives
+    // "Year · August 1992 – July 1993", which is thirty characters and
+    // ellipsised on a 1080px phone before the second year is readable — the
+    // one thing the title exists to tell you.
+    final pattern = span == LongViewSpan.year ? 'MMM yyyy' : 'd MMM';
     final from = DateFormat(pattern, locale).format(window.from);
     final to = DateFormat(pattern, locale).format(window.to);
     return span == LongViewSpan.month
