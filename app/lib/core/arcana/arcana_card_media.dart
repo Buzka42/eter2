@@ -146,7 +146,14 @@ class _ArcanaCardMediaState extends State<ArcanaCardMedia> {
       return;
     }
     _holdsSlot = true;
-    final controller = VideoPlayerController.asset(path);
+    final controller = VideoPlayerController.asset(
+      path,
+      // Never take audio focus. Every loop here is silent, but the plugin
+      // manages focus by default, so starting one paused whatever the person
+      // was listening to — and with loops now starting as you scroll, it
+      // would have done it repeatedly. See the same option in `theme.dart`.
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     _controller = controller;
     try {
       await controller.initialize();

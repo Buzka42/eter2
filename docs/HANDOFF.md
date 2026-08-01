@@ -34,6 +34,10 @@ Verified on a Blade V 5G, Android 14, against the owner's own record:
 - **All six model calls, against the deployed endpoint**, plus guidance, the day
   story and interpretation composing on the phone itself.
 - **Nutrition write-back**, the whole chain — see item 8.
+- **Loops no longer steal audio focus** (1 August). Verified by relaunching
+  with a cleared logcat: the video pipeline is active and
+  `requestAudioFocus` appears **zero** times, where the build before it logged
+  one on every launch.
 - **The Long View's birth-date clamp.** Ninety taps of the earlier bead stop at
   the twelve months ending with the birth month; before the clamp, seventy-five
   reached 1981.
@@ -502,6 +506,17 @@ always the tree never being disposed: `eterTestDatabase()` leaves Drift a
 zero-duration close timer, and `closeShell` in `shell_test.dart` is what flushes
 it. Put new shell-level tests in that file rather than standing up a second
 harness — one was written on 1 August and hung until it moved.
+
+**A silent video still takes audio focus.** Both loops — the shell's ambient
+field and the Arcana plates — are muted with `setVolume(0)`, but `video_player`
+manages audio focus by default, so starting one *paused whatever the person was
+listening to*. The field loop starts with the shell, which meant opening Eter at
+all stopped your music. Nothing in the repository could see it; it was one line
+in logcat on launch — `requestAudioFocus() … CONTENT_TYPE_MOVIE …
+callingPack=com.eterhealth.eter`. Both sites now pass
+`VideoPlayerOptions(mixWithOthers: true)`. If a third video is ever added, it
+needs the same option, and the check is: launch, then
+`adb logcat -d | grep requestAudioFocus` — it must find nothing.
 
 **A surface behind a platform plugin is a surface no test renders.**
 `eterRunningTests()` disables video outright and the geocoder throws under the

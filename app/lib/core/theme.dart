@@ -193,7 +193,14 @@ class _SkyBackgroundState extends State<SkyBackground>
     final source = brightness == Brightness.dark
         ? 'assets/art/animations/air-field-dark-v2.mp4'
         : 'assets/art/animations/air-field-light.mp4';
-    final controller = VideoPlayerController.asset(source);
+    final controller = VideoPlayerController.asset(
+      source,
+      // Never take audio focus. The field is silent, and this loop starts with
+      // the shell — so without this, opening Eter at all paused whatever the
+      // person had playing. Found on the device: `requestAudioFocus() ...
+      // CONTENT_TYPE_MOVIE` in logcat on launch.
+      videoPlayerOptions: VideoPlayerOptions(mixWithOthers: true),
+    );
     _controller = controller;
     try {
       await controller.initialize();
