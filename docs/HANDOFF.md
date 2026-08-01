@@ -118,16 +118,42 @@ reasoning for each choice. In brief:
   at 44 dp against the product's own 48 dp tap floor. Both fixed. If you add
   anything to that list, put it in `place_suggestions_widget_test.dart`,
   because no other test can see it.
-- **Astrogram "go deeper"** — a `THE CHART` / `KOSMOGRAM` action under the
-  wheel opens per-planet passages (Mercury through Neptune) composed through
-  the **same** `VesselReadingComposer`, same `inputHash` cache, same
-  `VesselReadings` table — not a seventh call. `AI_FLOW.md`'s call table notes
-  it, and `shell_test.dart` asserts both the seven bodies and that composing
-  them asks for *only* them. The label is a bare noun because the action row
-  at 320 dp × 200 % has room for about nine characters; the verb forms
-  overflowed in both languages. **Not yet composed against the live
-  endpoint** — the fixture provider is what these tests exercise, so the first
-  real run should be read for sense the way v6's letter was.
+- **The Vessel reads the chart, in one menu** (superseding the `THE CHART`
+  panel built earlier the same day). The Life Path and the astrogram were two
+  disclosures with a compose button each; they are one menu now, one list, and
+  no control asks for the writing.
+
+  The call itself changed shape. It wrote one passage per position — eighteen
+  on a full chart — and every one was correct and none had looked at the
+  chart. That is structural, not a prompt that needed tightening: a passage
+  that can only see one placement has nothing to relate it to. It now returns
+  three to five titled **movements** about how placements stand to each other.
+  Prompt v8, same `vesselReadings` call name, so **no worker redeploy** — the
+  endpoint reads only the call name and the prompt and schema are built on the
+  device. Stored as one row per chart under the reserved key `configuration`;
+  the old per-position rows are cleared for the chart being composed.
+
+  **Read against the live model, not assumed.** On a real chart it grouped —
+  "Saturn, Uranus and Neptune all point toward material gravity" — and set
+  that against the water it had gathered a paragraph earlier. The recorded
+  response is now the fixture, and `live_fixtures_test.dart` checks the thing
+  a shape check cannot: at least one movement must hold two placements
+  together.
+
+  **Nothing composes without a birth time**, approximate or exact. It fires
+  when a birth time is saved (owner's choice), and the Vessel also retries
+  silently on open if the reading is still missing — stated here because it is
+  a deviation from what was asked: save-time only, with the button gone, would
+  leave one offline save unwritten forever with nothing to ask again with.
+- **Guidance leans on the sky at night.** It read as health reporting even on
+  immersive, and the stated 40 % symbolic was not the reason: that half
+  arrived as a single sentence while the measured half arrived as a table. A
+  model cannot weight what it was not given. Today's Positions passage now
+  travels in full rather than as its one-sentence note — already written,
+  already validated — and the shares move with it: immersive 30/60/10 after
+  sunset, balanced 45/40/15. Grounded never leans. The Dashboard resolves the
+  register and passes it in, because it is the only place with a horizon and a
+  clock. `AI_FLOW.md` §"what to weigh" has the table.
 - **Cards — and why only some of them animated.** Every reading card was
   already an `EterArcanaPlate` asking for its night loop, so "animate
   everywhere" was true in the code and false on the phone. The reason is
