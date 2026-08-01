@@ -25,6 +25,7 @@ import '../../core/privacy/local_data_import.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/profile/birth_context.dart';
 import '../../core/profile/place_suggestions.dart';
+import '../../core/vessel/initial_readings.dart';
 import '../../core/register.dart';
 import '../../core/clock.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
@@ -299,6 +300,12 @@ class SanctumOverlay extends ConsumerWidget {
                       database: db,
                       profile: profile,
                       resolver: ref.watch(birthplaceResolverProvider),
+                      onSaved: () => unawaited(
+                        InitialVesselReadings(
+                          database: db,
+                          provider: ref.read(vesselReadingTransportProvider),
+                        ).composeIfPossible(now: ref.read(nowProvider)()),
+                      ),
                     ),
                     const SizedBox(height: EterSpace.s32),
                     // Directly after birth context, because the two are
@@ -425,11 +432,17 @@ class _BirthContext extends StatefulWidget {
     required this.database,
     required this.profile,
     required this.resolver,
+    required this.onSaved,
   });
 
   final AppDatabase database;
   final ProfileRow? profile;
   final BirthplaceResolver resolver;
+
+  /// Run after a birth context is stored. The chart's reading is composed the
+  /// moment a birth time exists — there is no control anywhere that asks for
+  /// it, by design — so this is the moment it becomes possible.
+  final VoidCallback onSaved;
 
   @override
   State<_BirthContext> createState() => _BirthContextState();
@@ -542,6 +555,7 @@ class _BirthContextState extends State<_BirthContext> {
         _placeSuggestions?.dismiss();
         _message = strings.birthContextSaved;
       });
+      widget.onSaved();
     } on BirthContextException catch (failure) {
       if (!mounted) return;
       setState(() {

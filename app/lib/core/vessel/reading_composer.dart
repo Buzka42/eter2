@@ -80,23 +80,85 @@ class VesselReadingProviderRequest {
   final Map<String, Object> responseSchema;
 }
 
-const vesselReadingResponseSchema = <String, Object>{
-  'shape': 'readings: [{key, passage}]',
-  'exactRequestedKeys': true,
-  'maxPassageCharacters': 1800,
-};
+/// One movement of the reading: a titled passage about how several placements
+/// stand to each other.
+///
+/// Never one per card. The reading used to be exactly that — eighteen passages,
+/// each about a single position with the rest of the chart out of view — and it
+/// read as eighteen encyclopaedia entries about a stranger. A chart means
+/// something as a configuration or it means very little.
+class VesselMovement {
+  const VesselMovement({required this.title, required this.passage});
 
-class VesselReadingComposition {
-  const VesselReadingComposition({
-    required this.rows,
+  final String title;
+  final String passage;
+
+  Map<String, Object> toJson() => {'title': title, 'passage': passage};
+
+  static VesselMovement? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final title = raw['title'];
+    final passage = raw['passage'];
+    if (title is! String || passage is! String) return null;
+    return VesselMovement(title: title, passage: passage);
+  }
+}
+
+/// The whole chart, read as one thing.
+class VesselConfiguration {
+  const VesselConfiguration({
+    required this.movements,
     required this.fromCache,
   });
 
-  final Map<String, VesselReadingRow> rows;
+  final List<VesselMovement> movements;
   final bool fromCache;
+
+  static List<VesselMovement> decode(String contentJson) {
+    try {
+      final decoded = jsonDecode(contentJson);
+      if (decoded is! Map || decoded['movements'] is! List) return const [];
+      return [
+        for (final item in decoded['movements'] as List)
+          if (VesselMovement.fromJson(item) case final movement?) movement,
+      ];
+    } on FormatException {
+      return const [];
+    }
+  }
 }
 
-/// Composes only missing positions and never sends raw birth inputs or identity.
+/// How many movements a reading may have, and how long each may run.
+///
+/// Three is the floor because two is a pair rather than a shape; five is the
+/// ceiling because the sixth is always the one that starts listing placements
+/// again.
+const vesselMinimumMovements = 3;
+const vesselMaximumMovements = 5;
+const vesselMaximumPassageCharacters = 1400;
+const vesselMaximumTitleCharacters = 48;
+
+/// The single row a chart's reading is stored under.
+///
+/// The table is keyed `(inputHash, positionKey)` and this is a reserved key
+/// rather than a position, so the whole-configuration reading needed no
+/// migration and no second table.
+const vesselConfigurationKey = 'configuration';
+
+const vesselReadingResponseSchema = <String, Object>{
+  'shape': 'movements: [{title, passage}]',
+  'minMovements': vesselMinimumMovements,
+  'maxMovements': vesselMaximumMovements,
+  'maxTitleCharacters': vesselMaximumTitleCharacters,
+  'maxPassageCharacters': vesselMaximumPassageCharacters,
+};
+
+/// Composes the chart's reading once, and never sends raw birth inputs or
+/// identity.
+///
+/// One call per chart rather than one per position. The cache key is the
+/// chart's own input hash, so a chart is paid for once and a person who never
+/// changes their birth details never pays again.
 class VesselReadingComposer {
   const VesselReadingComposer({
     required this.database,
@@ -110,7 +172,7 @@ class VesselReadingComposer {
   final String model;
   final AetherSafetyPolicy safetyPolicy;
 
-  Future<VesselReadingComposition> compose({
+  Future<VesselConfiguration> compose({
     required String inputHash,
     required VesselReadingRequest request,
     DateTime? now,
@@ -119,31 +181,21 @@ class VesselReadingComposer {
     if (profile?.aiConsentAt == null) {
       throw const VesselReadingException('AI processing is not permitted');
     }
-    final existing = <String, VesselReadingRow>{};
-    for (final position in request.positions) {
-      final row = await database.loadVesselReading(
-        inputHash: inputHash,
-        positionKey: position.key,
-      );
-      if (row != null) existing[position.key] = row;
-    }
-    final missing = request.positions
-        .where((position) => !existing.containsKey(position.key))
-        .toList();
-    if (missing.isEmpty) {
-      return VesselReadingComposition(rows: existing, fromCache: true);
+
+    final existing = await database.loadVesselReading(
+      inputHash: inputHash,
+      positionKey: vesselConfigurationKey,
+    );
+    if (existing != null) {
+      final movements = VesselConfiguration.decode(existing.contentJson);
+      if (movements.isNotEmpty) {
+        return VesselConfiguration(movements: movements, fromCache: true);
+      }
     }
 
     final prompt = EterPrompts.vesselReading(
-      VesselReadingRequest(
-        mode: request.mode,
-        positions: missing,
-        approximateTime: request.approximateTime,
-        approximatePlace: request.approximatePlace,
-      ),
-      language: AppLanguage.forProfile(
-        (await database.loadProfile())?.language,
-      ),
+      request,
+      language: AppLanguage.forProfile(profile?.language),
     );
     final raw = await provider.compose(
       VesselReadingProviderRequest(
@@ -152,60 +204,65 @@ class VesselReadingComposer {
         responseSchema: prompt.responseSchema.cast<String, Object>(),
       ),
     );
-    final passages = _parse(
-      raw,
-      requestedKeys: missing.map((item) => item.key).toSet(),
-      mode: request.mode,
-    );
-    final createdAt = (now ?? DateTime.now()).toUtc();
-    await database.saveVesselReadingSet([
-      for (final entry in passages.entries)
-        VesselReadingsCompanion.insert(
-          inputHash: inputHash,
-          positionKey: entry.key,
-          createdAt: createdAt,
-          contentJson: jsonEncode({'passage': entry.value}),
-          model: model,
-          promptVersion: const Value(EterPrompts.version),
-        ),
-    ]);
-    for (final position in missing) {
-      existing[position.key] = (await database.loadVesselReading(
+    final movements = _parse(raw, mode: request.mode);
+    await database.saveVesselReading(
+      VesselReadingsCompanion.insert(
         inputHash: inputHash,
-        positionKey: position.key,
-      ))!;
-    }
-    return VesselReadingComposition(rows: existing, fromCache: false);
+        positionKey: vesselConfigurationKey,
+        createdAt: (now ?? DateTime.now()).toUtc(),
+        contentJson: jsonEncode({
+          'movements': [for (final one in movements) one.toJson()],
+        }),
+        model: model,
+        promptVersion: const Value(EterPrompts.version),
+      ),
+    );
+    // The per-position passages this replaced are dead weight now: never read,
+    // but still exported and still synced. Cleared for this chart only, so a
+    // different chart's rows are left to the retirement sweep that owns them.
+    await database.clearVesselPositionReadings(
+      inputHash: inputHash,
+      keep: vesselConfigurationKey,
+    );
+    return VesselConfiguration(movements: movements, fromCache: false);
   }
 
-  Map<String, String> _parse(
-    String raw, {
-    required Set<String> requestedKeys,
-    required GuidanceMode mode,
-  }) {
+  List<VesselMovement> _parse(String raw, {required GuidanceMode mode}) {
     final Object? decoded;
     try {
       decoded = jsonDecode(raw);
     } on FormatException {
       throw const VesselReadingException('Response is not JSON');
     }
-    if (decoded is! Map<String, dynamic> || decoded['readings'] is! List) {
-      throw const VesselReadingException('Response is missing readings');
+    if (decoded is! Map<String, dynamic> || decoded['movements'] is! List) {
+      throw const VesselReadingException('Response is missing movements');
     }
-    final passages = <String, String>{};
-    for (final item in decoded['readings'] as List) {
-      if (item is! Map<String, dynamic> ||
-          item['key'] is! String ||
-          item['passage'] is! String) {
-        throw const VesselReadingException('Invalid reading shape');
+    final items = decoded['movements'] as List;
+    if (items.length < vesselMinimumMovements ||
+        items.length > vesselMaximumMovements) {
+      throw const VesselReadingException(
+        'Response must carry between three and five movements',
+      );
+    }
+    final movements = <VesselMovement>[];
+    final titles = <String>{};
+    for (final item in items) {
+      final movement = VesselMovement.fromJson(item);
+      if (movement == null) {
+        throw const VesselReadingException('Invalid movement shape');
       }
-      final key = item['key'] as String;
-      final passage = (item['passage'] as String).trim();
-      if (!requestedKeys.contains(key) ||
-          passages.containsKey(key) ||
+      final title = movement.title.trim();
+      final passage = movement.passage.trim();
+      if (title.isEmpty ||
           passage.isEmpty ||
-          passage.length > 1800) {
-        throw const VesselReadingException('Invalid reading content');
+          title.length > vesselMaximumTitleCharacters ||
+          passage.length > vesselMaximumPassageCharacters) {
+        throw const VesselReadingException('Invalid movement content');
+      }
+      // Two movements under one title is the shape of a model that ran out of
+      // things to say and repeated itself.
+      if (!titles.add(title.toLowerCase())) {
+        throw const VesselReadingException('Movements repeat a title');
       }
       try {
         safetyPolicy.validateGuidance(
@@ -217,14 +274,8 @@ class VesselReadingComposer {
       } on AetherSafetyException catch (error) {
         throw VesselReadingException(error.reason);
       }
-      passages[key] = passage;
+      movements.add(VesselMovement(title: title, passage: passage));
     }
-    if (passages.keys.toSet().difference(requestedKeys).isNotEmpty ||
-        !passages.keys.toSet().containsAll(requestedKeys)) {
-      throw const VesselReadingException(
-        'Response must contain every requested position exactly once',
-      );
-    }
-    return passages;
+    return movements;
   }
 }

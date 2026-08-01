@@ -99,6 +99,48 @@ void main() {
       }
     });
 
+    test('the chart reading relates placements rather than listing them', () {
+      // The failure this call was rewritten to end: one passage per position.
+      // Eighteen of them, each correct, none of which had looked at the chart
+      // — the owner's word was "generalistic". A movement that names a single
+      // placement and stops is that failure coming back, and it parses
+      // perfectly, so the shape check cannot see it.
+      final decoded =
+          jsonDecode(fixture('vesselReadings')) as Map<String, dynamic>;
+      final movements = (decoded['movements'] as List).cast<Map>();
+      expect(movements.length, inInclusiveRange(3, 5));
+
+      const placements = [
+        'Life Path',
+        'Sun',
+        'Moon',
+        'Mercury',
+        'Venus',
+        'Mars',
+        'Saturn',
+        'Ascendant',
+      ];
+      int named(String passage) =>
+          placements.where(passage.contains).length;
+
+      // At least one movement has to hold two placements together. Requiring
+      // it of every movement would be wrong — a movement about what the chart
+      // is missing may name nothing at all — but a reading where no movement
+      // relates anything has gone back to being a list.
+      expect(
+        movements.any((movement) => named(movement['passage'] as String) >= 2),
+        isTrue,
+        reason: movements
+            .map((movement) => movement['title'])
+            .join(' / '),
+      );
+      // And the titles are names for what was found, not headings.
+      for (final movement in movements) {
+        final title = (movement['title'] as String).toLowerCase();
+        expect(title, isNot(anyOf('overview', 'summary', 'introduction')));
+      }
+    });
+
     test('the recall is telegraphic, not the prose it came from', () {
       final decoded = jsonDecode(fixture('guidance')) as Map<String, dynamic>;
       final recall = decoded['recall'] as String;

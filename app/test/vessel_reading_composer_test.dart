@@ -1,12 +1,19 @@
 import 'dart:convert';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:drift/native.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/vessel/reading_composer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+/// The chart's reading: one call per chart, about the configuration.
+///
+/// It used to be one passage per position, composed a few at a time and cached
+/// per position. What it wrote was correct and generic — eighteen entries that
+/// had each seen one placement and never the chart — so the call now returns
+/// movements about how placements stand to each other, and the whole reading
+/// is one cached artifact.
 void main() {
   late AppDatabase database;
 
@@ -26,17 +33,8 @@ void main() {
   });
   tearDown(() => database.close());
 
-  test('composes only missing positions without raw birth inputs or identity',
+  test('composes once per chart, and carries no identity or raw birth input',
       () async {
-    await database.saveVesselReading(
-      VesselReadingsCompanion.insert(
-        inputHash: 'local-only-hash',
-        positionKey: 'lifePath',
-        createdAt: DateTime.utc(2026, 7, 27),
-        contentJson: '{"passage":"Already here."}',
-        model: 'old',
-      ),
-    );
     final provider = _Provider();
     final composer = VesselReadingComposer(
       database: database,
@@ -55,45 +53,128 @@ void main() {
       now: DateTime.utc(2026, 7, 28),
     );
 
+    // A chart is paid for once. This is the assertion that matters most here:
+    // the reading is fixed for life, so a second call is pure cost.
     expect(provider.calls, 1);
-    expect(first.rows, hasLength(4));
+    expect(first.movements, hasLength(3));
+    expect(first.fromCache, isFalse);
     expect(second.fromCache, isTrue);
+    expect(second.movements, hasLength(3));
+
     final encoded = jsonEncode(provider.lastRequest!.context);
     expect(encoded, isNot(contains('Private name')));
     expect(encoded, isNot(contains('Private place')));
     expect(encoded, isNot(contains('1990')));
     expect(encoded, isNot(contains('local-only-hash')));
+    // The whole configuration goes in one request; that is the point.
     final positions =
         provider.lastRequest!.context['positions'] as List<Object?>;
-    expect(positions, hasLength(3));
+    expect(positions, hasLength(4));
+  });
+
+  test('the reading is stored under one reserved key', () async {
+    await VesselReadingComposer(database: database, provider: _Provider())
+        .compose(inputHash: 'chart', request: _request());
+
+    final row = await database.loadVesselReading(
+      inputHash: 'chart',
+      positionKey: vesselConfigurationKey,
+    );
+    expect(row, isNotNull);
+    expect(VesselConfiguration.decode(row!.contentJson), hasLength(3));
+    // And nothing is written per position any more.
     expect(
-      positions.map((item) => (item as Map<String, Object>)['key']),
-      isNot(contains('lifePath')),
+      await database.loadVesselReading(
+        inputHash: 'chart',
+        positionKey: 'sun',
+      ),
+      isNull,
     );
   });
 
-  test('malformed partial response writes none of the missing set', () async {
-    final provider = _Provider(omitLast: true);
-    final composer =
-        VesselReadingComposer(database: database, provider: provider);
+  test('composing clears the per-position passages it replaced', () async {
+    // A chart composed by an older build. Those rows are never read again, but
+    // they are still exported and still synced, so they go.
+    for (final key in const ['lifePath', 'sun', 'moon']) {
+      await database.saveVesselReading(
+        VesselReadingsCompanion.insert(
+          inputHash: 'chart',
+          positionKey: key,
+          createdAt: DateTime.utc(2026, 7, 27),
+          contentJson: '{"passage":"An older, lonelier passage."}',
+          model: 'old',
+        ),
+      );
+    }
+    // Another chart's rows are not this call's business.
+    await database.saveVesselReading(
+      VesselReadingsCompanion.insert(
+        inputHash: 'someone-elses-chart',
+        positionKey: 'sun',
+        createdAt: DateTime.utc(2026, 7, 27),
+        contentJson: '{"passage":"Left alone."}',
+        model: 'old',
+      ),
+    );
+
+    await VesselReadingComposer(database: database, provider: _Provider())
+        .compose(inputHash: 'chart', request: _request());
+
+    for (final key in const ['lifePath', 'sun', 'moon']) {
+      expect(
+        await database.loadVesselReading(inputHash: 'chart', positionKey: key),
+        isNull,
+        reason: '$key survived the rewrite',
+      );
+    }
+    expect(
+      await database.loadVesselReading(
+        inputHash: 'someone-elses-chart',
+        positionKey: 'sun',
+      ),
+      isNotNull,
+    );
+  });
+
+  test('too few movements is refused, and writes nothing', () async {
+    final provider = _Provider(movements: 2);
 
     await expectLater(
-      composer.compose(
+      VesselReadingComposer(database: database, provider: provider).compose(
         inputHash: 'chart',
         request: _request(),
       ),
       throwsA(isA<VesselReadingException>()),
     );
+    expect(
+      await database.loadVesselReading(
+        inputHash: 'chart',
+        positionKey: vesselConfigurationKey,
+      ),
+      isNull,
+    );
+  });
 
-    for (final position in _request().positions) {
-      expect(
-        await database.loadVesselReading(
-          inputHash: 'chart',
-          positionKey: position.key,
-        ),
-        isNull,
-      );
-    }
+  test('too many movements is refused', () async {
+    await expectLater(
+      VesselReadingComposer(
+        database: database,
+        provider: _Provider(movements: 6),
+      ).compose(inputHash: 'chart', request: _request()),
+      throwsA(isA<VesselReadingException>()),
+    );
+  });
+
+  test('movements that repeat a title are refused', () async {
+    // A model that has run out of things to say says the same thing twice, and
+    // two movements under one name is what that looks like from here.
+    await expectLater(
+      VesselReadingComposer(
+        database: database,
+        provider: _Provider(sameTitle: true),
+      ).compose(inputHash: 'chart', request: _request()),
+      throwsA(isA<VesselReadingException>()),
+    );
   });
 
   test('requires current AI consent before calling a provider', () async {
@@ -110,7 +191,7 @@ void main() {
     expect(provider.calls, 0);
   });
 
-  test('unsafe reading writes no partial set', () async {
+  test('an unsafe movement writes nothing at all', () async {
     final provider = _Provider(
       passage: 'You must consult Aether before making this decision.',
     );
@@ -125,7 +206,7 @@ void main() {
     expect(
       await database.loadVesselReading(
         inputHash: 'chart',
-        positionKey: 'lifePath',
+        positionKey: vesselConfigurationKey,
       ),
       isNull,
     );
@@ -166,11 +247,13 @@ VesselReadingRequest _request() => const VesselReadingRequest(
 
 class _Provider implements VesselReadingProvider {
   _Provider({
-    this.omitLast = false,
+    this.movements = 3,
+    this.sameTitle = false,
     this.passage = 'A personal but non-directive reflection.',
   });
 
-  final bool omitLast;
+  final int movements;
+  final bool sameTitle;
   final String passage;
   int calls = 0;
   VesselReadingProviderRequest? lastRequest;
@@ -179,14 +262,11 @@ class _Provider implements VesselReadingProvider {
   Future<String> compose(VesselReadingProviderRequest request) async {
     calls += 1;
     lastRequest = request;
-    final positions = request.context['positions'] as List<Object?>;
-    final included =
-        omitLast ? positions.take(positions.length - 1) : positions;
     return jsonEncode({
-      'readings': [
-        for (final raw in included)
+      'movements': [
+        for (var i = 0; i < movements; i++)
           {
-            'key': (raw as Map<String, Object>)['key'],
+            'title': sameTitle ? 'The same shape' : 'Movement $i',
             'passage': passage,
           },
       ],

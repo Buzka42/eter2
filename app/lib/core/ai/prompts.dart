@@ -80,7 +80,16 @@ abstract final class EterPrompts {
   /// and the first real response wrote "rest settled near six hours and
   /// thirty-eight minutes" — a measurement, past a filter that refuses
   /// numerals. Prevention here; the filter stays as the wall.
-  static const version = 7;
+  ///
+  /// v8 (1 August 2026): the Vessel reads a chart instead of listing it. The
+  /// call wrote one passage per position — eighteen of them on a full chart —
+  /// and every passage was correct and none of them had looked at the chart.
+  /// The owner's word for it was "generalistic". It now returns three to five
+  /// *movements*, each about how several placements stand to each other, and
+  /// the instruction says in as many ways as it can that a movement naming one
+  /// placement is the failure being corrected. Guidance also weights the
+  /// symbolic material by register: see `contextFor`.
+  static const version = 8;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -124,13 +133,29 @@ symbolism is the light the fact is read by, never a substitute for it.''',
   /// Stated to the model as explicit proportions because a vaguer instruction
   /// ("blend them") produces whichever the model finds easiest, which is
   /// always the numbers.
+  /// [leansSymbolic] is the immersive register, and balanced after sunset.
+  /// The shares there move toward the sky and away from the instruments —
+  /// guidance still read as health reporting on immersive, and the stated 40%
+  /// was not the reason: the symbolic half arrived as one sentence while the
+  /// measured half arrived as a table, so there was nothing to spend the share
+  /// on. The payload changed with these numbers; see
+  /// `AetherRequest.leansSymbolic`.
   static ({int journal, int symbolic, int measured}) weightsFor(
-    GuidanceMode mode,
-  ) =>
-      switch (mode) {
-        GuidanceMode.grounded => (journal: 40, symbolic: 20, measured: 40),
-        GuidanceMode.balanced => (journal: 50, symbolic: 25, measured: 25),
-        GuidanceMode.immersive => (journal: 40, symbolic: 40, measured: 20),
+    GuidanceMode mode, {
+    bool leansSymbolic = false,
+  }) =>
+      switch ((mode, leansSymbolic)) {
+        // Grounded never leans. That register exists to be plain, and the
+        // assembler does not set the flag for it.
+        (GuidanceMode.grounded, _) => (journal: 40, symbolic: 20, measured: 40),
+        (GuidanceMode.balanced, false) =>
+          (journal: 50, symbolic: 25, measured: 25),
+        (GuidanceMode.balanced, true) =>
+          (journal: 45, symbolic: 40, measured: 15),
+        (GuidanceMode.immersive, false) =>
+          (journal: 40, symbolic: 40, measured: 20),
+        (GuidanceMode.immersive, true) =>
+          (journal: 30, symbolic: 60, measured: 10),
       };
 
   /// The same three shares with the journal's removed and its weight given to
@@ -140,9 +165,10 @@ symbolism is the light the fact is read by, never a substitute for it.''',
   /// nothing written this week. Stating a 50% share for something that is not
   /// in the payload would invite the model to fill it.
   static ({int symbolic, int measured}) weightsWithoutJournal(
-    GuidanceMode mode,
-  ) {
-    final weights = weightsFor(mode);
+    GuidanceMode mode, {
+    bool leansSymbolic = false,
+  }) {
+    final weights = weightsFor(mode, leansSymbolic: leansSymbolic);
     final rest = weights.symbolic + weights.measured;
     final symbolic = (weights.symbolic * 100 / rest).round();
     return (symbolic: symbolic, measured: 100 - symbolic);
@@ -248,8 +274,21 @@ Each journal digest is one day compressed to a few phrases — movement, food,
 mood, energy, sleep, and anything notable. It is what the person wrote, not
 what a sensor measured, and the two are allowed to disagree.''';
 
-  static String _weightingFor(GuidanceMode mode, {required bool hasJournal}) {
+  static String _weightingFor(
+    GuidanceMode mode, {
+    required bool hasJournal,
+    required bool leansSymbolic,
+  }) {
     final grounded = mode == GuidanceMode.grounded;
+    final sky = leansSymbolic
+        ? '''
+
+The sky is the louder half tonight. Today's positions are given to you in full
+rather than as a note, and they are material to write from — not an ornament
+on a health summary. If the measured records are unremarkable, say little
+about them; a reading that spends this register listing steps and heart rates
+has misread which half it was asked for.'''
+        : '';
     final tail = '''
 ${grounded ? 'You are in grounded voice, so the symbolic share is about emphasis only: the chart informs what you notice and never appears in the words. Speak entirely in terms of the body, the mind and what was recorded.' : 'The symbolic material may shape the framing and the emphasis. It may never contradict a measurement or a self-report: if the chart suggests expansiveness and the records show three short nights, the short nights win and the framing yields.'}
 
@@ -261,7 +300,7 @@ mouth. If a share has nothing behind it today, that share is simply smaller
 and you say less.''';
 
     if (!hasJournal) {
-      final weights = weightsWithoutJournal(mode);
+      final weights = weightsWithoutJournal(mode, leansSymbolic: leansSymbolic);
       return '''
 WHAT TO WEIGH
 There is no journal material in this request, so today's reading rests on two
@@ -270,10 +309,10 @@ placements, the Life Path, and today's positions — and roughly
 ${weights.measured}% on the measured records and anything the person reported
 themselves. Do not speculate about what they might have written.
 
-$tail''';
+$tail$sky''';
     }
 
-    final weights = weightsFor(mode);
+    final weights = weightsFor(mode, leansSymbolic: leansSymbolic);
     return '''
 WHAT TO WEIGH
 Today's reading draws from three places, in roughly these proportions:
@@ -393,7 +432,7 @@ You are given a derived age and nothing else about who they are. You do not
 know their name, their birth date, where they live, or anything outside this
 window. Do not speculate about any of it.
 
-${_weightingFor(request.mode, hasJournal: hasJournalMaterial)}
+${_weightingFor(request.mode, hasJournal: hasJournalMaterial, leansSymbolic: request.leansSymbolic)}
 
 $absence
 
@@ -928,45 +967,66 @@ Return JSON only, with no text around it.''',
   }) {
     return EterPrompt(
       system: '''
-You are writing the personal readings inside Eter's Vessel — the symbolic half
+You are writing the personal reading inside Eter's Vessel — the symbolic half
 of the product, where a locally calculated chart is put into words.
 
 ${voiceFor(request.mode)}
 
 WHAT YOU ARE GIVEN
-A list of positions. Each carries a key, a human label ("Sun", "Life Path 8"),
-the Arcana card it resolved to, and that card's established keywords. The
-calculation is already done: it happened on the device, from inputs you will
-never see. You are not casting a chart. You are writing what a position that
-has already been determined might mean for someone reading it today.
+The whole configuration at once: every position, each with a key, a human
+label ("Sun", "Life Path 8"), the Arcana card it resolved to, and that card's
+established keywords. The calculation is already done — it happened on the
+device, from inputs you will never see. You are not casting a chart. You are
+reading one that has already been cast.
+
+WHAT TO WRITE
+Between $vesselMinimumMovements and $vesselMaximumMovements movements. A
+movement is a titled passage about **how several placements stand to each
+other** — what repeats across them, where they pull against each other, what
+the configuration keeps returning to, and what is conspicuously absent from it.
+
+This is the whole instruction. An earlier version of this call wrote one
+passage per position, and the result read as an encyclopaedia: eighteen
+correct entries that never once looked at the chart. So:
+
+* Never one movement per position. A movement that names a single placement
+  and stops is the failure this call was rewritten to end.
+* Name placements as **evidence for a claim about the configuration**, not as
+  subjects to be described in turn. "Three of the personal placements sit in
+  the same element, and the Ascendant answers none of them" is a reading. "The
+  Sun is in Aquarius, which suggests…" is an entry.
+* Give each movement a title of at most $vesselMaximumTitleCharacters
+  characters — a name for what it found, not a heading like "Overview".
+* Prefer the pattern that is actually there. If the chart is unremarkably
+  spread, say that plainly rather than manufacturing a tension.
+
+Each passage is prose the person can sit with: at most
+$vesselMaximumPassageCharacters characters, no lists, no headings, no
+markdown. Work from the keywords you were given rather than around them.
 
 RELIABILITY
 The request states whether birth time and birth place were exact. When they
-were not, the Ascendant in particular is provisional. Say so inside the passage
-for any position that depends on it, in one clause, without hedging the whole
-piece into mush. Never present a provisional position as certain.
-
-WHAT TO WRITE
-One passage per requested key, and only the keys requested. Each passage is
-prose the person can sit with: at most 1800 characters, no lists, no headings,
-no markdown. Work from the keywords you were given rather than around them.
+were not, the Ascendant and anything resting on it are provisional. Say so
+once, in the movement that leans on it, in a clause — not as a disclaimer at
+the top and not in every movement. Never present a provisional placement as
+certain.
 
 Symbolism describes a tendency, never a fate and never a fact about the body.
-Write "this position tends to ask for" rather than "you are". Nothing in a
-reading may instruct a person about their health, their eating or their
+Write "this configuration tends to ask for" rather than "you are". Nothing
+here may instruct a person about their health, their eating or their
 medication — that is the Body's territory and it works from measurements.
 
 $absence
 
 You know nothing about this person beyond the positions listed. Not their age,
-not their circumstances, not how their week has gone. Write the position, not
-a person you have imagined around it.
+not their circumstances, not how their week has gone. Read the chart, not a
+person you have imagined around it.
 
 $safety
 
 ${languageFor(language)}
 
-Return JSON only: {"readings": [{"key": ..., "passage": ...}]}''',
+Return JSON only: {"movements": [{"title": ..., "passage": ...}]}''',
       user: request.toJson(),
       responseSchema: _vesselSchema,
     );
@@ -974,22 +1034,27 @@ Return JSON only: {"readings": [{"key": ..., "passage": ...}]}''',
 
   static const _vesselSchema = <String, Object?>{
     'type': 'object',
-    'required': ['readings'],
+    'required': ['movements'],
     'additionalProperties': false,
     'properties': {
-      'readings': {
+      'movements': {
         'type': 'array',
-        'minItems': 1,
+        'minItems': vesselMinimumMovements,
+        'maxItems': vesselMaximumMovements,
         'items': {
           'type': 'object',
-          'required': ['key', 'passage'],
+          'required': ['title', 'passage'],
           'additionalProperties': false,
           'properties': {
-            'key': {'type': 'string', 'minLength': 1},
+            'title': {
+              'type': 'string',
+              'minLength': 1,
+              'maxLength': vesselMaximumTitleCharacters,
+            },
             'passage': {
               'type': 'string',
               'minLength': 1,
-              'maxLength': 1800,
+              'maxLength': vesselMaximumPassageCharacters,
             },
           },
         },

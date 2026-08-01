@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **802 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **808 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -64,7 +64,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 802 pass, 10 skipped
+flutter test          # expect 808 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 

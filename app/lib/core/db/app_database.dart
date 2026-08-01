@@ -1308,6 +1308,23 @@ class AppDatabase extends _$AppDatabase {
         }
       });
 
+  /// Drops this chart's per-position passages, keeping [keep].
+  ///
+  /// The reading used to be one passage per position and is now one reading
+  /// about the whole configuration. The old rows are never read again, but
+  /// they are still exported and still synced, so they are cleared for the
+  /// chart being composed — and only for that chart, because another chart's
+  /// rows belong to [clearVesselReadingsExcept].
+  Future<int> clearVesselPositionReadings({
+    required String inputHash,
+    required String keep,
+  }) =>
+      (delete(vesselReadings)
+            ..where((row) =>
+                row.inputHash.equals(inputHash) &
+                row.positionKey.equals(keep).not()))
+          .go();
+
   /// Birth inputs changed, so every composed reading is now about a chart that
   /// is no longer theirs.
   Future<int> clearVesselReadingsExcept(String inputHash) =>

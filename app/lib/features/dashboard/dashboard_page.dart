@@ -100,7 +100,13 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     });
     try {
       final request =
-          await AetherContextAssembler(database: db).assemble(now: now);
+          await AetherContextAssembler(database: db).assemble(
+        now: now,
+        // The register decides how loud the sky is allowed to be. Resolved
+        // here because it needs a horizon and a clock, which the assembler
+        // has no business holding.
+        register: EterRegister.of(context),
+      );
       final result = await AetherComposer(
         database: db,
         provider: provider,

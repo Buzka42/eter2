@@ -20,7 +20,6 @@ import 'dart:io';
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:eter/core/i18n/language.dart';
-import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/aether/letter.dart';
 import 'package:eter/core/aether/guidance_mode.dart';
@@ -88,8 +87,10 @@ void main() {
     test('interpretation reads weight, a run and lifted work',
         () => _bodyInterpretation(transport));
     test('vessel readings compose and parse', () => _recorded('vesselReadings', () => _vesselReadings(transport)));
-    test('the real composer writes the initial readings',
-        () => _vesselThroughComposer(transport));
+    test(
+        'the real composer writes the initial readings',
+        () => _recorded(
+            'vesselConfiguration', () => _vesselThroughComposer(transport)));
     test('positions compose and parse', () => _recorded('positions', () => _positions(transport)));
     test('the letter composes and parses', () => _recorded('letter', () => _letter(transport)));
   },
@@ -226,6 +227,10 @@ Future<String> _bodyInterpretation(EterAiTransport transport) async {
 }
 
 Future<String> _vesselReadings(EterAiTransport transport) async {
+  // A chart's worth of positions, not two. The recorded response becomes the
+  // fixture every parser replay runs against, and a two-position request
+  // cannot show the failure this call exists to prevent — a model has nothing
+  // to relate when it has only been given two things.
   const request = VesselReadingRequest(
     mode: GuidanceMode.balanced,
     positions: [
@@ -237,9 +242,45 @@ Future<String> _vesselReadings(EterAiTransport transport) async {
       ),
       VesselReadingPosition(
         key: 'sun',
-        label: 'Sun in Pisces',
+        label: 'Sun',
         card: 'The Moon',
         keywords: ['intuition', 'dream', 'the unlit path'],
+      ),
+      VesselReadingPosition(
+        key: 'moon',
+        label: 'Moon',
+        card: 'Justice',
+        keywords: ['balance', 'truth', 'accountability'],
+      ),
+      VesselReadingPosition(
+        key: 'ascendant',
+        label: 'Ascendant',
+        card: 'The Emperor',
+        keywords: ['order', 'structure', 'protection'],
+      ),
+      VesselReadingPosition(
+        key: 'mercury',
+        label: 'Mercury',
+        card: 'The Moon',
+        keywords: ['intuition', 'dream', 'the unlit path'],
+      ),
+      VesselReadingPosition(
+        key: 'venus',
+        label: 'Venus',
+        card: 'The Star',
+        keywords: ['hope', 'renewal', 'clarity'],
+      ),
+      VesselReadingPosition(
+        key: 'mars',
+        label: 'Mars',
+        card: 'The Tower',
+        keywords: ['upheaval', 'sudden light', 'collapse'],
+      ),
+      VesselReadingPosition(
+        key: 'saturn',
+        label: 'Saturn',
+        card: 'The Devil',
+        keywords: ['gravity', 'appetite', 'the shadow'],
       ),
     ],
     approximateTime: true,
@@ -257,8 +298,8 @@ Future<String> _vesselReadings(EterAiTransport transport) async {
     ),
   );
   final decoded = jsonDecode(raw);
-  if (decoded is! Map || decoded['readings'] is! List) {
-    throw const FormatException('No readings in the response');
+  if (decoded is! Map || decoded['movements'] is! List) {
+    throw const FormatException('No movements in the response');
   }
   return raw;
 }
@@ -276,6 +317,16 @@ Future<String> _vesselThroughComposer(EterAiTransport transport) async {
     units: 'metric',
     aiConsentAt: Value(DateTime.utc(2026, 7, 28)),
   ));
+  // A birth time, because nothing is composed without one: a chart cast at
+  // noon would be read once and cached for life against angles nobody has.
+  await database.updateBirthContext(
+    birthTimeMinutes: 6 * 60 + 45,
+    birthTimePrecision: 'exact',
+    birthUtcOffsetMinutes: 60,
+    birthPlace: 'Warsaw',
+    birthLatitude: 52.2297,
+    birthLongitude: 21.0122,
+  );
 
   final written = await InitialVesselReadings(
     database: database,
@@ -284,16 +335,20 @@ Future<String> _vesselThroughComposer(EterAiTransport transport) async {
 
   expect(written, isTrue, reason: 'composeIfPossible wrote nothing');
   final rows = await database.select(database.vesselReadings).get();
-  expect(rows.map((row) => row.positionKey).toSet(), {
-    'lifePath',
-    'sun',
-    'moon',
-    'ascendant',
-    // The figure composes through the same path, which is the point of having
-    // built it as ordinary reading positions.
-    for (final position in MatrixPosition.values) position.key,
-  });
-  return 'wrote readings';
+  // One row for the whole chart. The reading is about the configuration, so
+  // there is nothing to key per position any more.
+  expect(rows.map((row) => row.positionKey).toSet(), {vesselConfigurationKey});
+  final movements = VesselConfiguration.decode(rows.single.contentJson);
+  expect(movements.length, inInclusiveRange(3, 5));
+  // The failure this call was rewritten to end: a movement that names one
+  // placement and stops. Read the titles as well as counting them.
+  final sheet = StringBuffer();
+  for (final movement in movements) {
+    sheet.writeln(movement.title);
+    sheet.writeln(movement.passage);
+    sheet.writeln();
+  }
+  return sheet.toString();
 }
 
 Future<String> _positions(EterAiTransport transport) async {

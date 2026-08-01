@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:eter/core/arcana/matrix.dart';
 import 'package:eter/core/db/app_database.dart';
 import 'package:eter/core/aether/guidance_contract.dart';
 import 'package:eter/core/icons.dart';
@@ -635,168 +634,130 @@ void main() {
     await closeShell(tester);
   });
 
-  testWidgets('Vessel renders deterministic offline positions and cached depth',
-      (tester) async {
-    await pumpShell(tester);
-    // The automatic compose has to finish before REFRESH can do anything:
-    // the surface guards against composing twice at once, so tapping while
-    // the first pass is still in flight is correctly a no-op.
+  /// The Vessel opens the whole chart in one menu.
+  ///
+  /// The Life Path and the astrogram were two disclosures with a compose
+  /// button each, which framed them as two subjects. They are one chart, and
+  /// the reading is now about the configuration rather than one passage per
+  /// card — so there is one menu, no controls in it, and the writing arrives
+  /// on its own.
+
+  Future<void> openVessel(WidgetTester tester) async {
+    // The automatic compose has to finish first: the surface guards against
+    // composing twice at once, so acting while the first pass is in flight is
+    // correctly a no-op.
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 600)),
     );
     await tester.pump();
-
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
     await tester.pump();
     await waitForWidget(tester, find.text('READ DEEPER'));
+  }
+
+  Future<void> openTheReading(WidgetTester tester) async {
+    tester
+        .widget<EterAction>(
+          find.ancestor(
+            of: find.text('READ DEEPER'),
+            matching: find.byType(EterAction),
+          ),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+  }
+
+  testWidgets('the Vessel renders the chart offline, in one list',
+      (tester) async {
+    await pumpShell(tester);
+    await openVessel(tester);
 
     expect(find.byType(VesselSection), findsOneWidget);
     // The card is the Sun's Arcana, fixed at birth — not a daily draw.
     expect(find.text('YOUR CARD'), findsOneWidget);
     expect(find.text('The Emperor'), findsWidgets);
     expect(find.textContaining('It does not change'), findsOneWidget);
+    // Everything the device computed is here without a model being asked.
     expect(find.text('LIFE PATH 8'), findsOneWidget);
     expect(find.text('SUN'), findsOneWidget);
     expect(find.text('MOON'), findsOneWidget);
     expect(find.text('ASCENDANT'), findsOneWidget);
     expect(find.textContaining('Birth time is unknown'), findsOneWidget);
 
-    tester
-        .widget<EterAction>(
-          find.ancestor(
-            of: find.text('READ DEEPER'),
-            matching: find.byType(EterAction),
-          ),
-        )
-        .onPressed!
-        .call();
-    await tester.pump();
-    expect(
-      find.textContaining('Life Path 8 describes'),
-      findsOneWidget,
-    );
-    // Everything except the Life Path, which the fixture seeds: the three
-    // chart positions plus each place in the arcana figure. Derived rather
-    // than counted, so adding a position does not silently break this.
-    expect(
-      find.textContaining('has not been composed yet'),
-      findsNWidgets(3 + MatrixPosition.values.length),
-    );
-    await closeShell(tester);
-  });
-
-  testWidgets('the chart panel writes about the rest of the astrogram',
-      (tester) async {
-    await db.updateProfileConsents(aiAllowed: true);
-    final provider = _VesselProvider();
-    await pumpShell(tester, vesselProvider: provider);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 600)),
-    );
-    await tester.pump();
-
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('VESSEL'));
-    await tester.pump();
-    await waitForWidget(tester, find.text('READ DEEPER'));
-
-    // The wheel was the only surface in the Vessel with no writing behind it.
-    expect(find.text('MERCURY'), findsNothing);
-
-    final chart = find.text('THE CHART');
-    await tester.ensureVisible(chart);
-    await tester.pump();
-    tester
-        .widget<EterAction>(
-          find.ancestor(of: chart, matching: find.byType(EterAction)),
-        )
-        .onPressed!
-        .call();
-    await tester.pump();
-
-    // The seven the three named positions leave out. Named from the engine's
-    // own bodies, so adding one to the chart cannot silently skip it here.
-    for (final body in const [
-      'MERCURY',
-      'VENUS',
-      'MARS',
-      'JUPITER',
-      'SATURN',
-      'URANUS',
-      'NEPTUNE',
-    ]) {
+    // One menu, and the astrogram is inside it rather than beside it.
+    expect(find.text('THE CHART'), findsNothing);
+    await openTheReading(tester);
+    for (final body in const ['MERCURY', 'SATURN', 'NEPTUNE']) {
       expect(find.text(body), findsOneWidget, reason: '$body is missing');
     }
-
-    final compose = find.text('COMPOSE READINGS');
-    await tester.ensureVisible(compose);
-    await tester.pump();
-    await tester.tap(compose);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 50)),
-    );
-    await tester.pump();
-
-    // Composed through the same call and cache as every other reading — the
-    // chart is not a seventh model call. `AI_FLOW.md` is the authority.
-    expect(find.text('Composed reflection for mercury.'), findsOneWidget);
-    expect(find.text('Composed reflection for neptune.'), findsOneWidget);
-    // And it asked for the chart's bodies only, not for the whole Vessel
-    // again: the named positions were not part of this request.
-    expect(provider.requestedKeys, isNot(contains('lifePath')));
-    expect(provider.requestedKeys, contains('mercury'));
     await closeShell(tester);
   });
 
-  testWidgets(
-      'Vessel composes only missing readings and preserves cached depth',
+  testWidgets('no control anywhere asks for the reading', (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    await pumpShell(tester, vesselProvider: _VesselProvider());
+    await openVessel(tester);
+    await openTheReading(tester);
+
+    // The owner asked for the compose buttons to go: the reading is written
+    // when a birth time is saved, and there is nothing to press.
+    expect(find.text('COMPOSE READINGS'), findsNothing);
+    expect(find.text('THE CHART'), findsNothing);
+    await closeShell(tester);
+  });
+
+  testWidgets('without a birth time the reading waits rather than guessing',
+      (tester) async {
+    // The fixture profile has no birth time, so the angles would be a noon
+    // guess — and a reading of the wrong angles would cache for life.
+    final provider = _VesselProvider();
+    await db.updateProfileConsents(aiAllowed: true);
+    await pumpShell(tester, vesselProvider: provider);
+    await openVessel(tester);
+    await openTheReading(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('waits for your birth time'), findsOneWidget);
+    expect(provider.calls, 0);
+    await closeShell(tester);
+  });
+
+  testWidgets('with a birth time the reading composes on its own',
       (tester) async {
     await db.updateProfileConsents(aiAllowed: true);
+    await db.updateBirthContext(
+      birthTimeMinutes: 405,
+      birthTimePrecision: 'exact',
+      birthUtcOffsetMinutes: 60,
+      birthPlace: 'Warsaw, Poland',
+      birthLatitude: 52.2297,
+      birthLongitude: 21.0122,
+    );
     final provider = _VesselProvider();
     await pumpShell(tester, vesselProvider: provider);
-    // The automatic compose has to finish before REFRESH can do anything:
-    // the surface guards against composing twice at once, so tapping while
-    // the first pass is still in flight is correctly a no-op.
+    await openVessel(tester);
+    await openTheReading(tester);
     await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 600)),
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
     await tester.pump();
 
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('VESSEL'));
-    await tester.pump();
-    await waitForWidget(tester, find.text('READ DEEPER'));
-    tester
-        .widget<EterAction>(
-          find.ancestor(
-            of: find.text('READ DEEPER'),
-            matching: find.byType(EterAction),
-          ),
-        )
-        .onPressed!
-        .call();
-    await tester.pump();
-
-    final compose = find.text('COMPOSE READINGS');
-    await tester.ensureVisible(compose);
-    await tester.tap(compose);
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 50)),
-    );
-    await tester.pump();
-
-    expect(find.text('Composed reflection for sun.'), findsOneWidget);
-    expect(
-      find.textContaining('Life Path 8 describes'),
-      findsOneWidget,
-    );
+    // Movements about the configuration, not one passage per card.
     expect(provider.calls, 1);
-    expect(provider.requestedKeys, isNot(contains('lifePath')));
-    expect(find.textContaining('missing personal readings'), findsOneWidget);
+    expect(find.text('WHAT THE CHART KEEPS DOING'), findsOneWidget);
+    expect(
+      find.textContaining('These placements answer each other'),
+      findsWidgets,
+    );
+    // And the whole chart went in one request rather than a card at a time.
+    expect(provider.requestedKeys, contains('lifePath'));
+    expect(provider.requestedKeys, contains('neptune'));
     await closeShell(tester);
   });
 
@@ -841,46 +802,29 @@ void main() {
     await closeShell(tester);
   });
 
-  testWidgets('Vessel states unavailable composition without losing keywords',
+  testWidgets('with no transport the reading waits, and the chart still reads',
       (tester) async {
+    // No provider at all. There is no button to fail and no error to show:
+    // what the device computed is on screen, and the writing says plainly
+    // that it has not arrived. The next opening tries again.
     await db.updateProfileConsents(aiAllowed: true);
+    await db.updateBirthContext(
+      birthTimeMinutes: 405,
+      birthTimePrecision: 'exact',
+      birthUtcOffsetMinutes: 60,
+      birthPlace: 'Warsaw, Poland',
+      birthLatitude: 52.2297,
+      birthLongitude: 21.0122,
+    );
     await pumpShell(tester);
-    // The automatic compose has to finish before REFRESH can do anything:
-    // the surface guards against composing twice at once, so tapping while
-    // the first pass is still in flight is correctly a no-op.
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 600)),
-    );
-    await tester.pump();
+    await openVessel(tester);
+    await openTheReading(tester);
 
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('VESSEL'));
-    await tester.pump();
-    await waitForWidget(tester, find.text('READ DEEPER'));
-    tester
-        .widget<EterAction>(
-          find.ancestor(
-            of: find.text('READ DEEPER'),
-            matching: find.byType(EterAction),
-          ),
-        )
-        .onPressed!
-        .call();
-    await tester.pump();
-
-    final compose = find.text('COMPOSE READINGS');
-    await tester.ensureVisible(compose);
-    await tester.tap(compose);
-    await tester.pump();
-
-    expect(
-      find.text(
-        'Personal reading composition is not connected on this build yet.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('LIFE PATH 8'), findsWidgets);
+    expect(find.textContaining('not written yet'), findsOneWidget);
+    // The keywords are device arithmetic and never depended on a model.
+    expect(find.textContaining('The Emperor'), findsWidgets);
+    expect(find.text('ASCENDANT'), findsOneWidget);
+    expect(find.text('COMPOSE READINGS'), findsNothing);
     await closeShell(tester);
   });
 
@@ -1372,12 +1316,22 @@ class _VesselProvider implements VesselReadingProvider {
         ),
       );
     return jsonEncode({
-      'readings': [
-        for (final key in requestedKeys)
-          {
-            'key': key,
-            'passage': 'Composed reflection for $key.',
-          },
+      'movements': [
+        {
+          'title': 'What the chart keeps doing',
+          'passage': 'These placements answer each other more than they '
+              'answer anything outside.',
+        },
+        {
+          'title': 'Where it pulls',
+          'passage': 'These placements answer each other across the same '
+              'quarter of the wheel.',
+        },
+        {
+          'title': 'What is absent',
+          'passage': 'These placements answer each other and leave one '
+              'element unspoken.',
+        },
       ],
     });
   }

@@ -11,6 +11,51 @@ This file is not a changelog. It records choices, not work.
 
 ## 1 August 2026
 
+### The Vessel reads the chart, and asks for nothing
+
+The Life Path and the astrogram were two disclosures with a compose button
+each. They are now **one menu**, the reading arrives on its own, and there is
+no control anywhere that asks for it.
+
+**What changed in the writing.** The call wrote one passage per position —
+eighteen on a full chart. Each was correct; none had looked at the chart. The
+owner's word was "generalistic", and the cause is structural: a passage that
+can only see one placement has nothing to relate it to. It now returns three
+to five **movements**, each about how several placements stand to each other,
+naming them as evidence rather than as subjects.
+
+**Chosen over** one single passage (eighteen placements compressed into 1800
+characters returns to the generic) and over keeping the per-card passages
+underneath a synthesis (which is what "rather than treating each card as
+individual" ruled out).
+
+**Nothing is composed without a birth time**, approximate or exact. The angles
+are most of what makes a configuration particular, and the reading is cached
+for the life of the chart — so a chart cast at noon would be read once, wrongly,
+and kept. Somebody with no birth time still gets the wheel, the cards and every
+computed placement; only the writing waits.
+
+**The cost, and the mitigation.** Composing on save with no button means a save
+that fails has nothing to retry it. So the Vessel attempts it silently when
+opened if the reading is still missing — the same automatic behaviour, not a
+new affordance. Without that, one offline save would leave the reading
+permanently unwritten.
+
+### Guidance leans on the sky at night, and is given something to lean on
+
+In immersive, and in balanced once the sun is down, the symbolic share rises
+(to 60% and 40%) and the measured share falls.
+
+**The stated proportions were not the problem.** Immersive already said 40%
+symbolic and still read as health reporting. The symbolic half arrived as a
+*single sentence* while the measured half arrived as a table — a model cannot
+weight what it was not given. So the payload changed with the numbers: today's
+Positions passage now travels in full rather than as its one-sentence note. It
+was already written and already validated by the Positions call's own safety
+policy, so nothing new is composed to carry it.
+
+**Grounded never leans.** That register exists to be plain.
+
 ### The Sanctum orders by frequency
 
 The band at the top holds what people actually change — opening page, language,
@@ -48,7 +93,14 @@ yet.
 
 ### The chart's own writing is not a seventh call
 
-The astrogram explanation behind `THE CHART` composes one passage per
+**Superseded the same day on the shape, upheld on the substance** — see "The
+Vessel reads the chart" above. It is still one call, still the same composer,
+cache and table; what changed is that it answers with movements about the whole
+configuration rather than a passage per body, and the separate `THE CHART`
+menu is gone. The reasoning below is why it was never a seventh contract, and
+that part still holds.
+
+The astrogram explanation behind `THE CHART` composed one passage per
 remaining body through the existing `VesselReadingComposer`, into the existing
 `VesselReadings` table, under the existing `inputHash`.
 

@@ -394,6 +394,19 @@ class EterStringsEn extends EterStrings {
   String get showLess => 'Show less';
   @override
   String get composeReadings => 'Compose readings';
+
+  @override
+  String get readingWaitsForBirthTime =>
+      'The reading waits for your birth time. Without it the angles are a '
+      'guess at noon, and a chart is mostly its angles.';
+
+  @override
+  String get composingChartReading => 'Reading the chart…';
+
+  @override
+  String get chartReadingNotWrittenYet =>
+      'The reading is not written yet. Eter will try again the next time you '
+      'open this.';
   @override
   String get personalReadingNotConnected =>
       'Personal reading composition is not connected on this build yet.';

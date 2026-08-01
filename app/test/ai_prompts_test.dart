@@ -238,7 +238,7 @@ void main() {
       expect(kcal['maximum'], 5000);
     });
 
-    test('vessel schema bounds a passage where the composer does', () {
+    test('vessel schema bounds the movements where the composer does', () {
       const request = VesselReadingRequest(
         mode: GuidanceMode.balanced,
         positions: [
@@ -256,14 +256,24 @@ void main() {
       final schema =
           EterPrompts.vesselReading(request, language: AppLanguage.english)
               .responseSchema;
-      final readings =
-          (schema['properties'] as Map)['readings'] as Map<String, Object?>;
-      final item = readings['items'] as Map<String, Object?>;
+      final movements =
+          (schema['properties'] as Map)['movements'] as Map<String, Object?>;
+      final item = movements['items'] as Map<String, Object?>;
       final passage =
           (item['properties'] as Map)['passage'] as Map<String, Object?>;
+      final title =
+          (item['properties'] as Map)['title'] as Map<String, Object?>;
 
-      expect(passage['maxLength'],
-          vesselReadingResponseSchema['maxPassageCharacters']);
+      // The schema and the parser have to refuse the same things, or the model
+      // is told one bound and judged against another.
+      expect(movements['minItems'], vesselMinimumMovements);
+      expect(movements['maxItems'], vesselMaximumMovements);
+      expect(passage['maxLength'], vesselMaximumPassageCharacters);
+      expect(title['maxLength'], vesselMaximumTitleCharacters);
+      expect(
+        vesselReadingResponseSchema['maxPassageCharacters'],
+        vesselMaximumPassageCharacters,
+      );
     });
   });
 

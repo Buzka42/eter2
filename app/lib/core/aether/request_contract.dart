@@ -157,6 +157,7 @@ class AetherSymbolicContext {
     this.personalYear,
     this.sunCard,
     this.positionsNote,
+    this.positionsPassage,
   });
 
   final String sunSign;
@@ -175,6 +176,12 @@ class AetherSymbolicContext {
   /// the model wrote earlier today about the day's transits, already validated.
   final String? positionsNote;
 
+  /// The whole of today's Positions passage, sent only where the sky is the
+  /// louder half — see [AetherRequest.leansSymbolic]. Already written and
+  /// already validated by the Positions call's own safety policy; this passes
+  /// it on rather than composing anything new.
+  final String? positionsPassage;
+
   Map<String, Object> toJson() => {
         'sunSign': sunSign,
         'moonSign': moonSign,
@@ -183,6 +190,7 @@ class AetherSymbolicContext {
         if (personalYear != null) 'personalYear': personalYear!,
         if (sunCard != null) 'sunCard': sunCard!,
         if (positionsNote != null) 'positionsNote': positionsNote!,
+        if (positionsPassage != null) 'positionsToday': positionsPassage!,
       };
 }
 
@@ -218,6 +226,7 @@ class AetherRequest {
     this.recalled = const [],
     this.bodyFatPercent,
     this.journalTruncated = false,
+    this.leansSymbolic = false,
   });
 
   final int schemaVersion;
@@ -230,6 +239,16 @@ class AetherRequest {
   /// Absent when the chart could not be calculated — guidance still composes,
   /// with the measured half only, and the prompt is told so.
   final AetherSymbolicContext? symbolic;
+
+  /// Whether the sky is the louder half tonight.
+  ///
+  /// True in the immersive register, and in balanced once the sun is down.
+  /// Guidance read as health reporting even on immersive, and the reason was
+  /// not the stated proportions: the symbolic half arrived as a single
+  /// sentence while the measured half arrived as a table. A model cannot
+  /// weight what it was not given, so when this is set the day's sky travels
+  /// as prose rather than as a note, and the proportions move with it.
+  final bool leansSymbolic;
 
   /// Bounded per-day journal digests, newest last.
   final List<AetherJournalDigest> digests;
@@ -317,6 +336,7 @@ class AetherRequestBuilder {
     required int ageYears,
     required GuidanceMode mode,
     required List<AetherHealthContext> health,
+    bool leansSymbolic = false,
     List<AetherJournalContext> journal = const [],
     AetherSymbolicContext? symbolic,
     List<AetherJournalDigest> digests = const [],
@@ -427,6 +447,7 @@ class AetherRequestBuilder {
       recalled: List.unmodifiable(memory),
       bodyFatPercent: bodyFatPercent,
       journalTruncated: truncated,
+      leansSymbolic: leansSymbolic,
       contextFingerprint: _fnv1a64(jsonEncode(stableContext)),
     );
   }

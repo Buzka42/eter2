@@ -1,12 +1,16 @@
 {
-  "readings": [
+  "movements": [
     {
-      "key": "lifePath",
-      "passage": "This position tends to ask for resolve, patience, and an adherence to inner authority. When the records present this card, the work is rarely about force; it is about holding a steady course when the surrounding noise is loud. Patience here is not simply waiting for circumstances to shift, but maintaining a quiet confidence in one's own direction while the process unfolds."
+      "title": "Structure and Sudden Light",
+      "passage": "This configuration tends to set a heavy framework against moments of abrupt change. The Ascendant, resting as it does on provisional ground with its Emperor keyword of structure and protection, attempts to hold order over a landscape where Mars brings upheaval, sudden light, and collapse. There is a constant negotiation between the need to contain what is volatile and the sheer force of events that break open existing boundaries. Rather than a smooth passage, the records show a recurring rhythm of containment followed by necessary rupture."
     },
     {
-      "key": "sun",
-      "passage": "Because the birth time is approximate, this Ascendant is provisional, but the sun itself remains a steady marker of intuition, dream, and navigation along the unlit path. This placement suggests a natural attunement to what lies beneath the surface of daily events. It tends to ask for comfort with ambiguity, recognizing that not every question requires an immediate, visible answer and that quiet periods of processing hold their own validity."
+      "title": "Intuition Beneath the Rules",
+      "passage": "A noticeable split emerges between how things are formally met and how they are perceived internally. Both the Sun and Mercury rest under the sign of the Moon, leaning into intuition, dreams, and the unlit path. Yet this quiet, nocturnal current operates parallel to the demands of Justice found in the Moon placement, which calls for balance, truth, and accountability. This configuration tends to ask for an inner navigation that honors obscure feelings while still answering to strict external standards of fairness."
+    },
+    {
+      "title": "Resolve and the Shadow",
+      "passage": "The deeper undercurrents of the chart are shaped by the heavy weight of the Devil in Saturn, pointing toward gravity, appetite, and the shadow, balanced directly against the quiet endurance of Strength in the Life Path. This is not a configuration of effortless ease; it regularly returns to questions of temptation, internal limitation, and the patience required to carry heavy obligations. Hope and renewal, indicated by the Star in Venus, offer a point of clarity, yet they exist in constant dialogue with the heavier appetites anchored in the Saturnian record."
     }
   ]
 }

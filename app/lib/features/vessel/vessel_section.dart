@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,7 +9,6 @@ import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/matrix.dart';
 import '../../core/arcana/symbol_content.dart';
 import '../../core/arcana/zodiac.dart';
-import '../../core/ai/transport.dart';
 import '../../core/arrival.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
@@ -24,6 +22,7 @@ import '../../core/vessel/positions_composer.dart';
 import '../../core/symbolic/natal_chart.dart';
 import '../../core/symbolic/numerology.dart';
 import '../../core/tokens.dart';
+import '../../core/vessel/chart_reading.dart';
 import '../../core/vessel/reading_composer.dart';
 import '../../main.dart';
 
@@ -54,9 +53,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   StreamSubscription<ProfileRow?>? _profileSubscription;
   String? _profileFingerprint;
   bool _readingOpen = false;
-  bool _chartOpen = false;
   bool _composing = false;
-  String? _compositionMessage;
 
   @override
   void initState() {
@@ -90,8 +87,6 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     _profileFingerprint = fingerprint;
     setState(() {
       _readingOpen = false;
-      _chartOpen = false;
-      _compositionMessage = null;
       _data = _load();
     });
   }
@@ -133,25 +128,17 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       birthLatitude: profile.birthLatitude,
       birthLongitude: profile.birthLongitude,
     );
-    final readings = <String, VesselReadingRow?>{
-      for (final key in [
-        'lifePath',
-        'sun',
-        'moon',
-        'ascendant',
-        for (final position in MatrixPosition.values) position.key,
-        for (final name in _VesselData.chartBodies) name.toLowerCase(),
-      ])
-        key: await widget.db.loadVesselReading(
-          inputHash: hash,
-          positionKey: key,
-        ),
-    };
+    final stored = await widget.db.loadVesselReading(
+      inputHash: hash,
+      positionKey: vesselConfigurationKey,
+    );
     return _VesselData(
       content: content,
       chart: chart,
       lifePath: lifePath,
-      readings: readings,
+      movements: stored == null
+          ? const []
+          : VesselConfiguration.decode(stored.contentJson),
       dob: profile.dob,
       inputHash: hash,
       mode: switch (profile.guidanceMode) {
@@ -168,86 +155,59 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
           profile.birthUtcOffsetMinutes == null,
       usedApproximatePlace:
           profile.birthLatitude == null || profile.birthLongitude == null,
+      birthTimeGiven: profile.birthTimeMinutes != null &&
+          profile.birthUtcOffsetMinutes != null,
     );
   }
 
-  Future<void> _compose(
-    _VesselData data,
-    List<_VesselPosition> targets,
-  ) async {
-    if (_composing) return;
-    final strings = EterStrings.of(context);
+  /// Writes the chart's reading if it is missing and can be written.
+  ///
+  /// Silent, and with no control anywhere near it. The reading is composed
+  /// when a birth time is saved — see `InitialVesselReadings` — and this is
+  /// the retry for the save that happened with no network, no consent yet, or
+  /// no transport. Without it a single failed attempt would leave the reading
+  /// permanently unwritten, because there is no longer a button to ask again
+  /// with and no background poll to notice.
+  Future<void> _composeIfMissing(_VesselData data) async {
+    if (_composing || data.movements.isNotEmpty) return;
+    // Nothing is written from a noon guess. A chart's angles are most of what
+    // makes a configuration particular, and a reading of the wrong ones would
+    // cache for life.
+    if (!data.knowsBirthTime) return;
     final provider = ref.read(vesselReadingTransportProvider);
-    if (provider == null) {
-      setState(() {
-        _compositionMessage = strings.personalReadingNotConnected;
-      });
-      return;
-    }
-    setState(() {
-      _composing = true;
-      _compositionMessage = null;
-    });
+    if (provider == null) return;
+    final strings = EterStrings.of(context);
+    setState(() => _composing = true);
     try {
+      final profile = await widget.db.loadProfile();
+      if (profile == null) return;
+      // The same builder the save-time compose uses, so what is cached is
+      // always about the positions this list shows.
+      final request = buildChartReadingRequest(
+        profile: profile,
+        strings: strings,
+        content: data.content,
+      );
+      if (request == null) return;
       final result = await VesselReadingComposer(
         database: widget.db,
         provider: provider,
       ).compose(
         inputHash: data.inputHash,
-        request: VesselReadingRequest(
-          mode: data.mode,
-          // Sent as the reader sees them, in the reader's language, because the
-          // passage is an interpretation of the words on their screen. The
-          // instruction that travels with this says which language to answer
-          // in; see `core/ai/prompts.dart`.
-          positions: [
-            for (final position in targets)
-              VesselReadingPosition(
-                key: position.key,
-                label: position.label(strings),
-                card: strings.arcanaTitle(position.card.assetSlug),
-                keywords: position.keywords,
-                detail: position.detail(strings),
-              ),
-          ],
-          approximateTime: data.usedApproximateTime,
-          approximatePlace: data.usedApproximatePlace,
-        ),
+        request: request,
         now: widget.now,
       );
       if (!mounted) return;
       setState(() {
         _composing = false;
-        data.readings.addAll(result.rows);
-        _compositionMessage = result.fromCache
-            ? strings.everyReadingAlreadyComposed
-            : strings.missingReadingsComposed;
-      });
-    } on VesselReadingException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _composing = false;
-        _compositionMessage = error.reason == 'AI processing is not permitted'
-            ? strings.enableAiBeforeComposing
-            // Everything else here is the parser or the safety gate refusing
-            // what came back, and saying which is more use than a single
-            // sentence covering both. The reason itself stays English: it is a
-            // contract value, not copy, and inventing a Polish rendering of
-            // every parser failure would be translating a diagnostic.
-            : strings.readingNotAccepted(error.reason);
-      });
-    } on EterTransportException catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _composing = false;
-        _compositionMessage = error.reason;
+        data.movements = result.movements;
       });
     } catch (_) {
+      // Best-effort in the strict sense: the surface says the reading is not
+      // written yet, which is true, and says nothing about why. The next time
+      // the Vessel opens it tries again.
       if (!mounted) return;
-      setState(() {
-        _composing = false;
-        _compositionMessage = strings.compositionUnavailableCachedRemain;
-      });
+      setState(() => _composing = false);
     }
   }
 
@@ -315,106 +275,44 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 ),
               ],
               const SizedBox(height: EterSpace.s16),
-              // The written astrogram. The wheel above is the only surface in
-              // the Vessel with no passage behind it; this is that passage,
-              // one per remaining body, composed through the same composer
-              // and cached under the same inputHash as every other reading —
-              // a chart is paid for once (AI_FLOW.md is the authority).
+              // One menu, not two. The Life Path and the astrogram used to be
+              // separate disclosures with a compose button each, which framed
+              // them as two subjects; they are one chart, and the reading
+              // below is about all of it at once.
               EterAction(
-                label: _chartOpen ? strings.showLess : strings.chartGoDeeper,
+                key: const ValueKey('vessel-reading-toggle'),
+                label: _readingOpen ? strings.showLess : strings.readDeeper,
                 emphasis: EterActionEmphasis.secondary,
-                onPressed: () => setState(() => _chartOpen = !_chartOpen),
+                onPressed: () {
+                  setState(() => _readingOpen = !_readingOpen);
+                  if (_readingOpen) unawaited(_composeIfMissing(data));
+                },
               ),
-              if (_chartOpen) ...[
+              if (_readingOpen) ...[
                 const SizedBox(height: EterSpace.s16),
-                for (final position in data.chartPositions())
-                  _ComposedReading(
+                _ChartReading(
+                  data: data,
+                  composing: _composing,
+                ),
+                const SizedBox(height: EterSpace.s24),
+                // The whole chart in one list: the Life Path, the three
+                // personal points, the figure, and the seven remaining
+                // bodies. Each keeps its card, which is what the deck is
+                // for; the writing above is about how they stand together.
+                for (final position in data.everyPosition(strings))
+                  _PositionCard(
                     position: position,
-                    reading: data.readings[position.key],
-                    fullWidth: Theme.of(context).brightness ==
-                            Brightness.dark &&
-                        data.mode != GuidanceMode.grounded,
-                  ),
-                if (data
-                    .chartPositions()
-                    .any((position) => data.readings[position.key] == null))
-                  EterAction(
-                    label: _composing
-                        ? strings.composing
-                        : strings.composeReadings,
-                    emphasis: EterActionEmphasis.quiet,
-                    busy: _composing,
-                    onPressed: () =>
-                        _compose(data, data.chartPositions()),
-                  ),
-                // Guarded so the same live message is never announced from
-                // two places when both panels are open — the readings panel
-                // below already carries it then.
-                if (_compositionMessage != null && !_readingOpen) ...[
-                  const SizedBox(height: EterSpace.s8),
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      _compositionMessage!,
-                      style: text.bodySmall,
-                    ),
-                  ),
-                ],
-              ],
-              const SizedBox(height: EterSpace.s24),
-              // One list at two depths, never two lists. Read deeper used to
-              // append a second copy of the same four positions underneath the
-              // first, so the same headings appeared twice on one screen; it
-              // now deepens the list in place.
-              for (final position in data.positions(strings))
-                if (_readingOpen)
-                  _ComposedReading(
-                    position: position,
-                    reading: data.readings[position.key],
                     // The Sun card is already on screen at full width a few
                     // lines above; a position resolving to the same card does
                     // not print it twice.
                     showCard: position.key != 'sun',
-                    // At night in the balanced and immersive registers the
-                    // deck is the point, and every card takes the Sun card's
-                    // measure. Grounded keeps them small in both skies — that
-                    // register asked for less theatre — and day keeps them
-                    // small because still art at full width four times over
-                    // reads as a gallery, not a reading.
                     fullWidth: Theme.of(context).brightness ==
                             Brightness.dark &&
                         data.mode != GuidanceMode.grounded,
-                  )
-                else
+                  ),
+              ] else
+                for (final position in data.everyPosition(strings))
                   _PositionLine(position: position),
-              const SizedBox(height: EterSpace.s16),
-              EterAction(
-                label: _readingOpen ? strings.showLess : strings.readDeeper,
-                emphasis: EterActionEmphasis.secondary,
-                onPressed: () => setState(() => _readingOpen = !_readingOpen),
-              ),
-              if (_readingOpen) ...[
-                const SizedBox(height: EterSpace.s16),
-                if (data.readings.values.any((reading) => reading == null))
-                  EterAction(
-                    label: _composing
-                        ? strings.composing
-                        : strings.composeReadings,
-                    emphasis: EterActionEmphasis.quiet,
-                    busy: _composing,
-                    onPressed: () => _compose(data, data.positions(strings)),
-                  ),
-                if (_compositionMessage != null) ...[
-                  const SizedBox(height: EterSpace.s8),
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(
-                      _compositionMessage!,
-                      style: text.bodySmall,
-                    ),
-                  ),
-                ],
-              ],
               const SizedBox(height: EterSpace.s24),
               _Positions(data: data, now: widget.now),
             ],
@@ -798,16 +696,76 @@ class _PositionLine extends StatelessWidget {
   }
 }
 
-class _ComposedReading extends StatelessWidget {
-  const _ComposedReading({
+/// The chart read as one thing: three to five titled movements.
+///
+/// Replaces eighteen per-position passages. Those were each correct and none
+/// of them had looked at the chart — the owner's word was "generalistic" —
+/// because a passage that can only see one placement has nothing to relate it
+/// to. See `EterPrompts.vesselReading`.
+class _ChartReading extends StatelessWidget {
+  const _ChartReading({required this.data, required this.composing});
+
+  final _VesselData data;
+  final bool composing;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+
+    if (data.movements.isEmpty) {
+      // Three states, and they are genuinely different things: the chart is
+      // waiting on a birth time, it is being written now, or it has not been
+      // written and will be attempted again. None of them is a control.
+      final waiting = !data.knowsBirthTime
+          ? strings.readingWaitsForBirthTime
+          : composing
+              ? strings.composingChartReading
+              : strings.chartReadingNotWrittenYet;
+      return Semantics(
+        liveRegion: true,
+        child: Text(
+          waiting,
+          style: text.bodyMedium?.copyWith(color: ink.labelMuted),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final movement in data.movements) ...[
+          Text(movement.title.toUpperCase(), style: text.labelSmall),
+          const SizedBox(height: EterSpace.s4),
+          Text(
+            movement.passage,
+            style: text.headlineSmall?.copyWith(
+              fontSize: 18,
+              height: 1.5,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          const SizedBox(height: EterSpace.s24),
+        ],
+      ],
+    );
+  }
+}
+
+/// One position, with its card, inside the opened menu.
+///
+/// It carries no passage of its own any more. What it says is what the device
+/// computed — the body, the sign and degree, the card and its keywords — and
+/// the writing about how it stands to the rest is above, once.
+class _PositionCard extends StatelessWidget {
+  const _PositionCard({
     required this.position,
-    required this.reading,
     this.showCard = true,
     this.fullWidth = false,
   });
 
   final _VesselPosition position;
-  final VesselReadingRow? reading;
   final bool showCard;
 
   /// Whether this card takes the Sun card's measure rather than the 132 dp
@@ -819,15 +777,12 @@ class _ComposedReading extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final strings = EterStrings.of(context);
     final title = strings.arcanaTitle(position.card.assetSlug);
-    final passage = reading == null ? null : _passage(reading!.contentJson);
+    final detail = position.detail(strings);
     return Padding(
       padding: const EdgeInsets.only(bottom: EterSpace.s24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Every reading is headed by its own card. Read deeper is where the
-          // deck earns its place: the passage is about that card, so the card
-          // sits above the passage rather than being named in it.
           if (showCard) ...[
             Center(
               child: ClipRRect(
@@ -852,37 +807,17 @@ class _ComposedReading extends StatelessWidget {
           ],
           Text(position.label(strings).toUpperCase(), style: text.labelSmall),
           const SizedBox(height: EterSpace.s4),
-          // The keywords stay visible at depth: the passage interprets them,
-          // and losing them on opening made the deeper view feel like a
-          // different subject rather than the same one, closer.
           Text(
             '$title · ${position.keywords.join(', ')}',
             style: text.titleMedium,
           ),
-          const SizedBox(height: EterSpace.s8),
-          Text(
-            passage ?? strings.personalReadingNotComposedYet,
-            style: text.headlineSmall?.copyWith(
-              fontSize: 18,
-              height: 1.5,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
+          if (detail != null) ...[
+            const SizedBox(height: EterSpace.s4),
+            Text(detail, style: text.bodySmall),
+          ],
         ],
       ),
     );
-  }
-
-  static String? _passage(String raw) {
-    try {
-      final value = jsonDecode(raw);
-      if (value is Map && value['passage'] is String) {
-        return value['passage'] as String;
-      }
-    } on FormatException {
-      return null;
-    }
-    return null;
   }
 }
 
@@ -891,18 +826,20 @@ class _VesselData {
     required this.content,
     required this.chart,
     required this.lifePath,
-    required this.readings,
+    required this.movements,
     required this.dob,
     required this.inputHash,
     required this.mode,
     required this.usedApproximateTime,
     required this.usedApproximatePlace,
+    required this.birthTimeGiven,
   });
 
   final SymbolContent content;
   final NatalChart chart;
   final int lifePath;
-  final Map<String, VesselReadingRow?> readings;
+  /// The whole chart read as one thing, or empty while it is unwritten.
+  List<VesselMovement> movements;
   final DateTime dob;
   final String inputHash;
   final GuidanceMode mode;
@@ -922,9 +859,25 @@ class _VesselData {
     'Neptune',
   ];
 
-  /// The rest of the chart, one position per planet, for "go deeper" under
-  /// the wheel. Same shape as [positions] so the same composer, cache and
-  /// row widget serve both — the whole point of not making this a new call.
+  /// Whether the angles rest on a stated birth time rather than on noon.
+  ///
+  /// An approximate time counts — the owner asked for that explicitly — so
+  /// this is about whether a time was given at all, not about its precision.
+  bool get knowsBirthTime => !usedApproximatePlace && birthTimeGiven;
+
+  final bool birthTimeGiven;
+
+  /// The whole chart in one list: the Life Path, the three personal points,
+  /// the figure, then the seven remaining bodies. One menu, in the order a
+  /// reader meets them.
+  List<_VesselPosition> everyPosition(EterStrings strings) => [
+        ...positions(strings),
+        ...chartPositions(),
+      ];
+
+  /// The rest of the chart, one position per planet. Same shape as
+  /// [positions] so one list, one composer and one cache serve the whole
+  /// chart — the point of not making the astrogram a second subject.
   List<_VesselPosition> chartPositions() => [
         for (final name in chartBodies)
           for (final point in chart.positions.where((p) => p.name == name))

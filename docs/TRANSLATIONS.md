@@ -156,6 +156,9 @@ explains why translating one would break the symbolic engine.
 | `chartGoDeeper` | The chart | Kosmogram |
 | `showLess` | Show less | Pokaż mniej |
 | `composeReadings` | Compose readings | Niech powstaną |
+| `readingWaitsForBirthTime` | The reading waits for your birth time. Without it the angles are a guess at noon, and a chart is mostly its angles. | Odczytanie czeka na godzinę urodzenia. Bez niej kąty są zgadywane na południe, a kosmogram to przede wszystkim kąty. |
+| `composingChartReading` | Reading the chart… | Czytam kosmogram… |
+| `chartReadingNotWrittenYet` | The reading is not written yet. Eter will try again the next time you open this. | Odczytanie jeszcze nie powstało. Eter spróbuje ponownie przy następnym otwarciu. |
 | `personalReadingNotConnected` | Personal reading composition is not connected on this build yet. | Osobiste odczytania nie są jeszcze podłączone w tej wersji. |
 | `everyReadingAlreadyComposed` | Every personal reading is already composed for this chart. | Wszystkie osobiste odczytania dla tego kosmogramu już powstały. |
 | `missingReadingsComposed` | The missing personal readings have been composed. | Brakujące osobiste odczytania powstały. |
@@ -549,4 +552,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-451 strings paired.
+454 strings paired.

@@ -276,6 +276,18 @@ abstract class EterStrings {
   String get compositionUnavailableCachedRemain;
   String get personalReadingNotComposedYet;
 
+  /// Shown where the chart's reading would be, when no birth time has been
+  /// given. The angles are most of what makes a configuration particular, so
+  /// nothing is written until there is one.
+  String get readingWaitsForBirthTime;
+
+  /// While the chart's reading is being written.
+  String get composingChartReading;
+
+  /// The reading is missing and will be attempted again. Deliberately not an
+  /// error: there is no control here, and the next opening tries again.
+  String get chartReadingNotWrittenYet;
+
   String get approximateTimeAndPlace;
   String get approximateTime;
   String get approximatePlace;

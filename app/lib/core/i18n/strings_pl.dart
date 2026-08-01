@@ -409,6 +409,19 @@ class EterStringsPl extends EterStrings {
   String get showLess => 'Pokaż mniej';
   @override
   String get composeReadings => 'Niech powstaną';
+
+  @override
+  String get readingWaitsForBirthTime =>
+      'Odczytanie czeka na godzinę urodzenia. Bez niej kąty są zgadywane na '
+      'południe, a kosmogram to przede wszystkim kąty.';
+
+  @override
+  String get composingChartReading => 'Czytam kosmogram…';
+
+  @override
+  String get chartReadingNotWrittenYet =>
+      'Odczytanie jeszcze nie powstało. Eter spróbuje ponownie przy następnym '
+      'otwarciu.';
   @override
   String get personalReadingNotConnected =>
       'Osobiste odczytania nie są jeszcze podłączone w tej wersji.';

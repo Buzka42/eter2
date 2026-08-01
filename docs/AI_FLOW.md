@@ -21,7 +21,7 @@ streaming, no background poll.
 | **guidance** | Dashboard composes for the day (`AetherComposer`) | `aiConsentAt`; journal material additionally needs `journalAiConsentAt` | 4 `GuidanceHistory` rows + 1 `GuidanceRecalls` row |
 | **journalInterpretation** | **Automatic**, on every kept entry — `JournalAutoInterpreter`, max 5 per pass, when the Journal opens | `aiConsentAt` | `JournalEntries.extractionJson` + unconfirmed `NutritionEntries` + `LifestyleEntries` |
 | **journalDayStory** | Journal opens, and after each entry saves | `aiConsentAt` **and** `journalAiConsentAt` | One `JournalDayStories` row (story + digest) |
-| **vesselReadings** | Once at account creation, then `COMPOSE READINGS`; the astrogram's own "go deeper" composes the seven remaining planets through the same call and cache | `aiConsentAt` | One `VesselReadings` row per position |
+| **vesselReadings** | The moment a birth time is saved, and retried when the Vessel opens if it is still missing. No control asks for it | `aiConsentAt`, **and a stated birth time** | One `VesselReadings` row per chart, under the reserved key `configuration` |
 | **positions** | `READ TODAY` in the Vessel | `aiConsentAt` | One `TransitReadings` row per (date, chart hash) |
 | **letter** | The Journal opens in a new month (`LetterComposer`) | `aiConsentAt`; journal-derived recalls additionally need `journalAiConsentAt` | One `Letters` row per month |
 
@@ -113,8 +113,16 @@ sun card) — never the inputs they came from.
 - **journalDayStory** — every kept, non-excluded entry for one local date, with
   timestamps. This is the widest payload in the app; it exists so that guidance
   can send a bounded digest instead of raw prose.
-- **vesselReadings** — for each *missing* position only: key, label, resolved
-  card, that card's shipped keywords, and the two reliability booleans.
+- **vesselReadings** — the whole configuration in one request: every position
+  with its key, label, resolved card and that card's shipped keywords, plus the
+  two reliability booleans. It answers with three to five *movements*, each a
+  titled passage about how several placements stand to each other.
+
+  It used to send a few positions at a time and answer with one passage each.
+  What came back was correct and generic — eighteen entries on a full chart,
+  each of which had seen one placement and never the chart. Nothing is composed
+  without a birth time: the angles are most of what makes a configuration
+  particular, and a reading of a noon-cast chart would be cached for life.
 - **positions** — today's date, moon phase and sign, sun sign, and the list of
   contacts already computed on device with aspect, orb and applying/separating.
 
@@ -166,12 +174,25 @@ numbers:
 | Register | Journal & self-reports | Chart | Measured |
 |---|---|---|---|
 | Grounded | 40% | 20% | 40% |
-| Balanced | 50% | 25% | 25% |
-| Immersive | 40% | 40% | 20% |
+| Balanced, by day | 50% | 25% | 25% |
+| Balanced, after sunset | 45% | 40% | 15% |
+| Immersive, by day | 40% | 40% | 20% |
+| Immersive, after sunset | 30% | 60% | 10% |
 
-The journal is the largest share in every register — it is the only input that
-says *why* a day went the way it did. In grounded the symbolic share is
-emphasis only and never reaches the words.
+The journal is the largest share in every register except immersive at night —
+it is the only input that says *why* a day went the way it did. In grounded the
+symbolic share is emphasis only and never reaches the words.
+
+**Where the sky is the louder half, the payload changes with the shares.**
+Guidance read as health reporting even on immersive, and the stated 40% was not
+the reason: the symbolic half arrived as a *single sentence* while the measured
+half arrived as a table, so there was nothing to spend the share on. A model
+cannot weight what it was not given. In immersive, and in balanced once the sun
+is down, today's Positions passage travels in full rather than as its
+one-sentence note — already written and already validated by the Positions
+call's own safety policy, so nothing new is composed to get it there. Grounded
+never leans; that register exists to be plain. The resolved register comes from
+the Dashboard, which is the only place that has a horizon and a clock.
 
 With no journal material at all, that share is redistributed proportionally
 between the other two and the model is told the material is absent

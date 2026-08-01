@@ -7,6 +7,7 @@ import '../db/app_database.dart';
 import '../health/sleep_totals.dart';
 import '../patterns/local_pattern_discovery.dart';
 import '../patterns/pattern_sweep.dart';
+import '../register.dart';
 import '../symbolic/natal_chart.dart';
 import '../symbolic/numerology.dart';
 import 'guidance_mode.dart';
@@ -28,12 +29,23 @@ class AetherContextAssembler {
   /// The profile is used only to derive age, register and current consent.
   /// Names, exact birth data, coordinates, account IDs and source identifiers
   /// never enter [AetherRequest].
-  Future<AetherRequest> assemble({required DateTime now}) async {
+  /// [register] decides how loud the sky is allowed to be. The caller resolves
+  /// it — it needs a horizon and a clock, which this class has no business
+  /// holding — and passes it in.
+  Future<AetherRequest> assemble({
+    required DateTime now,
+    EterRegister register = EterRegister.day,
+  }) async {
     final profile = await database.loadProfile();
     if (profile == null) {
       throw const AetherConsentException('A local profile is required');
     }
 
+    // Immersive always leans on the sky; balanced does once the sun is down.
+    // Grounded never does — that register exists to be plain.
+    final mode = _mode(profile.guidanceMode);
+    final leansSymbolic = mode == GuidanceMode.immersive ||
+        (mode == GuidanceMode.balanced && register == EterRegister.night);
     final localNow = now.toLocal();
     final firstDay = DateTime(
       localNow.year,
@@ -141,6 +153,7 @@ class AetherContextAssembler {
       journalConsented: profile.journalAiConsentAt != null,
       ageYears: _ageAt(profile.dob, localNow),
       mode: _mode(profile.guidanceMode),
+      leansSymbolic: leansSymbolic,
       health: health,
       patterns: [for (final row in patterns) _pattern(row)],
       lifestyle: [
@@ -164,7 +177,7 @@ class AetherContextAssembler {
           ),
       ],
       bodyFatPercent: profile.bodyFatPercent,
-      symbolic: await _symbolic(profile, localNow),
+      symbolic: await _symbolic(profile, localNow, leansSymbolic),
       digests: digests,
       journal: [
         for (final row in journal)
@@ -211,6 +224,7 @@ class AetherContextAssembler {
   Future<AetherSymbolicContext?> _symbolic(
     ProfileRow profile,
     DateTime localNow,
+    bool leansSymbolic,
   ) async {
     try {
       final knowsTime = profile.birthTimeMinutes != null &&
@@ -252,6 +266,13 @@ class AetherContextAssembler {
         personalYear: calculatePersonalYear(profile.dob, localNow),
         sunCard: MajorArcana.forZodiac(sunSign).title,
         positionsNote: transit == null ? null : _guidanceNote(transit.passage),
+        // The whole passage, but only where the sky is the louder half. One
+        // sentence was all guidance ever received about the day's transits,
+        // which is why it read as health reporting whatever the stated
+        // proportions said.
+        positionsPassage: leansSymbolic && transit != null
+            ? _passage(transit.passage)
+            : null,
       );
     } catch (_) {
       return null;
@@ -268,6 +289,19 @@ class AetherContextAssembler {
 
   /// The stored transit row keeps the passage and its one-sentence note
   /// together; only the note may reach guidance.
+  /// The Positions passage itself, already written and already validated.
+  String? _passage(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map && decoded['passage'] is String) {
+        return (decoded['passage'] as String).trim();
+      }
+    } on FormatException {
+      return null;
+    }
+    return null;
+  }
+
   String? _guidanceNote(String raw) {
     try {
       final decoded = jsonDecode(raw);
