@@ -5,8 +5,8 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **796 tests
-pass, 9 skipped** — the skips are the live-provider suite, which needs the
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **802 tests
+pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
 **12 → 15 was run on a real device with 3.3 MB of real data**: nothing lost,
@@ -64,7 +64,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 796 pass, 9 skipped
+flutter test          # expect 802 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -506,6 +506,19 @@ always the tree never being disposed: `eterTestDatabase()` leaves Drift a
 zero-duration close timer, and `closeShell` in `shell_test.dart` is what flushes
 it. Put new shell-level tests in that file rather than standing up a second
 harness — one was written on 1 August and hung until it moved.
+
+**The prototype fixture has no birth time, so no golden drew a chart's
+angles.** `ascendantReliable` is false for that profile, which means every
+shell capture in the suite shows the Vessel's wheel with no cusps and neither
+angle named — the half of the surface with nothing in it. The `ASC` and `MC`
+letters were drawn at `0.995 × outer` and centred there, which put them
+*inside* the sign ring (six pixels of overlap with the sign glyphs) and about
+nine pixels past the widget's own edge, so the container decided whether you
+read `ASC` or `AS`. It fired on every chart from anybody who told Eter their
+birth time — which is to say, on the owner's chart and not on any test's.
+The letters now have a lane outside the rim and the wheel gives it up;
+`test/golden/chart_wheel_golden_test.dart` is the capture that draws houses,
+and it exists so this gap does not reopen.
 
 **A silent video still takes audio focus.** Both loops — the shell's ambient
 field and the Arcana plates — are muted with `setVolume(0)`, but `video_player`

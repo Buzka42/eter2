@@ -146,6 +146,7 @@ class NatalChartWheelLayout {
     required this.chart,
     required this.outer,
     required this.drawHouses,
+    this.angleLabelExtent = 0,
   });
 
   final NatalChart chart;
@@ -153,6 +154,44 @@ class NatalChartWheelLayout {
   /// Radius of the outermost circle.
   final double outer;
   final bool drawHouses;
+
+  /// Half the diagonal of an angle letter's box — the furthest any part of it
+  /// can sit from the point it is centred on, whatever direction it is placed
+  /// in.
+  final double angleLabelExtent;
+
+  /// Clearance between the wheel's rim and the angle letters.
+  static const angleLabelGap = 3.0;
+
+  /// The ring outside the wheel that belongs to the angle letters.
+  ///
+  /// They used to be drawn at `0.995 * outer` and centred there, which put
+  /// them in the sign ring's own annulus — overlapping the sign glyphs by
+  /// about six pixels — and carried them roughly nine pixels past the
+  /// widget's edge, where the container decided whether you saw `ASC` or
+  /// `AS`. Both faults fired on every chart drawn with houses, which is every
+  /// chart from somebody who told Eter their birth time.
+  ///
+  /// So the letters get a lane of their own and the wheel gives it up. The
+  /// widget's footprint is unchanged; only the drawn circle is smaller, and
+  /// it is smaller by exactly what the letters need.
+  double get angleLabelLane =>
+      angleLabelExtent <= 0 ? 0 : angleLabelExtent * 2 + angleLabelGap;
+
+  /// Where an angle letter is centred: clear of the rim by [angleLabelGap],
+  /// and far enough in that its outer corner lands exactly on [outer] +
+  /// [angleLabelLane].
+  double get angleLabelRadius => outer + angleLabelGap + angleLabelExtent;
+
+  /// The wheel's outer radius inside a square of [shortestSide], once the
+  /// angle letters have been given their lane.
+  ///
+  /// One definition, used by the painter and asserted by the tests, so the two
+  /// cannot drift apart.
+  static double outerFor(double shortestSide, double angleLabelExtent) =>
+      shortestSide / 2 -
+      1 -
+      (angleLabelExtent <= 0 ? 0 : angleLabelExtent * 2 + angleLabelGap);
 
   /// Inside edge of the sign ring.
   double get ringInner => outer * 0.80;
@@ -343,11 +382,16 @@ class _ChartWheelPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final centre = size.center(Offset.zero);
-    final outer = size.shortestSide / 2 - 1;
+    // The angle letters are measured before anything is sized, because the
+    // wheel's radius is what is left once they have their lane.
+    final angleStyle = _angleStyle(size.shortestSide);
+    final angleExtent = _angleLabelExtent(angleStyle);
+    final outer = NatalChartWheelLayout.outerFor(size.shortestSide, angleExtent);
     final layout = NatalChartWheelLayout(
       chart: chart,
       outer: outer,
       drawHouses: drawHouses,
+      angleLabelExtent: angleExtent,
     );
     final ringInner = layout.ringInner;
     final aspectRadius = layout.aspectRadius;
@@ -485,21 +529,73 @@ class _ChartWheelPainter extends CustomPainter {
       );
     }
 
-    // --- The Ascendant and Midheaven, named where they fall.
+    // --- The Ascendant and Midheaven, named in the lane outside the rim.
     if (drawHouses) {
-      for (final point in ['Ascendant', 'Midheaven']) {
-        final position = _positionOf(point);
-        if (position == null) continue;
-        _angleLabel(
-          canvas,
-          centre,
-          position.longitude,
-          outer * 0.995,
-          anchor,
-          point == 'Ascendant' ? 'ASC' : 'MC',
+      final ascendant = _positionOf('Ascendant');
+      final midheaven = _positionOf('Midheaven');
+      if (ascendant != null && midheaven != null) {
+        // The two can close to a few degrees at high latitudes — the meridian
+        // and the eastern horizon are not ninety degrees apart except on the
+        // equator — and their letters would then sit on top of each other.
+        // Nothing else shares this lane, so they simply give way to each other.
+        final needed = angleExtent * 2 /
+            layout.angleLabelRadius *
+            180 /
+            math.pi;
+        final placed = _separate(
+          ascendant.longitude,
+          midheaven.longitude,
+          needed,
         );
+        _angleLabel(canvas, centre, placed.$1, layout.angleLabelRadius, anchor,
+            'ASC', angleStyle);
+        _angleLabel(canvas, centre, placed.$2, layout.angleLabelRadius, anchor,
+            'MC', angleStyle);
       }
     }
+  }
+
+  /// The style the angle letters are set in, scaled to the wheel.
+  ///
+  /// It was a hard-coded 9 px, which is a different thing at 240 dp than at
+  /// 340 dp — the wheel's smallest size carried its largest lettering.
+  TextStyle _angleStyle(double shortestSide) => TextStyle(
+        fontFamily: 'Inter',
+        fontSize: (shortestSide * 0.027).clamp(7.5, 9.5),
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.6,
+        color: label,
+      );
+
+  /// Half the diagonal of the widest angle letter's box.
+  ///
+  /// The diagonal rather than the width, because the label is placed at an
+  /// angle that depends on the chart: at the left horizon its width points
+  /// outward, at the meridian its height does, and the diagonal bounds both.
+  double _angleLabelExtent(TextStyle style) {
+    final gauge = _text('ASC', style);
+    return math.sqrt(gauge.width * gauge.width + gauge.height * gauge.height) /
+        2;
+  }
+
+  /// Pushes two longitudes symmetrically apart until [separation] degrees sit
+  /// between them, and leaves them alone if they already do.
+  static (double, double) _separate(
+    double first,
+    double second,
+    double separation,
+  ) {
+    final forward = NatalChartWheelLayout.forwardGap(first, second);
+    final signed = forward > 180 ? forward - 360 : forward;
+    if (signed.abs() >= separation) return (first, second);
+    final push = (separation - signed.abs()) / 2;
+    final direction = signed < 0 ? -1 : 1;
+    double wrap(double value) {
+      final result = value % 360;
+      return result < 0 ? result + 360 : result;
+    }
+
+    return (wrap(first - direction * push), wrap(second + direction * push));
   }
 
   ZodiacPosition? _positionOf(String name) {
@@ -560,6 +656,11 @@ class _ChartWheelPainter extends CustomPainter {
     painter.paint(canvas, at - Offset(painter.width / 2, painter.height / 2));
   }
 
+  TextPainter _text(String text, TextStyle style) => TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: textDirection,
+      )..layout();
+
   /// The angles have no glyph in Unicode, so they keep their letters.
   void _angleLabel(
     Canvas canvas,
@@ -568,20 +669,9 @@ class _ChartWheelPainter extends CustomPainter {
     double radius,
     double anchor,
     String text,
+    TextStyle style,
   ) {
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 9,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.8,
-          color: label,
-        ),
-      ),
-      textDirection: textDirection,
-    )..layout();
+    final painter = _text(text, style);
     final at = _point(centre, longitude, radius, anchor);
     painter.paint(canvas, at - Offset(painter.width / 2, painter.height / 2));
   }

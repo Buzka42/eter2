@@ -354,6 +354,157 @@ void main() {
     });
   });
 
+  group('the angle letters keep to their own lane', () {
+    // `ASC` and `MC` used to be drawn at 0.995 of the outer radius and centred
+    // there, which is inside the sign ring — they overlapped the sign glyphs
+    // by about six pixels — and carried them some nine pixels past the
+    // widget's own edge, so whether you read `ASC` or `AS` was up to whatever
+    // contained the wheel. It fired on every chart drawn with houses, which is
+    // every chart from somebody who gave Eter a birth time.
+    //
+    // Measured here rather than looked at, because at 340 dp on a plate the
+    // overlap is a few pixels and reads as kerning.
+
+    /// What the painter measures for `ASC`: half the diagonal of its box.
+    /// Inter at these sizes is about 2.2:1 for three caps, so this is a
+    /// deliberate over-estimate of the real face — the lane must be at least
+    /// this wide, never exactly it.
+    double extentFor(double size) {
+      final fontSize = (size * 0.027).clamp(7.5, 9.5);
+      final width = fontSize * 2.4;
+      final height = fontSize * 1.35;
+      return math.sqrt(width * width + height * height) / 2;
+    }
+
+    test('a letter never leaves the widget, at any size', () {
+      for (final size in sizes) {
+        final extent = extentFor(size);
+        final outer = NatalChartWheelLayout.outerFor(size, extent);
+        final layout = NatalChartWheelLayout(
+          chart: warsaw,
+          outer: outer,
+          drawHouses: true,
+          angleLabelExtent: extent,
+        );
+        // The furthest corner of the box, in the worst direction.
+        final furthest = layout.angleLabelRadius + extent;
+        expect(
+          furthest,
+          lessThanOrEqualTo(size / 2),
+          reason: 'an angle letter paints outside a ${size}dp wheel',
+        );
+      }
+    });
+
+    test('a letter never touches the sign ring', () {
+      for (final size in sizes) {
+        final extent = extentFor(size);
+        final outer = NatalChartWheelLayout.outerFor(size, extent);
+        final layout = NatalChartWheelLayout(
+          chart: warsaw,
+          outer: outer,
+          drawHouses: true,
+          angleLabelExtent: extent,
+        );
+        // The sign glyphs sit in the middle of the ring band; the letters must
+        // clear the band entirely, not merely miss the glyphs.
+        expect(
+          layout.angleLabelRadius - extent,
+          greaterThanOrEqualTo(outer),
+          reason: 'an angle letter enters the ring on a ${size}dp wheel',
+        );
+      }
+    });
+
+    test('the wheel gives up exactly the lane and no more', () {
+      const size = 340.0;
+      final extent = extentFor(size);
+      final outer = NatalChartWheelLayout.outerFor(size, extent);
+      final layout = NatalChartWheelLayout(
+        chart: warsaw,
+        outer: outer,
+        drawHouses: true,
+        angleLabelExtent: extent,
+      );
+      // Whatever the letters cost, the rim plus the lane is the widget.
+      expect(outer + layout.angleLabelLane, closeTo(size / 2 - 1, 1e-9));
+      // And the cost is a lane, not a haircut: the wheel keeps most of itself.
+      expect(outer, greaterThan(size / 2 * 0.82));
+    });
+
+    test('with no letters to place, the wheel keeps the whole square', () {
+      // A chart without a reliable birth time draws no angles, so nothing is
+      // reserved — but the Vessel asks for houses whenever it has them, and
+      // the size must not depend on the chart, so the painter always reserves.
+      // This pins the arithmetic of the empty case rather than the policy.
+      expect(NatalChartWheelLayout.outerFor(340, 0), closeTo(169, 1e-9));
+    });
+  });
+
+  test('every chart in a wide sweep of births lays out cleanly', () {
+    // The five charts above were each chosen because something had gone wrong
+    // on one like it. This is the other half of the argument: a few hundred
+    // births across seventy years, every hour of the day, and latitudes from
+    // the tropics to the edge of the Arctic circle — the range the product
+    // actually has to draw.
+    //
+    // Pure arithmetic, so it costs nothing to be thorough. What it cannot see
+    // is anything about ink; `test/manual/chart_wheel_specimen_test.dart`
+    // draws the same range to look at.
+    var checked = 0;
+    for (final year in const [1948, 1962, 1975, 1988, 1999, 2010, 2021]) {
+      for (final month in const [1, 4, 7, 10]) {
+        for (final hour in const [0, 5, 11, 17, 22]) {
+          for (final latitude in const [-33.9, -0.2, 40.7, 52.2, 64.1]) {
+            final chart = chartFor(
+              local: DateTime(year, month, 14, hour, 25),
+              offsetMinutes: 60,
+              latitude: latitude,
+              longitude: 18.0,
+            );
+            final layout = NatalChartWheelLayout(
+              chart: chart,
+              outer: 146,
+              drawHouses: chart.houseSystem == 'placidus',
+            );
+            final bodies = layout.bodies;
+            final separation = layout.minLabelSeparation;
+
+            for (final body in bodies) {
+              // In the band, both edges clear.
+              final inner = layout.labelRadius - layout.bodyGlyphSize / 2;
+              final outerEdge = layout.labelRadius + layout.bodyGlyphSize / 2;
+              expect(inner, greaterThan(layout.aspectRadius));
+              expect(outerEdge, lessThan(layout.ringInner));
+              // The bead still marks the true degree, whatever the glyph did.
+              expect(body.longitude, isNot(isNaN));
+              expect(body.labelLongitude, isNot(isNaN));
+            }
+
+            // No pair closer than a glyph, anywhere on the ring.
+            for (var i = 0; i < bodies.length; i++) {
+              for (var j = i + 1; j < bodies.length; j++) {
+                final apart = NatalChartWheelLayout.forwardGap(
+                  bodies[i].labelLongitude,
+                  bodies[j].labelLongitude,
+                );
+                final gap = apart > 180 ? 360 - apart : apart;
+                expect(
+                  gap,
+                  greaterThan(separation - 1e-6),
+                  reason: '$year-$month ${hour}h at $latitude: '
+                      '${bodies[i].name} and ${bodies[j].name} touch',
+                );
+              }
+            }
+            checked++;
+          }
+        }
+      }
+    }
+    expect(checked, 700);
+  });
+
   test('the aspect chords are the only thing crossing the middle', () {
     // The rule this file exists for, stated once as arithmetic: every radius
     // the wheel draws at, other than a chord endpoint, is outside the aspect
