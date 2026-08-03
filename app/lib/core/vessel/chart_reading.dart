@@ -1,5 +1,6 @@
 import '../aether/guidance_mode.dart';
 import '../arcana/major_arcana.dart';
+import '../arcana/house_cards.dart';
 import '../arcana/matrix.dart';
 import '../arcana/symbol_content.dart';
 import '../arcana/zodiac.dart';
@@ -124,6 +125,40 @@ VesselReadingRequest? buildChartReadingRequest({
       for (final name in chartReadingBodies)
         for (final point in chart.positions.where((p) => p.name == name))
           forSign(name.toLowerCase(), name, point),
+    ],
+    // The twelve houses, but only when the angles are real. Without a reliable
+    // birth time the cusps are a guess and a reading of them would cache for
+    // life against houses nobody has — the same reason nothing composes at all
+    // from a noon default.
+    houses: approximateTime || approximatePlace
+        ? const []
+        : [
+            for (final house in houseCardsFor(chart))
+              VesselReadingHouse(
+                house: house.house,
+                sign: strings.signName(house.sign.label),
+                degrees: house.degreeInSign.toStringAsFixed(1),
+                card: strings.arcanaTitle(house.card.assetSlug),
+                keywords: content.card(house.card)?.keywords ?? const [],
+                isAscendant: house.isAscendant,
+                occupants: [
+                  for (final point in chart.positions)
+                    if (point.name != 'Ascendant' &&
+                        point.name != 'Midheaven' &&
+                        houseOf(point.longitude, chart.houseCusps) ==
+                            house.house)
+                      strings.bodyName(point.name),
+                ],
+              ),
+          ],
+    aspects: [
+      for (final aspect in chart.aspects)
+        VesselReadingAspect(
+          first: strings.bodyName(aspect.first),
+          second: strings.bodyName(aspect.second),
+          type: aspect.type,
+          orb: aspect.orb,
+        ),
     ],
     approximateTime: approximateTime,
     approximatePlace: approximatePlace,

@@ -73,6 +73,30 @@ List<HouseCard> houseCardsFromCusps(List<double> cusps) {
   ];
 }
 
+/// Which house a longitude falls in, 1..12.
+///
+/// A house runs from its own cusp forward to the next, and the quadrants are
+/// very uneven away from the equator — so this walks the arcs rather than
+/// dividing the circle by twelve. Returns null only for a chart with no cusps,
+/// which is a chart drawn without a birth time.
+int? houseOf(double longitude, List<double> cusps) {
+  if (cusps.length != 12) return null;
+  final point = ((longitude % 360) + 360) % 360;
+  for (var i = 0; i < 12; i++) {
+    final from = ((cusps[i] % 360) + 360) % 360;
+    final span = _forward(from, cusps[(i + 1) % 12]);
+    if (_forward(from, point) < span) return i + 1;
+  }
+  // Only reachable if the cusps do not span the circle, which the engine does
+  // not produce. Falling back to the first house would be a quiet lie.
+  return null;
+}
+
+double _forward(double from, double to) {
+  final delta = (((to - from) % 360) + 360) % 360;
+  return delta;
+}
+
 /// The sign a longitude falls in.
 ///
 /// Thirty degrees each from 0° Aries, normalised first: a cusp arrives as an

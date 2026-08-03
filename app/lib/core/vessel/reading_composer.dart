@@ -37,18 +37,88 @@ class VesselReadingPosition {
       };
 }
 
+/// One of the twelve houses, as the reading is given it.
+class VesselReadingHouse {
+  const VesselReadingHouse({
+    required this.house,
+    required this.sign,
+    required this.degrees,
+    required this.card,
+    required this.keywords,
+    this.isAscendant = false,
+    this.occupants = const [],
+  });
+
+  final int house;
+  final String sign;
+  final String degrees;
+  final String card;
+  final List<String> keywords;
+
+  /// True for the first house only. The reading is told rather than left to
+  /// notice, because the Ascendant's card is shown above the list and this is
+  /// the same point rather than a second one.
+  final bool isAscendant;
+
+  /// The bodies standing in this house, if any. An empty house is empty, and
+  /// saying so is information — absent, never zero.
+  final List<String> occupants;
+
+  Map<String, Object> toJson() => {
+        'house': house,
+        'sign': sign,
+        'degrees': degrees,
+        'card': card,
+        'keywords': keywords,
+        if (isAscendant) 'isAscendant': true,
+        'occupants': occupants,
+      };
+}
+
+/// One angle between two bodies.
+class VesselReadingAspect {
+  const VesselReadingAspect({
+    required this.first,
+    required this.second,
+    required this.type,
+    required this.orb,
+  });
+
+  final String first;
+  final String second;
+  final String type;
+  final double orb;
+
+  Map<String, Object> toJson() => {
+        'first': first,
+        'second': second,
+        'type': type,
+        'orb': double.parse(orb.toStringAsFixed(2)),
+      };
+}
+
 class VesselReadingRequest {
   const VesselReadingRequest({
     required this.mode,
     required this.positions,
     required this.approximateTime,
     required this.approximatePlace,
+    this.houses = const [],
+    this.aspects = const [],
   });
 
   final GuidanceMode mode;
   final List<VesselReadingPosition> positions;
   final bool approximateTime;
   final bool approximatePlace;
+
+  /// The twelve houses. Empty when the birth time cannot support them, in
+  /// which case the houses part is not composed at all rather than composed
+  /// about cusps nobody gave.
+  final List<VesselReadingHouse> houses;
+
+  /// The chart's angles, already measured on the device.
+  final List<VesselReadingAspect> aspects;
 
   /// Cards that hold more than one position, and which positions they hold.
   ///
@@ -88,6 +158,10 @@ class VesselReadingRequest {
         'mode': mode.name,
         'positions': positions.map((item) => item.toJson()).toList(),
         'recurrences': recurrences,
+        if (houses.isNotEmpty)
+          'houses': houses.map((item) => item.toJson()).toList(),
+        if (aspects.isNotEmpty)
+          'aspects': aspects.map((item) => item.toJson()).toList(),
         'reliability': {
           'birthTimeApproximate': approximateTime,
           'birthPlaceApproximate': approximatePlace,
@@ -163,6 +237,69 @@ class VesselConfiguration {
   }
 }
 
+/// A passage written about one keyed thing — a house, or a place in the
+/// figure.
+class VesselKeyedPassage {
+  const VesselKeyedPassage({required this.key, required this.passage});
+
+  /// The house number as a string, or the figure position's key.
+  final String key;
+  final String passage;
+
+  static VesselKeyedPassage? fromJson(Object? raw) {
+    if (raw is! Map) return null;
+    final key = raw['key'];
+    final passage = raw['passage'];
+    if (key is! String || passage is! String) return null;
+    if (key.trim().isEmpty || passage.trim().isEmpty) return null;
+    return VesselKeyedPassage(key: key, passage: passage);
+  }
+
+  static List<VesselKeyedPassage> decode(String contentJson) {
+    try {
+      final decoded = jsonDecode(contentJson);
+      if (decoded is! Map || decoded['passages'] is! List) return const [];
+      return [
+        for (final item in decoded['passages'] as List)
+          if (VesselKeyedPassage.fromJson(item) case final passage?) passage,
+      ];
+    } on FormatException {
+      return const [];
+    }
+  }
+}
+
+/// The two long parts: one passage, and nothing else.
+class VesselSynopsis {
+  const VesselSynopsis(this.passage);
+
+  final String passage;
+
+  static String decode(String contentJson) {
+    try {
+      final decoded = jsonDecode(contentJson);
+      if (decoded is Map && decoded['passage'] is String) {
+        return decoded['passage'] as String;
+      }
+    } on FormatException {
+      // Falls through to empty, which the surface reads as "not written yet".
+    }
+    return '';
+  }
+}
+
+/// The two synopses are the long parts of the Vessel and are allowed to be.
+///
+/// Four times a movement's ceiling. The owner asked for "the longest part" and
+/// for the figure's synopsis to match it, and a limit that quietly truncated
+/// either would be the product disagreeing with its own instruction.
+const vesselMaximumSynopsisCharacters = 5600;
+
+/// A house or figure passage. Shorter than a movement on purpose: twelve of
+/// these are read one after another, and the relating is saved for the
+/// synopsis that follows them.
+const vesselMaximumKeyedPassageCharacters = 900;
+
 /// How many movements a reading may have, and how long each may run.
 ///
 /// Three is the floor because two is a pair rather than a shape; five is the
@@ -179,6 +316,48 @@ const vesselMaximumTitleCharacters = 48;
 /// rather than a position, so the whole-configuration reading needed no
 /// migration and no second table.
 const vesselConfigurationKey = 'configuration';
+
+/// The parts the Vessel is read in, in the order it shows them.
+///
+/// Five written parts, not one. The reading used to be a single call — three
+/// to five movements about the whole configuration — and it was good at what
+/// it did and could not be more than that: a chart, a figure, twelve houses
+/// and the geometry between the bodies all competing for the same five
+/// passages. The owner's structure separates them, and each part gets a call
+/// of its own with only what it needs.
+///
+/// All five go out under the **existing `vesselReadings` call name**. The
+/// worker checks the name and nothing else — the prompt and the schema are
+/// built on the device — so this adds no new call and needs no redeploy.
+/// `server/worker.js` would answer a new name with `400 Unknown call`, and
+/// only the owner can deploy.
+///
+/// Each caches under its own reserved key in the same table, so a part that
+/// fails is retried alone and the four that succeeded are not paid for twice.
+enum VesselReadingPart {
+  /// A passage for each of the twelve houses. Written first because it is the
+  /// part that may glance at the others; the relating proper is saved for the
+  /// synopsis.
+  houses('houses'),
+
+  /// What the geometry says — the angles between bodies, which is the one
+  /// thing a list of placements cannot show.
+  aspects('aspects'),
+
+  /// The long one. The whole chart, read as a single thing.
+  chartSynopsis(vesselConfigurationKey),
+
+  /// The figure, position by position.
+  matrix('matrix'),
+
+  /// The figure, read as a whole, and as long as the chart's synopsis.
+  matrixSynopsis('matrixSynopsis');
+
+  const VesselReadingPart(this.storageKey);
+
+  /// The reserved `positionKey` this part is cached under.
+  final String storageKey;
+}
 
 const vesselReadingResponseSchema = <String, Object>{
   'shape': 'movements: [{title, passage}]',
@@ -260,6 +439,164 @@ class VesselReadingComposer {
       keep: vesselConfigurationKey,
     );
     return VesselConfiguration(movements: movements, fromCache: false);
+  }
+
+  /// Composes one of the four parts that are not the chart's synopsis, and
+  /// caches it under that part's own key.
+  ///
+  /// Returns the stored JSON, so the caller decodes it with whichever of
+  /// [VesselKeyedPassage.decode] or [VesselSynopsis.decode] that part uses.
+  /// Kept separate from [compose] rather than folded into it: the synopsis is
+  /// the one part that already existed, is already proven against the live
+  /// model, and has a shape — three to five titled movements — that the other
+  /// four do not share.
+  ///
+  /// A part already written is never composed again, and a part that throws
+  /// leaves the others alone. That is the whole reason each has its own row.
+  Future<String> composePart({
+    required String inputHash,
+    required VesselReadingRequest request,
+    required VesselReadingPart part,
+    DateTime? now,
+  }) async {
+    if (part == VesselReadingPart.chartSynopsis) {
+      throw const VesselReadingException(
+        'The chart synopsis is composed by compose(), which owns its shape',
+      );
+    }
+    final profile = await database.loadProfile();
+    if (profile?.aiConsentAt == null) {
+      throw const VesselReadingException('AI processing is not permitted');
+    }
+
+    final existing = await database.loadVesselReading(
+      inputHash: inputHash,
+      positionKey: part.storageKey,
+    );
+    if (existing != null && existing.contentJson.trim().isNotEmpty) {
+      return existing.contentJson;
+    }
+
+    final prompt = EterPrompts.vesselPart(
+      request,
+      part: part,
+      language: AppLanguage.forProfile(profile?.language),
+    );
+    final raw = await provider.compose(
+      VesselReadingProviderRequest(
+        system: prompt.system,
+        context: prompt.user.cast<String, Object>(),
+        responseSchema: prompt.responseSchema.cast<String, Object>(),
+      ),
+    );
+    final content = _parsePart(raw, part: part, request: request);
+    await database.saveVesselReading(
+      VesselReadingsCompanion.insert(
+        inputHash: inputHash,
+        positionKey: part.storageKey,
+        createdAt: (now ?? DateTime.now()).toUtc(),
+        contentJson: content,
+        model: model,
+        promptVersion: const Value(EterPrompts.version),
+      ),
+    );
+    return content;
+  }
+
+  /// Checks the answer's shape and its safety, and re-encodes it.
+  ///
+  /// Re-encoded rather than stored raw so what lands in the row is exactly the
+  /// fields this app reads — a model that returns an extra key does not get to
+  /// put it in the database.
+  String _parsePart(
+    String raw, {
+    required VesselReadingPart part,
+    required VesselReadingRequest request,
+  }) {
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(raw);
+    } on FormatException {
+      throw const VesselReadingException('Response is not JSON');
+    }
+    if (decoded is! Map<String, dynamic>) {
+      throw const VesselReadingException('Response is not an object');
+    }
+
+    void checkSafe(String text) {
+      try {
+        // `validateReading`, not `validateGuidance`: the synopses are the
+        // longest parts of this surface by instruction, and guidance's
+        // conciseness rule would refuse them for being what they were asked
+        // to be. Every rule that is about safety still applies.
+        safetyPolicy.validateReading(text, mode: request.mode);
+      } on AetherSafetyException catch (error) {
+        throw VesselReadingException(error.reason);
+      }
+    }
+
+    switch (part) {
+      case VesselReadingPart.houses:
+      case VesselReadingPart.matrix:
+        final items = decoded['passages'];
+        if (items is! List || items.isEmpty) {
+          throw const VesselReadingException('Response is missing passages');
+        }
+        final expected = part == VesselReadingPart.houses
+            ? request.houses.map((house) => '${house.house}').toSet()
+            : request.positions.map((position) => position.key).toSet();
+        final passages = <Map<String, Object>>[];
+        final seen = <String>{};
+        for (final item in items) {
+          final passage = VesselKeyedPassage.fromJson(item);
+          if (passage == null) {
+            throw const VesselReadingException('A passage is malformed');
+          }
+          if (!expected.contains(passage.key)) {
+            // A passage about a house or a place that was never sent is a
+            // passage about something invented.
+            throw VesselReadingException(
+              'Response wrote about "${passage.key}", which was not sent',
+            );
+          }
+          if (!seen.add(passage.key)) {
+            throw VesselReadingException(
+              'Response wrote about "${passage.key}" twice',
+            );
+          }
+          if (passage.passage.length > vesselMaximumKeyedPassageCharacters) {
+            throw const VesselReadingException('A passage runs too long');
+          }
+          checkSafe(passage.passage);
+          passages.add({'key': passage.key, 'passage': passage.passage});
+        }
+        if (seen.length != expected.length) {
+          throw VesselReadingException(
+            'Response covered ${seen.length} of ${expected.length}',
+          );
+        }
+        return jsonEncode({'passages': passages});
+
+      case VesselReadingPart.aspects:
+        final movements = _parse(raw, mode: request.mode);
+        return jsonEncode({
+          'movements': [for (final one in movements) one.toJson()],
+        });
+
+      case VesselReadingPart.matrixSynopsis:
+        final passage = decoded['passage'];
+        if (passage is! String || passage.trim().isEmpty) {
+          throw const VesselReadingException('Response is missing the passage');
+        }
+        if (passage.length > vesselMaximumSynopsisCharacters) {
+          throw const VesselReadingException('The synopsis runs too long');
+        }
+        checkSafe(passage);
+        return jsonEncode({'passage': passage});
+
+      case VesselReadingPart.chartSynopsis:
+        throw const VesselReadingException('Unreachable: handled above');
+    }
   }
 
   List<VesselMovement> _parse(String raw, {required GuidanceMode mode}) {

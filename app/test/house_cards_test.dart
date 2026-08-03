@@ -111,4 +111,46 @@ void main() {
       expect(house.card, MajorArcana.forZodiac(house.sign));
     }
   });
+
+  group('which house a body stands in', () {
+    test('walks the arcs rather than dividing the circle by twelve', () {
+      // Even houses, so the answer is checkable by eye.
+      final cusps = List<double>.generate(12, (index) => index * 30.0);
+      expect(houseOf(0, cusps), 1);
+      expect(houseOf(29.9, cusps), 1);
+      expect(houseOf(30, cusps), 2);
+      expect(houseOf(359.9, cusps), 12);
+      // Wraps, like everything else that takes a longitude.
+      expect(houseOf(360, cusps), 1);
+      expect(houseOf(-1, cusps), 12);
+    });
+
+    test('uneven quadrants put bodies where the cusps say, not where a twelfth would', () {
+      // A first house forty degrees wide and a second only ten. Dividing the
+      // circle evenly would put 35 degrees in the second house; the arcs put
+      // it in the first, which is what the chart actually says.
+      final cusps = [0.0, 40.0, 50.0, 90.0, 120.0, 150.0,
+                     180.0, 220.0, 230.0, 270.0, 300.0, 330.0];
+      expect(houseOf(35, cusps), 1);
+      expect(houseOf(45, cusps), 2);
+      expect(houseOf(55, cusps), 3);
+    });
+
+    test('a chart with no cusps answers nothing rather than guessing', () {
+      expect(houseOf(100, const []), isNull);
+      expect(houseOf(100, const [0, 30, 60]), isNull);
+    });
+
+    test('every body in a real chart lands in exactly one house', () {
+      final houses = <int, int>{};
+      for (final point in warsaw.positions) {
+        final house = houseOf(point.longitude, warsaw.houseCusps);
+        expect(house, isNotNull, reason: point.name);
+        expect(house, inInclusiveRange(1, 12), reason: point.name);
+        houses.update(house!, (value) => value + 1, ifAbsent: () => 1);
+      }
+      expect(houses.values.fold<int>(0, (a, b) => a + b),
+          warsaw.positions.length);
+    });
+  });
 }

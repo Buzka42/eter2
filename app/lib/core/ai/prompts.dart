@@ -1070,6 +1070,224 @@ Return JSON only: {"movements": [{"title": ..., "passage": ...}]}''',
     );
   }
 
+  /// The four parts of the Vessel that are not the chart's synopsis.
+  ///
+  /// Each is its own request under the same `vesselReadings` call name, and
+  /// each is told what the parts around it will cover — so the houses can
+  /// glance at a relationship without spending itself on one, and the synopses
+  /// know the ground has already been walked.
+  static EterPrompt vesselPart(
+    VesselReadingRequest request, {
+    required VesselReadingPart part,
+    required AppLanguage language,
+  }) {
+    final shared = '''
+${voiceFor(request.mode)}
+
+WHERE THIS SITS
+The Vessel is read in six parts, in this order: the chart wheel itself; a
+passage for each of the twelve houses; what the angles between the bodies say;
+a full synopsis of the chart; the figure of arcana place by place; and a
+synopsis of the figure. You are writing **${_partName(part)}** and nothing
+else. Do not write the other parts' work for them, and do not summarise what
+you are about to say or apologise for what you are leaving out.
+
+WHAT YOU ARE GIVEN
+The calculation is done. It happened on the device, from inputs you will never
+see, and you are reading a chart that has already been cast rather than casting
+one. Positions carry a card and that card's established keywords; work from
+those keywords rather than around them.
+
+RELIABILITY
+The request says whether the birth time and place were exact. When they were
+not, the Ascendant, the houses and everything resting on them are provisional.
+Say so once, in the passage that leans on it, in a clause — never as a
+disclaimer at the top and never twice.
+
+Symbolism describes a tendency, never a fate and never a fact about the body.
+Attribute every tendency to the configuration rather than to the person: the
+grammatical subject is the chart or the placement, never "you". Nothing here
+may instruct anybody about their health, their eating or their medication —
+that is the Body's territory and it works from measurements.
+
+$absence
+
+You know nothing about this person beyond what is listed. Not their age, not
+their circumstances, not how their week has gone.
+
+$safety
+
+${languageFor(language)}''';
+
+    return switch (part) {
+      VesselReadingPart.houses => EterPrompt(
+          system: '''
+You are writing the twelve houses of Eter's Vessel.
+
+$shared
+
+WHAT TO WRITE
+One passage for **every** house you were given, keyed by its number as a
+string — "1" through "12". Every house, none invented, none twice.
+
+A house's card is the card of the sign on its cusp. Say what that card asks of
+that house's territory, and let the bodies standing in the house — its
+"occupants" — weigh on it. **A house with no occupants is not a weakness and
+not an emptiness**; it is a part of life this chart does not make a project of,
+and saying that plainly is worth more than filling the silence.
+
+House 1 is marked `isAscendant`. It *is* the Ascendant, the same degree shown
+above this list — not a second point that happens to agree. Write it as the
+same thing seen from the house side; never as a coincidence and never as a
+repetition.
+
+You may glance at another house where the reading genuinely needs it, but keep
+it to a clause. The relating is the synopsis's job and it comes two parts
+later; twelve passages that each stop to compare themselves to the others is
+the same reading told twelve times.
+
+At most $vesselMaximumKeyedPassageCharacters characters each, prose, no lists
+and no headings.
+
+Return JSON only: {"passages": [{"key": "1", "passage": ...}, ...]}''',
+          user: request.toJson(),
+          responseSchema: _vesselKeyedSchema,
+        ),
+      VesselReadingPart.aspects => EterPrompt(
+          system: '''
+You are writing what the geometry of this chart says.
+
+$shared
+
+WHAT TO WRITE
+Between $vesselMinimumMovements and $vesselMaximumMovements titled movements
+about the **aspects** — the measured angles in "aspects", each with the two
+bodies, the kind of angle, and how exact it is in degrees ("orb"). A tight orb
+is a loud aspect; a wide one is a whisper, and saying which is which is most
+of the work.
+
+This is the one part that can say something a list of placements cannot: not
+where the bodies are, but how they stand to each other. A movement that names
+one aspect and describes it is a dictionary entry. A movement that says what
+several angles do *together* — what they reinforce, what they pull against, and
+what the chart therefore keeps negotiating — is a reading.
+
+If the chart is loosely aspected, say so plainly rather than manufacturing a
+tension out of a nine-degree orb.
+
+Titles of at most $vesselMaximumTitleCharacters characters. Passages of at most
+$vesselMaximumPassageCharacters characters.
+
+Return JSON only: {"movements": [{"title": ..., "passage": ...}]}''',
+          user: request.toJson(),
+          responseSchema: _vesselSchema,
+        ),
+      VesselReadingPart.matrix => EterPrompt(
+          system: '''
+You are writing the figure of arcana, place by place.
+
+$shared
+
+WHAT TO WRITE
+One passage for **every** position you were given in "positions", keyed by that
+position's own `key`. Every one, none invented, none twice.
+
+This figure comes from the birth date by number, not from the sky. Each place
+means something particular — what was given, what was inherited, what the era
+carried, where it turns, where it meets, the long thread, the centre — and the
+card standing there says how that place is met. Write what the place *entails*:
+what it asks for, what it tends to repeat, what it costs.
+
+Keep the relating to a clause. The synopsis of the figure follows immediately
+and is the place for it.
+
+At most $vesselMaximumKeyedPassageCharacters characters each, prose, no lists
+and no headings.
+
+Return JSON only: {"passages": [{"key": ..., "passage": ...}, ...]}''',
+          user: request.toJson(),
+          responseSchema: _vesselKeyedSchema,
+        ),
+      VesselReadingPart.matrixSynopsis => EterPrompt(
+          system: '''
+You are writing the synopsis of the figure of arcana.
+
+$shared
+
+WHAT TO WRITE
+One passage, and it is long — as long as the chart's own synopsis. Up to
+$vesselMaximumSynopsisCharacters characters. This is where the relating
+belongs: what repeats across the places, where they pull against each other,
+what the figure keeps returning to, and what is conspicuously absent from it.
+
+"recurrences" lists every card holding more than one place, already worked out.
+**A recurrence must be read here** — as one card standing in two places, the
+figure insisting on something, not as two facts that happen to rhyme. If it is
+empty, say nothing about it and invent none.
+
+Name places as evidence for a claim about the whole figure, never as subjects
+to be described in turn. The place-by-place reading has just been given; this
+is not a second pass through it.
+
+Paragraphs separated by a blank line. No lists, no headings, no markdown.
+
+Return JSON only: {"passage": ...}''',
+          user: request.toJson(),
+          responseSchema: _vesselSynopsisSchema,
+        ),
+      VesselReadingPart.chartSynopsis => throw ArgumentError(
+          'The chart synopsis is built by vesselReading(), which owns its '
+          'shape',
+        ),
+    };
+  }
+
+  static String _partName(VesselReadingPart part) => switch (part) {
+        VesselReadingPart.houses => 'the twelve houses',
+        VesselReadingPart.aspects => 'what the angles say',
+        VesselReadingPart.chartSynopsis => 'the chart synopsis',
+        VesselReadingPart.matrix => 'the figure, place by place',
+        VesselReadingPart.matrixSynopsis => 'the synopsis of the figure',
+      };
+
+  static const _vesselKeyedSchema = <String, Object?>{
+    'type': 'object',
+    'required': ['passages'],
+    'additionalProperties': false,
+    'properties': {
+      'passages': {
+        'type': 'array',
+        'minItems': 1,
+        'items': {
+          'type': 'object',
+          'required': ['key', 'passage'],
+          'additionalProperties': false,
+          'properties': {
+            'key': {'type': 'string', 'minLength': 1},
+            'passage': {
+              'type': 'string',
+              'minLength': 1,
+              'maxLength': vesselMaximumKeyedPassageCharacters,
+            },
+          },
+        },
+      },
+    },
+  };
+
+  static const _vesselSynopsisSchema = <String, Object?>{
+    'type': 'object',
+    'required': ['passage'],
+    'additionalProperties': false,
+    'properties': {
+      'passage': {
+        'type': 'string',
+        'minLength': 1,
+        'maxLength': vesselMaximumSynopsisCharacters,
+      },
+    },
+  };
+
   static const _vesselSchema = <String, Object?>{
     'type': 'object',
     'required': ['movements'],
