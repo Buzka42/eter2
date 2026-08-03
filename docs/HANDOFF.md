@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **817 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **841 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -69,7 +69,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 817 pass, 10 skipped
+flutter test          # expect 841 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -333,6 +333,82 @@ the failure was read first and was the intended change, with no overflow.
 
 Render it yourself with `test/manual/chart_wheel_specimen_test.dart`, which
 carries that birth as its first specimen.
+
+---
+
+## The restructure of 3–4 August, and what is left of it
+
+The owner asked for four things overnight. Three are done; the Vessel is half
+done and the half that remains is the surface, not the machinery.
+
+**Done — guidance at twice the size.** `displayMedium` 34 → 68, leading scaled
+with it because the theme stores `height` as a *ratio* and doubling the size
+alone would have set the lines solid. At 390 dp the passage commands the screen
+and still fits; at 320 dp with 200 % text it comes down to a few words a line
+and scrolls, which is honest at that extreme and is not an overflow — the
+captures throw on overflow and none did.
+
+**Done — no disclosures, no closes, the depths row always present.**
+`LOOK DEEPER` and every section `CLOSE` are gone, including the Vessel's own
+`READ DEEPER`. At night one depth is open already: `EterRegister.night` is
+exactly "immersive, or balanced after sunset", since grounded resolves to day
+at every hour, so the rule is one comparison rather than a mode test and a
+clock test that could disagree.
+
+The row is held **outside** the scroll, under the destination rail. It was
+built first as a pinned `SliverPersistentHeader` and that failed twice over: a
+pinned header must state its height before layout, and this row wraps to two
+lines at 390 dp and three at 200 % text — the first guess overflowed a plain
+phone by 37 px. Measuring it fixed the height and not the second problem, which
+is that a header is only built while its sliver is in range, so once guidance
+doubled and filled the screen the row stopped existing until it had been
+scrolled to. **This cost guidance the first glance**; the three depths sit above
+it now. That is a real change to the opening moment and the owner should look at
+it.
+
+**Done — the Vessel's machinery, in five parts.** `VesselReadingPart` splits the
+reading into houses, aspects, chart synopsis, the figure place by place, and the
+figure's synopsis. All five go out under the **existing `vesselReadings` call
+name** — the worker checks the name and nothing else, so no redeploy — and each
+caches under its own reserved key, so a part that fails is retried alone. The
+chart synopsis keeps `configuration`, the key the single-call reading already
+used, so charts already read are not re-composed or re-billed.
+
+The twelve houses take the card of the sign on the cusp
+(`core/arcana/house_cards.dart`), the owner's choice over the cusp ruler and
+over house-number-to-arcana — the last of which gives every person alive the
+same twelve cards. House 1 *is* the Ascendant and the model is told so, because
+the Ascendant's card is shown above the list and would otherwise look printed
+twice. `houseOf` walks the arcs rather than dividing the circle by twelve, which
+matters away from the equator where a quadrant can be four times another.
+
+`AetherSafetyPolicy.validateReading` was added for these: `validateGuidance`
+refuses anything past 3000 characters, which is right for a day's reading and
+wrong for a synopsis the owner asked to be **the longest part of the surface**.
+Every rule that is about safety still applies; only the brevity rule is dropped.
+
+### What is left, and it is only the surface
+
+The Vessel still renders the old order: wheel, Sun card, chart synopsis, then
+one card per position. The six-part order the owner asked for —
+
+1. the chart wheel, led by the Sun, Moon and Ascendant
+2. a card and a passage for each of the twelve houses
+3. what the angles say
+4. the full chart synopsis, the longest part
+5. the figure, place by place
+6. the figure's synopsis
+
+— needs `vessel_section.dart` to hold the four new parts' results and compose
+them in sequence. `composePart` returns the stored JSON and
+`VesselKeyedPassage.decode` / `VesselSynopsis.decode` read it; the request
+already carries `houses` and `aspects`. Nothing else is missing, and
+`test/vessel_parts_test.dart` covers the composer half.
+
+**Not done either:** re-recording `test/fixtures/live/` for prompt v9, and
+reading what the four new parts actually write against the live model. The rule
+in this document is that a fixture which parses is not a fixture that reads
+well, and none of these four has been read even once.
 
 ---
 
