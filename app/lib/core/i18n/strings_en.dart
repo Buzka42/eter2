@@ -1297,42 +1297,67 @@ class EterStringsEn extends EterStrings {
   // ---------------------------------------------------------------- tutorial
 
   @override
+  String get walkthroughJournal =>
+      'This is the page. Write or speak whatever the day was — meals, '
+      'movement, how it felt. There are no forms anywhere else; everything '
+      'Eter knows about a day starts here.';
+  @override
+  String get walkthroughGuidance =>
+      'The other side reads it back. One passage each morning, drawn from '
+      'what you wrote, what your body recorded, and where the sky stands.';
+  @override
+  String get walkthroughDepths =>
+      'Under the guidance sit three depths: the reading itself, the body’s '
+      'measurements, and your chart. Tap any of the three to move between '
+      'them — the day stays where it is.';
+  @override
+  String get walkthroughTwoDoors => 'TWO DOORS';
+  @override
+  String get walkthroughRail =>
+      'The whole app is these two, side by side. Tap either word, or swipe '
+      'between them.';
+  @override
+  String get walkthroughSanctum =>
+      'Everything else lives behind this mark — what leaves the device, '
+      'your language and register, your record, and the way out.';
+
+  @override
   List<TutorialPassage> get tutorialPassages => const [
         TutorialPassage(
           eyebrow: 'ETER',
           lines: [
             'Eter reads your days and tells you what it notices.',
-            'It keeps everything on this device unless you say otherwise, and '
-                'it never scores you.',
+            'It is not a tracker with a companion bolted on. There are no '
+                'streaks, no scores, and no rings to close — nothing here '
+                'measures you against anyone, including yesterday’s you.',
           ],
         ),
         TutorialPassage(
-          eyebrow: 'THE JOURNAL',
+          eyebrow: 'WHAT IT WORKS FROM',
           lines: [
-            'Everything you record, you write or speak here.',
-            'There are no forms elsewhere: meals, movement and how a day felt '
-                'all come from what you wrote. Each page can be interpreted '
-                'when you ask for it, and any page can be kept from Aether '
-                'entirely.',
+            'Three things, and it says which is which.',
+            'What you write. What your body recorded, if you connect it. And '
+                'where the sky stood when you were born and where it stands '
+                'today. A day you did not record is treated as absent, never '
+                'as a zero.',
           ],
         ),
         TutorialPassage(
-          eyebrow: 'THE DASHBOARD',
+          eyebrow: 'WHERE IT STAYS',
           lines: [
-            'The other side of the same space reads back what it found.',
-            'Guidance arrives on its own each day. Look deeper for the body, '
-                'or for the Vessel — your chart, your Life Path, and where '
-                'today’s sky stands against them.',
+            'On this device, unless you say otherwise.',
+            'Nothing leaves without a consent you granted by name, each one '
+                'separate and each one revocable. What you write can be kept '
+                'from Aether entirely, page by page.',
           ],
         ),
         TutorialPassage(
-          showsSanctumMark: true,
-          eyebrow: 'THE SANCTUM',
+          eyebrow: 'WHAT IT WILL NOT DO',
           lines: [
-            'This mark, at the top of every screen, opens it.',
-            'Settings, your birth details, the health connection, and every '
-                'permission — each one independent, each one revocable, and a '
-                'way to take all of it back out again.',
+            'It does not diagnose, prescribe, or tell you what to do.',
+            'Symbolism colours how a day is framed; it is never the reason '
+                'for anything. The reason is always what was recorded — and '
+                'every reading shows its own working.',
           ],
         ),
       ];

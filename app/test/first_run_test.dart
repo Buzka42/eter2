@@ -101,6 +101,27 @@ void main() {
     await tester.tap(find.text('BEGIN'));
     await settle(tester);
 
+    // ---- The walkthrough --------------------------------------------------
+    // The second half of the first minute runs *over the shell*, so the real
+    // rail and the real Sanctum mark are what get lit. Five stops, and the
+    // last one commits.
+    expect(find.byKey(const ValueKey('walkthrough-advance')), findsOneWidget);
+    expect(find.byKey(const ValueKey('walkthrough-skip')), findsOneWidget);
+    for (var step = 0; step < 4; step++) {
+      await tester.tap(find.byKey(const ValueKey('walkthrough-advance')));
+      await settle(tester);
+    }
+    // The last stop has no SKIP: there is nothing left to skip past.
+    expect(find.byKey(const ValueKey('walkthrough-skip')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('walkthrough-advance')));
+    await settle(tester);
+    expect(find.byKey(const ValueKey('walkthrough-advance')), findsNothing);
+    expect(
+      (await db.loadIntakeAnswers())[EterTutorial.walkthroughKey]?.value,
+      'true',
+      reason: 'a finished walkthrough must survive a restart',
+    );
+
     // ---- The shell, on a day with nothing in it ---------------------------
     // The first thing a real user sees is an empty product. It has to be
     // whole rather than a set of blanks waiting to be filled.
@@ -155,6 +176,11 @@ void main() {
       value: 'true',
       tier: 'essential',
     );
+    await db.saveIntakeAnswer(
+      key: EterTutorial.walkthroughKey,
+      value: 'true',
+      tier: 'essential',
+    );
 
     await tester.pumpWidget(app());
     await settle(tester);
@@ -183,6 +209,11 @@ void main() {
     );
     await db.saveIntakeAnswer(
       key: EterTutorial.answerKey,
+      value: 'true',
+      tier: 'essential',
+    );
+    await db.saveIntakeAnswer(
+      key: EterTutorial.walkthroughKey,
       value: 'true',
       tier: 'essential',
     );

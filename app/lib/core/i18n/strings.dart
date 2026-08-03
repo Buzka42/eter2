@@ -713,6 +713,18 @@ abstract class EterStrings {
   /// each; the first line is set large, the rest quiet beneath it.
   List<TutorialPassage> get tutorialPassages;
 
+  // ------------------------------------------------- the walkthrough (part 2)
+  //
+  // The written half says what Eter is; these are said over the running app,
+  // with the thing being described lit underneath.
+
+  String get walkthroughJournal;
+  String get walkthroughGuidance;
+  String get walkthroughDepths;
+  String get walkthroughTwoDoors;
+  String get walkthroughRail;
+  String get walkthroughSanctum;
+
   // -------------------------------------------------------------- body fat
 
   String get fieldBodyFatOptional;

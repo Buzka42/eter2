@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../core/tokens.dart';
 import '../dashboard/dashboard_page.dart';
 import '../journal/journal_page.dart';
+import '../onboarding/walkthrough.dart';
 import '../sanctum/sanctum_overlay.dart';
 import 'shell_header.dart';
 
@@ -22,10 +23,24 @@ import 'shell_header.dart';
 /// across page changes — scroll position, an expanded section and a
 /// half-written entry all survive the crossing.
 class EterShell extends StatefulWidget {
-  const EterShell({super.key, this.startSurface = 'dashboard'});
+  const EterShell({
+    super.key,
+    this.startSurface = 'dashboard',
+    this.walkthrough = false,
+    this.onWalkthroughFinished,
+  });
 
   /// `journal` | `dashboard` — from `Profile.startSurface`.
   final String startSurface;
+
+  /// Whether the second half of the first minute runs over this shell.
+  ///
+  /// It lives here rather than beside the written half because it points at
+  /// the real rail, the real writing field and the real Sanctum mark — and
+  /// because only the shell can bring the right page forward before lighting
+  /// something on it.
+  final bool walkthrough;
+  final VoidCallback? onWalkthroughFinished;
 
   @override
   State<EterShell> createState() => _EterShellState();
@@ -35,6 +50,12 @@ class _EterShellState extends State<EterShell> {
   late final PageController _controller;
   late int _active;
   bool _sanctumOpen = false;
+
+  // What the walkthrough lights, one at a time. Real widgets, so the sentences
+  // stay true when anything moves.
+  final _railKey = GlobalKey();
+  final _sanctumKey = GlobalKey();
+  final _pageKey = GlobalKey();
 
   @override
   void initState() {
@@ -104,6 +125,7 @@ class _EterShellState extends State<EterShell> {
                       alignment: Alignment.center,
                       children: [
                         DestinationSwitch(
+                          key: _railKey,
                           activeIndex: _active,
                           onSelect: _goTo,
                         ),
@@ -115,6 +137,7 @@ class _EterShellState extends State<EterShell> {
                             behavior: HitTestBehavior.opaque,
                             onTap: _openSanctum,
                             child: SizedBox(
+                              key: _sanctumKey,
                               width: 48,
                               height: 48,
                               child: Center(
@@ -130,6 +153,7 @@ class _EterShellState extends State<EterShell> {
                       ],
                     ),
                     Expanded(
+                      key: _pageKey,
                       child: PageView(
                         controller: _controller,
                         onPageChanged: (page) => setState(() => _active = page),
@@ -150,6 +174,41 @@ class _EterShellState extends State<EterShell> {
             if (_sanctumOpen)
               Positioned.fill(
                 child: SanctumOverlay(onClose: _closeSanctum),
+              ),
+            if (widget.walkthrough && !_sanctumOpen)
+              Positioned.fill(
+                child: EterWalkthrough(
+                  onFinished: widget.onWalkthroughFinished ?? () {},
+                  steps: [
+                    WalkthroughStep(
+                      target: _pageKey,
+                      eyebrow: EterStrings.of(context).destinationJournal,
+                      line: EterStrings.of(context).walkthroughJournal,
+                      onEnter: () => _goTo(0),
+                    ),
+                    WalkthroughStep(
+                      target: _pageKey,
+                      eyebrow: EterStrings.of(context).destinationDashboard,
+                      line: EterStrings.of(context).walkthroughGuidance,
+                      onEnter: () => _goTo(1),
+                    ),
+                    WalkthroughStep(
+                      target: _pageKey,
+                      eyebrow: EterStrings.of(context).lookDeeper,
+                      line: EterStrings.of(context).walkthroughDepths,
+                    ),
+                    WalkthroughStep(
+                      target: _railKey,
+                      eyebrow: EterStrings.of(context).walkthroughTwoDoors,
+                      line: EterStrings.of(context).walkthroughRail,
+                    ),
+                    WalkthroughStep(
+                      target: _sanctumKey,
+                      eyebrow: EterStrings.of(context).sanctum,
+                      line: EterStrings.of(context).walkthroughSanctum,
+                    ),
+                  ],
+                ),
               ),
           ],
         ),

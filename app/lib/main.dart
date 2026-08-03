@@ -345,6 +345,18 @@ class _EterAppState extends ConsumerState<EterApp> {
   Future<Map<String, IntakeAnswerRow>>? _intakeFuture;
   bool _onboardingCompletedNow = false;
   bool _tutorialCompletedNow = false;
+  bool _walkthroughCompletedNow = false;
+
+  /// Set when onboarding finishes in this session, so the first minute runs
+  /// whatever the intake table says.
+  ///
+  /// The gate reads a `FutureBuilder` that is loaded once and never
+  /// invalidated, so after onboarding it is still answering from the snapshot
+  /// taken before it. On a device that has been through an earlier build the
+  /// tutorial keys are already `true` in that snapshot — which is why
+  /// finishing onboarding led straight to the shell and the tutorial never
+  /// appeared.
+  bool _firstMinutePending = false;
 
   /// Once per run: the readings are written at intake, but intake is not the
   /// only moment they can become possible.
@@ -483,7 +495,12 @@ class _EterAppState extends ConsumerState<EterApp> {
                       profile: profile,
                       resolver: ref.watch(birthplaceResolverProvider),
                       onComplete: () {
-                        setState(() => _onboardingCompletedNow = true);
+                        setState(() {
+                          _onboardingCompletedNow = true;
+                          _firstMinutePending = true;
+                          _tutorialCompletedNow = false;
+                          _walkthroughCompletedNow = false;
+                        });
                         // The chart is fixed for life, so its passages are
                         // written once, here, rather than on demand — the
                         // Vessel should already be whole the first time it is
@@ -497,8 +514,21 @@ class _EterAppState extends ConsumerState<EterApp> {
                   // The first minute, once. A sparse interface is the kind most
                   // often misread, so the four passages that say where things
                   // are come between intake and the shell — and never again.
+                  // The first minute, in two halves. The written one says what
+                  // Eter is; the walkthrough says where things are, over the
+                  // running app rather than in a description of it.
+                  //
+                  // `_firstMinutePending` overrides the stored answers when
+                  // onboarding has just finished, because the answers are read
+                  // from a snapshot taken before it — and on a device carrying
+                  // an older install they already say the tutorial was seen.
+                  // `_firstMinutePending` discounts the *stored* answer, not
+                  // the one given a moment ago in this session — otherwise
+                  // finishing the written half would simply show it again.
                   final tutorialDone = _tutorialCompletedNow ||
-                      intake.data?[EterTutorial.answerKey]?.value == 'true';
+                      (!_firstMinutePending &&
+                          intake.data?[EterTutorial.answerKey]?.value ==
+                              'true');
                   if (!tutorialDone) {
                     return EterTutorial(
                       database: db,
@@ -506,13 +536,32 @@ class _EterAppState extends ConsumerState<EterApp> {
                           setState(() => _tutorialCompletedNow = true),
                     );
                   }
+                  final walkthroughDone = _walkthroughCompletedNow ||
+                      (!_firstMinutePending &&
+                          intake.data?[EterTutorial.walkthroughKey]?.value ==
+                              'true');
                   _ensureInitialReadings(db);
                   return HealthRefreshOnResume(
                     refresh: ref.watch(healthForegroundRefreshProvider),
                     child: SyncOnLifecycle(
                       sync: ref.watch(backgroundSyncProvider),
                       account: () => ref.read(accountProvider).value,
-                      child: EterShell(startSurface: profile.startSurface),
+                      child: EterShell(
+                        startSurface: profile.startSurface,
+                        walkthrough: !walkthroughDone,
+                        onWalkthroughFinished: () async {
+                          await db.saveIntakeAnswer(
+                            key: EterTutorial.walkthroughKey,
+                            value: 'true',
+                            tier: 'essential',
+                          );
+                          if (!context.mounted) return;
+                          setState(() {
+                            _walkthroughCompletedNow = true;
+                            _firstMinutePending = false;
+                          });
+                        },
+                      ),
                     ),
                   );
                 },

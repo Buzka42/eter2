@@ -1359,42 +1359,68 @@ class EterStringsPl extends EterStrings {
   // ---------------------------------------------------------------- tutorial
 
   @override
+  String get walkthroughJournal =>
+      'To jest strona. Pisz albo mów, jaki był dzień — posiłki, ruch, '
+      'samopoczucie. Nigdzie indziej nie ma formularzy; wszystko, co Eter wie '
+      'o dniu, zaczyna się tutaj.';
+  @override
+  String get walkthroughGuidance =>
+      'Druga strona czyta to z powrotem. Jeden fragment każdego ranka — '
+      'z tego, co napisałaś lub napisałeś, co zapisało ciało i gdzie stoi '
+      'niebo.';
+  @override
+  String get walkthroughDepths =>
+      'Pod wglądem są trzy głębie: sam odczyt, pomiary ciała i twój '
+      'kosmogram. Dotknij którejkolwiek, żeby przechodzić między nimi — '
+      'dzień zostaje na miejscu.';
+  @override
+  String get walkthroughTwoDoors => 'DWOJE DRZWI';
+  @override
+  String get walkthroughRail =>
+      'Cała aplikacja to te dwie strony obok siebie. Dotknij słowa albo '
+      'przesuń palcem.';
+  @override
+  String get walkthroughSanctum =>
+      'Reszta mieszka za tym znakiem — co opuszcza urządzenie, język i '
+      'rejestr, twój zapis i wyjście.';
+
+  @override
   List<TutorialPassage> get tutorialPassages => const [
         TutorialPassage(
           eyebrow: 'ETER',
           lines: [
-            'Eter czyta twoje dni i mówi ci, co zauważa.',
-            'Wszystko trzyma na tym urządzeniu, dopóki nie powiesz inaczej, i '
-                'nigdy cię nie ocenia.',
+            'Eter czyta twoje dni i mówi, co w nich widzi.',
+            'To nie jest licznik z doklejonym towarzyszem. Nie ma tu serii, '
+                'punktów ani kółek do zamknięcia — nic cię z nikim nie '
+                'porównuje, także z tobą wczorajszą czy wczorajszym.',
           ],
         ),
         TutorialPassage(
-          eyebrow: 'DZIENNIK',
+          eyebrow: 'Z CZEGO PRACUJE',
           lines: [
-            'Wszystko, co zapisujesz, piszesz albo mówisz tutaj.',
-            'Nigdzie indziej nie ma formularzy: posiłki, ruch i to, jak minął '
-                'dzień, biorą się z tego, co piszesz. Każdą '
-                'stronę można zinterpretować, a każdą można też całkowicie '
-                'zatrzymać poza zasięgiem Aethera.',
+            'Z trzech rzeczy, i zawsze mówi, która jest która.',
+            'Z tego, co napiszesz. Z tego, co zapisało ciało, jeśli je '
+                'podłączysz. I z tego, gdzie stało niebo, gdy się '
+                'urodziłaś lub urodziłeś, oraz gdzie stoi dziś. Dzień '
+                'niezapisany jest nieobecny, nigdy zerowy.',
           ],
         ),
         TutorialPassage(
-          eyebrow: 'WGLĄD',
+          eyebrow: 'GDZIE ZOSTAJE',
           lines: [
-            'Druga strona tej samej przestrzeni odczytuje to, co znalazła.',
-            'Wgląd przychodzi sam każdego dnia. Otwórz głębię po ciało '
-                'albo po Krąg — twój kosmogram, twoją Drogę życia i to, '
-                'jak dzisiejsze niebo stoi wobec nich.',
+            'Na tym urządzeniu, chyba że powiesz inaczej.',
+            'Nic nie wychodzi bez zgody, której udzielisz z nazwy — '
+                'każda osobno i każdą można cofnąć. To, co piszesz, może '
+                'zostać poza zasięgiem Aether, strona po stronie.',
           ],
         ),
         TutorialPassage(
-          showsSanctumMark: true,
-          eyebrow: 'ZACISZE',
+          eyebrow: 'CZEGO NIE ZROBI',
           lines: [
-            'Ten znak, na górze każdego ekranu, je otwiera.',
-            'Ustawienia, twoje dane urodzenia, połączenie ze zdrowiem i każde '
-                'pozwolenie — każde niezależne, każde odwołalne, i sposób, żeby '
-                'zabrać to wszystko z powrotem.',
+            'Nie diagnozuje, nie przepisuje i nie mówi ci, co masz robić.',
+            'Symbolika barwi to, jak dzień jest ujęty; nigdy nie jest '
+                'powodem. Powodem zawsze jest to, co zostało zapisane — '
+                'a każdy odczyt pokazuje, na czym się opiera.',
           ],
         ),
       ];

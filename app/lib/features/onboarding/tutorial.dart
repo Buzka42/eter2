@@ -36,6 +36,11 @@ class EterTutorial extends StatefulWidget {
   /// tutorial survives a restart and never shows twice.
   static const answerKey = 'tutorial_complete';
 
+  /// The second half — the walkthrough over the running shell. Recorded
+  /// separately so somebody who has read the written half on an older build is
+  /// not made to read it again to reach the new one.
+  static const walkthroughKey = 'walkthrough_complete';
+
   @override
   State<EterTutorial> createState() => _EterTutorialState();
 }
