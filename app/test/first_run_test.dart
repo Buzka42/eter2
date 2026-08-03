@@ -1,7 +1,9 @@
 import 'package:drift/native.dart';
 import 'package:eter/core/clock.dart';
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/tokens.dart';
 import 'package:eter/features/onboarding/tutorial.dart';
+import 'package:eter/features/onboarding/walkthrough.dart';
 import 'package:eter/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -233,4 +235,99 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pump(const Duration(milliseconds: 50));
   }, timeout: const Timeout(Duration(seconds: 30)));
+
+  group('the walkthrough caption always stands on scrim', () {
+    // Both of these were found on a phone, on the first step of the first
+    // minute, where DALEJ and POMIN were drawn in white over the cream journal
+    // page — on top of the date and the History control. Nothing in the suite
+    // could see it: the caption is positioned and painted correctly in
+    // isolation, and it is only the *relation* between the caption and the hole
+    // that was wrong.
+    const screen = Size(1080, 2412);
+
+    test('the caption takes the roomier side, and that is not enough', () {
+      // The journal step: the hole starts below the rail and runs almost to the
+      // bottom. Above is the roomier side, and picking it is still not enough —
+      // 508 px for a caption that needs about 600. Choosing a side cannot fix
+      // this, which is what the carve below is for.
+      const journal = Rect.fromLTRB(0, 508, 1080, 2280);
+      expect(WalkthroughScrim.captionBelow(journal, screen), isFalse);
+      expect(journal.top, lessThan(600),
+          reason: 'the roomier gap is still too small; this is the real fault');
+
+      const control = Rect.fromLTRB(600, 2100, 1000, 2200);
+      expect(WalkthroughScrim.captionBelow(control, screen), isFalse);
+
+      const rail = Rect.fromLTRB(0, 120, 1080, 260);
+      expect(WalkthroughScrim.captionBelow(rail, screen), isTrue);
+
+      // No target at all: the scrim is whole and the caption sits at the foot.
+      expect(WalkthroughScrim.captionBelow(null, screen), isTrue);
+
+      // Choosing by room and choosing by the hole's centre are the same
+      // predicate — both reduce to `top + bottom < height`. Pinned so nobody
+      // "fixes" the side selection again believing it is the bug.
+      for (final probe in const [
+        Rect.fromLTRB(0, 508, 1080, 2280),
+        Rect.fromLTRB(0, 120, 1080, 260),
+        Rect.fromLTRB(0, 300, 1080, 1400),
+        Rect.fromLTRB(600, 2100, 1000, 2200),
+        Rect.fromLTRB(0, 0, 1080, 2412),
+      ]) {
+        expect(
+          WalkthroughScrim.captionBelow(probe, screen),
+          probe.center.dy <= screen.height / 2,
+          reason: '$probe: the two formulations must agree, always',
+        );
+      }
+    });
+
+    test('the spotlight gives up the ground the caption stands on', () {
+      const journal = Rect.fromLTRB(0, 508, 1080, 2280);
+      const caption = Rect.fromLTRB(60, 100, 1020, 700);
+      expect(caption.overlaps(journal), isTrue,
+          reason: 'this is the case that has to be handled, not avoided');
+
+      final lit = WalkthroughScrim.lit(journal, caption);
+
+      // Nothing the caption is written on is lit. Probed just inside the
+      // caption rather than on its corners: the carve is rounded like every
+      // other shape here, so the exact corner points sit outside it by design
+      // and prove nothing either way. The letters are what must stay dark.
+      final inset = caption.deflate(EterSpace.rChip);
+      for (final point in [
+        inset.topLeft,
+        inset.topRight,
+        inset.bottomLeft,
+        inset.bottomRight,
+        inset.center,
+        Offset(inset.center.dx, inset.bottom),
+      ]) {
+        expect(
+          lit.contains(point),
+          isFalse,
+          reason: '$point is under the caption and must stay scrimmed',
+        );
+      }
+
+      // The rest of the target is still lit, so the step still points at
+      // something.
+      expect(lit.contains(const Offset(540, 1600)), isTrue);
+      expect(lit.contains(const Offset(540, 2200)), isTrue);
+    });
+
+    test('a caption clear of the hole costs the spotlight nothing', () {
+      const rail = Rect.fromLTRB(0, 120, 1080, 260);
+      const caption = Rect.fromLTRB(60, 1700, 1020, 2300);
+      expect(caption.overlaps(rail), isFalse);
+
+      final lit = WalkthroughScrim.lit(rail, caption);
+      expect(lit.contains(rail.center), isTrue);
+      expect(
+        lit.getBounds(),
+        WalkthroughScrim.lit(rail, null).getBounds(),
+        reason: 'an untouched spotlight must be exactly the untouched shape',
+      );
+    });
+  });
 }

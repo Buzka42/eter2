@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **810 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **813 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -64,7 +64,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 810 pass, 10 skipped
+flutter test          # expect 813 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -241,6 +241,39 @@ sentence from the owner before it can be.
   (no streaks, the three sources, absent-not-zero, where it stays, what it will
   not do); part two is `EterWalkthrough`, a scrim over the running shell with
   one real widget lit at a time.
+
+  **Watched on the phone, 3 August, and part two was broken on its first
+  stop.** Three faults, in the order they surfaced:
+
+  1. **The caption overhung the hole.** The caption is white text with nothing
+     behind it, legible exactly as far as the scrim reaches — and the scrim has
+     the target punched out of it. Nothing checked that the caption fitted in
+     what was left. On stop one, which lights the whole journal page, it did
+     not: `DALEJ` and `POMIŃ` were drawn in white over the cream page, on top
+     of the date and `HISTORIA`. The spotlight now gives up the ground the
+     caption stands on — `WalkthroughScrim.lit`.
+  2. **Then the controls were dark on dark.** Uncovered by fixing (1), and
+     present all along underneath it. The eyebrow and the sentence set
+     `Colors.white` themselves; the two `EterAction`s take their ink from the
+     ambient theme, which during the day is the ink of the cream page. The
+     caption is wrapped in `EterTheme.night()` now, because the scrim it is
+     written on is always night whatever register the shell is in.
+  3. **The five eyebrows disagreed about case** — `DZIENNIK`, `WGLĄD`,
+     `DWOJE DRZWI`, then `Zacisze`. They borrow labels that exist for other
+     reasons and four happen to be authored in caps. The eyebrow imposes its
+     own case now rather than trusting the string.
+
+  **A caution for whoever reads the next one of these:** a fourth fault was
+  reported and was not real. The caption picks its side by which gap is
+  bigger; that was written as "is the hole's centre in the top half", and the
+  two look different but reduce to the same inequality. Writing the arithmetic
+  down as `WalkthroughScrim.captionBelow` disproved it, and a test now pins the
+  two formulations together so nobody rediscovers it. Choosing the roomier side
+  was never the bug — **no choice of side helps when the target is large enough
+  that neither gap fits**, which is why (1) is the fix.
+
+  Three tests in `first_run_test.dart` hold it. All five stops were then walked
+  on the device and the walkthrough completed into the Dashboard.
 
 **The astrogram · done, 3 August.** The owner reported it "doesn't look right"
 for 25/07/1993 12:30, with the data verified correct — Sun 2.5° Leo, Moon 23°
