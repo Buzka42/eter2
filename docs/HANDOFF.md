@@ -201,6 +201,62 @@ reasoning for each choice. In brief:
 
 ---
 
+## A second round on the phone, 1 August
+
+Eight things came back from real use. Seven are done; the eighth needs a
+sentence from the owner before it can be.
+
+- **Dictation filed the same page twice.** `_save` read the draft, awaited the
+  insert, and cleared the composer *after* — so any second caller inside that
+  await saw the same words. There are four ways in: the recogniser reports
+  `notListening` **and** `done`, push-to-talk saves on release, and opening
+  History saves on the way out. The draft is claimed before the first await
+  now, and handed back if the insert throws.
+- **Typing overflowed the page by 28 px.** `_FittedProse` shrinks the day story
+  to fit and stops at a 13 pt floor; with the keyboard up there is no room even
+  at the floor. It scrolls inside its own box instead — nothing cut, page still
+  does not scroll.
+- **A footnote over nothing.** A dimension with no correlation answers with an
+  empty object and the receipt was drawn whenever the column was non-null,
+  opening on `n=null · null · coefficient null`. Drawn only when a field has
+  content, and missing fields fall back per field.
+- **The reveal arrived in fast batches.** Every sentence was forced into
+  `durSentence`, which made the stagger a *remainder*: ten groups divided
+  1200 ms and fired 75 ms apart. The stagger is the constant now (190 ms) and a
+  sentence takes as long as its length asks, to a 4.2 s ceiling.
+- **Birth dates nobody has.** `DateTime.parse` rolls over, so 31 February was
+  accepted as 3 March and the chart cast for it. `birthDateProblem` refuses
+  non-calendar dates, futures and anything past 130 years — and **the date of
+  birth is editable in the Sanctum**, which it never was.
+- **Recomposing is one control.** `REFRESH` and `COMPOSE NOW` are gone from the
+  Dashboard. The Sanctum has `AGAIN` for the whole day — forcing past the
+  context cache, because a person pressing a button has asked for something the
+  automatic path is right to refuse — and a second `AGAIN` under the birth
+  details for the chart's reading.
+- **The first minute, in two halves.** It never fired: the gate reads intake
+  through a `FutureBuilder` loaded once and never invalidated, so after
+  onboarding it answers from the snapshot taken before it — and a phone
+  carrying an earlier install already has the key set. Completing onboarding
+  now discounts the stored answers for the session. Part one is the premise
+  (no streaks, the three sources, absent-not-zero, where it stays, what it will
+  not do); part two is `EterWalkthrough`, a scrim over the running shell with
+  one real widget lit at a time.
+
+**Still open: the astrogram.** The owner reports it "doesn't look right" for
+25/07/1993 12:30. The data is verified correct — Sun 2.5° Leo, Moon 23° Libra,
+Mercury 18° Cancer R, Uranus 19.7° and Neptune 19.4° Capricorn, Pluto 22.7°
+Scorpio, ASC 22° Libra, MC 29.5° Cancer — and so is the geometry: ASC left, MC
+top, signs counterclockwise, glyphs in their sectors, angle labels clear of the
+ring. Render it yourself with
+`test/manual/chart_wheel_specimen_test.dart`, which now carries that birth as
+its first specimen. The leading hypothesis is that **the houses are invisible
+as houses**: the cusps are short radial ticks in a narrow band, so the twelve
+divisions a printed chart shows are not legible. Drawing them further in was
+tried once and made the middle illegible, so this needs a decision rather than
+another attempt.
+
+---
+
 ## The queue, in dependency order
 
 Nothing here is blocked on anything above it except where stated.
