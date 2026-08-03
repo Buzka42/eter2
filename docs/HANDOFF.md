@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **808 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **810 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -64,7 +64,7 @@ Still unproven, and why:
 
 ```bash
 cd app
-flutter test          # expect 808 pass, 10 skipped
+flutter test          # expect 810 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -242,18 +242,36 @@ sentence from the owner before it can be.
   not do); part two is `EterWalkthrough`, a scrim over the running shell with
   one real widget lit at a time.
 
-**Still open: the astrogram.** The owner reports it "doesn't look right" for
-25/07/1993 12:30. The data is verified correct — Sun 2.5° Leo, Moon 23° Libra,
-Mercury 18° Cancer R, Uranus 19.7° and Neptune 19.4° Capricorn, Pluto 22.7°
-Scorpio, ASC 22° Libra, MC 29.5° Cancer — and so is the geometry: ASC left, MC
-top, signs counterclockwise, glyphs in their sectors, angle labels clear of the
-ring. Render it yourself with
-`test/manual/chart_wheel_specimen_test.dart`, which now carries that birth as
-its first specimen. The leading hypothesis is that **the houses are invisible
-as houses**: the cusps are short radial ticks in a narrow band, so the twelve
-divisions a printed chart shows are not legible. Drawing them further in was
-tried once and made the middle illegible, so this needs a decision rather than
-another attempt.
+**The astrogram · done, 3 August.** The owner reported it "doesn't look right"
+for 25/07/1993 12:30, with the data verified correct — Sun 2.5° Leo, Moon 23°
+Libra, Mercury 18° Cancer R, Uranus 19.7° and Neptune 19.4° Capricorn, Pluto
+22.7° Scorpio, ASC 22° Libra, MC 29.5° Cancer — and the geometry verified too.
+Rendering the specimen sheet found four faults, of which the standing hypothesis
+had named one:
+
+- **The eight ordinary cusps were painted in the same weight as the sign ring's
+  twenty-four 10° graduations.** This, not the radial extent, is why the houses
+  did not read as houses.
+- The four angular cusps read as unexplained heavy dashes.
+- The cusps shared the body glyphs' annulus, so collision was structural — a
+  cusp through Saturn on the Reykjavík specimen, through the Sun on the owner's.
+- Nothing named which house was which.
+
+The houses now have an annulus of their own between the aspect circle and
+`houseRing`, closed at both edges, with all twelve numbered at the midpoint of
+the arc they occupy. `DECISIONS.md` 3 August carries what it was chosen over and
+what it costs. The aspect figure gives up its outer fifth **only on charts that
+draw houses**; without a birth time it keeps the radius it always had, which is
+why the Vessel goldens did not move by a pixel.
+
+Two tests hold it: the house band belongs to the houses alone (no body glyph may
+reach into it, and the numerals stay inside both edges), and every house is
+numbered off its own midpoint at four latitudes including the equator and the
+southern hemisphere. `chart-wheel-houses-{day,night}-340.png` were re-recorded;
+the failure was read first and was the intended change, with no overflow.
+
+Render it yourself with `test/manual/chart_wheel_specimen_test.dart`, which
+carries that birth as its first specimen.
 
 ---
 

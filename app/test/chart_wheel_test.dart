@@ -547,4 +547,76 @@ void main() {
       );
     }
   });
+
+  test('the house band belongs to the houses alone', () {
+    // The houses were illegible because they had no band of their own: the
+    // cusps ran through the body glyphs, and the eight ordinary ones were
+    // painted in the same weight as the sign ring's graduations. The band is
+    // the fix, and it is only a fix while nothing else is in it.
+    final layout = NatalChartWheelLayout(
+      chart: warsaw,
+      outer: 149,
+      drawHouses: true,
+    );
+
+    expect(layout.aspectRadius, lessThan(layout.houseRing));
+    expect(layout.houseRing, lessThan(layout.ringInner));
+
+    // No body glyph may reach into the band. This is the collision that put a
+    // cusp through Saturn on the Reykjavik specimen and through the Sun on the
+    // chart that reported the fault.
+    expect(
+      layout.labelRadius - layout.bodyGlyphSize / 2,
+      greaterThan(layout.houseRing),
+      reason: 'a body glyph reaches into the house band',
+    );
+
+    // The numerals stay inside the band, both edges clear.
+    expect(
+      layout.houseNumberRadius - layout.houseNumberSize / 2,
+      greaterThan(layout.aspectRadius),
+    );
+    expect(
+      layout.houseNumberRadius + layout.houseNumberSize / 2,
+      lessThan(layout.houseRing),
+    );
+  });
+
+  test('every house is numbered, at the middle of the arc it occupies', () {
+    // A division nobody can name is the unexplained symbol non-negotiable 7
+    // forbids, so all twelve carry a numeral. The midpoint is of the house's
+    // own arc rather than of a twelfth of the circle, because Placidus
+    // quadrants are very uneven away from the equator.
+    for (final latitude in const [0.0, 52.23, 64.15, -33.87]) {
+      final chart = chartFor(
+        local: DateTime(1988, 7, 7, 9, 12),
+        offsetMinutes: 60,
+        latitude: latitude,
+        longitude: 18.0,
+      );
+      if (chart.houseSystem != 'placidus') continue;
+      final layout = NatalChartWheelLayout(
+        chart: chart,
+        outer: 149,
+        drawHouses: true,
+      );
+      final midpoints = layout.houseMidpoints;
+      expect(midpoints, hasLength(12));
+
+      for (var i = 0; i < 12; i++) {
+        final cusp = chart.houseCusps[i];
+        final next = chart.houseCusps[(i + 1) % 12];
+        final span = NatalChartWheelLayout.forwardGap(cusp, next);
+        // The numeral lies strictly inside its own house, never on a cusp.
+        final into = NatalChartWheelLayout.forwardGap(cusp, midpoints[i]);
+        expect(
+          into,
+          closeTo(span / 2, 1e-6),
+          reason: 'house ${i + 1} at $latitude is numbered off its midpoint',
+        );
+        expect(into, greaterThan(0));
+        expect(into, lessThan(span));
+      }
+    }
+  });
 }

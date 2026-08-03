@@ -9,6 +9,53 @@ This file is not a changelog. It records choices, not work.
 
 ---
 
+## 3 August 2026
+
+### The houses get a band of their own, and numerals
+
+The astrogram was reported as not looking right for a chart whose data and
+geometry were both verified correct. Rendering the specimen sheet showed four
+faults rather than the one that had been hypothesised:
+
+- The eight ordinary cusps were painted in `faint`, **the same weight as the
+  sign ring's twenty-four 10° graduation ticks**. That, not the radial extent,
+  is why the houses did not read as houses: they were the twenty-fifth through
+  thirty-second tick marks.
+- The four angular cusps read as unexplained heavy dashes.
+- The cusps shared an annulus with the body glyphs, so collision was structural
+  rather than bad luck — a cusp through Saturn on the Reykjavík specimen, and
+  through the Sun on the reporting chart.
+- Nothing said which house was which.
+
+**Chosen: the houses get an annulus to themselves**, between the aspect circle
+and 0.62 of the outer radius, closed by a circle at each edge so it reads as a
+band. All twelve cusps run its full width, the angles distinguished by weight;
+the ordinary eight move up to `thin` so they can never again be confused with a
+graduation. All twelve houses carry a numeral at the middle of the arc they
+actually occupy.
+
+Chosen **over** two cheaper options. Fixing only the weights and adding numerals
+in the existing band would have left the glyph collisions, which are the part
+that reads as a bug rather than as a plain chart. Alternating shaded sectors
+would have been the most legible of the three and was refused because this
+surface's stated rule is no fill and one colour, and a decision that costs a
+rule is more expensive than it looks.
+
+**This is not the attempt that failed.** That one ran the cusps to radius zero
+and laid two diameters through the aspect figure.
+
+**What it costs:** the aspect figure gives up its outer fifth, 0.62 → 0.50.
+Charts drawn *without* houses — anyone who has not given a birth time — keep the
+larger figure, because there is nothing to put in the band and a smaller figure
+inside a ring of empty paper would be a cost paid for nothing.
+
+**Numerals over no numerals, and over numbering the angular four only.** An
+unnumbered division is precisely the unexplained symbol non-negotiable 7
+forbids, and the wheel is the one place a person could otherwise never learn
+which house a body is in.
+
+---
+
 ## 1 August 2026
 
 ### The Vessel reads the chart, and asks for nothing

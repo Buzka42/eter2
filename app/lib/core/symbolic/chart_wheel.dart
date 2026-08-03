@@ -196,15 +196,73 @@ class NatalChartWheelLayout {
   /// Inside edge of the sign ring.
   double get ringInner => outer * 0.80;
 
+  /// Outside edge of the house band — the annulus the twelve divisions have to
+  /// themselves.
+  ///
+  /// The houses used to be drawn from here inward to the aspect circle, in the
+  /// same annulus as the body glyphs, in the same paint as the sign ring's 10°
+  /// graduations. Three consequences, all of them reported as "the chart does
+  /// not look right" rather than as three faults:
+  ///
+  /// * **The eight ordinary cusps were indistinguishable from decoration.**
+  ///   The sign ring draws twenty-four graduation ticks in `faint`; drawing the
+  ///   cusps in the same weight made them the twenty-fifth through
+  ///   thirty-second, and the loudest rhythm on the chart belonged to the
+  ///   graduation.
+  /// * **The four angular cusps read as unexplained dashes**, and collided with
+  ///   whatever body shared their degree — Saturn on the Reykjavík specimen,
+  ///   the Sun on the chart that reported this.
+  /// * **Nothing said which house was which.** A printed chart is legible as
+  ///   twelve divisions because the divisions carry numerals; drawing the
+  ///   divisions and never naming them is the unexplained symbol
+  ///   non-negotiable 7 forbids.
+  ///
+  /// So the houses get an annulus of their own between [aspectRadius] and here,
+  /// and no other mark enters it. This is not the attempt that failed: that one
+  /// ran the cusps to radius zero and laid two diameters through the aspect
+  /// figure. The figure is smaller now, and still nothing but a chord is in it.
+  double get houseRing => outer * 0.62;
+
   /// The circle the aspect chords are struck across. Nothing else may cross it.
-  double get aspectRadius => outer * 0.62;
+  ///
+  /// The house band is taken out of the aspect figure rather than out of the
+  /// wheel, so a chart that draws no houses keeps the larger figure it always
+  /// had: without a birth time there is nothing to put in the band, and a
+  /// smaller figure inside a ring of empty paper would be a cost paid for
+  /// nothing. When houses *are* drawn the figure gives up the band, which is
+  /// the trade the owner chose.
+  double get aspectRadius => drawHouses ? outer * 0.50 : houseRing;
+
+  /// Where a house numeral is centred: the middle of its own band.
+  double get houseNumberRadius => (aspectRadius + houseRing) / 2;
 
   double get bodyGlyphSize => outer * 0.125;
   double get signGlyphSize => (outer - ringInner) * 0.66;
 
-  /// Where body glyphs sit: the middle of the band between the aspect circle
-  /// and the ring, the only place they fit without invading either.
-  double get labelRadius => (aspectRadius + ringInner) / 2;
+  /// The numerals are set small enough that twelve of them do not become the
+  /// subject of the wheel, and never below legibility on the smallest wheel
+  /// the product draws.
+  double get houseNumberSize => (outer * 0.058).clamp(6.5, 9.0);
+
+  /// Where body glyphs sit: the middle of the band between the house ring and
+  /// the sign ring, the only place they fit without invading either.
+  double get labelRadius => (houseRing + ringInner) / 2;
+
+  /// The midpoint longitude of each house, where its numeral is set.
+  ///
+  /// A house is the arc from its own cusp forward to the next, and the quadrants
+  /// are very uneven at high latitude — Reykjavík puts three houses inside forty
+  /// degrees — so the numeral goes at the middle of the arc a house actually
+  /// occupies rather than at a twelfth of the circle.
+  List<double> get houseMidpoints {
+    final cusps = chart.houseCusps;
+    return [
+      for (var i = 0; i < cusps.length; i++)
+        _normalize(
+          cusps[i] + forwardGap(cusps[i], cusps[(i + 1) % cusps.length]) / 2,
+        ),
+    ];
+  }
 
   /// The chart is drawn Ascendant-left, as charts are. Without a reliable
   /// birth time there is no Ascendant to anchor to, so 0° Aries takes the left
@@ -458,11 +516,21 @@ class _ChartWheelPainter extends CustomPainter {
 
     // --- Houses, when the birth time supports them.
     //
-    // Every cusp runs the same span, from the aspect circle to the ring. The
-    // angles were drawn from radius zero, which laid two diameters across the
-    // aspect figure and made the middle of every chart illegible; they are
-    // distinguished by weight instead, which is what weight is for here.
+    // The twelve divisions have the band between the aspect circle and
+    // [houseRing] to themselves, and it is closed by a circle at each edge so
+    // it reads as a band rather than as loose spokes. Every cusp runs its full
+    // width; the angles are distinguished by weight, which is what weight is
+    // for here, and the ordinary cusps sit at `thin` so they are never confused
+    // with the sign ring's graduations.
     if (drawHouses) {
+      canvas.drawCircle(centre, layout.houseRing, faint);
+      final midpoints = layout.houseMidpoints;
+      final numberStyle = TextStyle(
+        fontFamily: 'Inter',
+        fontSize: layout.houseNumberSize,
+        fontWeight: FontWeight.w500,
+        color: label.withValues(alpha: label.a * 0.7),
+      );
       for (var i = 0; i < chart.houseCusps.length; i++) {
         final angular = i % 3 == 0; // 1, 4, 7, 10
         _spoke(
@@ -470,9 +538,18 @@ class _ChartWheelPainter extends CustomPainter {
           centre,
           chart.houseCusps[i],
           aspectRadius,
-          ringInner,
+          layout.houseRing,
           anchor,
-          angular ? strong : faint,
+          angular ? strong : thin,
+        );
+        _centredText(
+          canvas,
+          centre,
+          midpoints[i],
+          layout.houseNumberRadius,
+          anchor,
+          '${i + 1}',
+          numberStyle,
         );
       }
     }
@@ -547,9 +624,9 @@ class _ChartWheelPainter extends CustomPainter {
           midheaven.longitude,
           needed,
         );
-        _angleLabel(canvas, centre, placed.$1, layout.angleLabelRadius, anchor,
+        _centredText(canvas, centre, placed.$1, layout.angleLabelRadius, anchor,
             'ASC', angleStyle);
-        _angleLabel(canvas, centre, placed.$2, layout.angleLabelRadius, anchor,
+        _centredText(canvas, centre, placed.$2, layout.angleLabelRadius, anchor,
             'MC', angleStyle);
       }
     }
@@ -661,8 +738,11 @@ class _ChartWheelPainter extends CustomPainter {
         textDirection: textDirection,
       )..layout();
 
-  /// The angles have no glyph in Unicode, so they keep their letters.
-  void _angleLabel(
+  /// Sets a line of text centred on a chart longitude at a given radius.
+  ///
+  /// Used by the angles, which have no glyph in Unicode and so keep their
+  /// letters, and by the house numerals.
+  void _centredText(
     Canvas canvas,
     Offset centre,
     double longitude,
