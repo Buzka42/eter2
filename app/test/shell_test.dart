@@ -666,19 +666,15 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
     await tester.pump();
-    await waitForWidget(tester, find.text('READ DEEPER'));
+    // The section mounts before its data resolves, so wait for something the
+    // loaded chart draws rather than for the widget itself.
+    await waitForWidget(tester, find.text('YOUR CARD'));
   }
 
+  /// The reading used to be behind a `READ DEEPER` inside the Vessel, and this
+  /// pressed it. There is no disclosure now — the writing this surface exists
+  /// to show is simply on the page — so opening the Vessel is the whole of it.
   Future<void> openTheReading(WidgetTester tester) async {
-    tester
-        .widget<EterAction>(
-          find.ancestor(
-            of: find.text('READ DEEPER'),
-            matching: find.byType(EterAction),
-          ),
-        )
-        .onPressed!
-        .call();
     await tester.pump();
   }
 

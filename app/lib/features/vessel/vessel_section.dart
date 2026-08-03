@@ -15,7 +15,6 @@ import '../../core/db/app_database.dart';
 import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/profile/birth_time.dart';
-import '../../core/symbolic/astro_glyphs.dart';
 import '../../core/symbolic/chart_wheel.dart';
 import '../../core/symbolic/transits.dart';
 import '../../core/vessel/positions_composer.dart';
@@ -50,7 +49,6 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   late Future<_VesselData?> _data;
   StreamSubscription<ProfileRow?>? _profileSubscription;
   String? _profileFingerprint;
-  bool _readingOpen = false;
   bool _composing = false;
 
   @override
@@ -84,7 +82,6 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     if (_profileFingerprint == fingerprint || !mounted) return;
     _profileFingerprint = fingerprint;
     setState(() {
-      _readingOpen = false;
       _data = _load();
     });
   }
@@ -221,6 +218,15 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       future: _data,
       builder: (context, snapshot) {
         final data = snapshot.data;
+        // The reading used to be asked for when the disclosure was opened.
+        // With no disclosure there is no moment to hang it on but this one:
+        // the surface is on screen, so the writing it exists to show is
+        // composed if it is missing. Guarded inside, and idempotent.
+        if (data != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) unawaited(_composeIfMissing(data));
+          });
+        }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -263,44 +269,32 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 ),
               ],
               const SizedBox(height: EterSpace.s16),
-              // One menu, not two. The Life Path and the astrogram used to be
-              // separate disclosures with a compose button each, which framed
-              // them as two subjects; they are one chart, and the reading
-              // below is about all of it at once.
-              EterAction(
-                key: const ValueKey('vessel-reading-toggle'),
-                label: _readingOpen ? strings.showLess : strings.readDeeper,
-                emphasis: EterActionEmphasis.secondary,
-                onPressed: () {
-                  setState(() => _readingOpen = !_readingOpen);
-                  if (_readingOpen) unawaited(_composeIfMissing(data));
-                },
+              // No disclosure. `READ DEEPER` stood here and the reading — the
+              // thing this surface exists to deliver — was behind it, which is
+              // why the owner could look at the Vessel and see nothing but a
+              // column of cards analysed one at a time. It was there.
+              //
+              // Everything the Vessel has to say is on the page now, in order.
+              _ChartReading(
+                data: data,
+                composing: _composing,
               ),
-              if (_readingOpen) ...[
-                const SizedBox(height: EterSpace.s16),
-                _ChartReading(
-                  data: data,
-                  composing: _composing,
+              const SizedBox(height: EterSpace.s24),
+              // The whole chart in one list: the Life Path, the three
+              // personal points, the figure, and the seven remaining
+              // bodies. Each keeps its card, which is what the deck is
+              // for; the writing above is about how they stand together.
+              for (final position in data.everyPosition(strings))
+                _PositionCard(
+                  position: position,
+                  // The Sun card is already on screen at full width a few
+                  // lines above; a position resolving to the same card does
+                  // not print it twice.
+                  showCard: position.key != 'sun',
+                  fullWidth:
+                      Theme.of(context).brightness == Brightness.dark &&
+                          data.mode != GuidanceMode.grounded,
                 ),
-                const SizedBox(height: EterSpace.s24),
-                // The whole chart in one list: the Life Path, the three
-                // personal points, the figure, and the seven remaining
-                // bodies. Each keeps its card, which is what the deck is
-                // for; the writing above is about how they stand together.
-                for (final position in data.everyPosition(strings))
-                  _PositionCard(
-                    position: position,
-                    // The Sun card is already on screen at full width a few
-                    // lines above; a position resolving to the same card does
-                    // not print it twice.
-                    showCard: position.key != 'sun',
-                    fullWidth: Theme.of(context).brightness ==
-                            Brightness.dark &&
-                        data.mode != GuidanceMode.grounded,
-                  ),
-              ] else
-                for (final position in data.everyPosition(strings))
-                  _PositionLine(position: position),
               const SizedBox(height: EterSpace.s24),
               _Positions(data: data, now: widget.now),
             ],
@@ -611,85 +605,6 @@ class _PositionsState extends ConsumerState<_Positions> {
   }
 }
 
-class _PositionLine extends StatelessWidget {
-  const _PositionLine({required this.position});
-
-  final _VesselPosition position;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = EterInk.of(context);
-    final text = Theme.of(context).textTheme;
-    final strings = EterStrings.of(context);
-    final detail = position.detail(strings);
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: ink.line)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: EterSpace.s12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Keyed on the canonical body, never on the printed label.
-              if (position.bodyCanonical case final body?)
-                if (AstroGlyph.forBody(body) case final glyph?) ...[
-                  AstroGlyphMark(
-                    glyph: glyph,
-                    color: ink.labelMuted,
-                    size: 14,
-                  ),
-                  const SizedBox(width: EterSpace.s8),
-                ],
-              // Expanded, so the label wraps rather than running off the row.
-              // It held an unbounded `Text` for as long as every label was a
-              // short English word; `ODZIEDZICZONE` and `MEDIUM COELI` at
-              // 320 dp with text doubled overflow it by ten pixels, which the
-              // Polish goldens caught at exactly that size.
-              Expanded(
-                child: Text(
-                  position.label(strings).toUpperCase(),
-                  style: text.labelSmall,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: EterSpace.s4),
-          Text(
-            '${strings.arcanaTitle(position.card.assetSlug)} · '
-            '${position.keywords.join(', ')}',
-            style: text.titleMedium,
-          ),
-          if (detail != null) ...[
-            const SizedBox(height: EterSpace.s4),
-            Row(
-              children: [
-                if (position.signCanonical case final sign?)
-                  if (AstroGlyph.forSign(sign) case final glyph?) ...[
-                    AstroGlyphMark(
-                      glyph: glyph,
-                      color: ink.labelMuted,
-                      size: 12,
-                    ),
-                    const SizedBox(width: EterSpace.s4),
-                  ],
-                Expanded(child: Text(detail, style: text.bodySmall)),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-/// The chart read as one thing: three to five titled movements.
-///
-/// Replaces eighteen per-position passages. Those were each correct and none
-/// of them had looked at the chart — the owner's word was "generalistic" —
-/// because a passage that can only see one placement has nothing to relate it
-/// to. See `EterPrompts.vesselReading`.
 class _ChartReading extends StatelessWidget {
   const _ChartReading({required this.data, required this.composing});
 
