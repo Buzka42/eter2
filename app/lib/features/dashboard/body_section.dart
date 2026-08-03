@@ -7,7 +7,6 @@ import '../../core/clock.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/i18n/strings.dart';
-import '../../core/icons.dart';
 import '../../core/instruments.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -35,13 +34,8 @@ import '../../main.dart';
 class BodySection extends ConsumerStatefulWidget {
   const BodySection({
     super.key,
-    required this.expanded,
-    required this.onToggle,
     this.showHeading = true,
   });
-
-  final bool expanded;
-  final ValueChanged<bool> onToggle;
 
   /// Whether to draw its own rule and name while expanded. False when
   /// something above already names this section — the Dashboard's threshold
@@ -110,40 +104,22 @@ class _BodySectionState extends ConsumerState<BodySection> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (!widget.expanded || widget.showHeading)
+                    if (widget.showHeading)
                       Container(height: 1, color: ink.line),
-                    if (!widget.expanded)
-                      _DisclosureLine(
-                        fact: _fact(vitals, summary, strings),
-                        onTap: () => widget.onToggle(true),
-                      )
-                    else
-                      _ExpandedHeader(
-                        onClose: () => widget.onToggle(false),
-                        showTitle: widget.showHeading,
+                    _ExpandedHeader(showTitle: widget.showHeading),
+                    _ExpandedBody(
+                      db: db,
+                      now: now,
+                      today: today,
+                      conclusion: _conclusion(
+                        intake: intake,
+                        burn: burn,
+                        strings: strings,
                       ),
-                    AnimatedSize(
-                      duration: MediaQuery.disableAnimationsOf(context)
-                          ? EterMotion.durMicro
-                          : EterMotion.durEmphasis,
-                      curve: EterMotion.easeAir,
-                      alignment: Alignment.topCenter,
-                      child: widget.expanded
-                          ? _ExpandedBody(
-                              db: db,
-                              now: now,
-                              today: today,
-                              conclusion: _conclusion(
-                                intake: intake,
-                                burn: burn,
-                                strings: strings,
-                              ),
-                              vitals: vitals,
-                              meals: meals,
-                              intake: intake,
-                              burn: burn,
-                            )
-                          : const SizedBox(width: double.infinity),
+                      vitals: vitals,
+                      meals: meals,
+                      intake: intake,
+                      burn: burn,
                     ),
                   ],
                 );
@@ -155,18 +131,6 @@ class _BodySectionState extends ConsumerState<BodySection> {
     );
   }
 
-  /// One short textual fact beside the word `Body` — never a metric row.
-  String? _fact(
-    DailyVitalsRow? vitals,
-    DaySummaryRow? summary,
-    EterStrings strings,
-  ) {
-    final resting = vitals?.restingHr;
-    if (resting != null) return strings.factResting(resting.round());
-    final steps = summary?.steps ?? 0;
-    if (steps > 0) return strings.factSteps(_numbers(strings).format(steps));
-    return null;
-  }
 
   /// The section opens with its conclusion, in words, before any instrument.
   String _conclusion({
@@ -196,82 +160,24 @@ class _BodySectionState extends ConsumerState<BodySection> {
   }
 }
 
-class _DisclosureLine extends StatelessWidget {
-  const _DisclosureLine({required this.fact, required this.onTap});
-
-  final String? fact;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ink = EterInk.of(context);
-    final text = Theme.of(context).textTheme;
-    final strings = EterStrings.of(context);
-    return Semantics(
-      button: true,
-      expanded: false,
-      label: strings.theBody,
-      hint: strings.bodyExpandsHint,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 48),
-          child: Row(
-            children: [
-              Text(strings.theBody,
-                  style: text.labelSmall?.copyWith(color: ink.label)),
-              if (fact != null) ...[
-                const SizedBox(width: EterSpace.s8),
-                Expanded(
-                  child: Text(
-                    fact!,
-                    maxLines: 2,
-                    textAlign: TextAlign.end,
-                    overflow: TextOverflow.ellipsis,
-                    style: text.bodySmall?.copyWith(color: ink.labelMuted),
-                  ),
-                ),
-              ] else
-                const Spacer(),
-              const SizedBox(width: EterSpace.s8),
-              const EterDisclosureMark(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
+/// The Body's name, when something above has not already said it.
+///
+/// It used to be a name beside a CLOSE, and the close is gone with the
+/// disclosure it undid — the depths row is always on screen now, so leaving
+/// this section means choosing another, not emptying the page.
 class _ExpandedHeader extends StatelessWidget {
-  const _ExpandedHeader({required this.onClose, this.showTitle = true});
+  const _ExpandedHeader({this.showTitle = true});
 
-  final VoidCallback onClose;
   final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
     final text = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        // See the Vessel's header: a fixed heading beside a fixed action leaves
-        // the Spacer nothing to give up when either word grows. With no title
-        // there is nothing to push against, and the action sits left like
-        // everything else in this column.
-        if (showTitle)
-          Expanded(
-            child: Text(EterStrings.of(context).theBody,
-                style: text.labelSmall?.copyWith(color: ink.label)),
-          ),
-        EterAction(
-          label: EterStrings.of(context).close,
-          emphasis: EterActionEmphasis.quiet,
-          onPressed: onClose,
-        ),
-      ],
+    if (!showTitle) return const SizedBox.shrink();
+    return Text(
+      EterStrings.of(context).theBody,
+      style: text.labelSmall?.copyWith(color: ink.label),
     );
   }
 }

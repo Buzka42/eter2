@@ -78,10 +78,10 @@ void main() {
     EterStrings strings,
     String section,
   ) async {
-    await tester.ensureVisible(find.text(strings.lookDeeper));
-    await tester.pump();
-    await tester.tap(find.text(strings.lookDeeper));
-    await tester.pump();
+    // One tap, not two. `LOOK DEEPER` used to stand in front of this row and
+    // had to be opened before a depth could be chosen; the row is always on
+    // screen now, so choosing is the whole gesture.
+    //
     // `.last`, not the bare finder. In Polish the destination rail and the
     // guidance section are both `WGLĄD` by design, so a plain `find.text` matches
     // two widgets and throws "Too many elements". The section thresholds are

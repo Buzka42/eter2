@@ -31,13 +31,11 @@ class VesselSection extends ConsumerStatefulWidget {
     super.key,
     required this.db,
     required this.now,
-    required this.onClose,
     this.showHeading = true,
   });
 
   final AppDatabase db;
   final DateTime now;
-  final VoidCallback onClose;
 
   /// Whether to draw its own rule and name. False when something above
   /// already names this section — the Dashboard's threshold row does, and
@@ -226,26 +224,13 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.showHeading) Container(height: 1, color: ink.line),
-            Row(
-              children: [
-                // Expanded rather than a bare Text beside a Spacer: the heading
-                // and the close action together are wider than 320 dp at 200%
-                // text once either word grows, and a Spacer cannot give back
-                // space a fixed child has already claimed. With no heading
-                // there is nothing to push against, and the action sits left
-                // like everything else in this column.
-                if (widget.showHeading)
-                  Expanded(
-                    child: Text(strings.theVessel, style: text.labelSmall),
-                  ),
-                EterAction(
-                  label: strings.close,
-                  emphasis: EterActionEmphasis.quiet,
-                  onPressed: widget.onClose,
-                ),
-              ],
-            ),
+            // No close. The depths row above is always on screen and is the
+            // only way in or out of this section, so a control that emptied
+            // the page had nothing left to return to.
+            if (widget.showHeading) ...[
+              Container(height: 1, color: ink.line),
+              Text(strings.theVessel, style: text.labelSmall),
+            ],
             if (snapshot.connectionState == ConnectionState.waiting)
               Text(strings.readingChartOnDevice, style: text.bodyMedium)
             else if (data == null)

@@ -35,8 +35,11 @@ class DashboardPage extends ConsumerStatefulWidget {
 }
 
 class _DashboardPageState extends ConsumerState<DashboardPage> {
-  String? _expandedSection;
-  bool _choosingSection = false;
+  /// The depth the person has chosen, if they have chosen one.
+  ///
+  /// Null does not mean "closed" — see [_openSection]. There is no closed
+  /// state at night, because there is no longer anything to close with.
+  String? _chosenSection;
 
   /// Which way the incoming depth slides. The three are ordered — guidance,
   /// body, vessel — and the motion says so: moving rightward along the row
@@ -45,13 +48,25 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
 
   static const _sectionOrder = ['guidance', 'body', 'vessel'];
 
-  void _chooseSection(String section) {
+  /// Which depth is open, given what was chosen and what register we are in.
+  ///
+  /// At night one is always open, and nothing has to be tapped to get there.
+  /// `EterRegister.night` is exactly "immersive, or balanced after sunset" —
+  /// grounded resolves to day at every hour — so the owner's rule is this one
+  /// comparison rather than a mode test and a clock test that could disagree.
+  ///
+  /// Guidance leads because it is the first of the three and the one the day
+  /// is actually about; the row is right there to move off it.
+  String? _openSection(EterRegister register) =>
+      _chosenSection ??
+      (register == EterRegister.night ? _sectionOrder.first : null);
+
+  void _chooseSection(String section, EterRegister register) {
     setState(() {
-      final from = _expandedSection;
+      final from = _openSection(register);
       _slideFromRight = from == null ||
           _sectionOrder.indexOf(section) >= _sectionOrder.indexOf(from);
-      _expandedSection = section;
-      _choosingSection = false;
+      _chosenSection = section;
     });
   }
   final _scrollController = ScrollController();
@@ -171,15 +186,47 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
       fontWeight: FontWeight.w400,
     );
 
+    final register = EterRegister.of(context);
+    final open = _openSection(register);
+
     return SurfaceIntentScope(
       intent: SurfaceIntent.ritual,
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: EterSpace.gutter),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: EterSpace.s48),
+      // The row lives *outside* the scroll, directly under the destination
+      // rail, so it is on screen at every scroll position by construction.
+      //
+      // It was built first as a pinned `SliverPersistentHeader` inside the
+      // page, which is the usual way to make a row stick. Two things killed
+      // that: a pinned header has to state its height before it is laid out,
+      // and this one wraps to two lines at 390 dp and three at 200% text; and
+      // a header is only built while its sliver is within the viewport, so
+      // once guidance doubled in size and filled the screen on its own the row
+      // stopped existing at all until it had been scrolled to — which is
+      // exactly backwards from being always reachable.
+      //
+      // Holding it outside the scroll costs the row's place in the reading
+      // order: guidance no longer owns the very first glance, the three depths
+      // do. That is a real change to the opening moment and it is stated here
+      // rather than buried, but it is the honest reading of "sticks to the top,
+      // right below the main menu, so you can switch while deep inside one".
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: EterSpace.gutter),
+            child: _SectionThreshold(
+              selected: open,
+              onChoose: (section) => _chooseSection(section, register),
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: EterSpace.gutter),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: EterSpace.s48),
             StreamBuilder<List<GuidanceHistoryRow>>(
               stream: _guidanceFor(db, today),
               builder: (context, snapshot) {
@@ -225,64 +272,50 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             // surface of the Correspondence. Not a screen, not a feed, and
             // nothing when there is no correspondence or they have not written
             // today — see `DECISIONS.md` on extension over destinations.
-            _CorrespondingLine(today: today, now: now),
-            const SizedBox(height: EterSpace.s48),
-            if (_expandedSection == null)
-              _SectionThreshold(
-                choosing: _choosingSection,
-                onOpen: () => setState(() => _choosingSection = true),
-                onChoose: _chooseSection,
-              )
-            else ...[
-              // The row stays put while the depths change hands beneath it,
-              // which is the whole repair: the three are visible peers you
-              // move between, not a menu you fall through and climb out of.
-              _SectionThreshold(
-                choosing: true,
-                selected: _expandedSection,
-                onOpen: () {},
-                onChoose: _chooseSection,
+                  _CorrespondingLine(today: today, now: now),
+                  const SizedBox(height: EterSpace.s48),
+                  if (open != null)
+                    _SlidingSection(
+                      sectionKey: open,
+                      fromRight: _slideFromRight,
+                      child: switch (open) {
+                        // None of the three draws its own name here: the row
+                        // above is the heading now, and it stays put while
+                        // they change hands beneath it.
+                        //
+                        // None of them carries a close, either. There is
+                        // nothing to return to: the row is always present and
+                        // moving between the three is the only gesture there
+                        // is. A control whose only job was to undo a control
+                        // that no longer exists is not a control.
+                        'body' => const SurfaceIntentScope(
+                            intent: SurfaceIntent.plain,
+                            child: BodySection(showHeading: false),
+                          ),
+                        'vessel' => VesselSection(
+                            db: db,
+                            now: now,
+                            showHeading: false,
+                          ),
+                        _ => _ExpandedGuidance(
+                            rows: db.loadGuidanceForDate(today),
+                            composing: _composing,
+                            message: _compositionMessage,
+                            showHeading: false,
+                          ),
+                      },
+                    ),
+                  const SizedBox(height: EterSpace.s48),
+                ],
               ),
-              _SlidingSection(
-                sectionKey: _expandedSection!,
-                fromRight: _slideFromRight,
-                child: switch (_expandedSection!) {
-                  // None of the three draws its own name here: the row above
-                  // is the heading now, and it stays put while they change
-                  // hands beneath it.
-                  'body' => SurfaceIntentScope(
-                      intent: SurfaceIntent.plain,
-                      child: BodySection(
-                        expanded: true,
-                        showHeading: false,
-                        onToggle: (_) =>
-                            setState(() => _expandedSection = null),
-                      ),
-                    ),
-                  'vessel' => VesselSection(
-                      db: db,
-                      now: now,
-                      showHeading: false,
-                      onClose: () => setState(() => _expandedSection = null),
-                    ),
-                  _ => _ExpandedGuidance(
-                      rows: db.loadGuidanceForDate(today),
-                      composing: _composing,
-                      message: _compositionMessage,
-                      showHeading: false,
-                      onClose: () =>
-                          setState(() => _expandedSection = null),
-                    ),
-                },
-              ),
-            ],
-            const SizedBox(height: EterSpace.s48),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
 
 class _UncomposedGuidance extends StatelessWidget {
   const _UncomposedGuidance({
@@ -323,16 +356,19 @@ class _UncomposedGuidance extends StatelessWidget {
       );
 }
 
+/// The three depths, always shown.
+///
+/// There used to be a `LOOK DEEPER` in front of this row, and the row only
+/// appeared once it had been tapped. Two taps to reach a surface that is
+/// always there, and a name that promised depth without saying of what. The
+/// row is the whole control now: the three are named, the open one is in full
+/// ink, and moving between them is one tap from anywhere on the page.
 class _SectionThreshold extends StatelessWidget {
   const _SectionThreshold({
-    required this.choosing,
-    required this.onOpen,
     required this.onChoose,
     this.selected,
   });
 
-  final bool choosing;
-  final VoidCallback onOpen;
   final ValueChanged<String> onChoose;
 
   /// The depth currently open beneath the row, if any. Marks its choice and
@@ -342,36 +378,12 @@ class _SectionThreshold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ink = EterInk.of(context);
-    final text = Theme.of(context).textTheme;
     final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(height: 1, color: ink.line),
-        if (!choosing)
-          Semantics(
-            button: true,
-            label: strings.lookDeeper.toLowerCase(),
-            excludeSemantics: true,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: onOpen,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(strings.lookDeeper, style: text.labelSmall),
-                    ),
-                    const SizedBox(width: EterSpace.s8),
-                    const EterDisclosureMark(),
-                  ],
-                ),
-              ),
-            ),
-          )
-        else
-          Wrap(
+        Wrap(
             spacing: EterSpace.s24,
             runSpacing: EterSpace.s4,
             children: [
@@ -490,14 +502,12 @@ class _ExpandedGuidance extends StatelessWidget {
     required this.rows,
     required this.composing,
     required this.message,
-    required this.onClose,
     this.showHeading = true,
   });
 
   final Future<List<GuidanceHistoryRow>> rows;
   final bool composing;
   final String? message;
-  final VoidCallback onClose;
 
   /// Whether to draw its own rule and name. False when the threshold row
   /// above already names it — printing `GUIDANCE` twice, two lines apart,
@@ -512,7 +522,6 @@ class _ExpandedGuidance extends StatelessWidget {
     return FutureBuilder<List<GuidanceHistoryRow>>(
       future: rows,
       builder: (context, snapshot) {
-        final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.4;
         final byDimension = {
           for (final row in snapshot.data ?? const <GuidanceHistoryRow>[])
             row.dimension: row,
@@ -520,23 +529,10 @@ class _ExpandedGuidance extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (showHeading) Container(height: 1, color: ink.line),
-            if (!showHeading)
-              _GuidanceHeaderActions(onClose: onClose)
-            else if (largeText) ...[
+            if (showHeading) ...[
+              Container(height: 1, color: ink.line),
               Text(strings.sectionGuidance, style: text.labelSmall),
-              _GuidanceHeaderActions(onClose: onClose),
-            ] else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(strings.sectionGuidance, style: text.labelSmall),
-                  const SizedBox(width: EterSpace.s12),
-                  Expanded(
-                    child: _GuidanceHeaderActions(onClose: onClose),
-                  ),
-                ],
-              ),
+            ],
             if (message != null)
               Semantics(
                 liveRegion: true,
@@ -558,28 +554,10 @@ class _ExpandedGuidance extends StatelessWidget {
   }
 }
 
-class _GuidanceHeaderActions extends StatelessWidget {
-  const _GuidanceHeaderActions({required this.onClose});
-
-  final VoidCallback onClose;
-
-  // REFRESH used to sit here. Recomposing is now one control in the Sanctum
-  // that recomposes the whole day, rather than a button on each surface that
-  // recomposed whatever that surface happened to own.
-  @override
-  Widget build(BuildContext context) => Wrap(
-        alignment: WrapAlignment.end,
-        spacing: EterSpace.s8,
-        runSpacing: EterSpace.s4,
-        children: [
-          EterAction(
-            label: EterStrings.of(context).close,
-            emphasis: EterActionEmphasis.quiet,
-            onPressed: onClose,
-          ),
-        ],
-      );
-}
+// `_GuidanceHeaderActions` stood here and held exactly one control, CLOSE.
+// REFRESH had already left it for the Sanctum, and now the close has gone with
+// the disclosure it used to undo: the depths row is always on screen, so there
+// is nothing to come back to and nothing to close.
 
 class _GuidanceDimension extends StatelessWidget {
   const _GuidanceDimension({required this.name, required this.row});

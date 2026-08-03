@@ -73,10 +73,6 @@ void main() {
     );
     await tester.pump();
 
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
     await tester.tap(find.text('THE BODY'));
     await tester.pump(const Duration(milliseconds: 700));
     await tester.runAsync(
@@ -100,7 +96,7 @@ void main() {
     expect(finder, findsWidgets);
   }
 
-  testWidgets('the resting Dashboard shows guidance and one quiet disclosure',
+  testWidgets('the resting Dashboard shows guidance and the three depths',
       (tester) async {
     await pumpShell(tester);
     expect(find.byType(DashboardPage), findsOneWidget);
@@ -111,32 +107,29 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('LOOK DEEPER'), findsOneWidget);
-    // No chart intrudes on the resting state.
+    // The row is the whole control now. `LOOK DEEPER` used to stand in front
+    // of it, so reaching a surface that was always there cost two taps.
+    expect(find.text('LOOK DEEPER'), findsNothing);
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+    // By day nothing is open until one is chosen, and nothing can be closed.
     expect(find.text('CLOSE'), findsNothing);
     await closeShell(tester);
   });
 
-  testWidgets('the disclosure expands in place and closes back to guidance',
+  testWidgets('a depth opens with no disclosure, and there is nothing to close',
       (tester) async {
     await pumpShell(tester);
     await expandBody(tester);
 
-    // Conclusion first, instrument beneath, explicit close.
     expect(
       find.textContaining('1,610 kcal eaten against 1,870 kcal burned'),
       findsOneWidget,
     );
-    expect(find.text('CLOSE'), findsOneWidget);
-
-    final close = find.text('CLOSE');
-    await tester.ensureVisible(close);
-    await tester.pump();
-    await tester.tap(close);
-    await tester.pump(const Duration(milliseconds: 700));
+    // No close anywhere. Leaving the Body means choosing one of the other two,
+    // which is why the row above it never goes away.
     expect(find.text('CLOSE'), findsNothing);
-    expect(find.text('LOOK DEEPER'), findsOneWidget);
-    // The guidance is still there, untouched.
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+    // The guidance is still there, untouched, above it.
     expect(
       find.text(
         'Begin gently. Your body is asking for steadiness, not intensity.',
@@ -144,6 +137,23 @@ void main() {
       ),
       findsOneWidget,
     );
+    await closeShell(tester);
+  });
+
+  testWidgets('at night a depth is already open, with nothing tapped',
+      (tester) async {
+    // The owner's rule: in the immersive and balanced registers after dark it
+    // opens on its own. `EterRegister.night` is exactly those two — grounded
+    // resolves to day at every hour — so this is the whole condition.
+    await pumpShell(tester, register: EterRegister.night);
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+
+    final selected = tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .where((widget) => widget.properties.selected ?? false)
+        .map((widget) => widget.properties.label)
+        .toList();
+    expect(selected, contains('guidance'));
     await closeShell(tester);
   });
 
@@ -157,13 +167,8 @@ void main() {
   testWidgets('the row names all three depths and marks the open one',
       (tester) async {
     await pumpShell(tester);
-    // At rest the threshold is one quiet line, as it always was.
-    expect(find.byType(EterSectionMark), findsNothing);
-
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
+    // The three are named from the first frame; there is no state in which
+    // they are hidden behind something else.
     expect(find.byType(EterSectionMark), findsNWidgets(3));
     expect(find.text('GUIDANCE'), findsOneWidget);
     expect(find.text('THE BODY'), findsOneWidget);
@@ -175,7 +180,7 @@ void main() {
     // The row survived the opening: the other two are still one tap away.
     expect(find.byType(EterSectionMark), findsNWidgets(3));
     expect(find.text('VESSEL'), findsOneWidget);
-    expect(find.text('CLOSE'), findsOneWidget);
+    expect(find.text('CLOSE'), findsNothing);
 
     // The open one is the only one marked selected, so a screen reader can
     // say where it is.
@@ -220,10 +225,6 @@ void main() {
   testWidgets('the open section does not print its own name a second time',
       (tester) async {
     await pumpShell(tester);
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
     await tester.pump(const Duration(milliseconds: 700));
 
@@ -519,10 +520,6 @@ void main() {
     );
     await tester.pump();
 
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
     await tester.pump();
     await tester.runAsync(
@@ -546,16 +543,26 @@ void main() {
     expect(
         find.textContaining('association, not proof of cause'), findsOneWidget);
 
-    final guidanceClose = find.text('CLOSE');
-    await tester.ensureVisible(guidanceClose);
+    // Leaving Guidance means choosing another depth, not closing this one.
+    expect(find.text('CLOSE'), findsNothing);
+    final body = find.text('THE BODY');
+    await tester.ensureVisible(body);
     await tester.pump();
-    await tester.tap(guidanceClose);
-    await tester.pump();
-    expect(find.text('LOOK DEEPER'), findsOneWidget);
+    await tester.tap(body);
+    await tester.pump(const Duration(milliseconds: 700));
+    // The row is still there and has moved its mark, which is the whole way
+    // out of a section now.
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
+    final nowSelected = tester
+        .widgetList<Semantics>(find.byType(Semantics))
+        .where((widget) => widget.properties.selected ?? false)
+        .map((widget) => widget.properties.label)
+        .toList();
+    expect(nowSelected, contains('the body'));
     await closeShell(tester);
   });
 
-  testWidgets('Guidance actions reflow at 320dp and 200 percent text',
+  testWidgets('the depths row reflows at 320dp and 200 percent text',
       (tester) async {
     await pumpShell(
       tester,
@@ -564,18 +571,20 @@ void main() {
       textScale: 2,
       reduceMotion: true,
     );
-    final lookDeeper = find.text('LOOK DEEPER');
-    await tester.ensureVisible(lookDeeper);
+    // The row wraps to more than one line at this size, which is why the
+    // pinned header measures it rather than assuming a height — assuming one
+    // overflowed a plain 390 dp phone by 37 px.
+    final guidance = find.text('GUIDANCE');
+    await tester.ensureVisible(guidance);
     await tester.pump();
-    await tester.tap(lookDeeper);
-    await tester.pump();
-    await tester.tap(find.text('GUIDANCE'));
+    await tester.tap(guidance);
     await tester.pump();
 
-    // REFRESH used to sit beside CLOSE here. Recomposing is one control in
-    // the Sanctum now, and it recomposes the day rather than this section.
+    // REFRESH and CLOSE have both left this surface: recomposing is one
+    // control in the Sanctum, and there is nothing to close.
     expect(find.text('REFRESH'), findsNothing);
-    expect(find.text('CLOSE'), findsOneWidget);
+    expect(find.text('CLOSE'), findsNothing);
+    expect(find.byType(EterSectionMark), findsNWidgets(3));
     expect(tester.takeException(), isNull);
     await closeShell(tester);
   });
@@ -608,10 +617,6 @@ void main() {
     );
     await tester.pump();
 
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
     await tester.pump();
     // Nothing to press: the day's first look is the only automatic compose,
@@ -658,10 +663,6 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 600)),
     );
-    await tester.pump();
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
     await tester.pump();
@@ -782,10 +783,6 @@ void main() {
     );
     await tester.pump();
 
-    await tester.ensureVisible(find.text('LOOK DEEPER'));
-    await tester.pump();
-    await tester.tap(find.text('LOOK DEEPER'));
-    await tester.pump();
     await tester.tap(find.text('VESSEL'));
     await tester.pump();
     await waitForWidget(
@@ -1245,10 +1242,16 @@ void main() {
       'journal',
       'dashboard',
       'Open Sanctum',
-      // Lower-cased like the two destinations above it: all three are drawn in
-      // letterspaced caps, and a screen reader should be given the word rather
-      // than the typography. It used to be a separate sentence-case literal.
-      'look deeper',
+      // Lower-cased like the two destinations above it: all of these are drawn
+      // in letterspaced caps, and a screen reader should be given the word
+      // rather than the typography.
+      //
+      // `look deeper` used to be here. The three depths are the row now, and
+      // each of them is a target in its own right — which is more to check,
+      // not less.
+      'guidance',
+      'the body',
+      'vessel',
     ]) {
       final node = tester.getSemantics(find.bySemanticsLabel(label));
       expect(node.rect.height, greaterThanOrEqualTo(48), reason: label);
