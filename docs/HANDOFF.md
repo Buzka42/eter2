@@ -53,10 +53,15 @@ Still unproven, and why:
 
 | Thing | Blocked on |
 |---|---|
-| The invitation appearing | Next fires **1 August, 20:00**. The 31 July one fired on time and posted nothing — the icon name was wrong, and is fixed; see item 4 |
-| `ic_notification` on the status bar | Same firing |
 | The Letter arriving on a page | Needs five recall notes in a month; the device has one, and they accrue one a day |
 | The Correspondence | Needs an account on both sides and the rules deployed |
+
+**On 3 August the invitation consent was found switched _off_**, not on as this
+document said — so nothing was scheduled and nothing could have fired. Turned
+back on with the owner's agreement, and the alarm landed at **20:54**, which is
+the real sunset plus thirty rather than the flat 20:00 fallback. That is worth
+noticing on its own: the fallback fired last time because the profile carried
+`birth_place = 'Warsaw'` with no coordinates, and it no longer does.
 
 ---
 
@@ -522,8 +527,13 @@ exists and needs no platform support, and the published copy a person can reach.
 Publishing catches every failure on purpose — an export that succeeded must not
 report failure because a convenience did not.
 
-**Not yet seen on screen:** the published copy actually appearing in Downloads.
-Built, installed, and the cable dropped before the tap.
+**Seen on screen, 3 August.** `EKSPORTUJ` on the device wrote
+`/sdcard/Download/Eter export 2026-08-03T18-14-32-127508Z/` containing
+`eter-local-data.json` at 4.6 MB, `minute_buckets.csv`, `raw_buckets.csv`,
+`README.txt`, and two zero-length CSVs (`activity_sessions`, `live_sessions`)
+for the measures this record has nothing in — absent, not zero. The Sanctum then
+offers `KOPIUJ ŚCIEŻKĘ` and says the copy is in Downloads. The last unproven
+part of this item is now proven.
 
 **Prompt fixtures — done, and they earned their keep immediately.**
 `test/fixtures/live/` holds one recorded response per call and
@@ -719,3 +729,30 @@ that block the most:
 6. **Firestore rules deploy** — the live project's rules predate the mirror and
    would deny it.
 7. **Rotate the development Gemini key** before any public build.
+8. **The card art is lettered in English.** Every plate carries its title inside
+   the image — `STRENGTH · VIII`, `THE LOVERS · VI`, `THE DEVIL · XV` — so on a
+   Polish device the most prominent thing on the most symbolic surface is in the
+   wrong language, under prose that is correctly Polish. Nothing in the code
+   draws it, so there is no string to translate: it is 22 `.webp` plates per
+   register and 22 `-dark.mp4` loops. Either regenerate them per language, or
+   take the lettering out of the art and set the title in code, which is the
+   cheaper answer and the only one that scales past two languages.
+
+   Noticed while verifying the astrogram on 3 August. Asset coverage itself is
+   complete and correct — all 22 majors have both plates and a night loop, and
+   loops are `-dark` only because they are a night-register feature by design.
+
+---
+
+## One thing that looks like a defect and is not
+
+On the owner's own chart the Vessel draws **the same card twice in a row** —
+`ZASTANE` and `ODZIEDZICZONE`, both Kochankowie, same art, same keywords, one
+directly under the other. It reads as a rendering fault and it is arithmetic:
+`given` reduces the day, 25 → 7, and `inherited` is the month, already 7. Two
+positions landing on one card is a normal outcome of `buildArcanaMatrix`, not a
+collision.
+
+Recorded because it will be reported again by the next person who looks. If it
+should *say* that the two coincide rather than leaving the reader to work it
+out, that is a product decision and nobody has made it.
