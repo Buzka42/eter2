@@ -921,17 +921,29 @@ class _BirthContextState extends State<_BirthContext> {
   }
 }
 
-class _PersonalizationControls extends StatefulWidget {
+/// The local-only half of the Sanctum: pattern review, the weekly view, and
+/// the destructive controls.
+///
+/// A `Consumer` because both of the things it prepares read a window backwards
+/// from *now*, and they were reading the wall clock. Every other path in the
+/// product takes `nowProvider`, and the two that did not were the two whose
+/// answer depends entirely on which days they think are recent: with a pinned
+/// fixture the seven-day window simply walked off the seeded data as real time
+/// passed, so the weekly view reported "not enough history" for a record that
+/// had plenty. It failed the moment the host clock crossed midnight, which is
+/// the worst kind of test — one that starts failing while nobody is touching it.
+class _PersonalizationControls extends ConsumerStatefulWidget {
   const _PersonalizationControls({required this.database});
 
   final AppDatabase database;
 
   @override
-  State<_PersonalizationControls> createState() =>
+  ConsumerState<_PersonalizationControls> createState() =>
       _PersonalizationControlsState();
 }
 
-class _PersonalizationControlsState extends State<_PersonalizationControls> {
+class _PersonalizationControlsState
+    extends ConsumerState<_PersonalizationControls> {
   late Future<List<PatternCandidateRow>> _patterns =
       widget.database.loadActivePatterns();
   late Future<List<RetrospectiveRow>> _retrospectives =
@@ -949,7 +961,7 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _message = strings.reviewing;
     });
     final result = await LocalPatternDiscovery(widget.database).review(
-      now: DateTime.now(),
+      now: ref.read(nowProvider)(),
     );
     if (!mounted) return;
     setState(() {
@@ -972,7 +984,7 @@ class _PersonalizationControlsState extends State<_PersonalizationControls> {
       _message = strings.preparingSevenDayView;
     });
     final result = await LocalWeeklyRetrospective(widget.database).prepare(
-      now: DateTime.now(),
+      now: ref.read(nowProvider)(),
     );
     if (!mounted) return;
     setState(() {

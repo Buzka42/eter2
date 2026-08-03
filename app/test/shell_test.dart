@@ -73,6 +73,8 @@ void main() {
     );
     await tester.pump();
 
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
+    await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('THE BODY'));
@@ -158,6 +160,8 @@ void main() {
     // At rest the threshold is one quiet line, as it always was.
     expect(find.byType(EterSectionMark), findsNothing);
 
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
+    await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     expect(find.byType(EterSectionMark), findsNWidgets(3));
@@ -216,6 +220,8 @@ void main() {
   testWidgets('the open section does not print its own name a second time',
       (tester) async {
     await pumpShell(tester);
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
+    await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
@@ -513,6 +519,8 @@ void main() {
     );
     await tester.pump();
 
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
+    await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
@@ -600,6 +608,8 @@ void main() {
     );
     await tester.pump();
 
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
+    await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
@@ -648,6 +658,8 @@ void main() {
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 600)),
     );
+    await tester.pump();
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
@@ -770,6 +782,8 @@ void main() {
     );
     await tester.pump();
 
+    await tester.ensureVisible(find.text('LOOK DEEPER'));
+    await tester.pump();
     await tester.tap(find.text('LOOK DEEPER'));
     await tester.pump();
     await tester.tap(find.text('VESSEL'));
@@ -1138,11 +1152,16 @@ void main() {
         )
         .onPressed!
         .call();
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    // Waited for rather than slept through. This was a flat 30 ms delay racing
+    // an asynchronous prepare, which passed on an idle machine and lost on a
+    // busy one — it failed here while a device build was running, and failed on
+    // the pristine tree too, so it was never about whatever was being changed
+    // at the time. `waitForWidget` polls for up to twelve seconds and fails
+    // with the same expectation if it never arrives.
+    await waitForWidget(
+      tester,
+      find.text('Seven-day view prepared on this device.'),
     );
-    await tester.pump();
-
     expect(
       find.text('Seven-day view prepared on this device.'),
       findsOneWidget,

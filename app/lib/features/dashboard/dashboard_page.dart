@@ -156,9 +156,15 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     final text = Theme.of(context).textTheme;
     // Display scale responds to width: the concept plates' large type is a
     // mood cue, not a fixed size.
-    final displayStyle = MediaQuery.sizeOf(context).width < 360
+    //
+    // Doubled, at the owner's instruction: guidance is the one passage the
+    // product exists to deliver and it was reading like body copy on a phone.
+    // The line height is scaled with the size rather than kept, because
+    // `cormorant` stores height as a ratio — doubling only the size would
+    // halve the leading and set the passage solid.
+    final displayStyle = _doubled(MediaQuery.sizeOf(context).width < 360
         ? text.displaySmall
-        : text.displayMedium;
+        : text.displayMedium);
     final supportingStyle = text.headlineSmall?.copyWith(
       fontSize: 19,
       height: 28 / 19,
@@ -726,6 +732,19 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
     }
     return fallback;
   }
+}
+
+/// Twice the size, with the leading kept in proportion.
+///
+/// `height` in this theme is a *ratio* — `cormorant` divides the leading it was
+/// given by the size — so doubling `fontSize` alone would leave the ratio
+/// unchanged and the lines would set solid at twice the weight. Nothing else in
+/// the product doubles type, which is why this is a local helper rather than a
+/// theme entry: guidance is the one passage that carries the day.
+TextStyle? _doubled(TextStyle? style) {
+  final size = style?.fontSize;
+  if (style == null || size == null) return style;
+  return style.copyWith(fontSize: size * 2);
 }
 
 /// The synthesis content contract: a primary passage and an optional
