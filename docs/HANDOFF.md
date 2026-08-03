@@ -178,13 +178,36 @@ reasoning for each choice. In brief:
   Secondary cards take the Sun card's clamp **at night outside the grounded
   register**; day and grounded keep the 132 dp thumbnail.
 
-  **This is the one change in this batch that a device has to confirm.**
+  **This was the one change in this batch that a device had to confirm, and it
+  is confirmed** — 3 August, at night, balanced register, on the owner's phone.
+
+  Measured rather than eyeballed, because motion is not visible in a
+  screenshot. Two things were counted:
+
+  - **Decoders held, via `dumpsys media.resource_manager`.** Fresh launch with
+    the Vessel closed holds **2** — the shell's ambient field. With the Vessel
+    open and `CZYTAJ GŁĘBIEJ` expanded, the whole column scrolled: **8**. That
+    is 8 − 2 = **six plates, exactly the cap**. The budget holds on hardware.
+  - **Motion, by differencing frames.** Four to five screenshots ~0.8 s apart,
+    summing pixels over a window *inside* the card art rather than the whole
+    screen — the star field animates too, so a full-frame diff proves nothing.
+    The Sun card varied across every frame, and so did The Fool **after being
+    scrolled into view from off-screen**, which is the half the visibility
+    handoff exists for.
+
+  Also still true in this build: `requestAudioFocus` appears **zero** times.
+
+  One thing noticed and deliberately not chased: paging to the Journal does
+  *not* release the plates' decoders, because the shell's pager keeps the
+  Dashboard mounted and the plates never report themselves off-screen. It costs
+  nothing that matters — the cap is still respected, which is the whole point of
+  the budget — but it is the obvious next thing if decoders ever get tight.
+
+  If you need to re-run this: the technique is worth more than the result.
   `eterRunningTests()` disables the video plugin outright, so the budget is
-  unit-tested (`test/arcana_loop_budget_test.dart`) and the visibility half
-  is not testable here at all. On the phone, at night, in the balanced or
-  immersive register: open the Vessel, `Read deeper`, and scroll the whole
-  column — every card should be moving by the time you have looked at it for
-  a moment, and none should stutter.
+  unit-tested (`test/arcana_loop_budget_test.dart`) and the visibility half is
+  not testable in the suite at all. Frame differencing plus the resource
+  manager is the only way anyone has checked it.
 - **Sanctum, by frequency** (owner's pick over by-consequence and
   collapsible): opening page, language, register, evening invitation on top;
   birth context, where-you-live, consents, and the rest below the hairline.
