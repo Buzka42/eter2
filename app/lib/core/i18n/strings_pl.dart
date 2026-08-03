@@ -1877,7 +1877,8 @@ class EterStringsPl extends EterStrings {
   @override
   String get invitationTitle => 'Wieczór';
   @override
-  String get invitationBody => 'Strona, jeśli masz ochotę.';
+  String get invitationBody =>
+      'Opowiedz o dzisiejszym dniu, jeśli masz ochotę.';
   @override
   String get longViewNote =>
       'Cofaj się w historii dziennika, a dzień się poszerzy — do tygodnia, '

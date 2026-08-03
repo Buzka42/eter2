@@ -485,12 +485,60 @@ the control reading OFF and stores nothing; allowing stores the consent with its
 UTC offset intact; and exactly one `RTC_WAKEUP` alarm is registered against the
 plugin's receiver.
 
+### It never arrived, and here is why · *fixed 3 August*
+
+**The receivers were not in the APK.** `zonedSchedule` registers an alarm whose
+PendingIntent targets
+`com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver`, and that
+component was declared **nowhere** — not in the app manifest, and not merged in
+from the plugin. AlarmManager accepts such an alarm perfectly happily, fires it
+on time, and delivers the broadcast to nothing.
+
+The failure mode is the worst available: no notification, no exception, no log
+line, and `dumpsys alarm` *showing the receiver's name* the whole time — because
+that string is just the intent's component, not evidence anything can receive it.
+
+It cost three evenings — 31 July, 1 August, 3 August — and the icon was blamed
+twice. The icon was never the cause.
+
+**Both receivers are declared in `AndroidManifest.xml` now**, and the boot one
+carries `MY_PACKAGE_REPLACED` as well as `BOOT_COMPLETED`: Android drops an app's
+alarms when the package is replaced, which is every store update, so without it
+an update would silently end the invitation for anybody who had it on.
+
+**Check it on the APK, never on the source**, because it is the merge that fails:
+dump the built APK's manifest with `aapt2 dump xmltree` and grep for
+`dexterous`. Empty means broken. Reading `AndroidManifest.xml` proves nothing.
+
+**Proven end to end on the device**, app in the background: the notification
+posts, lands under **Silent** at `importance=2`, carries no sound and no
+vibration, and `ic_notification` renders on the status bar as the arc and the
+plumb — not the white blob an adaptive icon would have given. That closes both
+of the two rows this document had been carrying as unproven since 31 July.
+
+**Two debug-only controls now exist in the Sanctum**, gated on
+`kDebugMode && !eterRunningTests()`:
+
+- `SEND INVITATION NOW` calls `LocalNotificationSink.debugShowNow`, which posts
+  the notification directly. It is what isolated the fault: it worked while the
+  scheduled one did not, which ruled out the icon, the channel and the
+  permission in one tap.
+- `SCHEDULE IN 60s` goes through the real `scheduleAt`, so the alarm-and-receiver
+  half can be watched inside a minute instead of once per sunset.
+
+`eterRunningTests()` matters as much as `kDebugMode` there: `flutter test` is a
+debug build, and without it these two appear in every Sanctum test and golden —
+fourteen failures for a control that only means anything on a phone.
+
 **Still to watch, none of which a test can:**
 
-1. One notification that evening, silent and low-importance, and **only one**.
+1. ~~One notification that evening, silent and low-importance~~ — **done**, by
+   the 60-second probe. Still worth seeing fire at a real sunset once.
 2. Write a page during the day; that evening must stay silent.
 3. Turn it off; anything pending must disappear immediately.
-4. Reboot mid-afternoon; that evening's invitation must survive.
+4. Reboot mid-afternoon; that evening's invitation must survive. This is now
+   actually plausible — before 3 August the boot receiver did not exist either,
+   so it could not have worked.
 
 **And the thing the device changed about the design.** The profile carries
 `birth_place = 'Warsaw'` and **no coordinates**, so `registerCoordinates` returns
@@ -501,12 +549,16 @@ and never geocoded. Renamed, documented, and the Sanctum copy now says "at your
 own sunset — or at eight, if Eter does not know where you are" rather than
 promising a sunset it may not have.
 
-**The icon was wrong and is fixed.** It was scheduled against
-`@mipmap/ic_launcher`, which is adaptive and full-colour, and Android draws a
-small icon as an alpha mask — it would have rendered as a white blob.
+**The icon.** It was scheduled against `@mipmap/ic_launcher`, which is adaptive
+and full-colour, and Android draws a small icon as an alpha mask.
 `res/drawable/ic_notification.xml` is the mark reduced to what survives at 24dp:
-the arc and the plumb. It compiles into the APK; nobody has seen it on a status
-bar yet.
+the arc and the plumb. **Seen on a status bar on 3 August** and it renders
+exactly as drawn.
+
+Worth being honest about, since it is the kind of thing that misleads the next
+person: changing this icon was necessary but it fixed nothing at the time, and
+it was recorded here as though it had. The notification was never reaching the
+point of having an icon. See the section above.
 
 ### 5 · Import · *done*, and the prompt fixtures · *blocked on the endpoint*
 

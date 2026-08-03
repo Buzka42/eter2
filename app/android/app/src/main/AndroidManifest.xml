@@ -80,6 +80,46 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS"/>
             </intent-filter>
         </activity-alias>
+        <!-- The evening invitation's two receivers.
+             ============================================================
+             These have to be declared here. `flutter_local_notifications`
+             does not contribute them through manifest merging, and without
+             them the feature fails in the most expensive way there is:
+             `zonedSchedule` succeeds, AlarmManager accepts the alarm and
+             fires it on time — `dumpsys alarm` even shows the receiver's
+             name, because that is just the intent's component — and the
+             broadcast is then delivered to a component that does not exist.
+             No notification, no exception, no log line.
+
+             It cost three evenings to find. The alarm is bound to the real
+             sunset, so each guess took a day to disprove, and the symptom
+             was identical every time: fired on time, posted nothing. The
+             icon was blamed twice and was never the cause; `debugShowNow`
+             posts the same notification with the same icon on the same
+             channel and it renders perfectly.
+
+             Verify after touching this on the APK rather than on the source,
+             because it is the merge that fails: dump the built APK's manifest
+             with `aapt2 dump xmltree` and grep it for "dexterous". It must not
+             come back empty. Checking this file instead proves nothing. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
+            android:exported="false" />
+        <!-- And this is why RECEIVE_BOOT_COMPLETED above was never enough on
+             its own. `MY_PACKAGE_REPLACED` is here as well as BOOT_COMPLETED:
+             Android drops an app's alarms when the package is replaced, which
+             is every update from the store, and without this an update would
+             silently end the invitation for anybody who had it on. -->
+        <receiver
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

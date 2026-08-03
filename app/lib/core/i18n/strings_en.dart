@@ -1678,7 +1678,7 @@ class EterStringsEn extends EterStrings {
   @override
   String get invitationTitle => 'The evening';
   @override
-  String get invitationBody => 'A page, if you want one.';
+  String get invitationBody => 'Say how today went, if you feel like it.';
   @override
   String get longViewNote =>
       'Keep turning back in the Journal’s history and the day widens — a week, '

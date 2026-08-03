@@ -6,6 +6,7 @@
 /// testing and the platform call is the part that cannot be.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
@@ -206,6 +207,66 @@ class LocalNotificationSink implements InvitationSink {
       // as a serious request, and an invitation that arrives at 20:34 instead
       // of 20:30 is the same invitation.
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  /// Posts the invitation **now**, by the same path the scheduled one takes.
+  ///
+  /// Debug builds only, and it throws in release rather than being quietly
+  /// inert — a test affordance that can ship is a feature nobody wrote.
+  ///
+  /// It exists because this feature has failed silently three evenings running
+  /// — 31 July, 1 August and 3 August — and every attempt to see it costs a
+  /// day: the alarm is bound to real sunset, so a wrong guess is not found
+  /// until the next one. Each time the symptom was identical and useless: the
+  /// alarm fires on time, the receiver runs, and no notification exists. There
+  /// is nothing to read afterwards, because by then the logcat has rolled.
+  ///
+  /// This deliberately does **not** go through [scheduleAt]. The question it
+  /// answers is narrower and it is the one that was never isolated: can this
+  /// app post this notification at all, with this icon, on this channel? If
+  /// this works and the scheduled one still does not, the fault is in the
+  /// alarm and receiver half; if this fails too, it is in the notification
+  /// itself, and the error arrives immediately instead of tomorrow.
+  Future<void> debugShowNow({
+    required String title,
+    required String body,
+  }) async {
+    if (!kDebugMode) {
+      throw StateError('debugShowNow is not available outside a debug build');
+    }
+    await _ensureReady();
+    await _plugin.show(
+      id: _id,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: _android,
+        iOS: DarwinNotificationDetails(presentSound: false),
+      ),
+    );
+  }
+
+  /// Schedules the invitation a short way out, by the **real** [scheduleAt]
+  /// path, so the alarm and receiver half can be watched inside a minute.
+  ///
+  /// Debug builds only. Pairs with [debugShowNow]: that one proved the
+  /// notification itself is sound — it posts, the channel is created, and
+  /// `ic_notification` renders on the status bar. So whatever is wrong is
+  /// between `zonedSchedule` and the notification appearing, and this is the
+  /// only way to look at that without spending an evening per attempt.
+  Future<void> debugScheduleIn(
+    Duration delay, {
+    required String title,
+    required String body,
+  }) async {
+    if (!kDebugMode) {
+      throw StateError('debugScheduleIn is not available outside a debug build');
+    }
+    await scheduleAt(
+      DateTime.now().add(delay),
+      title: title,
+      body: body,
     );
   }
 

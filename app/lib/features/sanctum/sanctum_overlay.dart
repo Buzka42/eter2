@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -22,6 +23,7 @@ import '../../core/entitlement/entitlement.dart';
 import '../../core/health/health_hub.dart';
 import '../../core/health/platform_health_gateway.dart';
 import '../../core/health/write_back.dart';
+import '../../core/invitation/invitation_scheduler.dart';
 import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/privacy/local_data_export.dart';
@@ -35,6 +37,7 @@ import '../../core/clock.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
 import '../../core/symbolic/natal_chart.dart';
 import '../../core/symbolic/solar.dart';
+import '../../core/theme.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
 import 'account_section.dart';
@@ -170,6 +173,67 @@ class SanctumOverlay extends ConsumerWidget {
                                 ),
                               ),
                     ),
+                    // Debug builds only, and unlocalised on purpose: it is a
+                    // probe, not a surface, and giving it Polish would put it
+                    // in `TRANSLATIONS.md` for somebody to review as product.
+                    //
+                    // The invitation is bound to real sunset, so every guess at
+                    // why it does not appear costs a day — and it has now cost
+                    // three. This posts the same notification immediately, so
+                    // the question "can this app post this at all" stops being
+                    // a question you answer tomorrow.
+                    //
+                    // `eterRunningTests()` as well as [kDebugMode], because
+                    // `flutter test` *is* a debug build: without it these two
+                    // appear in every Sanctum test and every Sanctum golden,
+                    // which is fourteen failures and four re-recorded images
+                    // for a control that only means anything on a phone.
+                    if (kDebugMode && !eterRunningTests()) ...[
+                      const SizedBox(height: EterSpace.s16),
+                      EterAction(
+                        label: 'SEND INVITATION NOW (DEBUG)',
+                        emphasis: EterActionEmphasis.quiet,
+                        onPressed: () => unawaited(() async {
+                          final messenger = ScaffoldMessenger.maybeOf(context);
+                          try {
+                            await LocalNotificationSink().debugShowNow(
+                              title: strings.invitationTitle,
+                              body: strings.invitationBody,
+                            );
+                            messenger?.showSnackBar(const SnackBar(
+                              content: Text('show() returned without throwing'),
+                            ));
+                          } catch (error) {
+                            // Shown rather than swallowed: a silent failure here
+                            // is the entire bug being chased.
+                            messenger?.showSnackBar(SnackBar(
+                              content: Text('show() threw: $error'),
+                            ));
+                          }
+                        }()),
+                      ),
+                      EterAction(
+                        label: 'SCHEDULE IN 60s (DEBUG)',
+                        emphasis: EterActionEmphasis.quiet,
+                        onPressed: () => unawaited(() async {
+                          final messenger = ScaffoldMessenger.maybeOf(context);
+                          try {
+                            await LocalNotificationSink().debugScheduleIn(
+                              const Duration(seconds: 60),
+                              title: strings.invitationTitle,
+                              body: strings.invitationBody,
+                            );
+                            messenger?.showSnackBar(const SnackBar(
+                              content: Text('scheduled for +60s'),
+                            ));
+                          } catch (error) {
+                            messenger?.showSnackBar(SnackBar(
+                              content: Text('schedule threw: $error'),
+                            ));
+                          }
+                        }()),
+                      ),
+                    ],
                     const SizedBox(height: EterSpace.s32),
                     Container(height: 1, color: ink.line),
                     const SizedBox(height: EterSpace.s24),
