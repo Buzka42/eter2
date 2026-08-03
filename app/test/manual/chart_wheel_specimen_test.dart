@@ -40,6 +40,12 @@ const specimens = <({
   double latitude,
   double longitude,
 })>[
+  // The owner's own reported chart.
+  (
+    name: 'reported-1993-07-25',
+    year: 1993, month: 7, day: 25, hour: 12, minute: 30,
+    offsetMinutes: 120, latitude: 52.2297, longitude: 21.0122,
+  ),
   // Uranus within a degree of Neptune — the crowding that broke the labels
   // once already. Everyone born in the early nineties has it.
   (

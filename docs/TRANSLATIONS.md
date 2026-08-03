@@ -156,6 +156,12 @@ explains why translating one would break the symbolic engine.
 | `chartGoDeeper` | The chart | Kosmogram |
 | `showLess` | Show less | Pokaż mniej |
 | `composeReadings` | Compose readings | Niech powstaną |
+| `recomposeToday` | Again | Na nowo |
+| `recomposeTodayNote` | Composes today’s guidance again — all of it, not one section. | Składa dzisiejszy wgląd jeszcze raz — cały, nie jedną część. |
+| `recomposedToday` | Today has been read again. | Dzień został przeczytany na nowo. |
+| `recomposeChartReading` | Again | Na nowo |
+| `recomposeChartReadingNote` | The chart’s reading is written once and kept. Ask for it again after correcting anything above. | Odczytanie kosmogramu powstaje raz i zostaje. Poproś o nie ponownie po poprawieniu czegokolwiek powyżej. |
+| `recomposedChartReading` | The chart has been read again. | Kosmogram został przeczytany na nowo. |
 | `readingWaitsForBirthTime` | The reading waits for your birth time. Without it the angles are a guess at noon, and a chart is mostly its angles. | Odczytanie czeka na godzinę urodzenia. Bez niej kąty są zgadywane na południe, a kosmogram to przede wszystkim kąty. |
 | `composingChartReading` | Reading the chart… | Czytam kosmogram… |
 | `chartReadingNotWrittenYet` | The reading is not written yet. Eter will try again the next time you open this. | Odczytanie jeszcze nie powstało. Eter spróbuje ponownie przy następnym otwarciu. |
@@ -473,7 +479,7 @@ explains why translating one would break the symbolic engine.
 
 | Key | English | Polish |
 |---|---|---|
-| `birthContextError()` | That place could not be located. Try a city and country.The local profile is unavailable.Choose which part of the day you were born in.Add the UTC offset at birth, so the time can be placed.That place could not be located right now. Nothing changed.Enter birth time as HH:MM, or leave it blank.Enter the birth-place UTC offset like +01:00.UTC offset must be between −14:00 and +14:00. | Nie udało się znaleźć tego miejsca. Spróbuj podać miasto i kraj.Lokalny profil jest niedostępny.Wybierz porę dnia twoich narodzin.Dopisz przesunięcie UTC przy urodzeniu, żeby dało się umieścić godzinę.Nie udało się teraz znaleźć tego miejsca. Nic się nie zmieniło.Podaj godzinę urodzenia jako HH:MM albo zostaw pole puste.Podaj przesunięcie UTC miejsca urodzenia w postaci +01:00.Przesunięcie UTC musi być pomiędzy −14:00 a +14:00. |
+| `birthContextError()` | That is not a date the calendar has. Check the day and month.Eter is for people aged sixteen and over.That place could not be located. Try a city and country.The local profile is unavailable.Choose which part of the day you were born in.Add the UTC offset at birth, so the time can be placed.That place could not be located right now. Nothing changed.Enter birth time as HH:MM, or leave it blank.Enter the birth-place UTC offset like +01:00.UTC offset must be between −14:00 and +14:00. | To nie jest data, którą zna kalendarz. Sprawdź dzień i miesiąc.Eter jest dla osób od szesnastego roku życia.Nie udało się znaleźć tego miejsca. Spróbuj podać miasto i kraj.Lokalny profil jest niedostępny.Wybierz porę dnia twoich narodzin.Dopisz przesunięcie UTC przy urodzeniu, żeby dało się umieścić godzinę.Nie udało się teraz znaleźć tego miejsca. Nic się nie zmieniło.Podaj godzinę urodzenia jako HH:MM albo zostaw pole puste.Podaj przesunięcie UTC miejsca urodzenia w postaci +01:00.Przesunięcie UTC musi być pomiędzy −14:00 a +14:00. |
 
 ## symbolic vocabulary
 
@@ -552,4 +558,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-454 strings paired.
+460 strings paired.

@@ -8,10 +8,14 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
+import '../../core/aether/composer.dart';
+import '../../core/aether/context_assembler.dart';
+import '../../core/aether/request_contract.dart';
 import '../../core/correspondence/correspondence.dart';
 import '../../core/correspondence/correspondence_service.dart';
 import '../../core/db/app_database.dart';
 import '../../core/profile/birth_offset.dart';
+import '../../core/profile/date_input.dart';
 import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
 import '../../core/entitlement/entitlement.dart';
@@ -29,6 +33,7 @@ import '../../core/vessel/initial_readings.dart';
 import '../../core/register.dart';
 import '../../core/clock.dart';
 import '../../core/retrospectives/local_weekly_retrospective.dart';
+import '../../core/symbolic/natal_chart.dart';
 import '../../core/symbolic/solar.dart';
 import '../../core/tokens.dart';
 import '../../main.dart';
@@ -292,6 +297,12 @@ class SanctumOverlay extends ConsumerWidget {
                             },
                     ),
                     const SizedBox(height: EterSpace.s32),
+                    // The one control that asks for a new reading of today.
+                    // Each surface used to carry its own refresh, which meant
+                    // "recompose whatever this section owns"; this recomposes
+                    // the day.
+                    _RecomposeToday(database: db),
+                    const SizedBox(height: EterSpace.s32),
                     // Down here with the once-ever setup: a birth context is
                     // written once and corrected rarely, which under a page
                     // ordered by frequency outweighs it being about who you
@@ -306,6 +317,10 @@ class SanctumOverlay extends ConsumerWidget {
                           provider: ref.read(vesselReadingTransportProvider),
                         ).composeIfPossible(now: ref.read(nowProvider)()),
                       ),
+                      onRecomposeChartReading: () => InitialVesselReadings(
+                        database: db,
+                        provider: ref.read(vesselReadingTransportProvider),
+                      ).composeIfPossible(now: ref.read(nowProvider)()),
                     ),
                     const SizedBox(height: EterSpace.s32),
                     // Directly after birth context, because the two are
@@ -433,6 +448,7 @@ class _BirthContext extends StatefulWidget {
     required this.profile,
     required this.resolver,
     required this.onSaved,
+    required this.onRecomposeChartReading,
   });
 
   final AppDatabase database;
@@ -444,11 +460,15 @@ class _BirthContext extends StatefulWidget {
   /// it, by design — so this is the moment it becomes possible.
   final VoidCallback onSaved;
 
+  /// Writes the chart's reading again. Answers whether anything was written.
+  final Future<bool> Function() onRecomposeChartReading;
+
   @override
   State<_BirthContext> createState() => _BirthContextState();
 }
 
 class _BirthContextState extends State<_BirthContext> {
+  final _dob = TextEditingController();
   final _time = TextEditingController();
   final _offset = TextEditingController();
   final _place = TextEditingController();
@@ -456,6 +476,7 @@ class _BirthContextState extends State<_BirthContext> {
   BirthTimePrecision _precision = BirthTimePrecision.unknown;
   BirthTimePeriod? _period;
   bool _busy = false;
+  bool _recomposing = false;
   String? _message;
 
   /// Null when the resolver cannot suggest — a test fake — in which case the
@@ -485,6 +506,7 @@ class _BirthContextState extends State<_BirthContext> {
 
   @override
   void dispose() {
+    _dob.dispose();
     _time.dispose();
     _offset.dispose();
     _placeSuggestions?.dispose();
@@ -511,6 +533,47 @@ class _BirthContextState extends State<_BirthContext> {
           '${(absolute % 60).toString().padLeft(2, '0')}';
     }
     _place.text = profile?.birthPlace ?? '';
+    final dob = profile?.dob;
+    _dob.text = dob == null
+        ? ''
+        : '${dob.year.toString().padLeft(4, '0')}-'
+            '${dob.month.toString().padLeft(2, '0')}-'
+            '${dob.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Throws the chart's reading away and writes it again.
+  ///
+  /// The reading is cached against the chart's inputs, so correcting a birth
+  /// date already produces a new one — but correcting nothing and simply
+  /// wanting another reading had no path at all once the compose buttons went.
+  Future<void> _recomposeChartReading() async {
+    final strings = EterStrings.of(context);
+    setState(() {
+      _recomposing = true;
+      _message = null;
+    });
+    final profile = await widget.database.loadProfile();
+    if (profile != null) {
+      await widget.database.clearVesselPositionReadings(
+        inputHash: natalInputHash(
+          dob: profile.dob,
+          birthTimeMinutes: profile.birthTimeMinutes,
+          birthTimePrecision: profile.birthTimePrecision,
+          birthUtcOffsetMinutes: profile.birthUtcOffsetMinutes,
+          birthLatitude: profile.birthLatitude,
+          birthLongitude: profile.birthLongitude,
+        ),
+        keep: '',
+      );
+    }
+    final wrote = await widget.onRecomposeChartReading();
+    if (!mounted) return;
+    setState(() {
+      _recomposing = false;
+      _message = wrote
+          ? strings.recomposedChartReading
+          : strings.personalReadingNotConnected;
+    });
   }
 
   /// Fills the offset field with the one that was in force on the birth date,
@@ -537,6 +600,21 @@ class _BirthContextState extends State<_BirthContext> {
       _busy = true;
       _message = strings.locatingBirthContext;
     });
+    // Checked here rather than inside the service, because the service takes a
+    // `DateTime` and by then the damage is done: `DateTime.parse` rolls 31
+    // February forward to 3 March instead of refusing it.
+    final problem = birthDateProblem(_dob.text, now: DateTime.now());
+    if (problem != null) {
+      setState(() {
+        _busy = false;
+        _message = strings.birthContextError(
+          problem == BirthDateProblem.tooYoung
+              ? BirthContextError.birthDateTooYoung
+              : BirthContextError.birthDateInvalid,
+        );
+      });
+      return;
+    }
     try {
       await BirthContextService(
         database: widget.database,
@@ -547,6 +625,7 @@ class _BirthContextState extends State<_BirthContext> {
         place: _place.text,
         precision: _precision,
         period: _period,
+        dob: DateTime.parse(_dob.text.trim()),
       );
       if (!mounted) return;
       setState(() {
@@ -593,6 +672,22 @@ class _BirthContextState extends State<_BirthContext> {
           ),
         ),
         if (_editing) ...[
+          const SizedBox(height: EterSpace.s12),
+          // The date of birth, editable at last. It was settable only during
+          // onboarding, so a typo there was permanent — and onboarding used
+          // to accept `31 February` and roll it forward, which is a chart
+          // cast for a day nobody was born on.
+          TextField(
+            key: const ValueKey('birth-context-dob'),
+            controller: _dob,
+            enabled: !_busy,
+            keyboardType: TextInputType.number,
+            inputFormatters: const [BirthDateInputFormatter()],
+            decoration: InputDecoration(
+              labelText: strings.fieldBirthDate,
+              hintText: strings.hintBirthDateFormat,
+            ),
+          ),
           const SizedBox(height: EterSpace.s12),
           // Almost nobody knows the minute, and almost everybody knows the
           // part of the day. Offering only "exact or nothing" turned real
@@ -687,6 +782,24 @@ class _BirthContextState extends State<_BirthContext> {
             style: text.bodySmall?.copyWith(color: ink.labelMuted),
           ),
         ],
+        // Under the birth details, because that is what it is about: the
+        // chart's reading is written once and kept for the life of the chart,
+        // so correcting a date needs a way to ask for the reading again.
+        const SizedBox(height: EterSpace.s16),
+        EterAction(
+          key: const ValueKey('recompose-chart-reading'),
+          label: _recomposing
+              ? strings.composing
+              : strings.recomposeChartReading,
+          emphasis: EterActionEmphasis.quiet,
+          busy: _recomposing,
+          onPressed: _busy || _recomposing ? null : _recomposeChartReading,
+        ),
+        const SizedBox(height: EterSpace.s4),
+        Text(
+          strings.recomposeChartReadingNote,
+          style: text.bodySmall?.copyWith(color: ink.labelMuted),
+        ),
         const SizedBox(height: EterSpace.s8),
         Wrap(
           spacing: EterSpace.s8,
@@ -2089,6 +2202,95 @@ class _CorrespondenceState extends ConsumerState<_Correspondence> {
             liveRegion: true,
             child: Text(_message!, style: text.bodySmall),
           ),
+      ],
+    );
+  }
+}
+
+
+/// Reads today again, all of it.
+///
+/// Guidance caches on the day's context fingerprint, so a day whose records
+/// have not changed will not recompose however often it is asked — right for
+/// the automatic path on the Dashboard's first look, wrong for somebody who
+/// has deliberately pressed this. It forces.
+class _RecomposeToday extends ConsumerStatefulWidget {
+  const _RecomposeToday({required this.database});
+
+  final AppDatabase database;
+
+  @override
+  ConsumerState<_RecomposeToday> createState() => _RecomposeTodayState();
+}
+
+class _RecomposeTodayState extends ConsumerState<_RecomposeToday> {
+  bool _busy = false;
+  String? _message;
+
+  Future<void> _recompose() async {
+    final strings = EterStrings.of(context);
+    final provider = ref.read(aetherTransportProvider);
+    if (provider == null) {
+      setState(() => _message = strings.aetherNotConnected);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final now = ref.read(nowProvider)();
+      final request = await AetherContextAssembler(database: widget.database)
+          .assemble(now: now, register: EterRegister.of(context));
+      await AetherComposer(database: widget.database, provider: provider)
+          .compose(request, now: now, force: true);
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = strings.recomposedToday;
+      });
+    } on AetherConsentException {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = strings.enableAiBeforeComposing;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _message = strings.compositionUnavailable;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = EterStrings.of(context);
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        EterAction(
+          key: const ValueKey('recompose-today'),
+          label: _busy ? strings.composing : strings.recomposeToday,
+          emphasis: EterActionEmphasis.quiet,
+          busy: _busy,
+          onPressed: _busy ? null : _recompose,
+        ),
+        const SizedBox(height: EterSpace.s4),
+        Text(
+          strings.recomposeTodayNote,
+          style: text.bodySmall?.copyWith(color: ink.labelMuted),
+        ),
+        if (_message != null) ...[
+          const SizedBox(height: EterSpace.s8),
+          Semantics(
+            liveRegion: true,
+            child: Text(_message!, style: text.bodySmall),
+          ),
+        ],
       ],
     );
   }

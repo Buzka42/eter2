@@ -88,6 +88,7 @@ class BirthContextService {
     required String place,
     BirthTimePrecision precision = BirthTimePrecision.exact,
     BirthTimePeriod? period,
+    DateTime? dob,
   }) async {
     final profile = await database.loadProfile();
     if (profile == null) {
@@ -130,6 +131,7 @@ class BirthContextService {
       }
     }
     await database.updateBirthContext(
+      dob: dob,
       birthTimeMinutes: timeMinutes,
       birthTimePrecision: timeMinutes == null ? 'unknown' : precision.name,
       birthUtcOffsetMinutes: timeMinutes == null ? null : offsetMinutes,
@@ -214,6 +216,13 @@ class HomePlaceService {
 /// layer that knows what went wrong names it, and the layer that knows who is
 /// reading words it. See `EterStrings.birthContextError`.
 enum BirthContextError {
+  /// The typed date is not one the calendar has, is in the future, or is far
+  /// enough back to be a typo.
+  birthDateInvalid,
+
+  /// Under sixteen.
+  birthDateTooYoung,
+
   placeNotLocated,
   profileUnavailable,
   choosePartOfDay,

@@ -201,7 +201,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                     style: supportingStyle,
                     composing: _composing,
                     message: _compositionMessage,
-                    onCompose: () => _compose(db, now),
                   );
                 }
                 final content = _GuidanceContent.parse(synthesis.contentJson);
@@ -265,7 +264,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                       composing: _composing,
                       message: _compositionMessage,
                       showHeading: false,
-                      onRefresh: () => _compose(db, now),
                       onClose: () =>
                           setState(() => _expandedSection = null),
                     ),
@@ -285,13 +283,11 @@ class _UncomposedGuidance extends StatelessWidget {
     required this.style,
     required this.composing,
     required this.message,
-    required this.onCompose,
   });
 
   final TextStyle? style;
   final bool composing;
   final String? message;
-  final VoidCallback onCompose;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -303,17 +299,10 @@ class _UncomposedGuidance extends StatelessWidget {
                 : EterStrings.of(context).guidanceNotComposedYet,
             style: style,
           ),
-          // Composition is automatic on the day's first look, so this is a
-          // retry rather than the way in. It is smaller and quieter than the
-          // sentence above it, and it says nothing while it is working.
-          if (!composing) ...[
-            const SizedBox(height: EterSpace.s12),
-            EterAction(
-              label: EterStrings.of(context).composeNow,
-              emphasis: EterActionEmphasis.quiet,
-              onPressed: onCompose,
-            ),
-          ],
+          // No control here. Composition is automatic on the day's first
+          // look, and the one place that asks for it again is the Sanctum —
+          // where it recomposes the whole day rather than whichever surface
+          // happened to carry the button.
           if (message != null) ...[
             const SizedBox(height: EterSpace.s8),
             Semantics(
@@ -495,7 +484,6 @@ class _ExpandedGuidance extends StatelessWidget {
     required this.rows,
     required this.composing,
     required this.message,
-    required this.onRefresh,
     required this.onClose,
     this.showHeading = true,
   });
@@ -503,7 +491,6 @@ class _ExpandedGuidance extends StatelessWidget {
   final Future<List<GuidanceHistoryRow>> rows;
   final bool composing;
   final String? message;
-  final VoidCallback onRefresh;
   final VoidCallback onClose;
 
   /// Whether to draw its own rule and name. False when the threshold row
@@ -529,18 +516,10 @@ class _ExpandedGuidance extends StatelessWidget {
           children: [
             if (showHeading) Container(height: 1, color: ink.line),
             if (!showHeading)
-              _GuidanceHeaderActions(
-                composing: composing,
-                onRefresh: onRefresh,
-                onClose: onClose,
-              )
+              _GuidanceHeaderActions(onClose: onClose)
             else if (largeText) ...[
               Text(strings.sectionGuidance, style: text.labelSmall),
-              _GuidanceHeaderActions(
-                composing: composing,
-                onRefresh: onRefresh,
-                onClose: onClose,
-              ),
+              _GuidanceHeaderActions(onClose: onClose),
             ] else
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,11 +527,7 @@ class _ExpandedGuidance extends StatelessWidget {
                   Text(strings.sectionGuidance, style: text.labelSmall),
                   const SizedBox(width: EterSpace.s12),
                   Expanded(
-                    child: _GuidanceHeaderActions(
-                      composing: composing,
-                      onRefresh: onRefresh,
-                      onClose: onClose,
-                    ),
+                    child: _GuidanceHeaderActions(onClose: onClose),
                   ),
                 ],
               ),
@@ -578,30 +553,19 @@ class _ExpandedGuidance extends StatelessWidget {
 }
 
 class _GuidanceHeaderActions extends StatelessWidget {
-  const _GuidanceHeaderActions({
-    required this.composing,
-    required this.onRefresh,
-    required this.onClose,
-  });
+  const _GuidanceHeaderActions({required this.onClose});
 
-  final bool composing;
-  final VoidCallback onRefresh;
   final VoidCallback onClose;
 
+  // REFRESH used to sit here. Recomposing is now one control in the Sanctum
+  // that recomposes the whole day, rather than a button on each surface that
+  // recomposed whatever that surface happened to own.
   @override
   Widget build(BuildContext context) => Wrap(
         alignment: WrapAlignment.end,
         spacing: EterSpace.s8,
         runSpacing: EterSpace.s4,
         children: [
-          EterAction(
-            label: composing
-                ? EterStrings.of(context).composing
-                : EterStrings.of(context).refresh,
-            emphasis: EterActionEmphasis.quiet,
-            busy: composing,
-            onPressed: onRefresh,
-          ),
           EterAction(
             label: EterStrings.of(context).close,
             emphasis: EterActionEmphasis.quiet,
@@ -634,7 +598,7 @@ class _GuidanceDimension extends StatelessWidget {
               style: Theme.of(context).textTheme.labelSmall),
           const SizedBox(height: EterSpace.s8),
           Text(content.passage, style: prose),
-          if (row.evidenceJson != null)
+          if (_EvidenceReceiptState.hasSomethingToShow(row.evidenceJson))
             _EvidenceReceipt(raw: row.evidenceJson!, dimension: name),
         ],
       ),
@@ -706,24 +670,61 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
     );
   }
 
+  /// The four fields the receipt is written from. A payload carrying none of
+  /// them has nothing to show.
+  static const _fields = ['n', 'window', 'coefficient', 'note'];
+
+  /// Whether a footnote mark is worth drawing at all.
+  ///
+  /// It used to be drawn whenever `evidenceJson` was non-null, and a dimension
+  /// with no correlation behind it answers with an empty object — so the mark
+  /// appeared under a passage and opened on
+  /// `n=null · null · coefficient null`. A receipt for nothing is worse than
+  /// no receipt: it says a figure exists and then cannot name it.
+  static bool hasSomethingToShow(String? raw) {
+    if (raw == null) return false;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return false;
+      return _fields.any((field) {
+        final value = decoded[field];
+        return value != null && '$value'.trim().isNotEmpty;
+      });
+    } on FormatException {
+      // Unreadable is itself worth saying: something was cached and cannot be
+      // read back, which the note below names.
+      return true;
+    }
+  }
+
   static Map<String, Object?> _decodeEvidence(
     String raw,
     EterStrings strings,
   ) {
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is Map) {
-        return decoded.map((key, value) => MapEntry('$key', value));
-      }
-    } on FormatException {
-      // The receipt remains inspectable even if an old cached payload is bad.
-    }
-    return {
+    final fallback = {
       'n': strings.evidenceUnknownCount,
       'window': strings.evidenceWindowUnavailable,
       'coefficient': strings.evidenceCoefficientUnavailable,
       'note': strings.evidenceUnreadable,
     };
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is Map) {
+        // Per field, not all-or-nothing. A payload with a count and no window
+        // used to render the word `null` where the window belonged.
+        return {
+          for (final field in _fields)
+            field: switch (decoded[field]) {
+              null => fallback[field],
+              final value when '$value'.trim().isEmpty => fallback[field],
+              final value => value,
+            },
+        };
+      }
+    } on FormatException {
+      // The receipt remains inspectable even if an old cached payload is bad.
+    }
+    return fallback;
   }
 }
 

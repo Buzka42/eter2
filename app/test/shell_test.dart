@@ -564,7 +564,9 @@ void main() {
     await tester.tap(find.text('GUIDANCE'));
     await tester.pump();
 
-    expect(find.text('REFRESH'), findsOneWidget);
+    // REFRESH used to sit beside CLOSE here. Recomposing is one control in
+    // the Sanctum now, and it recomposes the day rather than this section.
+    expect(find.text('REFRESH'), findsNothing);
     expect(find.text('CLOSE'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await closeShell(tester);
@@ -602,7 +604,9 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('GUIDANCE'));
     await tester.pump();
-    await tester.tap(find.text('REFRESH'));
+    // Nothing to press: the day's first look is the only automatic compose,
+    // and there is no per-section refresh to reuse the cache with.
+    expect(find.text('REFRESH'), findsNothing);
     // Assembling now sweeps the record for patterns before it builds the
     // request, which is real work on a real database.
     await tester.runAsync(
@@ -618,18 +622,13 @@ void main() {
     await pumpShell(tester);
 
     // Without a transport there is nothing to compose automatically, so the
-    // surface stays honest and the explicit retry says why.
+    // surface stays honest — and says so without offering a control, because
+    // the one control that asks again lives in the Sanctum.
     expect(
       find.text('Today’s guidance has not been composed yet.'),
       findsOneWidget,
     );
-    await tester.tap(find.text('COMPOSE NOW'));
-    await tester.pump();
-
-    expect(
-      find.text('Aether composition is not connected on this build yet.'),
-      findsOneWidget,
-    );
+    expect(find.text('COMPOSE NOW'), findsNothing);
     expect(await db.loadGuidanceForDate('2026-07-27'), isEmpty);
     await closeShell(tester);
   });

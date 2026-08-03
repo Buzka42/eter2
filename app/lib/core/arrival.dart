@@ -3,10 +3,27 @@ import 'package:flutter/material.dart';
 import 'i18n/strings.dart';
 import 'tokens.dart';
 
-// The cadence, tuned against the 1200 ms per-sentence budget.
+// The cadence.
+//
+// It used to force every sentence into `EterMotion.durSentence` regardless of
+// length, which made the stagger a function of how many groups there were: a
+// long sentence divided its budget among ten groups and revealed them about
+// seventy milliseconds apart. That is the "in batches, quickly" the owner
+// reported — two or three words at a time, faster than anyone reads.
+//
+// The stagger is now a target rather than a remainder. A sentence takes as
+// long as its own length asks for, up to a ceiling, so the *rate* of arrival
+// is what stays constant instead of the total.
 const _groupDuration = Duration(milliseconds: 520);
 const _groupDurationMs = 520.0;
-const _maxGroupStagger = 140.0; // ms between overlapping group starts
+
+/// Time between one group appearing and the next beginning to.
+const _groupStagger = 190.0;
+
+/// No sentence runs longer than this, however many words are in it. Past the
+/// ceiling the stagger compresses again — a forty-word sentence would
+/// otherwise hold the page for eight seconds.
+const _sentenceCeilingMs = 4200.0;
 const _interSentencePause = 280.0; // ms
 const _interPassagePause = 520.0; // ms — a breath between paragraphs
 const _maxBlurSigma = 2.4;
@@ -156,13 +173,13 @@ class _EterArrivalState extends State<EterArrival>
           for (var i = 0; i < words.length; i += chunk)
             words.sublist(i, i + chunk > words.length ? words.length : i + chunk),
         ];
-        // The sentence must land inside durSentence: shrink the stagger until
-        // the final group settles within budget.
+        // The comfortable rate, unless the sentence is long enough that
+        // holding it would outstay the ceiling.
         final stagger = chunks.length > 1
-            ? ((EterMotion.durSentence.inMilliseconds -
-                        _groupDuration.inMilliseconds) /
-                    (chunks.length - 1))
-                .clamp(0.0, _maxGroupStagger)
+            ? _groupStagger.clamp(
+                0.0,
+                (_sentenceCeilingMs - _groupDurationMs) / (chunks.length - 1),
+              )
             : 0.0;
         for (var g = 0; g < chunks.length; g++) {
           final isLastOfSentence = g == chunks.length - 1;

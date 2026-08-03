@@ -163,6 +163,15 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     final text = _composer.text.trim();
     if (text.isEmpty || _saving) return;
     _saving = true;
+    // Taken out of the composer *before* the first await, not after the insert
+    // returns. Dictation ends through several doors — the plugin reports both
+    // `notListening` and `done`, push-to-talk saves on release, and opening
+    // History saves on the way out — and any two of them landing either side
+    // of an await used to file the same words twice. The draft is claimed
+    // here, so a second caller finds an empty page and returns.
+    final spoken = _spokenUsed;
+    _composer.clear();
+    _spokenUsed = false;
     try {
       final db = ref.read(databaseProvider);
       final now = ref.read(nowProvider)();
@@ -170,14 +179,12 @@ class _JournalPageState extends ConsumerState<JournalPage> {
         JournalEntriesCompanion.insert(
           entryText: text,
           createdAt: now,
-          source: Value(_spokenUsed ? 'spoken' : 'typed'),
+          source: Value(spoken ? 'spoken' : 'typed'),
         ),
       );
       if (!mounted) return;
       setState(() {
         _arrivingIds.add(id);
-        _composer.clear();
-        _spokenUsed = false;
       });
       // Haptics confirm the save but must never hold the page in its composing
       // state when a platform channel is slow or unavailable.
@@ -193,6 +200,15 @@ class _JournalPageState extends ConsumerState<JournalPage> {
         ref.read(eveningInvitationSchedulerProvider)?.sync(now: now) ??
             Future<void>.value(),
       );
+    } catch (error) {
+      // The words were taken out of the page to claim them; if nothing was
+      // filed they have to go back, or claiming them would be how they are
+      // lost.
+      debugPrint('Eter journal: entry not saved: $error');
+      if (mounted) {
+        _composer.text = text;
+        _spokenUsed = spoken;
+      }
     } finally {
       _saving = false;
     }
@@ -566,6 +582,7 @@ class _FittedProse extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         var size = base.fontSize ?? 19;
+        var scrolls = false;
         if (constraints.maxHeight.isFinite) {
           var low = minimumFontSize;
           var high = size;
@@ -591,17 +608,27 @@ class _FittedProse extends StatelessWidget {
               }
             }
             size = low;
+            // Below the floor the prose stops shrinking, so on a short box it
+            // simply ran past the bottom — which is what the keyboard does to
+            // this page: the story keeps its height budget, the field takes
+            // the rest, and a long day overflowed by about thirty pixels. It
+            // scrolls inside its own box instead. Nothing is cut, and the page
+            // still does not scroll.
+            scrolls = !fits(minimumFontSize);
           }
         }
-        return Align(
-          alignment: Alignment.topLeft,
-          child: EterArrival.single(
-            text,
-            key: arrivalKey,
-            style: base.copyWith(fontSize: size),
-            playArrival: playArrival,
-          ),
+        final prose = EterArrival.single(
+          text,
+          key: arrivalKey,
+          style: base.copyWith(fontSize: size),
+          playArrival: playArrival,
         );
+        if (scrolls) {
+          return SingleChildScrollView(
+            child: Align(alignment: Alignment.topLeft, child: prose),
+          );
+        }
+        return Align(alignment: Alignment.topLeft, child: prose);
       },
     );
   }

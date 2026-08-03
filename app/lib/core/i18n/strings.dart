@@ -269,6 +269,19 @@ abstract class EterStrings {
   /// chart's bodies, each with its own passage.
   String get chartGoDeeper;
   String get composeReadings;
+
+  /// The one control that asks for a new reading of today. It replaced a
+  /// refresh on each surface, which recomposed whatever that surface owned.
+  String get recomposeToday;
+  String get recomposeTodayNote;
+  String get recomposedToday;
+
+  /// Below the birth details: the chart's reading is written once and kept for
+  /// the life of the chart, so correcting a birth date needs a way to ask for
+  /// it again.
+  String get recomposeChartReading;
+  String get recomposeChartReadingNote;
+  String get recomposedChartReading;
   String get personalReadingNotConnected;
   String get everyReadingAlreadyComposed;
   String get missingReadingsComposed;

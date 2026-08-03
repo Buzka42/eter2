@@ -315,12 +315,19 @@ class AppDatabase extends _$AppDatabase {
     required String? birthPlace,
     required double? birthLatitude,
     required double? birthLongitude,
+    DateTime? dob,
   }) async {
     await transaction(() async {
       final profile = await loadProfile();
       if (profile == null) return;
+      // The date of birth is a chart input like any other, and it was the one
+      // that could only be set during onboarding — so a typo there was
+      // permanent. It travels with the rest so the hash below is computed
+      // once, against the values actually written.
+      final effectiveDob = dob ?? profile.dob;
       await (update(profiles)..where((row) => row.id.equals(1))).write(
         ProfilesCompanion(
+          dob: dob == null ? const Value.absent() : Value(dob),
           birthTimeMinutes: Value(birthTimeMinutes),
           birthTimePrecision: Value(birthTimePrecision),
           birthUtcOffsetMinutes: Value(birthUtcOffsetMinutes),
@@ -331,7 +338,7 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
       final inputHash = natalInputHash(
-        dob: profile.dob,
+        dob: effectiveDob,
         birthTimeMinutes: birthTimeMinutes,
         birthTimePrecision: birthTimePrecision,
         birthUtcOffsetMinutes: birthUtcOffsetMinutes,

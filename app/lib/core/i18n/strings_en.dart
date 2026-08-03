@@ -396,6 +396,23 @@ class EterStringsEn extends EterStrings {
   String get composeReadings => 'Compose readings';
 
   @override
+  String get recomposeToday => 'Again';
+  @override
+  String get recomposeTodayNote =>
+      'Composes today’s guidance again — all of it, not one section.';
+  @override
+  String get recomposedToday => 'Today has been read again.';
+
+  @override
+  String get recomposeChartReading => 'Again';
+  @override
+  String get recomposeChartReadingNote =>
+      'The chart’s reading is written once and kept. Ask for it again '
+      'after correcting anything above.';
+  @override
+  String get recomposedChartReading => 'The chart has been read again.';
+
+  @override
   String get readingWaitsForBirthTime =>
       'The reading waits for your birth time. Without it the angles are a '
       'guess at noon, and a chart is mostly its angles.';
@@ -1359,6 +1376,8 @@ class EterStringsEn extends EterStrings {
 
   @override
   String birthContextError(BirthContextError error) => switch (error) {
+        BirthContextError.birthDateInvalid => 'That is not a date the calendar has. Check the day and month.',
+        BirthContextError.birthDateTooYoung => 'Eter is for people aged sixteen and over.',
         BirthContextError.placeNotLocated =>
           'That place could not be located. Try a city and country.',
         BirthContextError.profileUnavailable =>

@@ -233,20 +233,21 @@ class _OnboardingFlowState extends State<OnboardingFlow> {
   }
 
   bool _validateBirth(EterStrings strings) {
-    final dob = DateTime.tryParse(_dob.text.trim());
     final weight = double.tryParse(_weight.text.trim());
     final height = double.tryParse(_height.text.trim());
     String? error;
-    if (dob == null || dob.isAfter(DateTime.now())) {
-      error = strings.errorEnterValidBirthDate;
-    } else {
-      final today = DateTime.now();
-      var age = today.year - dob.year;
-      if (today.month < dob.month ||
-          (today.month == dob.month && today.day < dob.day)) {
-        age--;
-      }
-      if (age < 16) error = strings.errorMinimumAge;
+    // One validator, shared with the Sanctum. `DateTime.tryParse` was doing
+    // this job and it rolls over rather than refusing: 31 February came back
+    // as 3 March, so onboarding accepted a birthday nobody has and cast the
+    // chart for it.
+    switch (birthDateProblem(_dob.text, now: DateTime.now())) {
+      case BirthDateProblem.malformed:
+      case BirthDateProblem.outOfRange:
+        error = strings.errorEnterValidBirthDate;
+      case BirthDateProblem.tooYoung:
+        error = strings.errorMinimumAge;
+      case null:
+        break;
     }
     if (error == null && (weight == null || weight < 20 || weight > 500)) {
       error = strings.errorEnterWeightRange;

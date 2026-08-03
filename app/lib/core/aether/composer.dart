@@ -35,14 +35,23 @@ class AetherComposer {
   final AetherGuidanceParser parser;
   final String source;
 
+  /// [force] composes again even when the day's fingerprint already has a
+  /// complete reading.
+  ///
+  /// The cache is keyed on the context, so a day whose records have not
+  /// changed will not recompose on its own however many times it is asked —
+  /// which is right for the automatic path and wrong for a person who has
+  /// deliberately pressed a button asking for another reading. There is one
+  /// such button, in the Sanctum, and this is what it means.
   Future<AetherComposition> compose(
     AetherRequest request, {
     DateTime? now,
+    bool force = false,
   }) async {
     final existing = await database.loadGuidanceByFingerprint(
       request.contextFingerprint,
     );
-    if (_isComplete(existing)) {
+    if (!force && _isComplete(existing)) {
       return AetherComposition(rows: existing, fromCache: true);
     }
 

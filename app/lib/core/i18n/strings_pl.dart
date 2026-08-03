@@ -411,6 +411,23 @@ class EterStringsPl extends EterStrings {
   String get composeReadings => 'Niech powstaną';
 
   @override
+  String get recomposeToday => 'Na nowo';
+  @override
+  String get recomposeTodayNote =>
+      'Składa dzisiejszy wgląd jeszcze raz — cały, nie jedną część.';
+  @override
+  String get recomposedToday => 'Dzień został przeczytany na nowo.';
+
+  @override
+  String get recomposeChartReading => 'Na nowo';
+  @override
+  String get recomposeChartReadingNote =>
+      'Odczytanie kosmogramu powstaje raz i zostaje. Poproś o nie ponownie '
+      'po poprawieniu czegokolwiek powyżej.';
+  @override
+  String get recomposedChartReading => 'Kosmogram został przeczytany na nowo.';
+
+  @override
   String get readingWaitsForBirthTime =>
       'Odczytanie czeka na godzinę urodzenia. Bez niej kąty są zgadywane na '
       'południe, a kosmogram to przede wszystkim kąty.';
@@ -1423,6 +1440,8 @@ class EterStringsPl extends EterStrings {
 
   @override
   String birthContextError(BirthContextError error) => switch (error) {
+        BirthContextError.birthDateInvalid => 'To nie jest data, którą zna kalendarz. Sprawdź dzień i miesiąc.',
+        BirthContextError.birthDateTooYoung => 'Eter jest dla osób od szesnastego roku życia.',
         BirthContextError.placeNotLocated =>
           'Nie udało się znaleźć tego miejsca. Spróbuj podać miasto i kraj.',
         BirthContextError.profileUnavailable =>

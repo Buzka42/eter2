@@ -49,22 +49,32 @@ void main() {
     expect(_allSettled(tester), isFalse);
     expect(tester.hasRunningAnimations, isTrue);
 
-    // Six words in groups of two at a 140 ms stagger: 2*140 + 520 ms.
-    await tester.pump(const Duration(milliseconds: 1100));
+    // Six words in groups of two at a 190 ms stagger: 2*190 + 520 ms.
+    await tester.pump(const Duration(milliseconds: 1300));
     expect(_allSettled(tester), isTrue);
     expect(tester.hasRunningAnimations, isFalse);
   });
 
-  testWidgets('a sentence never outlasts the per-sentence budget',
+  testWidgets('a long sentence arrives at the same rate, up to a ceiling',
       (tester) async {
+    // The budget used to be fixed at `durSentence`, which made the stagger a
+    // remainder: twenty words divided 1200 ms among seven groups and revealed
+    // them about a hundred milliseconds apart. That is the "in batches,
+    // quickly" the owner reported. The *rate* is what is held now, so a long
+    // sentence takes longer — but never past the ceiling.
     const longSentence =
         'One two three four five six seven eight nine ten eleven twelve '
         'thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty.';
     await tester.pumpWidget(_wrap(EterArrival.single(longSentence)));
     await tester.pump();
-    // durSentence (1200 ms) plus one frame of slack, however many groups the
-    // stagger had to compress into.
+
+    // Well past the old budget, it is still arriving — the point of the
+    // change.
     await tester.pump(const Duration(milliseconds: 1250));
+    expect(_allSettled(tester), isFalse);
+
+    // And it still lands inside the ceiling, plus a frame of slack.
+    await tester.pump(const Duration(milliseconds: 3200));
     expect(_allSettled(tester), isTrue);
   });
 
@@ -173,7 +183,10 @@ void main() {
     var previous = displacement();
     expect(previous, greaterThan(0), reason: 'it should start displaced');
 
-    for (var elapsed = 0; elapsed < 1400; elapsed += 50) {
+    // Long enough to cover the whole passage at the current cadence: two
+    // sentences, a pause between them, and a stagger that is now a rate
+    // rather than a remainder.
+    for (var elapsed = 0; elapsed < 6000; elapsed += 50) {
       await tester.pump(const Duration(milliseconds: 50));
       final current = displacement();
       expect(
