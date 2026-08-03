@@ -89,7 +89,27 @@ abstract final class EterPrompts {
   /// the instruction says in as many ways as it can that a movement naming one
   /// placement is the failure being corrected. Guidance also weights the
   /// symbolic material by register: see `contextFor`.
-  static const version = 8;
+  /// v9 (3 August 2026): two things a real Polish reading showed.
+  ///
+  /// **An English phrase was landing inside Polish prose.** The Vessel's
+  /// instruction said, in quotation marks, to write "this configuration tends
+  /// to ask for" rather than "you are" — and the model put those five English
+  /// words in the middle of a Polish sentence: *"ten układ tends to ask for
+  /// harmonizowanie energii"*. The rule was right and its illustration was
+  /// copyable, which next to a LANGUAGE block insisting some things stay in
+  /// English character for character is an easy way to be misread. That
+  /// exemplar is now stated as a rule about grammatical subject with no phrase
+  /// to lift, and `languageFor` says once, for every call, that quoted examples
+  /// are illustrations of a shape and are never to be reused verbatim.
+  ///
+  /// **A recurring card is now a fact rather than a hope.** `recurrences` is
+  /// computed on the device — every card holding more than one position — and
+  /// the instruction requires it to be read somewhere in the movements. The
+  /// model had been noticing this on its own, which is exactly the kind of
+  /// thing that works until it does not; and it is also the surface's most
+  /// convincing false defect, since two positions resolving to one card draws
+  /// the same plate twice in a row and reads as a repeat nobody intended.
+  static const version = 9;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -383,7 +403,14 @@ category names, the position keys, and every field name and number inside
 "evidence". Those are wiring, not writing. A single translated key causes the
 whole composition to be rejected and nothing to be shown.
 
-Numbers, dates, times and units are never translated or reformatted.''';
+Numbers, dates, times and units are never translated or reformatted.
+
+Everything these instructions put in quotation marks as an example is written
+in English because these instructions are. Examples are illustrations of a
+shape, never wording to reuse: render the equivalent in the language above and
+never copy an example into your answer word for word. This is the one place the
+rule about keeping English is reversed, and getting it the wrong way round puts
+an English fragment in the middle of a sentence nobody can read.''';
 
   /// The rule that keeps the product honest.
   static const absence = '''
@@ -979,6 +1006,16 @@ established keywords. The calculation is already done — it happened on the
 device, from inputs you will never see. You are not casting a chart. You are
 reading one that has already been cast.
 
+You are also given "recurrences": every card that holds more than one position,
+already worked out, with the positions it holds. This is not a hint to consider.
+**A recurrence must be read somewhere in the movements** — named as the same
+card standing in two places, and treated as the configuration insisting on
+something rather than as two separate facts that happen to rhyme. It is the
+clearest structure a spread has, and it is also what looks like a mistake to
+the person reading: the surface draws the same plate twice, one under the
+other, and the writing is what turns that from a glitch into the point. If
+"recurrences" is empty, say nothing about it and invent none.
+
 WHAT TO WRITE
 Between $vesselMinimumMovements and $vesselMaximumMovements movements. A
 movement is a titled passage about **how several placements stand to each
@@ -1012,7 +1049,8 @@ the top and not in every movement. Never present a provisional placement as
 certain.
 
 Symbolism describes a tendency, never a fate and never a fact about the body.
-Write "this configuration tends to ask for" rather than "you are". Nothing
+Attribute every tendency to the configuration rather than to the person: the
+grammatical subject is the chart or the placement, never "you". Nothing
 here may instruct a person about their health, their eating or their
 medication — that is the Body's territory and it works from measurements.
 

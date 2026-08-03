@@ -211,6 +211,90 @@ void main() {
       isNull,
     );
   });
+
+  group('a card holding two positions is worked out here, not guessed at', () {
+    // Two positions resolving to one card is normal arithmetic, not a
+    // collision: a birth on the 25th reduces to 7 and a birth in July is 7
+    // already. The surface then draws the same plate twice with the same
+    // keywords, one under the other, which reads as a bug — so the reading has
+    // to name it, and the model is told rather than trusted to notice.
+    VesselReadingPosition at(String key, String card) => VesselReadingPosition(
+          key: key,
+          label: key,
+          card: card,
+          keywords: const ['one', 'two'],
+        );
+
+    VesselReadingRequest requestOf(List<VesselReadingPosition> positions) =>
+        VesselReadingRequest(
+          mode: GuidanceMode.balanced,
+          approximateTime: false,
+          approximatePlace: false,
+          positions: positions,
+        );
+
+    test('reports every card that holds more than one position', () {
+      final request = requestOf([
+        at('given', 'The Lovers'),
+        at('inherited', 'The Lovers'),
+        at('sun', 'Strength'),
+        at('lifePath', 'The Hermit'),
+        at('mars', 'The Hermit'),
+        at('moon', 'Justice'),
+      ]);
+
+      expect(request.recurrences, [
+        {
+          'card': 'The Lovers',
+          'positions': ['given', 'inherited'],
+          'keys': ['given', 'inherited'],
+        },
+        {
+          'card': 'The Hermit',
+          'positions': ['lifePath', 'mars'],
+          'keys': ['lifePath', 'mars'],
+        },
+      ]);
+    });
+
+    test('a card in three positions is one entry, not two pairs', () {
+      final request = requestOf([
+        at('given', 'The Fool'),
+        at('inherited', 'The Fool'),
+        at('era', 'The Fool'),
+      ]);
+      expect(request.recurrences, hasLength(1));
+      expect(
+        (request.recurrences.single['positions'] as List),
+        ['given', 'inherited', 'era'],
+      );
+    });
+
+    test('a spread with no repeat reports none, and never a singleton', () {
+      final request = requestOf([
+        at('sun', 'Strength'),
+        at('moon', 'Justice'),
+        at('ascendant', 'The Star'),
+      ]);
+      expect(request.recurrences, isEmpty);
+      expect(request.toJson()['recurrences'], isEmpty);
+    });
+
+    test('the request carries them, and stays stable across identical charts',
+        () {
+      // The reading is cached per chart, so an unstable ordering here would
+      // change the request for a chart that had not changed.
+      final positions = [
+        at('given', 'The Lovers'),
+        at('inherited', 'The Lovers'),
+        at('sun', 'Strength'),
+      ];
+      final first = requestOf(positions).toJson();
+      final second = requestOf(positions).toJson();
+      expect(jsonEncode(first), jsonEncode(second));
+      expect(first['recurrences'], hasLength(1));
+    });
+  });
 }
 
 VesselReadingRequest _request() => const VesselReadingRequest(

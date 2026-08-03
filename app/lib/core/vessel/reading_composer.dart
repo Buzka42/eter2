@@ -50,9 +50,44 @@ class VesselReadingRequest {
   final bool approximateTime;
   final bool approximatePlace;
 
+  /// Cards that hold more than one position, and which positions they hold.
+  ///
+  /// Computed here rather than left to the model to spot. A card recurring is
+  /// the strongest thing a spread can say — it is the difference between a list
+  /// of eleven positions and a configuration that keeps returning to something —
+  /// and "the model will probably notice" is not a guarantee. Everything else
+  /// in this request is calculated on the device and handed over as fact; this
+  /// is no different.
+  ///
+  /// It also answers the thing that reads as a bug on screen. Two positions can
+  /// legitimately resolve to one card — a birth on the 25th reduces to 7 and a
+  /// birth in July is 7 already — and the surface then draws the same plate
+  /// twice with the same keywords, one under the other, looking like a repeat
+  /// that nobody meant. Naming the coincidence in the writing is what makes it
+  /// read as a finding instead.
+  ///
+  /// Ordered by the position list rather than by card name, so the same chart
+  /// always produces the same request and the cache key stays stable.
+  List<Map<String, Object>> get recurrences {
+    final byCard = <String, List<VesselReadingPosition>>{};
+    for (final position in positions) {
+      byCard.putIfAbsent(position.card, () => []).add(position);
+    }
+    return [
+      for (final entry in byCard.entries)
+        if (entry.value.length > 1)
+          {
+            'card': entry.key,
+            'positions': [for (final item in entry.value) item.label],
+            'keys': [for (final item in entry.value) item.key],
+          },
+    ];
+  }
+
   Map<String, Object> toJson() => {
         'mode': mode.name,
         'positions': positions.map((item) => item.toJson()).toList(),
+        'recurrences': recurrences,
         'reliability': {
           'birthTimeApproximate': approximateTime,
           'birthPlaceApproximate': approximatePlace,

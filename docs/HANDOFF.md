@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **813 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **817 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -69,7 +69,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 813 pass, 10 skipped
+flutter test          # expect 817 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -365,7 +365,19 @@ and the cloud section owns it. `WGLĄD` still does two jobs; leave it until use
 says otherwise, and change the *section* rather than the destination.
 
 **Watch for:** no test reads Polish for sense, so a spliced or ungrammatical
-sentence passes everything. Read every string you touch, out loud if it helps.
+sentence passes everything. **And it is not only the strings** — the model's own
+prose is Polish nobody checks either. On 3 August a real reading contained
+*"ten układ tends to ask for harmonizowanie energii"*: five English words inside
+a Polish sentence, lifted verbatim from an instruction that said, in quotation
+marks, to write "this configuration tends to ask for". A quoted English example
+sitting near a LANGUAGE block that insists some things stay in English character
+for character is an easy thing to misread. `languageFor` now says once, for
+every call, that quoted examples illustrate a shape and are never to be reused
+word for word — and that exemplar is stated as a rule about grammatical subject
+with no phrase left to lift. If you add an example to a prompt, assume it can
+come back in the answer.
+
+Read every string you touch, out loud if it helps.
 `python tool/pair_translations.py` regenerates the pairing — and note it drops any
 member whose comment sits between `@override` and the signature. **That is not a
 hypothetical**: `chartGoDeeper` was added on 1 August with its note in exactly
@@ -804,30 +816,47 @@ that block the most:
 6. **Firestore rules deploy** — the live project's rules predate the mirror and
    would deny it.
 7. **Rotate the development Gemini key** before any public build.
-8. **The card art is lettered in English.** Every plate carries its title inside
-   the image — `STRENGTH · VIII`, `THE LOVERS · VI`, `THE DEVIL · XV` — so on a
-   Polish device the most prominent thing on the most symbolic surface is in the
-   wrong language, under prose that is correctly Polish. Nothing in the code
-   draws it, so there is no string to translate: it is 22 `.webp` plates per
-   register and 22 `-dark.mp4` loops. Either regenerate them per language, or
-   take the lettering out of the art and set the title in code, which is the
-   cheaper answer and the only one that scales past two languages.
-
-   Noticed while verifying the astrogram on 3 August. Asset coverage itself is
-   complete and correct — all 22 majors have both plates and a night loop, and
-   loops are `-dark` only because they are a night-register feature by design.
+**The English lettering on the card art is deliberate** — asked about on
+3 August, and the owner's answer is that it stays. Do not "fix" it.
 
 ---
 
-## One thing that looks like a defect and is not
+## The repeated card, and the reading that explains it
 
-On the owner's own chart the Vessel draws **the same card twice in a row** —
-`ZASTANE` and `ODZIEDZICZONE`, both Kochankowie, same art, same keywords, one
-directly under the other. It reads as a rendering fault and it is arithmetic:
+The Vessel draws **the same card twice in a row** on the owner's chart —
+`ZASTANE` and `ODZIEDZICZONE`, both Kochankowie, same plate, same keywords, one
+directly under the other. It looks like a rendering fault and it is arithmetic:
 `given` reduces the day, 25 → 7, and `inherited` is the month, already 7. Two
-positions landing on one card is a normal outcome of `buildArcanaMatrix`, not a
-collision.
+positions landing on one card is a normal outcome of `buildArcanaMatrix`.
 
-Recorded because it will be reported again by the next person who looks. If it
-should *say* that the two coincide rather than leaving the reader to work it
-out, that is a product decision and nobody has made it.
+**The reading is what makes that legible, and it is now required to.**
+`VesselReadingRequest.recurrences` works out on the device every card holding
+more than one position, and the prompt says a recurrence must be read somewhere
+in the movements — named as one card standing in two places, not as two facts
+that happen to rhyme. It was left to the model to notice before, which worked,
+which is exactly the kind of thing that works until it does not.
+
+Confirmed against the live model on the owner's chart, prompt v9:
+
+> *Pustelnik powraca w tym układzie dwukrotnie, wiążąc ze sobą Drogę życia oraz
+> Marsa w Pannie.*
+
+> *Uran i Neptun dzielą tę samą kartę Diabła.*
+
+> *…za sprawą potrójnej obecności Sprawiedliwości. Karta ta leży jednocześnie w
+> Księżycu, w Jowiszu oraz na Ascendencie.*
+
+Three of them in one reading, including a card in **three** positions read as one
+thing rather than three — which is the case `vessel_reading_composer_test.dart`
+pins as a single entry rather than two pairs.
+
+**Where the reading lives, because it is easy to miss.** The movements render
+*above* the position list, behind `CZYTAJ GŁĘBIEJ`. Scroll past them once and
+the Vessel looks like nothing but a column of cards analysed one at a time —
+which is what it was reported as, and it was already not that.
+
+**Not done:** `test/fixtures/live/` still holds the v8 recording for this call.
+It parses, so the suite is green, but the handoff's own rule is to re-record
+after a prompt changes and *read* what comes back. The recording must use
+invented inputs — the responses above are the owner's own chart and must not
+become a fixture.

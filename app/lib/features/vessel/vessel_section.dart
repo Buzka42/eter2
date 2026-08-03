@@ -180,6 +180,12 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     setState(() => _composing = true);
     try {
       final profile = await widget.db.loadProfile();
+      // Every exit from here clears the flag in the `finally`. It used to be
+      // cleared on the success path and in `catch`, which left these two early
+      // returns holding it forever: the guard at the top of this method then
+      // refused every later attempt, so a missing profile or an unbuildable
+      // request meant the reading was never composed again for the life of the
+      // widget — and the surface sat saying it was still writing.
       if (profile == null) return;
       // The same builder the save-time compose uses, so what is cached is
       // always about the positions this list shows.
@@ -198,16 +204,13 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         now: widget.now,
       );
       if (!mounted) return;
-      setState(() {
-        _composing = false;
-        data.movements = result.movements;
-      });
+      setState(() => data.movements = result.movements);
     } catch (_) {
       // Best-effort in the strict sense: the surface says the reading is not
       // written yet, which is true, and says nothing about why. The next time
       // the Vessel opens it tries again.
-      if (!mounted) return;
-      setState(() => _composing = false);
+    } finally {
+      if (mounted) setState(() => _composing = false);
     }
   }
 
