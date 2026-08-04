@@ -157,7 +157,7 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **982 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **991 tests
 pass, 14 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 2. Schema is at **15**, and the upgrade
@@ -221,7 +221,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 982 pass, 14 skipped
+flutter test          # expect 991 pass, 14 skipped
 flutter analyze       # expect clean
 ```
 
@@ -1001,14 +1001,36 @@ recorded output can test.
 Re-record after changing a prompt, and *read* what comes back. A fixture that
 parses is not a fixture that reads well; that is the whole lesson of v6.
 
-### 6 · The home-screen widget · *needs a device, and a Mac for iOS*
+### 6 · The home-screen widget · *Android built; iOS needs a Mac; nobody has placed one*
 
-Not started, and **not a short job**: native SwiftUI WidgetKit on iOS, Glance or
-RemoteViews on Android, plus a shared read path out of the Drift store. Android
-alone is several hours. There is no Mac in this environment, so the iOS half
-cannot be built or verified here at all.
+One sentence of the day's synthesis, in Eter's own ground, no counts and no
+controls. `EterWidgetProvider.kt`, `core/widget/home_screen_widget.dart`, and a
+`eter/widget` method channel between them.
 
-One sentence from today's synthesis, already sitting in `GuidanceHistory`.
+- **RemoteViews, not Glance.** Glance means Jetpack Compose and its compiler
+  plugin in a build that has already broken three times over toolchain versions,
+  for a surface that is one `TextView`.
+- **It reads a preference, never the database.** A widget process opening Drift
+  would be a second reader of a migrating schema holding a lock outside the
+  app's lifetime — and it would put a whole record within reach of a process
+  that needs one line of it.
+- **The synthesis, never a dimension.** It is the passage already thought about
+  as something another person might see: it is the one the Correspondence may
+  send. A test pins that the three dimensions never reach the launcher.
+- **Today's or nothing.** The day is written beside the sentence and the widget
+  compares it against the day *the app* believes it is, so a redraw the system
+  triggers at midnight cannot disagree with the app about what today means.
+- **Withdrawing AI consent clears it.** The rows stay and a launcher goes on
+  drawing whatever it was last given; this is the one surface a revocation
+  cannot reach on its own.
+
+The receiver is confirmed **in the built APK** with `aapt2 dump xmltree`, not in
+the source, for the reason the evening invitation took three evenings to learn.
+
+**Nobody has placed one on a home screen.** That is the whole of what is left
+for Android: add it, watch it change when guidance composes, and watch it empty
+when consent is withdrawn. The iOS half is WidgetKit and SwiftUI and cannot be
+built or verified without a Mac.
 
 ### 7 · The Correspondence · *built; the rules are not deployed*
 
