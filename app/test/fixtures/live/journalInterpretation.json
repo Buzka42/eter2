@@ -3,23 +3,23 @@
   "food": [
     {
       "meal": "Two poached eggs on rye with butter, and a flat white",
-      "kcal": 410,
-      "proteinG": 20,
-      "carbsG": 32,
+      "kcal": 420,
+      "proteinG": 18,
+      "carbsG": 38,
       "fatG": 22,
       "confidence": 0.8,
       "assumptions": [
-        "assumed two large poached eggs",
+        "assumed two standard poached eggs",
         "assumed two slices of rye bread",
         "assumed one tablespoon of butter",
-        "assumed a standard flat white with whole milk"
+        "assumed a flat white made with whole milk"
       ]
     }
   ],
   "lifestyle": [
     {
       "kind": "sleep",
-      "note": "Slept about seven hours, woke twice."
+      "note": "Slept about seven hours, woke twice"
     }
   ]
 }

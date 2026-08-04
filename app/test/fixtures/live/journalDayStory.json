@@ -1,1 +1,8 @@
-{"story": "You woke before the alarm and started the morning with porridge and black coffee. Later, running six kilometres along the river brought heavy legs but a clear head.", "digest": {"movement": "ran six kilometres along the river", "food": "porridge and black coffee", "energy": "heavy legs but a clear head"}}
+{
+  "story": "You woke before the alarm and started with porridge and black coffee. Later, running six kilometres along the river brought heavy legs but a clear head.",
+  "digest": {
+    "movement": "ran six kilometres along the river",
+    "food": "porridge and black coffee",
+    "energy": "heavy legs, clear head"
+  }
+}

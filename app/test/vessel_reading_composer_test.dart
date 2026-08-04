@@ -243,16 +243,18 @@ void main() {
         at('moon', 'Justice'),
       ]);
 
+      // Labels, and no keys at all. A recurrence used to carry both, and the
+      // first live figure synopsis wrote "The Moon across the sun, the era,
+      // and mercury" — the internal identifiers, in the prose, one of them a
+      // word that means nothing to a reader.
       expect(request.recurrences, [
         {
           'card': 'The Lovers',
           'positions': ['given', 'inherited'],
-          'keys': ['given', 'inherited'],
         },
         {
           'card': 'The Hermit',
           'positions': ['lifePath', 'mars'],
-          'keys': ['lifePath', 'mars'],
         },
       ]);
     });

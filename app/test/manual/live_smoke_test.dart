@@ -28,7 +28,10 @@ import 'package:eter/core/ai/prompts.dart';
 import 'package:eter/core/ai/transport.dart';
 import 'package:eter/core/journal/classification_contract.dart';
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/arcana/symbol_content.dart';
+import 'package:eter/core/i18n/strings.dart';
 import 'package:eter/core/journal/day_story.dart';
+import 'package:eter/core/vessel/chart_reading.dart';
 import 'package:eter/core/vessel/initial_readings.dart';
 import 'package:eter/core/symbolic/natal_chart.dart';
 import 'package:eter/core/vessel/positions_composer.dart';
@@ -87,10 +90,31 @@ void main() {
     test('interpretation reads weight, a run and lifted work',
         () => _bodyInterpretation(transport));
     test('vessel readings compose and parse', () => _recorded('vesselReadings', () => _vesselReadings(transport)));
+    // Not recorded. It returns a readable sheet of the movements rather than
+    // the response, so a `.json` fixture of it would be prose in a file every
+    // replay test expects to be able to decode. Read it in the run's output.
+    test('the real composer writes the initial readings',
+        () => _vesselThroughComposer(transport));
+    // The four parts the Vessel gained on 3 August. They go out under the same
+    // call name and are told apart by the prompt and the schema, so a live
+    // pass here is the only thing that shows the worker treating them as one
+    // call while the model treats them as four different jobs.
     test(
-        'the real composer writes the initial readings',
-        () => _recorded(
-            'vesselConfiguration', () => _vesselThroughComposer(transport)));
+        'the twelve houses compose and parse',
+        () => _recorded('vesselHouses',
+            () => _vesselPart(transport, VesselReadingPart.houses)));
+    test(
+        'the angles compose and parse',
+        () => _recorded('vesselAspects',
+            () => _vesselPart(transport, VesselReadingPart.aspects)));
+    test(
+        'the figure composes place by place',
+        () => _recorded('vesselFigure',
+            () => _vesselPart(transport, VesselReadingPart.matrix)));
+    test(
+        'the figure’s synopsis composes and parses',
+        () => _recorded('vesselFigureSynopsis',
+            () => _vesselPart(transport, VesselReadingPart.matrixSynopsis)));
     test('positions compose and parse', () => _recorded('positions', () => _positions(transport)));
     test('the letter composes and parses', () => _recorded('letter', () => _letter(transport)));
   },
@@ -351,6 +375,69 @@ Future<String> _vesselThroughComposer(EterAiTransport transport) async {
   return sheet.toString();
 }
 
+/// One of the four parts, through the real request builder and the real
+/// composer, over an invented chart.
+///
+/// Invented is the requirement, not a convenience: what comes back is written
+/// into `test/fixtures/live/` and committed, and the owner's own chart must
+/// never become a fixture. The birth below belongs to nobody — but it is a
+/// *real* birth as far as the engine is concerned, with a time and a place, so
+/// the houses and the angles are genuine geometry rather than a hand-written
+/// list of twelve identical cusps.
+Future<String> _vesselPart(
+  EterAiTransport transport,
+  VesselReadingPart part,
+) async {
+  final database = AppDatabase(NativeDatabase.memory());
+  addTearDown(database.close);
+  await database.saveProfile(ProfilesCompanion.insert(
+    dob: DateTime(1990, 3, 14),
+    sex: 'other',
+    weightKg: 70,
+    units: 'metric',
+    aiConsentAt: Value(DateTime.utc(2026, 8, 4)),
+  ));
+  await database.updateBirthContext(
+    birthTimeMinutes: 6 * 60 + 45,
+    birthTimePrecision: 'exact',
+    birthUtcOffsetMinutes: 60,
+    birthPlace: 'Warsaw',
+    birthLatitude: 52.2297,
+    birthLongitude: 21.0122,
+  );
+
+  final request = buildChartReadingRequest(
+    profile: (await database.loadProfile())!,
+    strings: EterStrings.forLanguage(AppLanguage.english),
+    content: await SymbolContent.load(language: AppLanguage.english),
+  );
+  expect(request, isNotNull, reason: 'the request would not build');
+  expect(request!.houses, hasLength(12), reason: 'no houses to read');
+  expect(request.aspects, isNotEmpty, reason: 'no angles to read');
+
+  // `composePart` runs the parser and the safety gate, so this is the whole
+  // chain rather than a shape check — including the two rules only these parts
+  // have: every house and no house invented, and a synopsis that may run to
+  // four times a movement's length without being refused for it.
+  try {
+    return await VesselReadingComposer(
+      database: database,
+      provider: TransportVesselReadingProvider(transport),
+    ).composePart(
+      inputHash: 'live-smoke',
+      request: request,
+      part: part,
+      now: DateTime.utc(2026, 8, 4),
+    );
+  } on VesselReadingException catch (error) {
+    // A refusal here is the safety net working, not the transport breaking,
+    // and the only way to act on it is to know which rule refused what.
+    // ignore: avoid_print
+    print('\n--- ${part.name} refused: ${error.reason} ---\n');
+    rethrow;
+  }
+}
+
 Future<String> _positions(EterAiTransport transport) async {
   final natal = NatalChartEngine().calculate(NatalInput(
     localDateTime: DateTime(1990, 3, 14, 9, 20),
@@ -423,7 +510,7 @@ Future<String> _letter(EterAiTransport transport) async {
       responseSchema: prompt.responseSchema,
     ),
   );
-  // The real parser, including the safety policy.
-  const LetterParser().parse(raw);
+  // The real parser, including the safety policy and the "we" wall.
+  const LetterParser().parse(raw, language: AppLanguage.english);
   return raw;
 }

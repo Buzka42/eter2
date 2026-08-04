@@ -42,7 +42,49 @@ at yet — and it is the reason the surface has to render partial states well.
 
 **Not seen by anybody.** Composed only against fakes. See item 2.
 
-### 2. Nothing from 3–4 August has been seen by a person or a model
+### 2. The five parts have now been read against the live model · *4 August*
+
+Three recording rounds against the deployed endpoint, twelve calls each.
+`test/fixtures/live/` holds prompt **v10** and `EterPrompts.version` is 10.
+Everything below **passed every shape check and every safety rule on the first
+run** and was still wrong, which is the entire argument for reading the output:
+
+- **"The records show"** — in the houses, the angles *and* the figure's
+  synopsis. Eter as an archive reporting on somebody: the same failure as the
+  letter's "We watched the third short night".
+- **`occupants`, a field name, in the prose of five houses.** The instruction
+  had used the word twice in its own sentences. *An example in a prompt can
+  come back in the answer* — and a field name is an example nobody meant to
+  set.
+- **Orbs printed to two decimals**, and **transits described in a natal chart
+  that has none**.
+- **Ten of twelve houses opened with one clause and a swapped card name.**
+- **House 1 never said the word Ascendant**, which is the one thing it exists
+  to say: the surface shows that card above the list, so without it the reader
+  sees the same card apparently printed twice with no explanation.
+- **The figure's synopsis named places by their internal keys** — "The Moon
+  across the sun, the era, and mercury". `recurrences` stopped carrying `keys`
+  at all: a field the answer must not quote is a field the request should not
+  have.
+
+`EterPrompts._vesselRegister` is the shared half of the fix and applies to all
+five parts. Four new tests in `live_fixtures_test.dart` hold each of these
+against the recording, because none of them is a shape a parser can see.
+
+**And one that came back after being forbidden since v6.** The re-recorded
+letter closed with *"We saw the short nights return."* It has been banned by
+instruction in four consecutive prompt versions. `LetterParser` refuses it
+outright now — language-aware, because Polish carries the first person plural
+on the verb (`widzieliśmy`) while the English pronoun `we` is an ordinary
+Polish preposition ("we wtorek"), so the English rule applied to Polish would
+refuse most letters for saying "on Tuesday". A refusal costs a retry; a letter
+is best-effort, is not cached when it fails, and is attempted again the next
+time the Journal opens.
+
+**Still not read by a person:** the Polish side of any of this. Every recording
+above is English, because that is what the smoke test composes.
+
+### 3. What has still not been seen by a person or a model
 
 This is the larger risk and it is not code. Every change below was verified by
 tests and by goldens; **almost none of it has been run on the phone, and none of
@@ -53,10 +95,6 @@ the new writing has been read.**
   loop budget caps concurrent decoders at six and hands them back off-screen,
   but that was measured on a column of eighteen plates and this one is longer.
   Worth re-running the frame-differencing check described under *Cards* below.
-- The four new Vessel parts have never been composed against the live model.
-  `test/fixtures/live/` still holds the **v8** recording; prompts are at **v9**.
-  The rule in this document is that a fixture which parses is not a fixture that
-  reads well — that is the whole lesson of v6.
 - Positions has never been composed with the natal context attached, so nobody
   has read what it now says about a retrograde.
 - The doubled guidance, the always-present depths row, the Body's macro fields
@@ -66,9 +104,12 @@ the new writing has been read.**
   it is the change most worth the owner's eye.
 
 Re-record the fixtures with *invented* inputs. The owner's own chart and record
-must not become a fixture.
+must not become a fixture. The Vessel parts compose from an invented birth in
+`live_smoke_test.dart` — 14 March 1990, 06:45, Warsaw — which is a real birth
+as far as the engine is concerned, with genuine houses and genuine angles, and
+belongs to nobody.
 
-### 3. The phone, as it was left
+### 4. The phone, as it was left
 
 A debug build carrying the endpoint defines (`--dart-define=ETER_AI_TOKEN=eter-ai`,
 endpoint `https://eter-ai.eter-ai.workers.dev`), the evening invitation switched
@@ -82,10 +123,10 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **873 tests
-pass, 10 skipped** — the skips are the live-provider suite, which needs the
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **879 tests
+pass, 14 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
-*has* been run and passes; see item 3. Schema is at **15**, and the upgrade
+*has* been run and passes; see item 2. Schema is at **15**, and the upgrade
 **12 → 15 was run on a real device with 3.3 MB of real data**: nothing lost,
 `letters` created, both new profile columns added, and neither new consent
 inherited.
@@ -146,7 +187,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 873 pass, 10 skipped
+flutter test          # expect 879 pass, 14 skipped
 flutter analyze       # expect clean
 ```
 
@@ -554,10 +595,10 @@ how many bodies are in the house, and one chart has both.
 The once-per-opening guard and the Sun/Moon/Ascendant lift are both the kind of
 thing that looks like an omission until you know why.
 
-**Not done either:** re-recording `test/fixtures/live/` for prompt v9, and
-reading what the four new parts actually write against the live model. The rule
-in this document is that a fixture which parses is not a fixture that reads
-well, and none of these four has been read even once.
+**Done, 4 August:** `test/fixtures/live/` is re-recorded at prompt **v10** and
+all four new parts have been read against the live model. What that found is
+item 2 at the top of this document, and it is worth reading before writing any
+prompt here — every fault was invisible to every parser.
 
 ---
 
@@ -685,8 +726,9 @@ flutter test test/manual/live_smoke_test.dart   --dart-define=ETER_LIVE_SMOKE=tr
 letter opened *"We watched the third short night"* — Eter as an institution
 observing somebody. It also recited the retrospective's figures in a row and
 called a month with twenty-two recorded days thin. All three parsed perfectly.
-`EterPrompts.version` was raised because of it; it is **7** in
-`core/ai/prompts.dart` today. See the version note for what changed.
+`EterPrompts.version` was raised because of it; it is **10** in
+`core/ai/prompts.dart` today, and the same failure came back on 4 August — see
+item 2 at the top, and `LetterParser`, which no longer trusts the instruction. See the version note for what changed.
 
 **Still not exercised end to end in the app:** `LetterComposer` needs five
 recall notes in a month before it will ask, and this device has none — recalls
@@ -1107,13 +1149,10 @@ Three of them in one reading, including a card in **three** positions read as on
 thing rather than three — which is the case `vessel_reading_composer_test.dart`
 pins as a single entry rather than two pairs.
 
-**Where the reading lives, because it is easy to miss.** The movements render
-*above* the position list, behind `CZYTAJ GŁĘBIEJ`. Scroll past them once and
-the Vessel looks like nothing but a column of cards analysed one at a time —
-which is what it was reported as, and it was already not that.
+**Where the reading lives, because it is easy to miss.** The movements are the
+chart's synopsis, part four of six, under `CAŁY KOSMOGRAM`. They used to be the
+whole of the Vessel's writing and they are now a fifth of it.
 
-**Not done:** `test/fixtures/live/` still holds the v8 recording for this call.
-It parses, so the suite is green, but the handoff's own rule is to re-record
-after a prompt changes and *read* what comes back. The recording must use
-invented inputs — the responses above are the owner's own chart and must not
-become a fixture.
+**Done, 4 August:** `test/fixtures/live/` holds a v10 recording of this call
+made from invented inputs. The Polish passages above are the owner's own chart
+and are quoted here only; they are not, and must not become, a fixture.

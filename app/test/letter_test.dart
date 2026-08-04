@@ -5,6 +5,7 @@ import 'package:drift/native.dart';
 import 'package:eter/core/ai/prompts.dart';
 import 'package:eter/core/aether/letter.dart';
 import 'package:eter/core/db/app_database.dart';
+import 'package:eter/core/i18n/language.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// The sixth call: one page a month, written to the person.
@@ -183,6 +184,52 @@ void main() {
       expect(
         () => parser.parse(jsonEncode({'letter': '   '})),
         throwsA(isA<LetterException>()),
+      );
+    });
+
+    test('a letter that speaks as "we" is refused outright', () {
+      // The first letter ever composed opened "We watched the third short
+      // night", and it was forbidden by instruction from prompt version 6
+      // onward. On 4 August a recorded letter still closed with "We saw the
+      // short nights return" — so the instruction is no longer the only thing
+      // holding it. A refusal costs a retry; the alternative is a person
+      // reading Eter as an organisation that has been watching them.
+      expect(
+        () => parser.parse(jsonEncode({
+          'letter': 'The month began quietly. We saw the short nights return.',
+        })),
+        throwsA(isA<LetterException>()),
+      );
+      // One voice, in the first person singular, is what it is meant to be.
+      expect(
+        parser.parse(jsonEncode({
+          'letter': 'The month began quietly. I offered an early wind-down.',
+        })),
+        contains('I offered'),
+      );
+    });
+
+    test('Polish carries "we" on the verb, and "we" itself is a preposition',
+        () {
+      // `widzieliśmy` is first person plural with no pronoun in sight, and it
+      // is what the English rule would miss entirely.
+      expect(
+        () => parser.parse(
+          jsonEncode({'letter': 'Miesiąc zaczął się cicho. Widzieliśmy to.'}),
+          language: AppLanguage.polish,
+        ),
+        throwsA(isA<LetterException>()),
+      );
+      // And the trap in the other direction: `we` is an ordinary Polish
+      // preposition, so the English rule applied to Polish would refuse most
+      // letters for saying "on Tuesday".
+      expect(
+        parser.parse(
+          jsonEncode({'letter': 'We wtorek noc była krótka. Zaproponowałem '
+              'wcześniejsze wyciszenie.'}),
+          language: AppLanguage.polish,
+        ),
+        contains('We wtorek'),
       );
     });
 

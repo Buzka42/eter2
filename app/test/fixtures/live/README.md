@@ -17,3 +17,23 @@ repository.
 Re-record after changing a prompt, and read what comes back before committing
 it. The first letter this captured said "We watched the third short night",
 which is the sentence that produced `EterPrompts.version` 6.
+
+**Recorded at prompt v10, 4 August.** Twelve calls, including the Vessel's four
+new parts for the first time. Everything below passed every shape check and
+every safety rule on the *first* run and was still wrong, which is the whole
+argument for this directory:
+
+- "The records show" in the houses, the angles and the figure's synopsis —
+  Eter as an archive reporting on somebody, the same failure as "We watched".
+- `occupants`, a field name, in the prose of five houses. The instruction had
+  used the word twice in its own sentences.
+- Orbs printed to two decimals; transits described in a chart that has none.
+- Ten of twelve houses opening with one clause and a swapped card name.
+- House 1 never saying the word Ascendant, which is the one thing it exists to
+  say — the surface shows that card above the list.
+- The figure's synopsis naming places by their internal keys: "the sun, the
+  era, and mercury".
+
+And the one that came back after being forbidden since v6: the letter closed
+with **"We saw the short nights return."** `LetterParser` refuses it outright
+now, in both languages, rather than trusting the instruction a fifth time.

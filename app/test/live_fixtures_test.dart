@@ -141,6 +141,97 @@ void main() {
       }
     });
 
+    test('the Vessel never speaks as an archive, in any of its five parts', () {
+      // "The records show" turned up in the houses, the angles *and* the
+      // figure's synopsis on the first live run — the same failure as the
+      // letter's "We watched the third short night", which is Eter as an
+      // institution reporting on somebody. Prompt v10's shared register block
+      // is the prevention; this is where it stays proven.
+      const parts = [
+        'vesselReadings',
+        'vesselHouses',
+        'vesselAspects',
+        'vesselFigure',
+        'vesselFigureSynopsis',
+      ];
+      for (final part in parts) {
+        final text = fixture(part).toLowerCase();
+        for (final phrase in const [
+          'the records show',
+          'the data ',
+          'we saw',
+          'we watched',
+        ]) {
+          expect(text.contains(phrase), isFalse, reason: '$part: "$phrase"');
+        }
+      }
+    });
+
+    test('the houses do not print a field name or a template', () {
+      final passages = (jsonDecode(fixture('vesselHouses'))
+              as Map<String, dynamic>)['passages'] as List;
+      expect(passages, hasLength(12));
+
+      // `occupants` is the name of a field in the request. It reached the
+      // prose of five houses, because the instruction had used the word twice
+      // in its own sentences — an example in a prompt can come back in the
+      // answer, and a field name is an example nobody meant to set.
+      for (final item in passages) {
+        final passage = (item as Map)['passage'] as String;
+        expect(
+          passage.toLowerCase(),
+          isNot(contains('occupant')),
+          reason: 'house ${item['key']}',
+        );
+      }
+
+      // Ten of twelve once opened with one clause and a swapped card name,
+      // which is a form being filled in rather than twelve readings. Three
+      // words is enough to catch it and short enough not to fire on prose that
+      // merely rhymes.
+      final openings = [
+        for (final item in passages)
+          ((item as Map)['passage'] as String)
+              .toLowerCase()
+              .split(RegExp(r'\s+'))
+              .take(3)
+              .join(' '),
+      ];
+      expect(openings.toSet(), hasLength(openings.length), reason: '$openings');
+
+      // House 1 *is* the Ascendant, and the surface shows that card above the
+      // list. Without the word, the reader is looking at what appears to be
+      // the same card printed twice with no explanation.
+      expect(
+        ((passages.first as Map)['passage'] as String).toLowerCase(),
+        contains('ascendant'),
+      );
+    });
+
+    test('the angles are described, never measured out', () {
+      // "An orb of just 0.14 degrees" is a measurement on a surface that shows
+      // no measurements, and it is the shape of the failure the letter had
+      // when it recited its figures in a row.
+      final movements = (jsonDecode(fixture('vesselAspects'))
+              as Map<String, dynamic>)['movements'] as List;
+      for (final movement in movements) {
+        final passage = (movement as Map)['passage'] as String;
+        expect(RegExp(r'\d').hasMatch(passage), isFalse, reason: passage);
+      }
+    });
+
+    test('the figure names its places, never its keys', () {
+      // The first live synopsis wrote "The Moon across the sun, the era, and
+      // mercury" — the request's own identifiers, read aloud. `recurrences`
+      // stopped carrying keys at all because of it.
+      final passage = (jsonDecode(fixture('vesselFigureSynopsis'))
+          as Map<String, dynamic>)['passage'] as String;
+      expect(passage.trim(), isNotEmpty);
+      for (final key in const ['lifePath', 'matrixSynopsis', '"key"']) {
+        expect(passage, isNot(contains(key)));
+      }
+    });
+
     test('the recall is telegraphic, not the prose it came from', () {
       final decoded = jsonDecode(fixture('guidance')) as Map<String, dynamic>;
       final recall = decoded['recall'] as String;

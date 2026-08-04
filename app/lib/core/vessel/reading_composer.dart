@@ -138,6 +138,13 @@ class VesselReadingRequest {
   ///
   /// Ordered by the position list rather than by card name, so the same chart
   /// always produces the same request and the cache key stays stable.
+  ///
+  /// **Labels only, never keys.** It carried both until 4 August, and the first
+  /// live figure synopsis wrote "The Moon across the sun, the era, and mercury"
+  /// — internal identifiers, lowercased, one of them (`era`) a word that means
+  /// nothing at all to a reader. A field the answer must not quote is a field
+  /// the request should not contain: the labels say the same thing and are
+  /// already in the reader's own language.
   List<Map<String, Object>> get recurrences {
     final byCard = <String, List<VesselReadingPosition>>{};
     for (final position in positions) {
@@ -149,7 +156,6 @@ class VesselReadingRequest {
           {
             'card': entry.key,
             'positions': [for (final item in entry.value) item.label],
-            'keys': [for (final item in entry.value) item.key],
           },
     ];
   }

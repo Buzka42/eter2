@@ -109,7 +109,18 @@ abstract final class EterPrompts {
   /// thing that works until it does not; and it is also the surface's most
   /// convincing false defect, since two positions resolving to one card draws
   /// the same plate twice in a row and reads as a repeat nobody intended.
-  static const version = 9;
+  /// **10 · what the first live run of the five Vessel parts actually said.**
+  /// Every part passed every shape check and every safety rule, and all four
+  /// of these came out of reading the recorded text: an archive narrator ("the
+  /// records show") in three of the five parts, the request's own field names
+  /// in the prose ("occupants", and transits in a chart that has none), the
+  /// cards' keywords recited as lists, orbs printed to two decimals, ten of
+  /// twelve houses opening with one clause and a swapped noun, house 1 never
+  /// saying the word Ascendant, and the figure's synopsis naming places by
+  /// their internal keys — "the sun, the era, and mercury". `_vesselRegister`
+  /// is the shared half; `recurrences` stopped carrying keys at all, because a
+  /// field the answer must not quote is a field the request should not have.
+  static const version = 10;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -465,6 +476,52 @@ Missing data is information. If a signal is absent, say it is absent, in
 words, and reason without it. Never estimate a number that was not recorded,
 never describe a day you have no records for, and never treat a gap as a zero:
 a day with no steps recorded is not a day of no movement.''';
+
+  /// How the Vessel's five parts are allowed to sound.
+  ///
+  /// Every rule here was written against a recorded response, on 4 August, and
+  /// none of them could have been found by a parser — all five parts passed
+  /// every shape check and every safety rule while doing these things.
+  ///
+  /// * **"The records show"** appeared in the houses, the angles *and* the
+  ///   figure's synopsis. It is the same failure as the letter's "We watched
+  ///   the third short night": Eter as an archive reporting on somebody. The
+  ///   chart is the subject, or nothing is.
+  /// * **"occupants"** is the name of a field in the request. It arrived in
+  ///   the prose of six houses. So did "transit" and "planetary noise", about
+  ///   a natal chart that has no transits in it at all.
+  /// * **The keywords came back as lists** — "dreams, instinct, tides,
+  ///   uncertainty, and the half-seen" — which is the card's dictionary entry
+  ///   quoted, not a reading made with it.
+  /// * **The orbs were printed to two decimal places.** "An orb of just 0.14
+  ///   degrees" is a measurement on a surface that shows no measurements.
+  static const _vesselRegister = '''
+HOW THIS IS SAID
+There is no narrator. Eter does not observe, record, or report on anybody:
+never "we", never "the records show", never "the data indicates", never any
+phrase that puts an institution between the chart and the person reading it.
+The grammatical subject is the chart, the placement, the house or the card.
+
+The request is a working document, not vocabulary. Words like "occupants",
+"recurrences", "orb", "reliability" and every field name are how the
+calculation was handed to you; none of them belongs in the answer. Say that
+bodies stand in a house, that a card returns, that an angle is close.
+
+Do not print measurements. No degrees, no decimals, no orb figures. Whether an
+angle is tight or wide is the whole of what the reader needs, and saying it in
+words is the work.
+
+Do not quote a card's keywords in a row. They are what you think with, not
+what you write out; a passage that lists them has handed over the dictionary
+entry instead of reading anything.
+
+This chart is a birth chart and nothing is moving in it. There are no
+transits, no current sky, no "at present" — that is another part of the
+product entirely.
+
+Vary how the passages begin. When many are written at once they drift into one
+template with the nouns swapped, and a reader meets that as a form to be
+filled in rather than as writing.''';
 
   // -------------------------------------------------------------------------
   // 1. Daily guidance
@@ -1124,6 +1181,8 @@ You know nothing about this person beyond the positions listed. Not their age,
 not their circumstances, not how their week has gone. Read the chart, not a
 person you have imagined around it.
 
+$_vesselRegister
+
 $safety
 
 ${languageFor(language)}
@@ -1179,6 +1238,8 @@ $absence
 You know nothing about this person beyond what is listed. Not their age, not
 their circumstances, not how their week has gone.
 
+$_vesselRegister
+
 $safety
 
 ${languageFor(language)}''';
@@ -1195,15 +1256,28 @@ One passage for **every** house you were given, keyed by its number as a
 string — "1" through "12". Every house, none invented, none twice.
 
 A house's card is the card of the sign on its cusp. Say what that card asks of
-that house's territory, and let the bodies standing in the house — its
-"occupants" — weigh on it. **A house with no occupants is not a weakness and
-not an emptiness**; it is a part of life this chart does not make a project of,
-and saying that plainly is worth more than filling the silence.
+that house's territory, and let the bodies standing in the house weigh on it.
+The `occupants` field lists them; that word is the field's name and must not
+appear in the writing — this instruction used it twice in its own prose and it
+came back in five of the twelve passages. **A house with nobody standing in it
+is not a weakness and not an emptiness**; it is a part of life this chart does
+not make a project of, and saying that plainly is worth more than filling the
+silence.
 
 House 1 is marked `isAscendant`. It *is* the Ascendant, the same degree shown
 above this list — not a second point that happens to agree. Write it as the
 same thing seen from the house side; never as a coincidence and never as a
-repetition.
+repetition. **Name the Ascendant in that passage.** The first live run wrote
+house 1 without ever saying the word, which leaves the reader looking at what
+appears to be the same card printed twice with no explanation — and that
+explanation is the only reason this instruction exists.
+
+Twelve passages are written in one answer and they drift: the first live run
+opened ten of them with the same clause, one card name swapped for the next.
+No two may begin the same way. Some houses are best entered through the card,
+some through what the house is for, some through who is standing in it — and a
+house whose reading is genuinely quiet should be short rather than padded up to
+the others' length.
 
 You may glance at another house where the reading genuinely needs it, but keep
 it to a clause. The relating is the synopsis's job and it comes two parts
@@ -1226,9 +1300,9 @@ $shared
 WHAT TO WRITE
 Between $vesselMinimumMovements and $vesselMaximumMovements titled movements
 about the **aspects** — the measured angles in "aspects", each with the two
-bodies, the kind of angle, and how exact it is in degrees ("orb"). A tight orb
-is a loud aspect; a wide one is a whisper, and saying which is which is most
-of the work.
+bodies, the kind of angle, and how exact it is. A tight angle is a loud one; a
+wide one is a whisper, and saying which is which is most of the work. Say it in
+words: the measurement is how you know, never what you write.
 
 This is the one part that can say something a list of placements cannot: not
 where the bodies are, but how they stand to each other. A movement that names
@@ -1237,7 +1311,7 @@ several angles do *together* — what they reinforce, what they pull against, an
 what the chart therefore keeps negotiating — is a reading.
 
 If the chart is loosely aspected, say so plainly rather than manufacturing a
-tension out of a nine-degree orb.
+tension out of an angle that is barely there.
 
 Titles of at most $vesselMaximumTitleCharacters characters. Passages of at most
 $vesselMaximumPassageCharacters characters.
@@ -1265,6 +1339,11 @@ what it asks for, what it tends to repeat, what it costs.
 Keep the relating to a clause. The synopsis of the figure follows immediately
 and is the place for it.
 
+Name a place by the label it was given, never by its `key` — the keys are
+identifiers and one of them is the bare word "era". And no two passages may
+begin the same way: these are read one after another, and a shared opening
+clause turns eighteen readings into one form filled in eighteen times.
+
 At most $vesselMaximumKeyedPassageCharacters characters each, prose, no lists
 and no headings.
 
@@ -1290,8 +1369,14 @@ figure insisting on something, not as two facts that happen to rhyme. If it is
 empty, say nothing about it and invent none.
 
 Name places as evidence for a claim about the whole figure, never as subjects
-to be described in turn. The place-by-place reading has just been given; this
-is not a second pass through it.
+to be described in turn, and name them by their labels — the first live run
+wrote "The Moon across the sun, the era, and mercury", which is the request's
+own identifiers read aloud. The place-by-place reading has just been given;
+this is not a second pass through it.
+
+It is the longest thing the Vessel says and it should read like it: the first
+live run came back at under a third of what it was allowed, and a synopsis
+that stops early is one that stopped relating.
 
 Paragraphs separated by a blank line. No lists, no headings, no markdown.
 
@@ -1419,9 +1504,16 @@ most, and fewer is better — but more than one, unless the month really was
 almost empty.
 
 Write as one voice, and never as "we". There is no organisation here and no
-team watching: "we watched the third short night" is the one sentence this
-letter must never contain. Say what you noticed, in the first person singular
-if you need a subject at all, and usually you do not.
+team watching. The first person plural is forbidden as a grammatical subject
+anywhere in the letter — not only in its opening, and not only where it is
+describing what was noticed. In Polish this includes the verb ending that
+carries it, with no pronoun present. Say what you noticed in the first person
+singular if you need a subject at all, and usually you do not.
+
+This one is a wall rather than a preference: a letter containing it is refused
+outright and the month goes unwritten until it is composed again. It has been
+forbidden here since version 6 and a letter still closed with "we saw the short
+nights return", so the instruction is no longer the only thing holding it.
 
 What you have:
 

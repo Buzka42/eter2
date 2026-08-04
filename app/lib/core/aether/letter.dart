@@ -47,7 +47,27 @@ class LetterParser {
   final int maxCharacters;
   final AetherSafetyPolicy safety;
 
-  String parse(String raw, {GuidanceMode mode = GuidanceMode.balanced}) {
+  /// Whether this letter speaks as more than one voice.
+  ///
+  /// Language-dependent, and it has to be. English marks it with a pronoun;
+  /// Polish marks it on the verb — *widzieliśmy*, *zauważyliśmy* — and the
+  /// English pronoun spelled `we` is an ordinary Polish preposition ("we
+  /// wtorek", "we mnie"), so the English rule applied to a Polish letter would
+  /// refuse most of them for saying "on Tuesday".
+  static final _weInEnglish = RegExp(r'\bwe\b', caseSensitive: false);
+  static final _weInPolish = RegExp(r'\w+śmy\b', caseSensitive: false);
+
+  static bool speaksAsWe(String letter, AppLanguage language) =>
+      switch (language) {
+        AppLanguage.polish => _weInPolish.hasMatch(letter),
+        AppLanguage.english => _weInEnglish.hasMatch(letter),
+      };
+
+  String parse(
+    String raw, {
+    GuidanceMode mode = GuidanceMode.balanced,
+    AppLanguage language = AppLanguage.english,
+  }) {
     final Object? decoded;
     try {
       decoded = jsonDecode(raw);
@@ -64,6 +84,20 @@ class LetterParser {
     final letter = body.trim();
     if (letter.length > maxCharacters) {
       throw const LetterException('The letter is not one page');
+    }
+    // Eter is one voice writing to one person. "We" is an organisation, a team
+    // that has been watching, and it is the register this product exists not to
+    // have — the first real letter ever composed opened "We watched the third
+    // short night", which is why the instruction forbids it by name.
+    //
+    // A wall rather than an instruction, because the instruction alone did not
+    // hold: it was forbidden explicitly in prompt versions 6 through 9, and the
+    // recorded letter of 4 August still closed with "We saw the short nights
+    // return". Refusing costs a retry — a letter is best-effort, is not cached
+    // when it fails, and is attempted again the next time the Journal opens —
+    // and the alternative is a person reading it.
+    if (speaksAsWe(letter, language)) {
+      throw const LetterException('The letter speaks as "we"');
     }
     // A letter is prose rather than an instruction, so it has no
     // `primaryAction` to check. Passing an empty one keeps the policy's own
@@ -173,6 +207,7 @@ class LetterComposer {
     final body = parser.parse(
       raw,
       mode: _mode(profile?.guidanceMode),
+      language: AppLanguage.forProfile(profile?.language),
     );
 
     await database.upsertLetter(

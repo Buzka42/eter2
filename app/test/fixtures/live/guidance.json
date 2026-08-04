@@ -1,33 +1,33 @@
 {
   "synthesis": {
     "sentences": [
-      "Rest settled slightly short through a demanding week while movement remained steady.",
-      "A quiet evening can anchor the space between work and sleep."
+      "Rest settled short ahead of the deadline while the body held its steady rhythm.",
+      "Quiet margins will serve the hours that follow."
     ],
-    "primaryAction": "Close the laptop twenty minutes before resting."
+    "primaryAction": "Close the laptop twenty minutes early tonight."
   },
   "health": {
     "sentences": [
-      "Sleep held near six hours and forty-seven minutes each night as the deadline approached.",
-      "Resting heart rate stayed calm at fifty-four beats per minute throughout."
+      "Active energy held near the previous baseline alongside consistent morning recovery.",
+      "Sleep duration hovered just under seven hours through the week."
     ],
-    "primaryAction": "Step away from screens an hour before bed.",
+    "primaryAction": "Take a short walk without a destination after lunch.",
     "evidence": {
       }
   },
   "mind": {
     "sentences": [
-      "Attention fractured over desk lunches and late tasks.",
-      "Focus returns more readily when the physical workspace is cleared."
+      "Desk work consumed the edges of attention as the heavy task drew near.",
+      "Stepping away from the screen will help clear the lingering static."
     ],
-    "primaryAction": "Clear the desk completely before ending the workday."
+    "primaryAction": "Eat the next meal away from the workspace."
   },
   "spirit": {
     "sentences": [
-      "Endurance carried through the pressure of completion.",
-      "Quiet hours offer a chance to reclaim equilibrium."
+      "Stretches of intense focus ask for deliberate pauses to restore perspective.",
+      "Patience with oneself remains the quiet task of these days."
     ],
-    "primaryAction": "Take ten minutes of unhurried silence in the evening."
+    "primaryAction": "Spend five minutes looking out a window without reading."
   },
-  "recall": "long week. sleep short. desk meals. offered screen break and clearing workspace."
+  "recall": "short sleep before deadline. desk meals noted. steady steps maintained. offered early logout and screen break."
 }
