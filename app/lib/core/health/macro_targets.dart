@@ -6,6 +6,7 @@ class MacroDay {
     required this.date,
     required this.proteinG,
     required this.fatG,
+    this.carbsG,
   });
 
   /// Local calendar day, ISO.
@@ -19,7 +20,38 @@ class MacroDay {
   final double? proteinG;
   final double? fatG;
 
-  bool get recorded => proteinG != null || fatG != null;
+  /// Counted, and almost never spoken about. Carbohydrate is tracked because
+  /// the owner wants it tracked, and it earns no advice of its own: there is
+  /// no floor for it and no target, and telling somebody to eat fewer of them
+  /// is the diet talk this product does not do.
+  ///
+  /// The one exception is [carbHeavyWithLowProtein].
+  final double? carbsG;
+
+  bool get recorded => proteinG != null || fatG != null || carbsG != null;
+
+  /// Energy from each macronutrient, in kcal, for the ones that were logged.
+  /// Four per gram of protein and carbohydrate, nine per gram of fat.
+  double get _proteinKcal => (proteinG ?? 0) * 4;
+  double get _carbKcal => (carbsG ?? 0) * 4;
+  double get _fatKcal => (fatG ?? 0) * 9;
+  double get _totalKcal => _proteinKcal + _carbKcal + _fatKcal;
+
+  /// A day that was very nearly all carbohydrate.
+  ///
+  /// Measured by share of energy rather than by grams, because a gram of fat
+  /// is not a gram of anything else — by weight, a day of bread and butter
+  /// looks carbohydrate-dominated when by energy it is not.
+  ///
+  /// Seven tenths, and every macronutrient must have been logged: a day where
+  /// only carbohydrate was written down is a day nobody described, not a day
+  /// of pure carbohydrate, and treating the second as the first would be the
+  /// absent-not-zero mistake wearing a new hat.
+  bool get carbDominant {
+    if (proteinG == null || carbsG == null || fatG == null) return false;
+    if (_totalKcal <= 0) return false;
+    return _carbKcal / _totalKcal >= 0.7;
+  }
 }
 
 /// The floors, and what the record has to say about them.
@@ -30,6 +62,7 @@ class MacroTargets {
     required this.appliesBecauseOfStrength,
     required this.shortfallDays,
     required this.recordedDays,
+    this.carbHeavyWithLowProtein = false,
   });
 
   /// Grams per day, computed from this person's own weight and rounded to a
@@ -62,6 +95,19 @@ class MacroTargets {
 
   /// Nothing at all is known about recent intake.
   bool get windowIsSilent => recordedDays == 0;
+
+  /// The one thing that may be said about carbohydrate.
+  ///
+  /// True when a recorded day was very nearly all carbohydrate *and* protein
+  /// came in under its floor. Then, and only then, the advice may suggest
+  /// trading some of it for protein — because the sentence is about the
+  /// protein that is missing, not about the carbohydrate being wrong.
+  ///
+  /// Both halves are required. A carbohydrate-heavy day that still met the
+  /// protein floor needs no comment; a low-protein day that was not
+  /// carbohydrate-heavy is covered by [shortfallDays] and does not need a
+  /// swap suggested.
+  final bool carbHeavyWithLowProtein;
 }
 
 /// Grams of protein per kilogram per day, when there is strength work.
@@ -96,12 +142,14 @@ MacroTargets macroTargetsFor({
 
   final recorded = recentDays.where((day) => day.recorded).toList();
   var shortfall = 0;
+  var carbHeavyLowProtein = false;
   for (final day in recorded) {
     // A measure that was not logged cannot be short. Only what is on the
     // record is judged, and only against its own floor.
     final proteinShort = day.proteinG != null && day.proteinG! < protein;
     final fatShort = day.fatG != null && day.fatG! < fat;
     if (proteinShort || fatShort) shortfall++;
+    if (proteinShort && day.carbDominant) carbHeavyLowProtein = true;
   }
 
   return MacroTargets(
@@ -110,5 +158,6 @@ MacroTargets macroTargetsFor({
     appliesBecauseOfStrength: hasStrengthWork,
     shortfallDays: shortfall,
     recordedDays: recorded.length,
+    carbHeavyWithLowProtein: carbHeavyLowProtein,
   );
 }

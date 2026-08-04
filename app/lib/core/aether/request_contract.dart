@@ -265,6 +265,7 @@ class AetherMacroFloors {
     required this.shortfallDays,
     required this.recordedDays,
     required this.lean,
+    this.carbHeavyWithLowProtein = false,
   });
 
   final int proteinG;
@@ -278,12 +279,18 @@ class AetherMacroFloors {
   /// Whether recent days fell short often enough to be worth saying firmly.
   final bool lean;
 
+  /// The only opening for a sentence about carbohydrate: a recorded day that
+  /// was very nearly all of it, on which protein also came in under its floor.
+  /// Carbohydrate is otherwise counted and never commented on.
+  final bool carbHeavyWithLowProtein;
+
   Map<String, Object?> toJson() => {
         'proteinG': proteinG,
         'fatG': fatG,
         'shortfallDays': shortfallDays,
         'recordedDays': recordedDays,
         'lean': lean,
+        'carbHeavyWithLowProtein': carbHeavyWithLowProtein,
       };
 }
 

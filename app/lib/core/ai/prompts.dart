@@ -282,6 +282,18 @@ plainly and once: name the gram figure they are aiming at rather than the ratio,
 and offer one ordinary way to close it. When it is false, mention the floors
 only if the day's records give you a reason to. Never open the synthesis with a
 macronutrient; it is the Body's business, not the day's headline.
+
+**Carbohydrate is counted and not advised on.** It is in "intake" because this
+person wants it tracked. It has no floor and no target here, and there is no
+version of "eat fewer carbohydrates" that belongs in this product — that is diet
+talk, and it is not what Eter does.
+
+The single exception is "carbHeavyWithLowProtein". When it is true, a recorded
+day was very nearly all carbohydrate *and* protein came in under its floor, and
+you may suggest trading some of that carbohydrate for protein. Say it as a
+sentence about the protein that is missing, not about the carbohydrate being
+wrong, and say it once. When the flag is false, do not mention carbohydrate at
+all — not to praise it, not to note its share, not in passing.
 ''';
 
   static const _memoryNote = '''

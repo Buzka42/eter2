@@ -195,6 +195,7 @@ class AetherContextAssembler {
             date: day.localDate,
             proteinG: day.proteinG,
             fatG: day.fatG,
+            carbsG: day.carbsG,
           ),
       ],
     );
@@ -214,6 +215,7 @@ class AetherContextAssembler {
               shortfallDays: targets.shortfallDays,
               recordedDays: targets.recordedDays,
               lean: targets.shouldLean,
+              carbHeavyWithLowProtein: targets.carbHeavyWithLowProtein,
             )
           : null,
       patterns: [for (final row in patterns) _pattern(row)],

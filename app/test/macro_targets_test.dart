@@ -8,8 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 /// that was recorded, or Eter ends up telling somebody they fell short on days
 /// they simply did not write down.
 void main() {
-  MacroDay day(String date, {double? protein, double? fat}) =>
-      MacroDay(date: date, proteinG: protein, fatG: fat);
+  MacroDay day(String date, {double? protein, double? fat, double? carbs}) =>
+      MacroDay(date: date, proteinG: protein, fatG: fat, carbsG: carbs);
 
   test('the floors are grams for this body, not a ratio to work out', () {
     final targets = macroTargetsFor(
@@ -141,5 +141,72 @@ void main() {
       recentDays: [day('2026-08-01', protein: 136, fat: 40)],
     );
     expect(targets.shortfallDays, 0);
+  });
+
+  group('carbohydrate is counted and almost never spoken about', () {
+    test('a carbohydrate-heavy day with enough protein says nothing', () {
+      final targets = macroTargetsFor(
+        weightKg: 80,
+        hasStrengthWork: true,
+        // 400 g carbs is 1600 kcal against 136 g protein at 544 and 40 g fat
+        // at 360 — carbohydrate-dominant by energy, and the floors are met.
+        recentDays: [day('2026-08-01', protein: 140, fat: 45, carbs: 400)],
+      );
+      expect(targets.shortfallDays, 0);
+      expect(targets.carbHeavyWithLowProtein, isFalse);
+    });
+
+    test('a day of almost nothing but carbohydrate, with protein short, opens the one sentence', () {
+      final targets = macroTargetsFor(
+        weightKg: 80,
+        hasStrengthWork: true,
+        recentDays: [day('2026-08-01', protein: 40, fat: 20, carbs: 500)],
+      );
+      expect(targets.carbHeavyWithLowProtein, isTrue);
+    });
+
+    test('low protein on a day that was not carbohydrate-heavy suggests no swap', () {
+      // Covered by the shortfall count; there is nothing to trade.
+      final targets = macroTargetsFor(
+        weightKg: 80,
+        hasStrengthWork: true,
+        recentDays: [day('2026-08-01', protein: 40, fat: 120, carbs: 60)],
+      );
+      expect(targets.shortfallDays, 1);
+      expect(targets.carbHeavyWithLowProtein, isFalse);
+    });
+
+    test('share is measured by energy, not by weight', () {
+      // By grams this looks carbohydrate-dominated; by energy the fat is
+      // larger, because a gram of fat is not a gram of anything else.
+      final byWeight = day('2026-08-01', protein: 30, fat: 100, carbs: 180);
+      expect(byWeight.carbDominant, isFalse);
+    });
+
+    test('a day where only carbohydrate was written down is not a day of pure carbohydrate', () {
+      // It is a day nobody described. Treating it as the other thing is the
+      // absent-not-zero mistake wearing a new hat.
+      final partial = day('2026-08-01', carbs: 400);
+      expect(partial.recorded, isTrue);
+      expect(partial.carbDominant, isFalse);
+
+      final targets = macroTargetsFor(
+        weightKg: 80,
+        hasStrengthWork: true,
+        recentDays: [partial],
+      );
+      expect(targets.carbHeavyWithLowProtein, isFalse);
+      // Protein was never logged, so it cannot have been short.
+      expect(targets.shortfallDays, 0);
+    });
+
+    test('carbohydrate alone never counts as a shortfall', () {
+      final targets = macroTargetsFor(
+        weightKg: 80,
+        hasStrengthWork: true,
+        recentDays: [day('2026-08-01', protein: 200, fat: 90, carbs: 5)],
+      );
+      expect(targets.shortfallDays, 0);
+    });
   });
 }
