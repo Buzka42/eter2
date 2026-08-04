@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/controls.dart';
+import '../../core/widget/widget_launch.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/icons.dart';
 import '../../core/theme.dart';
@@ -22,7 +26,7 @@ import 'shell_header.dart';
 /// switch sit above both, identical on either side. Both pages stay alive
 /// across page changes — scroll position, an expanded section and a
 /// half-written entry all survive the crossing.
-class EterShell extends StatefulWidget {
+class EterShell extends ConsumerStatefulWidget {
   const EterShell({
     super.key,
     this.startSurface = 'dashboard',
@@ -43,10 +47,10 @@ class EterShell extends StatefulWidget {
   final VoidCallback? onWalkthroughFinished;
 
   @override
-  State<EterShell> createState() => _EterShellState();
+  ConsumerState<EterShell> createState() => _EterShellState();
 }
 
-class _EterShellState extends State<EterShell> {
+class _EterShellState extends ConsumerState<EterShell> {
   late final PageController _controller;
   late int _active;
   bool _sanctumOpen = false;
@@ -62,6 +66,12 @@ class _EterShellState extends State<EterShell> {
     super.initState();
     _active = widget.startSurface == 'journal' ? 0 : 1;
     _controller = PageController(initialPage: _active);
+    // The home-screen widget's two controls open the app *into* the journal.
+    // Started here rather than in `main` because this is the first thing that
+    // exists which can act on the answer.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(EterWidgetLaunch(ref).start());
+    });
   }
 
   @override
@@ -87,6 +97,12 @@ class _EterShellState extends State<EterShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Bringing the journal forward is the shell's half of the widget's
+    // request; starting to listen is the Journal's, and it clears the request
+    // when it takes it.
+    ref.listen<EterWidgetAction?>(widgetLaunchProvider, (_, action) {
+      if (action != null) _goTo(0);
+    });
     return PopScope(
       canPop: !_sanctumOpen,
       onPopInvokedWithResult: (didPop, _) {

@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import '../ai/prompts.dart';
 import '../db/app_database.dart';
+import '../widget/home_screen_widget.dart';
 import '../i18n/language.dart';
 import 'guidance_contract.dart';
 import 'request_contract.dart';
@@ -129,6 +130,20 @@ class AetherComposer {
           promptVersion: const Value(EterPrompts.version),
         ),
     ]);
+
+    // The home screen, from here rather than from a surface.
+    //
+    // It was hooked to the Dashboard's own compose at first, which is one of
+    // the ways a day gets composed and not the only one: the Sanctum's `AGAIN`
+    // goes through this same method by another route, and on the phone the
+    // widget's preference had simply never been written. Every path that
+    // stores guidance passes through this line.
+    //
+    // Awaited but never allowed to matter: the sink swallows a missing plugin
+    // — which is every platform but Android and every test binding — and a
+    // launcher that fails to redraw must not fail a composition.
+    await HomeScreenWidget(database: database).refresh(now: generatedAt);
+
     return AetherComposition(
       rows: await database.loadGuidanceByFingerprint(
         request.contextFingerprint,

@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/arrival.dart';
 import '../../core/aether/composer.dart';
 import '../../core/type_fitting.dart';
-import '../../core/widget/home_screen_widget.dart';
 import '../../core/aether/context_assembler.dart';
 import '../../core/aether/guidance_contract.dart';
 import '../../core/aether/request_contract.dart';
@@ -128,10 +127,6 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
         database: db,
         provider: provider,
       ).compose(request, now: now);
-      // The day's sentence, out to the home screen. After the compose rather
-      // than inside it, because a launcher failing to redraw must never be
-      // able to fail a composition.
-      await HomeScreenWidget(database: db).refresh(now: now);
       if (!mounted) return;
       setState(() {
         _composing = false;

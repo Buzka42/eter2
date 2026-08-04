@@ -11,4 +11,12 @@
     <string name="eter_widget_mark" translatable="false">ETER</string>
     <string name="eter_widget_label">Eter</string>
     <string name="eter_widget_description">Today\'s sentence from Eter</string>
+    <!-- Shown only in the widget picker, and never a real reading. -->
+    <string name="eter_widget_preview_line">One sentence of the day, and nothing else.</string>
+
+    <!-- The two ways in from the home screen. -->
+    <string name="eter_widget_speak">Speak</string>
+    <string name="eter_widget_write">Write</string>
+    <string name="eter_widget_speak_description">Record a journal entry by voice</string>
+    <string name="eter_widget_write_description">Write a journal entry</string>
 </resources>

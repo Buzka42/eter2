@@ -58,12 +58,18 @@ class PlatformHomeWidgetSink implements HomeWidgetSink {
         'today': today,
       });
     } on MissingPluginException {
-      // Every other platform, and every test binding. The widget is Android's
-      // and its absence is not a failure of anything.
-    } on PlatformException catch (error) {
-      // A home screen that is one day stale is not worth failing a compose
-      // over, and there is no surface to report this on.
-      debugPrint('The home-screen widget was not updated: ${error.message}');
+      // Every other platform. The widget is Android's, and its absence is not
+      // a failure of anything.
+    } catch (error) {
+      // Deliberately everything.
+      //
+      // A launcher that does not redraw must never be able to fail a
+      // composition, and the ways this can throw are not all exceptions anyone
+      // would think to name: in a plain Dart test there is no `ServicesBinding`
+      // at all, and `MethodChannel` asserts rather than throwing
+      // `MissingPluginException`. That surfaced as three unrelated composer
+      // tests failing over a home screen none of them has.
+      debugPrint('The home-screen widget was not updated: $error');
     }
   }
 }

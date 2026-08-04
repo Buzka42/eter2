@@ -17,4 +17,5 @@
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
     android:description="@string/eter_widget_description"
-    android:initialLayout="@layout/eter_widget" />
+    android:initialLayout="@layout/eter_widget"
+    android:previewLayout="@layout/eter_widget_preview" />

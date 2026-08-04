@@ -1,6 +1,7 @@
 package com.eterhealth.eter
 
 import android.content.ContentValues
+import android.content.Intent
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -27,8 +28,63 @@ import java.io.File
  * not get to ask for that in order to save a JSON file.
  */
 class MainActivity : FlutterFragmentActivity() {
+
+    /**
+     * What the home-screen widget asked for, if anything.
+     *
+     * Held rather than delivered, because the intent arrives before Flutter is
+     * listening. The Dart side asks for it once it is ready and the field is
+     * cleared by the asking — a request to start dictating is answered once,
+     * not every time the app is resumed.
+     */
+    private var pendingWidgetAction: String? = null
+
+    /** The channel, kept so `onNewIntent` can reach it while running. */
+    private var widgetChannel: MethodChannel? = null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // The app was already open. `setIntent` matters: without it
+        // `getIntent()` keeps returning the one the app was launched with, and
+        // the second press of the widget's button does nothing at all.
+        setIntent(intent)
+        val action = intent.getStringExtra(EterWidgetProvider.EXTRA_ACTION)
+            ?: return
+        // Straight through, because nothing is waiting to ask for it: Flutter
+        // is running and has already taken whatever was pending.
+        widgetChannel?.invokeMethod("action", action)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Redraw whatever is placed, every time the app opens.
+        //
+        // The widget's own update period is zero — the sentence changes once a
+        // day and the app pushes it then — so nothing else asks the provider
+        // to draw. That is fine until the app is *replaced*: the launcher
+        // re-inflates the new layout, the provider is not called, and the
+        // widget sits blank with yesterday's preferences right there beside
+        // it. Seen on the phone the first time the layout changed under a
+        // placed widget, which is exactly what a store update is.
+        EterWidgetProvider.refresh(this)
+
+        pendingWidgetAction = intent?.getStringExtra(EterWidgetProvider.EXTRA_ACTION)
+        widgetChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "eter/widget-launch",
+        ).also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    // Asked for once, on the first frame Flutter can act on.
+                    "take" -> {
+                        result.success(pendingWidgetAction)
+                        pendingWidgetAction = null
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             "eter/downloads",

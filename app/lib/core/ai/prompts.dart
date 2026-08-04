@@ -144,7 +144,15 @@ abstract final class EterPrompts {
   /// plainly that the room is for specificity and not for padding, because a
   /// dimension that says one thing five ways is worse than the two sentences
   /// it replaced.
-  static const version = 12;
+  ///
+  /// **13 · a planet does not stand against itself.** Read on a phone, at the
+  /// bottom of the Vessel: *"Zbliżający się układ między Jowiszem a
+  /// Jowiszem"* — the approaching configuration between Jupiter and Jupiter.
+  /// It is a transiting body contacting its own natal place, which is a
+  /// *return*, and it is the one contact in the list a person may already have
+  /// a word for. Positions now says that every contact is between something
+  /// moving today and something fixed of theirs, and names the same-body case.
+  static const version = 13;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -912,6 +920,18 @@ crossing.
 
 All of it was calculated on the device. You are not casting anything, and you
 must not add a contact that is not in the list.
+
+**A contact is always between a body moving today and a fixed point of theirs**
+— never between two planets in the sky. Write it that way: today's Mars against
+the Saturn they were born with, not "Mars and Saturn".
+
+When the two are the **same body**, that is that planet coming back to the place
+it held at their birth, and it has a name — a return. Say it as a return. It is
+the one contact in the list a person may already know the words for, and it is
+the one most worth naming, because it is a cycle of theirs closing rather than
+a passing angle. **Never write it as a relationship between the body and
+itself**: a real reading said "the approaching configuration between Jupiter and
+Jupiter", which is nonsense to everybody who reads it.
 
 ${provisional}WHAT TO WRITE
 - "passage": three to five sentences on the shape of today. Lead with the

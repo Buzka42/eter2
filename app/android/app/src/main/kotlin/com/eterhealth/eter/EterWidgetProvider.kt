@@ -62,26 +62,62 @@ class EterWidgetProvider : AppWidgetProvider() {
             views.setViewVisibility(R.id.eter_widget_sentence, android.view.View.GONE)
         }
 
-        // The whole widget opens the app. There is no second control, because
-        // a tap target inside a home-screen widget that does something *other*
-        // than open the app is a thing people press by accident.
-        val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-        if (launch != null) {
-            views.setOnClickPendingIntent(
-                R.id.eter_widget_root,
-                PendingIntent.getActivity(
-                    context,
-                    0,
-                    launch,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                ),
-            )
-        }
+        // Three targets, and each one is a different request.
+        //
+        // The sentence opens the app where the person left it. The two
+        // controls open it *into* the journal — one already listening, one
+        // with the keyboard up — because the fastest thing somebody wants from
+        // a home screen is to get a thought down before it goes.
+        views.setOnClickPendingIntent(R.id.eter_widget_root, open(context, null))
+        views.setOnClickPendingIntent(
+            R.id.eter_widget_speak,
+            open(context, ACTION_SPEAK),
+        )
+        views.setOnClickPendingIntent(
+            R.id.eter_widget_write,
+            open(context, ACTION_WRITE),
+        )
 
         manager.updateAppWidget(id, views)
     }
 
+    /**
+     * A launch intent carrying [action], or a plain one when it is null.
+     *
+     * `FLAG_ACTIVITY_SINGLE_TOP` rather than a fresh task: the app is usually
+     * already running, and a second instance would be a second database
+     * connection to the same file. The extra reaches a running app through
+     * `onNewIntent`, which `MainActivity` forwards.
+     *
+     * The request code is the action, so the three pending intents are three
+     * *different* intents. Without that Android reuses the first one it made
+     * and every control on the widget does whatever the first one did — a
+     * silent fault, and the classic one for widgets.
+     */
+    private fun open(context: Context, action: String?): PendingIntent? {
+        val launch = context.packageManager
+            .getLaunchIntentForPackage(context.packageName)
+            ?: return null
+        launch.flags =
+            Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        if (action != null) launch.putExtra(EXTRA_ACTION, action)
+        return PendingIntent.getActivity(
+            context,
+            action?.hashCode() ?: 0,
+            launch,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     companion object {
+        const val EXTRA_ACTION = "eter.widget.action"
+
+        /** Open the journal and start listening. */
+        const val ACTION_SPEAK = "speak"
+
+        /** Open the journal with the keyboard up. */
+        const val ACTION_WRITE = "write"
+
         const val PREFERENCES = "eter_widget"
         const val KEY_SENTENCE = "sentence"
 

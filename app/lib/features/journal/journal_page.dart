@@ -3,12 +3,14 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../../core/arrival.dart';
 import '../../core/clock.dart';
+import '../../core/widget/widget_launch.dart';
 import '../../core/controls.dart';
 import '../../core/db/app_database.dart';
 import '../../core/haptics.dart';
@@ -241,6 +243,43 @@ class _JournalPageState extends ConsumerState<JournalPage> {
     );
   }
 
+  /// Answers the home-screen widget, once.
+  ///
+  /// The request is cleared **before** anything is done with it. Dictation is
+  /// asynchronous — initialise, permission, locales — and a rebuild inside
+  /// that window would otherwise arrive at a request still standing and open a
+  /// second recogniser.
+  ///
+  /// A page that is not today's is left alone in one respect only: the writing
+  /// field always composes into today, so the request is honoured by returning
+  /// to today first. Somebody who pressed *speak* on their home screen did not
+  /// ask to add to last Tuesday.
+  Future<void> _actOnWidgetRequest(EterWidgetAction action) async {
+    ref.read(widgetLaunchProvider.notifier).state = null;
+    if (_selectedDay != null && mounted) {
+      setState(() => _selectedDay = null);
+    }
+    switch (action) {
+      case EterWidgetAction.speak:
+        if (!_listening) await _toggleDictation();
+      case EterWidgetAction.write:
+        if (!mounted) return;
+        // After the frame, and then asked for by name.
+        //
+        // Both halves were learned on the phone. Focus alone leaves the caret
+        // blinking on a writing line with no keyboard under it; and asking for
+        // the keyboard immediately does nothing on a cold start, because the
+        // request is taken on the first frame and the field has no input
+        // connection to show anything on yet. The post-frame callback is what
+        // makes the two agree.
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          _focusNode.requestFocus();
+          await SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+        });
+    }
+  }
+
   Future<void> _toggleDictation() async {
     if (_listening) {
       await _speech.stop();
@@ -372,6 +411,11 @@ class _JournalPageState extends ConsumerState<JournalPage> {
 
   @override
   Widget build(BuildContext context) {
+    // The home-screen widget's two controls land here. The shell has already
+    // brought this page forward; this is the half that acts.
+    ref.listen<EterWidgetAction?>(widgetLaunchProvider, (_, action) {
+      if (action != null) _actOnWidgetRequest(action);
+    });
     final now = ref.watch(nowProvider)();
     final today = DateTime(now.year, now.month, now.day);
     final selectedDay = _selectedDay ?? today;

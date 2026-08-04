@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  What the widget picker shows.
+
+  Without a `previewLayout` the launcher draws its own placeholder — on this
+  phone, the app icon centred on a white card, which tells somebody nothing
+  about what they are about to place and looks like a mistake next to every
+  other widget in the list.
+
+  It carries a sentence because a widget picker showing an empty box is the
+  same problem again. The words are Eter's own description of itself rather
+  than anybody's guidance: a preview must not show a real reading, and there
+  is no reading to show at the moment somebody is deciding whether to add it.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/eter_widget_background"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/eter_widget_preview_line"
+        android:textColor="@color/eter_widget_ink"
+        android:textSize="15sp"
+        android:lineSpacingMultiplier="1.35"
+        android:fontFamily="serif"
+        android:maxLines="3"
+        android:ellipsize="end" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/eter_widget_mark"
+        android:textColor="@color/eter_widget_ink_muted"
+        android:textSize="10sp"
+        android:letterSpacing="0.3"
+        android:fontFamily="sans-serif" />
+
+</LinearLayout>

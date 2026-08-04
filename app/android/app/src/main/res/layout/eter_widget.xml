@@ -1,45 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  One sentence, and the mark under it.
+  One sentence, the mark, and two ways into the journal.
 
-  No counts, no controls, no progress. A widget showing a step total would be a
+  The sentence is what the widget is *for*; the two controls are what it is
+  useful for. Owner's decision, 4 August: the fastest thing somebody wants from
+  a home screen is to get a thought down before it goes, and opening the app,
+  finding the Journal and reaching the composer is three steps too many for
+  that.
+
+  No counts and no progress, still. A widget showing a step total would be a
   scoreboard on somebody's home screen, which is the register this product
-  exists not to have — and a widget with a button in it is a button people press
-  by accident while tidying their phone.
+  exists not to have.
 
-  The whole surface is the tap target and it opens the app, which is the only
-  thing it does.
+  The sentence area opens the app as it always did. The two controls open it
+  *into* the journal — one already listening, one with the keyboard up. They
+  are labelled rather than drawn as bare glyphs: `UI_BRIEF.md` non-negotiable 7
+  forbids an unexplained symbol, and a microphone on a home screen that might
+  be recording is the last place to be ambiguous about it.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/eter_widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:gravity="center_vertical"
     android:background="@drawable/eter_widget_background"
     android:padding="16dp">
 
+    <!-- Takes the height the controls do not, so a long sentence pushes
+         nothing off the widget and a short one leaves the controls where they
+         were. -->
     <TextView
         android:id="@+id/eter_widget_sentence"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
         android:textColor="@color/eter_widget_ink"
         android:textSize="15sp"
         android:lineSpacingMultiplier="1.35"
         android:fontFamily="serif"
-        android:maxLines="5"
+        android:maxLines="4"
         android:ellipsize="end"
         android:contentDescription="@string/eter_widget_description" />
 
-    <TextView
-        android:id="@+id/eter_widget_mark"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="@string/eter_widget_mark"
-        android:textColor="@color/eter_widget_ink_muted"
-        android:textSize="10sp"
-        android:letterSpacing="0.3"
-        android:fontFamily="sans-serif" />
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/eter_widget_mark"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/eter_widget_mark"
+            android:textColor="@color/eter_widget_ink_muted"
+            android:textSize="10sp"
+            android:letterSpacing="0.3"
+            android:fontFamily="sans-serif" />
+
+        <!-- 48 dp each, which is the product's own tap floor rather than a
+             guess: these are small targets on a home screen, beside other
+             apps' icons, pressed with a thumb. -->
+        <TextView
+            android:id="@+id/eter_widget_speak"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:text="@string/eter_widget_speak"
+            android:textColor="@color/eter_widget_ink"
+            android:textSize="11sp"
+            android:letterSpacing="0.18"
+            android:fontFamily="sans-serif"
+            android:background="@drawable/eter_widget_action"
+            android:contentDescription="@string/eter_widget_speak_description" />
+
+        <TextView
+            android:id="@+id/eter_widget_write"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:gravity="center"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:text="@string/eter_widget_write"
+            android:textColor="@color/eter_widget_ink"
+            android:textSize="11sp"
+            android:letterSpacing="0.18"
+            android:fontFamily="sans-serif"
+            android:background="@drawable/eter_widget_action"
+            android:contentDescription="@string/eter_widget_write_description" />
+
+    </LinearLayout>
 
 </LinearLayout>
