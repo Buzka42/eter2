@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **854 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **860 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -69,7 +69,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 854 pass, 10 skipped
+flutter test          # expect 860 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -405,19 +405,33 @@ where there is strength work. A shortfall is only ever found on a *recorded*
 day, and a measure left blank cannot be short. Leaning needs two short recorded
 days: one is a Tuesday.
 
-### Nutrition, and why it is not finished
+**Done — guidance reads what was eaten.** The request now carries an `intake`
+block and, where there is resistance training in the window, `macroFloors`.
+`AetherIntakeContext` and `AetherMacroFloors` are in the contract, the assembler
+fills them from **confirmed rows only** — an unconfirmed estimate is a guess
+nobody has agreed to, and the brief forbids it counting toward any total — and
+the prompt says what the floors are *not*: a floor to reach, never a diet, never
+a limit, never a reason to eat less of anything else, and never the opening of a
+synthesis.
 
-**Nothing consumes the floors yet.** The guidance request contract
-(`core/aether/request_contract.dart`) carries steps, active kcal, sleep, resting
-heart rate and HRV — and **no nutrition at all**. So wiring the floors into Body
-guidance is not a small addition to an existing field; it needs an intake block
-in the contract, the assembler filling it, and the prompt told what to do with
-it. That is the next piece of work and it is the larger half.
+Absent-not-zero is enforced in three places, not one: a day with nothing logged
+is dropped from the payload rather than sent as a row of nulls the model would
+read as a day of nothing eaten; a macronutrient no row carried is not a key at
+all; and a shortfall is only ever counted on a recorded day. Intake is in the
+context fingerprint, so confirming a meal recomposes the day instead of being
+noticed tomorrow.
 
-**Also not started:** moving food confirmation out of the Body and into the
-Journal, where the page was written, leaving the Body to correct calories and
-macros only. The columns already exist — `NutritionEntries` has `proteinG`,
-`carbsG`, `fatG` and `confirmed` — so this is surface and flow, not schema.
+### Nutrition, what is left
+
+**Food confirmation still happens in the Body, not the Journal.** The owner
+wants it to appear as a prompt where the page was written, leaving the Body to
+correct calories and macronutrients only. The columns already exist —
+`NutritionEntries` has `proteinG`, `carbsG`, `fatG` and `confirmed` — so this is
+surface and flow, not schema.
+
+**Macronutrients are not shown anywhere yet.** They are stored, and they now
+reach guidance, but neither the Body nor the Journal displays protein, carbs or
+fat to the person whose food it is.
 
 ### What is left in the Vessel, and it is only the surface
 
