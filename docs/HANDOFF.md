@@ -157,7 +157,7 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **978 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **982 tests
 pass, 14 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 2. Schema is at **15**, and the upgrade
@@ -221,7 +221,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 978 pass, 14 skipped
+flutter test          # expect 982 pass, 14 skipped
 flutter analyze       # expect clean
 ```
 
@@ -726,8 +726,17 @@ The parts worth knowing before changing any of it:
 - `Year · August 1992 – July 1993` is thirty characters and was ellipsised before
   the second year could be read. Abbreviated months on that span.
 
-**Not done:** no golden covers a widened sheet. The panel is behind fourteen taps
-of a bead and the capture harness drives the shell, not the sheet.
+**Done, 4 August:** `test/golden/long_view_golden_test.dart` draws
+`EngravedLongView` directly — a week with two nights nobody recorded, a year at
+320 dp and at 600 dp for the sheet after it has widened, and pages, which is the
+one measure with a real zero. The shell's capture harness drives the shell
+rather than the sheet, and the panel is fourteen taps of a bead down it, so
+nothing else in the suite had ever drawn any of this.
+
+It is worth the four pictures for one reason: **an unrecorded period is an open
+tick below the baseline and a recorded zero is nothing at all**, the two are a
+few pixels apart, and they mean opposite things. No assertion says that as well
+as the image does.
 
 ### 3 · The Letter · *built, and run against the real model*
 
