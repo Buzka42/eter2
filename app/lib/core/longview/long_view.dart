@@ -2,7 +2,7 @@
 ///
 /// Not a new destination. The Journal already turns pages a day at a time; this is
 /// what the same axis says when you stop asking about a day. Day, week, month,
-/// year — one zoom, four scales, no navigation added. See `docs/DECISIONS.md`.
+/// year — one zoom, four scales, no navigation added. See `docs/PRODUCT.md`.
 ///
 /// **No model call.** Every number here is arithmetic over records already on the
 /// device, which is what makes it free to run, instant, and available offline to
@@ -112,7 +112,7 @@ class LongViewCell {
 
   /// Aether's own telegraphic note for the period, when there is exactly one to
   /// show. Marginalia, never a claim: these are the model's words about what it
-  /// had already said, and `AI_FLOW.md` §1a forbids treating them as evidence.
+  /// had already said, and `ENGINEERING.md` §1a forbids treating them as evidence.
   final String? note;
 
   /// Days in this period that recorded anything at all, and how many the period

@@ -1,17 +1,69 @@
-# Eter · where the work stands, and what to do next
+# Eter · where the work stands
 
-Written 30 July – 4 August 2026 across five long sessions on branch
-`eter-audit-fixes`, two of them with a real phone attached.
-Read this first if you are picking the work up cold; then `DECISIONS.md` for what
-the product owner has settled, then the specific document each task names.
+**Start here if you are picking this up cold.** Then `PRODUCT.md` for what Eter
+is and what has already been decided; `ENGINEERING.md` for how the model layer,
+the storage and the endpoint work; `LANGUAGE.md` before touching a word of
+Polish; `RELEASE.md` for what only the owner can unblock.
+
+Written across six sessions, 30 July – 5 August 2026, on branch
+`eter-audit-fixes` and now on `main`. Three of those sessions had a real phone
+attached, and the last one is the reason most of this document exists: a device
+found nine things in an evening that nothing in the repository could.
 
 ---
 
-## Pick up here · 4–5 August, after a long session with the phone attached
+## The state of it, in four lines
 
-Everything below the horizontal rule was written before a device was in hand.
-**Read this part first**: a phone found nine things in one evening that nothing
-in this repository could, and two of them had been wrong for months.
+- **1028 tests pass, 14 skipped.** `flutter analyze` is clean (four `info`s that
+  predate this work). A debug APK builds and runs.
+- **Every feature asked for is written.** What is left is device time, reading,
+  and owner-only work.
+- **The endpoint is live** and all six calls have been run against it, in both
+  languages, with the answers read rather than assumed.
+- **Nothing is uncommitted.**
+
+## The five things worth doing next
+
+1. **The three evening-invitation checks**, each of which needs a real evening:
+   write during the day → that evening must stay silent; turn it off → anything
+   pending must disappear; reboot mid-afternoon → that evening must survive.
+2. **Bind the rate limiter.** `server/wrangler.toml` still has both bindings
+   commented out, so the deployed worker has no per-install cap at all. This
+   session alone made about sixty calls to it. `RELEASE.md` §2.
+3. **Read a real export** from Daylio, Bearable or Apple Health. The importers
+   work and are well tested, but no real file from any of the three has been
+   read — Daylio's columns are exact, Bearable's value formats are inferred.
+4. **The iOS half of the widget**, which does not exist and needs a Mac.
+5. **Deploy the Firestore rules**, without which the Correspondence cannot be
+   proven at all.
+
+
+---
+
+## Start here
+
+```bash
+cd app
+flutter test          # expect 1028 pass, 14 skipped
+flutter analyze       # expect clean
+```
+
+If either disagrees with those numbers, something in the working tree is wrong —
+fix that before starting anything below.
+
+The device work is driven over `adb`, and everything in this document that says
+"seen on the phone" was seen that way: `flutter build apk --debug` with the
+endpoint defines, `adb install -r`, then `adb exec-out screencap -p` to look and
+`adb exec-out run-as com.eterhealth.eter cat app_flutter/eter.sqlite` to read the
+record itself. The last of those is how three separate faults were actually
+diagnosed — the screen tells you something is wrong, the database tells you what.
+
+---
+
+## What a phone found, 4–5 August
+
+A device was attached for the last session and found nine things nothing in this
+repository could. Two of them had been wrong for months.
 
 ### What the phone corrected
 
@@ -84,163 +136,7 @@ in this repository could, and two of them had been wrong for months.
 
 ---
 
-## Written before the phone · 4 August
-
-Everything is committed and green. **All of the code asked for is written.**
-What is left is device work, reading, and owner-only work.
-
-### 1. The Vessel's surface · *done, and never seen*
-
-`vessel_section.dart` now holds all five parts and renders the owner's order:
-the wheel led by the Sun, Moon and Ascendant with their passages, the twelve
-house cards, the angles, the chart synopsis, the figure place by place, the
-figure's synopsis. Then today's Positions, which is the only part that changes.
-
-Three things about it worth knowing before changing any of it:
-
-- **The Sun, Moon and Ascendant are lifted out of the position list.** They
-  lead the wheel and are not printed again below, which is why `SUN` is no
-  longer a row anywhere and the surface no longer has a "don't draw this card
-  twice" special case.
-- **A part is asked for at most once per opening.** The compose pass hangs on
-  a post-frame callback, so it runs again on every rebuild, and a part that
-  failed leaves exactly the empty row that starts the pass. Without the
-  `_attempted` set a part the model kept refusing would be requested — and
-  billed — on every frame that touched this surface. The set is cleared when
-  the birth context changes, because that is a different chart.
-- **The houses are composed only when the angles are real**, the same
-  condition `buildChartReadingRequest` uses to decide whether to send them.
-  The surface never shows a band of houses the reading was never asked about.
-
-`InitialVesselReadings` still composes only the chart's synopsis when a birth
-time is saved; the other four arrive on the first opening of the Vessel. That
-is deliberate — five calls at save time to write four parts nobody is looking
-at yet — and it is the reason the surface has to render partial states well.
-
-**Not seen by anybody.** Composed only against fakes. See item 2.
-
-### 2. The five parts have now been read against the live model · *4 August*
-
-Three recording rounds against the deployed endpoint, twelve calls each.
-`test/fixtures/live/` holds prompt **v10** and `EterPrompts.version` is 10.
-Everything below **passed every shape check and every safety rule on the first
-run** and was still wrong, which is the entire argument for reading the output:
-
-- **"The records show"** — in the houses, the angles *and* the figure's
-  synopsis. Eter as an archive reporting on somebody: the same failure as the
-  letter's "We watched the third short night".
-- **`occupants`, a field name, in the prose of five houses.** The instruction
-  had used the word twice in its own sentences. *An example in a prompt can
-  come back in the answer* — and a field name is an example nobody meant to
-  set.
-- **Orbs printed to two decimals**, and **transits described in a natal chart
-  that has none**.
-- **Ten of twelve houses opened with one clause and a swapped card name.**
-- **House 1 never said the word Ascendant**, which is the one thing it exists
-  to say: the surface shows that card above the list, so without it the reader
-  sees the same card apparently printed twice with no explanation.
-- **The figure's synopsis named places by their internal keys** — "The Moon
-  across the sun, the era, and mercury". `recurrences` stopped carrying `keys`
-  at all: a field the answer must not quote is a field the request should not
-  have.
-
-`EterPrompts._vesselRegister` is the shared half of the fix and applies to all
-five parts. Four new tests in `live_fixtures_test.dart` hold each of these
-against the recording, because none of them is a shape a parser can see.
-
-**And one that came back after being forbidden since v6.** The re-recorded
-letter closed with *"We saw the short nights return."* It has been banned by
-instruction in four consecutive prompt versions. `LetterParser` refuses it
-outright now — language-aware, because Polish carries the first person plural
-on the verb (`widzieliśmy`) while the English pronoun `we` is an ordinary
-Polish preposition ("we wtorek"), so the English rule applied to Polish would
-refuse most letters for saying "on Tuesday". A refusal costs a retry; a letter
-is best-effort, is not cached when it fails, and is attempted again the next
-time the Journal opens.
-
-**The Polish side was then recorded too — the first time it ever had been.**
-`--dart-define=ETER_LANGUAGE=pl` composes every call in Polish, with Polish
-invented inputs, into `test/fixtures/live/pl/`. Prompt is at **v11** because of
-what it found:
-
-- **Polish marks gender on the past tense**, so *you slept badly* cannot be
-  written without choosing an ending — and nothing had chosen. The day story
-  addressed the reader as *Obudziłeś się … Miałeś*, and two calls later the
-  letter had Eter call **itself** *Zobaczyłam*. Same profile, same run, two
-  decisions nobody made, and the next call would have made them differently.
-  The strings were swept for exactly this on 2 August; nothing had ever swept
-  the model's own prose.
-
-  Gender-neutral Polish was tried first and it works — the impersonal past in
-  `-no`/`-to` is grammatical and genderless — but it reads as a report filed
-  about somebody (*pojawiono się przed budzikiem*), and a whole day's story in
-  it happens to nobody in particular. **The owner's decision: agree, and use
-  the masculine where nothing was selected.** `EterGrammaticalGender` comes off
-  the profile's own answer and the four calls that address the reader carry it;
-  `female` selects the feminine, `male`/`other`/absent all take the masculine.
-  The Vessel's parts are untouched, because their subject is the chart and
-  never "you".
-
-- **One finding was the harness, not the product, and it was convincing.** Two
-  Vessel parts came back in English with only the proper nouns rendered. The
-  cause was the smoke test's invented profile never setting `language`, and
-  `AppLanguage.forProfile(null)` means *ask the platform*, not *unset* — so the
-  composer was correctly asked for English. A theory about where the LANGUAGE
-  block sits in the prompt was built on it and is reverted. If a recording
-  looks like the model ignoring an instruction, check what the profile says
-  first.
-
-**Still unread:** `przeszłeś` appeared in one Polish day story where
-`przeszedłeś` is correct. One wrong stem in five runs, no rule can catch it,
-and it is the reminder that Polish prose here is checked by whoever reads it
-and by nothing else.
-
-### 3. What has still not been seen by a person or a model
-
-This is the larger risk and it is not code. Every change below was verified by
-tests and by goldens; **almost none of it has been run on the phone, and none of
-the new writing has been read.**
-
-- **The Vessel's whole surface has never been on a phone in this shape.** Six
-  parts in one column, twelve house cards among them, each with a plate — the
-  loop budget caps concurrent decoders at six and hands them back off-screen,
-  but that was measured on a column of eighteen plates and this one is longer.
-  Worth re-running the frame-differencing check described under *Cards* below.
-- Positions has never been composed with the natal context attached, so nobody
-  has read what it now says about a retrograde.
-- The doubled guidance, the always-present depths row, the Body's macro fields
-  and the Journal's confirmation prompt have not been looked at on a device.
-- **The depths row now sits above the guidance passage**, so guidance no longer
-  owns the first glance. That was forced — see the section below for why — and
-  it is the change most worth the owner's eye.
-
-Re-record the fixtures with *invented* inputs. The owner's own chart and record
-must not become a fixture. The Vessel parts compose from an invented birth in
-`live_smoke_test.dart` — 14 March 1990, 06:45, Warsaw — which is a real birth
-as far as the engine is concerned, with genuine houses and genuine angles, and
-belongs to nobody.
-
-### 4. The phone, as it was left
-
-A debug build carrying the endpoint defines (`--dart-define=ETER_AI_TOKEN=eter-ai`,
-endpoint `https://eter-ai.eter-ai.workers.dev`), the evening invitation switched
-**on**, and two debug-only controls in the Sanctum — `SEND INVITATION NOW` and
-`SCHEDULE IN 60s` — gated on `kDebugMode && !eterRunningTests()`. A test
-notification may still be in the shade; it uses the invitation's own fixed id, so
-tomorrow's real one replaces it rather than stacking.
-
-The build is older than the tree. Nothing from the nutrition or Vessel work is on
-it.
-
 ---
-
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **1028 tests
-pass, 14 skipped** — the skips are the live-provider suite, which needs the
-endpoint token, and one manual test that needs an export file. The live suite
-*has* been run and passes; see item 2. Schema is at **15**, and the upgrade
-**12 → 15 was run on a real device with 3.3 MB of real data**: nothing lost,
-`letters` created, both new profile columns added, and neither new consent
-inherited.
 
 ## What the phone has and has not proved
 
@@ -294,422 +190,157 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ---
 
-## Start here
-
-```bash
-cd app
-flutter test          # expect 1028 pass, 14 skipped
-flutter analyze       # expect clean
-```
-
-If either disagrees with those numbers, something in the working tree is wrong —
-fix that before starting anything below.
-
 ---
 
-## What the owner asked for after testing it
+## Things that will bite you
 
-31 July, after a session with the app on a real phone. Seven items; all seven
-are now done (the last four on 1 August, below). **Read this before the queue
-below** — the queue is the original audit backlog, and this is what use
-actually threw up.
+**A pinned `SliverPersistentHeader` is not a way to keep a row on screen.** It
+was the obvious answer for the depths row and it failed twice. A pinned header
+must declare its height *before* it is laid out, and that row wraps to two lines
+at 390 dp and three at 200 % text — the first guess overflowed a plain phone by
+37 px. Measuring it and feeding the height back fixed that and not the second
+problem, which is fatal: **a sliver is only built while it is within the
+viewport**, so once the guidance passage doubled and filled the screen, the row
+stopped existing until it had been scrolled to. `cacheExtent` did not save it.
+The row lives outside the scroll now, and that is why guidance lost the first
+glance.
 
-### Done
+**`flutter test` is a debug build.** Anything gated on `kDebugMode` alone
+appears in every test and every golden — the two Sanctum probes cost fourteen
+failures before they were also gated on `!eterRunningTests()`.
 
-- **The birth date types its own hyphens.** `core/profile/date_input.dart`. Not
-  a picker, deliberately: a birth date is four digits somebody knows by heart,
-  and a calendar widget means spinning back thirty years.
-- **Onboarding asks for the birth time.** Precision, a self-punctuating clock
-  field, or a part of the day — reusing the `BirthTimePrecision` machinery the
-  Sanctum already had. The UTC offset is suggested from the phone rather than
-  asked about.
-- **Onboarding resolves the birth place.** It used to write `birthPlace` as a
-  bare string and stop, which is why a real profile carried
-  `birth_place = 'Warsaw'` with a null latitude — and why the register *and* the
-  evening invitation both fell back to a clock hour for somebody who had said
-  exactly where they were born. Bounded to four seconds; the Sanctum still
-  resolves it later if the lookup fails.
+**A test that sleeps a fixed number of milliseconds against an async call will
+fail on a busy machine and pass on yours.** `shell_test.dart` already has
+`waitForWidget`; use it. One flat 30 ms delay in the weekly-view test was found
+this way.
 
-### Done, 1 August (all seven now)
+**Two Sanctum controls were reading `DateTime.now()` instead of the injected
+clock**, so against a pinned fixture their seven-day window walked off the seeded
+data and the test began failing when the host clock crossed midnight, with nobody
+touching it. Everything in this product takes `nowProvider`. If something reads
+a window backwards from *now*, check which clock it is asking.
 
-Decided and built in one session; `DECISIONS.md` 1 August carries the
-reasoning for each choice. In brief:
+**An example in a prompt can come back in the answer.** A real Polish reading
+contained *"ten układ tends to ask for harmonizowanie energii"* — five English
+words lifted from an instruction that quoted that phrase as the way to hedge.
+`languageFor` now says once, for every call, that quoted examples are shapes and
+never wording. If you add an example, assume it can be copied verbatim.
 
-- **Birth-place autocomplete** — `core/profile/place_suggestions.dart`.
-  A `PlaceSuggester` interface separate from `BirthplaceResolver` (so the four
-  test fakes stayed untouched), a debounced controller with latest-query-wins,
-  and a suggestion list under the field in onboarding *and* the Sanctum.
-  Owner chose single-locale: show whatever spelling the device geocoder
-  returns, accept either on save. Candidates are named by reverse-geocoding
-  each hit, capped at four. `test/place_suggestions_test.dart` drives the
-  debounce, staleness and failure paths under `fake_async`.
+**Golden tests are the honest reviewer.** They run every language at 320 dp and
+200 % text, which is where translation breaks layouts. They caught a 112 px English
+overflow and a 175 px Polish one on the same row, and they refused to tap when two
+widgets ended up sharing a semantics label. When they fail, read the failure before
+re-recording — **four** times in this branch the failure was a real defect, not a
+stale image. Two of the four were on 1 August: `Go deeper into the chart` ran 181 px
+past the action row in Polish and 9.4 px past it in English, which is how that
+button ended up a short noun in both languages. The action row at 320 dp × 200 %
+has room for roughly nine characters; budget for that before writing a verb.
 
-  The rows have their **own** widget test, and they need one: the platform
-  geocoder is the only real `PlaceSuggester` and it throws under a test
-  binding, so nothing else in the suite renders a single suggestion. Writing
-  it found two defects immediately — the rows were keyed on the label, so two
-  Springfields in the same state threw `Duplicate keys found`, and they stood
-  at 44 dp against the product's own 48 dp tap floor. Both fixed. If you add
-  anything to that list, put it in `place_suggestions_widget_test.dart`,
-  because no other test can see it.
-- **The Vessel reads the chart, in one menu** (superseding the `THE CHART`
-  panel built earlier the same day). The Life Path and the astrogram were two
-  disclosures with a compose button each; they are one menu now, one list, and
-  no control asks for the writing.
+**An overflow fails `--update-goldens` too**, which is the behaviour you want:
+the capture throws before it is written, so a bad layout cannot be recorded as
+truth. It also means a red run under `--update-goldens` is worth reading rather
+than re-running.
 
-  The call itself changed shape. It wrote one passage per position — eighteen
-  on a full chart — and every one was correct and none had looked at the
-  chart. That is structural, not a prompt that needed tightening: a passage
-  that can only see one placement has nothing to relate it to. It now returns
-  three to five titled **movements** about how placements stand to each other.
-  Prompt v8, same `vesselReadings` call name, so **no worker redeploy** — the
-  endpoint reads only the call name and the prompt and schema are built on the
-  device. Stored as one row per chart under the reserved key `configuration`;
-  the old per-position rows are cleared for the chart being composed.
+**A widget test with no teardown hangs for ten minutes and then says
+`TimeoutException`**, with a stack pointing at `dart:isolate`. It is almost
+always the tree never being disposed: `eterTestDatabase()` leaves Drift a
+zero-duration close timer, and `closeShell` in `shell_test.dart` is what flushes
+it. Put new shell-level tests in that file rather than standing up a second
+harness — one was written on 1 August and hung until it moved.
 
-  **Read against the live model, not assumed.** On a real chart it grouped —
-  "Saturn, Uranus and Neptune all point toward material gravity" — and set
-  that against the water it had gathered a paragraph earlier. The recorded
-  response is now the fixture, and `live_fixtures_test.dart` checks the thing
-  a shape check cannot: at least one movement must hold two placements
-  together.
+**The prototype fixture has no birth time, so no golden drew a chart's
+angles.** `ascendantReliable` is false for that profile, which means every
+shell capture in the suite shows the Vessel's wheel with no cusps and neither
+angle named — the half of the surface with nothing in it. The `ASC` and `MC`
+letters were drawn at `0.995 × outer` and centred there, which put them
+*inside* the sign ring (six pixels of overlap with the sign glyphs) and about
+nine pixels past the widget's own edge, so the container decided whether you
+read `ASC` or `AS`. It fired on every chart from anybody who told Eter their
+birth time — which is to say, on the owner's chart and not on any test's.
+The letters now have a lane outside the rim and the wheel gives it up;
+`test/golden/chart_wheel_golden_test.dart` is the capture that draws houses,
+and it exists so this gap does not reopen.
 
-  **Nothing composes without a birth time**, approximate or exact. It fires
-  when a birth time is saved (owner's choice), and the Vessel also retries
-  silently on open if the reading is still missing — stated here because it is
-  a deviation from what was asked: save-time only, with the button gone, would
-  leave one offline save unwritten forever with nothing to ask again with.
-- **Guidance leans on the sky at night.** It read as health reporting even on
-  immersive, and the stated 40 % symbolic was not the reason: that half
-  arrived as a single sentence while the measured half arrived as a table. A
-  model cannot weight what it was not given. Today's Positions passage now
-  travels in full rather than as its one-sentence note — already written,
-  already validated — and the shares move with it: immersive 30/60/10 after
-  sunset, balanced 45/40/15. Grounded never leans. The Dashboard resolves the
-  register and passes it in, because it is the only place with a horizon and a
-  clock. `AI_FLOW.md` §"what to weigh" has the table.
-- **Cards — and why only some of them animated.** Every reading card was
-  already an `EterArcanaPlate` asking for its night loop, so "animate
-  everywhere" was true in the code and false on the phone. The reason is
-  arithmetic: with the readings *and* the new chart panel open the Vessel puts
-  **eighteen plates in one column**, each allocating a hardware video decoder,
-  and a mid-range phone has nowhere near eighteen. Past the limit
-  `initialize()` fails, the plate keeps its still art, and an arbitrary
-  subset animates — different every build. That is exactly the reported
-  symptom.
+**A silent video still takes audio focus.** Both loops — the shell's ambient
+field and the Arcana plates — are muted with `setVolume(0)`, but `video_player`
+manages audio focus by default, so starting one *paused whatever the person was
+listening to*. The field loop starts with the shell, which meant opening Eter at
+all stopped your music. Nothing in the repository could see it; it was one line
+in logcat on launch — `requestAudioFocus() … CONTENT_TYPE_MOVIE …
+callingPack=com.eterhealth.eter`. Both sites now pass
+`VideoPlayerOptions(mixWithOthers: true)`. If a third video is ever added, it
+needs the same option, and the check is: launch, then
+`adb logcat -d | grep requestAudioFocus` — it must find nothing.
 
-  So `core/arcana/loop_budget.dart` caps concurrent loops at six, and
-  `ArcanaCardMedia` now only holds a decoder while it is **on or near the
-  screen** (240 dp margin), handing it back when scrolled away. The plate you
-  are looking at is the one that moves. The still art is still mandatory
-  underneath, so a refused slot costs nothing but motion.
+**A scope on `MaterialApp.home` is a scope no pushed route can see.** `home` is
+a route, and a modal sheet or dialog is its *sibling* rather than its child, so
+it inherits nothing. `EterStringsScope` sat there, and `EterStrings.of`
+documents its own fallback as English — so the Journal's History sheet came up
+HISTORY / CLOSE / "Tuesday 4 August" on a Polish phone, silently, for as long as
+the sheet has existed. It is on `builder` now, which wraps every route the
+Navigator shows. No test could see it because a widget test pumps a sheet under
+whatever scope it likes; `modal_language_test.dart` pushes one the way the app
+does, and keeps the old shape as a test of its own.
 
-  Secondary cards take the Sun card's clamp **at night outside the grounded
-  register**; day and grounded keep the 132 dp thumbnail.
+**Flutter does not hyphenate, and a broken word is not an overflow.** A word
+wider than its line is broken wherever the engine runs out of room — no hyphen,
+no error, because nothing overflowed. Real Polish guidance at 68 pt read "tętno
+spocz / ynkowe" and every golden was clean, because the word came from the model
+rather than from a fixture. `core/type_fitting.dart` sizes a passage against its
+own longest word, and holds back a logical pixel: fitting a word to *exactly*
+the line width still breaks it.
 
-  **This was the one change in this batch that a device had to confirm, and it
-  is confirmed** — 3 August, at night, balanced register, on the owner's phone.
+**`RichText` does not scale with the reader's setting.** `Text` does; `RichText`
+is not a `Text`. `EterArrival` is built of `RichText`, so the product's most
+important passage was the only prose in the app that ignored the system font
+size — in both directions, and a phone set to 85 % rendered it at 100 % while
+every measurement of it assumed otherwise.
 
-  Measured rather than eyeballed, because motion is not visible in a
-  screenshot. Two things were counted:
+**A map comprehension keeps the last of each key.** `{for (final row in rows)
+row.dimension: row}` over rows that arrive *newest first* keeps the **oldest** of
+each dimension. That is how recomposing a day updated the synthesis and left
+health, mind and spirit showing the earlier reasoning. If a list is ordered and
+you want the first of each key, write the loop.
 
-  - **Decoders held, via `dumpsys media.resource_manager`.** Fresh launch with
-    the Vessel closed holds **2** — the shell's ambient field. With the Vessel
-    open and `CZYTAJ GŁĘBIEJ` expanded, the whole column scrolled: **8**. That
-    is 8 − 2 = **six plates, exactly the cap**. The budget holds on hardware.
-  - **Motion, by differencing frames.** Four to five screenshots ~0.8 s apart,
-    summing pixels over a window *inside* the card art rather than the whole
-    screen — the star field animates too, so a full-frame diff proves nothing.
-    The Sun card varied across every frame, and so did The Fool **after being
-    scrolled into view from off-screen**, which is the half the visibility
-    handoff exists for.
+**A surface below the fold is a surface no capture draws.** A `ListView` builds
+nothing it cannot see, and the Sanctum's goldens photograph what is on screen —
+so the export/import panel at the bottom of that scroll had never been laid out
+by anything in the suite. `Choose a file` had been overflowing its row by 110 px
+at 320 dp with text doubled since the day it was written, in front of people and
+nowhere else. `EterAction` lets a label wrap now, and
+`sanctum_export_panel_test.dart` renders the panel directly. If you add anything
+to that panel, it is the only place that will see it.
 
-  Also still true in this build: `requestAudioFocus` appears **zero** times.
+**A surface behind a platform plugin is a surface no test renders.**
+`eterRunningTests()` disables video outright and the geocoder throws under the
+test binding, so the Arcana loops and the birth-place suggestion rows are both
+invisible to the whole suite — they pass every run without ever being drawn.
+Give anything in that position its own test with a fake, and drive the widget
+directly rather than through the surface that owns it. Doing that for the
+suggestion rows found a `Duplicate keys found` crash and a 44 dp tap target on
+the first run.
 
-  One thing noticed and deliberately not chased: paging to the Journal does
-  *not* release the plates' decoders, because the shell's pager keeps the
-  Dashboard mounted and the plates never report themselves off-screen. It costs
-  nothing that matters — the cap is still respected, which is the whole point of
-  the budget — but it is the obvious next thing if decoders ever get tight.
+**Polish decides layout more often than English.** But not always: `DASHBOARD` is
+nine letterspaced caps against `PULPIT`'s six, so the Sanctum mark collided in
+*English* first. Render both.
 
-  If you need to re-run this: the technique is worth more than the result.
-  `eterRunningTests()` disables the video plugin outright, so the budget is
-  unit-tested (`test/arcana_loop_budget_test.dart`) and the visibility half is
-  not testable in the suite at all. Frame differencing plus the resource
-  manager is the only way anyone has checked it.
-- **Sanctum, by frequency** (owner's pick over by-consequence and
-  collapsible): opening page, language, register, evening invitation on top;
-  birth context, where-you-live, consents, and the rest below the hairline.
-- **Guidance depths slide horizontally** (owner approved): `LOOK DEEPER`
-  opens a persistent glyph row — the three depths stay visible, the open one
-  in full ink — and the chosen section slides in beneath by tap. Tap, not
-  swipe: the shell's pager owns the horizontal gesture. Glyphs are drawn
-  placeholders in `core/icons.dart` (`EterSectionMark`); the owner may
-  replace them with generated art, which touches only the painters. The
-  label stays beside every mark — non-negotiable 7 forbids an unexplained
-  symbol and nothing has taught these yet.
+**`flutter test --update-goldens` will happily bake in a bug.** If a capture throws
+an overflow, updating records the yellow stripes as the new truth. Check the
+failure reason.
 
-  The sections also stopped printing their own name: the row *is* the
-  heading now, and `GUIDANCE` appearing twice two lines apart read as a bug.
-  Each of the three takes `showHeading: false` from the Dashboard and keeps
-  only its actions. Three tests in `shell_test.dart` cover it — the row
-  surviving an opening, crossing from the Body to the Vessel without
-  collapsing, and the name not being printed twice.
+**Schema migrations must be idempotent.** `_addColumnIfMissing` and the backfill
+pattern in `app_database.dart` exist because a half-applied migration once left the
+app unable to open. Follow that shape; never key on `from`.
 
----
+**Consent is re-read, never cached.** Every path re-reads the profile so revoking
+takes effect on the next pass. Do not add a cached flag.
 
-## A second round on the phone, 1 August
-
-Eight things came back from real use. Seven are done; the eighth needs a
-sentence from the owner before it can be.
-
-- **Dictation filed the same page twice.** `_save` read the draft, awaited the
-  insert, and cleared the composer *after* — so any second caller inside that
-  await saw the same words. There are four ways in: the recogniser reports
-  `notListening` **and** `done`, push-to-talk saves on release, and opening
-  History saves on the way out. The draft is claimed before the first await
-  now, and handed back if the insert throws.
-- **Typing overflowed the page by 28 px.** `_FittedProse` shrinks the day story
-  to fit and stops at a 13 pt floor; with the keyboard up there is no room even
-  at the floor. It scrolls inside its own box instead — nothing cut, page still
-  does not scroll.
-- **A footnote over nothing.** A dimension with no correlation answers with an
-  empty object and the receipt was drawn whenever the column was non-null,
-  opening on `n=null · null · coefficient null`. Drawn only when a field has
-  content, and missing fields fall back per field.
-- **The reveal arrived in fast batches.** Every sentence was forced into
-  `durSentence`, which made the stagger a *remainder*: ten groups divided
-  1200 ms and fired 75 ms apart. The stagger is the constant now (190 ms) and a
-  sentence takes as long as its length asks, to a 4.2 s ceiling.
-- **Birth dates nobody has.** `DateTime.parse` rolls over, so 31 February was
-  accepted as 3 March and the chart cast for it. `birthDateProblem` refuses
-  non-calendar dates, futures and anything past 130 years — and **the date of
-  birth is editable in the Sanctum**, which it never was.
-- **Recomposing is one control.** `REFRESH` and `COMPOSE NOW` are gone from the
-  Dashboard. The Sanctum has `AGAIN` for the whole day — forcing past the
-  context cache, because a person pressing a button has asked for something the
-  automatic path is right to refuse — and a second `AGAIN` under the birth
-  details for the chart's reading.
-- **The first minute, in two halves.** It never fired: the gate reads intake
-  through a `FutureBuilder` loaded once and never invalidated, so after
-  onboarding it answers from the snapshot taken before it — and a phone
-  carrying an earlier install already has the key set. Completing onboarding
-  now discounts the stored answers for the session. Part one is the premise
-  (no streaks, the three sources, absent-not-zero, where it stays, what it will
-  not do); part two is `EterWalkthrough`, a scrim over the running shell with
-  one real widget lit at a time.
-
-  **Watched on the phone, 3 August, and part two was broken on its first
-  stop.** Three faults, in the order they surfaced:
-
-  1. **The caption overhung the hole.** The caption is white text with nothing
-     behind it, legible exactly as far as the scrim reaches — and the scrim has
-     the target punched out of it. Nothing checked that the caption fitted in
-     what was left. On stop one, which lights the whole journal page, it did
-     not: `DALEJ` and `POMIŃ` were drawn in white over the cream page, on top
-     of the date and `HISTORIA`. The spotlight now gives up the ground the
-     caption stands on — `WalkthroughScrim.lit`.
-  2. **Then the controls were dark on dark.** Uncovered by fixing (1), and
-     present all along underneath it. The eyebrow and the sentence set
-     `Colors.white` themselves; the two `EterAction`s take their ink from the
-     ambient theme, which during the day is the ink of the cream page. The
-     caption is wrapped in `EterTheme.night()` now, because the scrim it is
-     written on is always night whatever register the shell is in.
-  3. **The five eyebrows disagreed about case** — `DZIENNIK`, `WGLĄD`,
-     `DWOJE DRZWI`, then `Zacisze`. They borrow labels that exist for other
-     reasons and four happen to be authored in caps. The eyebrow imposes its
-     own case now rather than trusting the string.
-
-  **A caution for whoever reads the next one of these:** a fourth fault was
-  reported and was not real. The caption picks its side by which gap is
-  bigger; that was written as "is the hole's centre in the top half", and the
-  two look different but reduce to the same inequality. Writing the arithmetic
-  down as `WalkthroughScrim.captionBelow` disproved it, and a test now pins the
-  two formulations together so nobody rediscovers it. Choosing the roomier side
-  was never the bug — **no choice of side helps when the target is large enough
-  that neither gap fits**, which is why (1) is the fix.
-
-  Three tests in `first_run_test.dart` hold it. All five stops were then walked
-  on the device and the walkthrough completed into the Dashboard.
-
-**The astrogram · done, 3 August.** The owner reported it "doesn't look right"
-for 25/07/1993 12:30, with the data verified correct — Sun 2.5° Leo, Moon 23°
-Libra, Mercury 18° Cancer R, Uranus 19.7° and Neptune 19.4° Capricorn, Pluto
-22.7° Scorpio, ASC 22° Libra, MC 29.5° Cancer — and the geometry verified too.
-Rendering the specimen sheet found four faults, of which the standing hypothesis
-had named one:
-
-- **The eight ordinary cusps were painted in the same weight as the sign ring's
-  twenty-four 10° graduations.** This, not the radial extent, is why the houses
-  did not read as houses.
-- The four angular cusps read as unexplained heavy dashes.
-- The cusps shared the body glyphs' annulus, so collision was structural — a
-  cusp through Saturn on the Reykjavík specimen, through the Sun on the owner's.
-- Nothing named which house was which.
-
-The houses now have an annulus of their own between the aspect circle and
-`houseRing`, closed at both edges, with all twelve numbered at the midpoint of
-the arc they occupy. `DECISIONS.md` 3 August carries what it was chosen over and
-what it costs. The aspect figure gives up its outer fifth **only on charts that
-draw houses**; without a birth time it keeps the radius it always had, which is
-why the Vessel goldens did not move by a pixel.
-
-Two tests hold it: the house band belongs to the houses alone (no body glyph may
-reach into it, and the numerals stay inside both edges), and every house is
-numbered off its own midpoint at four latitudes including the equator and the
-southern hemisphere. `chart-wheel-houses-{day,night}-340.png` were re-recorded;
-the failure was read first and was the intended change, with no overflow.
-
-Render it yourself with `test/manual/chart_wheel_specimen_test.dart`, which
-carries that birth as its first specimen.
+**A record nobody made is absent, not zero.** This is the single rule most likely
+to be violated by new code — averages, charts, summaries. v1 told somebody who had
+not logged food that they were 828 kcal down. `long_view.dart` and
+`sleep_totals.dart` both carry the rule in their doc comments.
 
 ---
-
-## The restructure of 3–4 August, and what came of it
-
-Six things were asked for across the session: guidance at twice the size; the
-disclosures gone and the depths row pinned; the Vessel rebuilt in six parts;
-Positions kept but made specific to the chart; nutrition moved and
-macronutrients tracked; and carbohydrate counted without being advised on.
-
-**All six are done**, the Vessel's surface last, on 4 August. Every commit
-green. None of it has been read against the live model — that is item 2 at the
-top of this document and it is the largest remaining risk.
-
-**Done — guidance at twice the size.** `displayMedium` 34 → 68, leading scaled
-with it because the theme stores `height` as a *ratio* and doubling the size
-alone would have set the lines solid. At 390 dp the passage commands the screen
-and still fits; at 320 dp with 200 % text it comes down to a few words a line
-and scrolls, which is honest at that extreme and is not an overflow — the
-captures throw on overflow and none did.
-
-**Done — no disclosures, no closes, the depths row always present.**
-`LOOK DEEPER` and every section `CLOSE` are gone, including the Vessel's own
-`READ DEEPER`. At night one depth is open already: `EterRegister.night` is
-exactly "immersive, or balanced after sunset", since grounded resolves to day
-at every hour, so the rule is one comparison rather than a mode test and a
-clock test that could disagree.
-
-The row is held **outside** the scroll, under the destination rail. It was
-built first as a pinned `SliverPersistentHeader` and that failed twice over: a
-pinned header must state its height before layout, and this row wraps to two
-lines at 390 dp and three at 200 % text — the first guess overflowed a plain
-phone by 37 px. Measuring it fixed the height and not the second problem, which
-is that a header is only built while its sliver is in range, so once guidance
-doubled and filled the screen the row stopped existing until it had been
-scrolled to. **This cost guidance the first glance**; the three depths sit above
-it now. That is a real change to the opening moment and the owner should look at
-it.
-
-**Done — the Vessel's machinery, in five parts.** `VesselReadingPart` splits the
-reading into houses, aspects, chart synopsis, the figure place by place, and the
-figure's synopsis. All five go out under the **existing `vesselReadings` call
-name** — the worker checks the name and nothing else, so no redeploy — and each
-caches under its own reserved key, so a part that fails is retried alone. The
-chart synopsis keeps `configuration`, the key the single-call reading already
-used, so charts already read are not re-composed or re-billed.
-
-The twelve houses take the card of the sign on the cusp
-(`core/arcana/house_cards.dart`), the owner's choice over the cusp ruler and
-over house-number-to-arcana — the last of which gives every person alive the
-same twelve cards. House 1 *is* the Ascendant and the model is told so, because
-the Ascendant's card is shown above the list and would otherwise look printed
-twice. `houseOf` walks the arcs rather than dividing the circle by twelve, which
-matters away from the equator where a quadrant can be four times another.
-
-`AetherSafetyPolicy.validateReading` was added for these: `validateGuidance`
-refuses anything past 3000 characters, which is right for a day's reading and
-wrong for a synopsis the owner asked to be **the longest part of the surface**.
-Every rule that is about safety still applies; only the brevity rule is dropped.
-
-**Done — Positions reads the sky against the chart.** The menu stays; it was
-writing horoscope. It had the contacts and nothing about the chart being
-contacted, so it could name a transit and not say what it landed on. Two things
-it never had: **retrograde motion**, computed per position all along and thrown
-away before the request was built — the one fact a person is most likely to
-already know about today's sky was the one it could not mention — and the natal
-chart itself. `core/vessel/positions_natal.dart` supplies placements with their
-houses, the twelve houses, and **which of this person's houses today's bodies
-are crossing**, which is the join that was missing. Houses are offered only when
-the angles are real, because "in your house of work" derived from a noon guess
-would be cached and wrong.
-
-**Done — the protein and fat floors** (`core/health/macro_targets.dart`).
-1.7 g/kg and 0.5 g/kg, in whole grams from the person's own weight, advised only
-where there is strength work. A shortfall is only ever found on a *recorded*
-day, and a measure left blank cannot be short. Leaning needs two short recorded
-days: one is a Tuesday.
-
-**Done — guidance reads what was eaten.** The request now carries an `intake`
-block and, where there is resistance training in the window, `macroFloors`.
-`AetherIntakeContext` and `AetherMacroFloors` are in the contract, the assembler
-fills them from **confirmed rows only** — an unconfirmed estimate is a guess
-nobody has agreed to, and the brief forbids it counting toward any total — and
-the prompt says what the floors are *not*: a floor to reach, never a diet, never
-a limit, never a reason to eat less of anything else, and never the opening of a
-synthesis.
-
-Absent-not-zero is enforced in three places, not one: a day with nothing logged
-is dropped from the payload rather than sent as a row of nulls the model would
-read as a day of nothing eaten; a macronutrient no row carried is not a key at
-all; and a shortfall is only ever counted on a recorded day. Intake is in the
-context fingerprint, so confirming a meal recomposes the day instead of being
-noticed tomorrow.
-
-**Done — nutrition, the whole of it.** Confirming a derived meal happens in the
-**Journal**, under the page it came from: by the time somebody is looking at a
-balance they have left the page, and what they can still remember is what was on
-the plate. Only unconfirmed meals prompt. Correcting the figures stays in the
-Body, which now shows and edits protein, carbohydrate and fat beside the
-calories, and can delete a meal in two taps. One row serves both surfaces, so
-they cannot drift — deleting from the Body removes it from the page, and
-reverting the page takes its meals with it, both pinned by tests.
-
-**Carbohydrate is counted and not advised on.** It has no floor and no target,
-and there is no version of "eat fewer carbohydrates" in this product. One
-exception, computed on the device rather than left to the model: when a recorded
-day was very nearly all carbohydrate *and* protein came in under its floor, the
-advice may suggest trading some of one for the other — as a sentence about the
-missing protein, not about the carbohydrate being wrong. Dominance is measured
-by **energy, not weight**, because a gram of fat is not a gram of anything else.
-
-Blank means not recorded, everywhere: an empty field saves as null rather than
-zero, a meal nobody broke down shows no macro line, and a day where only
-carbohydrate was written down is a day nobody described rather than a day of
-pure carbohydrate.
-
-### The Vessel's surface · *done, 4 August*
-
-The six-part order the owner asked for —
-
-1. the chart wheel, led by the Sun, Moon and Ascendant
-2. a card and a passage for each of the twelve houses
-3. what the angles say
-4. the full chart synopsis, the longest part
-5. the figure, place by place
-6. the figure's synopsis
-
-— is what `vessel_section.dart` renders. `composePart` returns the stored JSON
-and `VesselKeyedPassage.decode` / `VesselSynopsis.decode` read it; the request
-already carried `houses` and `aspects`. `test/vessel_parts_test.dart` covers
-the composer half and *the Vessel is read in six parts, in the owner's order*
-in `shell_test.dart` covers the surface — it checks where each heading lands on
-the page rather than the order finders happen to return, because a `Column` will
-report its children in order no matter what order they were built in.
-
-Six strings were added for the headings and the houses. `TRANSLATIONS.md` is
-regenerated and now pairs **480**; read the Polish once more if you like, and
-note `houseOccupants` deliberately has no verb — *stoi* and *stoją* depend on
-how many bodies are in the house, and one chart has both.
-
-**Read the section above under "Pick up here" before changing this surface.**
-The once-per-opening guard and the Sun/Moon/Ascendant lift are both the kind of
-thing that looks like an omission until you know why.
-
-**Done, 4 August:** `test/fixtures/live/` is re-recorded at prompt **v10** and
-all four new parts have been read against the live model. What that found is
-item 2 at the top of this document, and it is worth reading before writing any
-prompt here — every fault was invisible to every parser.
 
 ---
 
@@ -720,13 +351,13 @@ Nothing here is blocked on anything above it except where stated.
 ### 1 · The Polish sentences · *done, and read once more if you like*
 
 All fifteen sections of `docs/TRANSLATIONS.md` were read against the two tests in
-`POLISH.md`, in six slices, and everything that failed one was rewritten. What was
+`LANGUAGE.md`, in six slices, and everything that failed one was rewritten. What was
 actually wrong, in descending order of how badly it read:
 
 - **Gender agreement in assembled sentences.** The sweep summary put one fixed
   adjective ending after fifteen nouns of two genders, and fed it clauses where a
   noun belongs. The retrospective left a participle in the wrong case above four.
-  `POLISH.md` now has a section on both shapes.
+  `LANGUAGE.md` now has a section on both shapes.
 - **Gendered verbs addressing the reader** — *chciałabyś lub chciałbyś*, and
   *Potwierdziłem* on a button. There are none left in the file; the grep that
   finds them is in that same section.
@@ -735,9 +366,9 @@ actually wrong, in descending order of how badly it read:
   *komponować* survived in three strings.
 - **Words that mean something else here** — the food estimate stayed out of *the
   weight*, and the first matrix cell was called *Dane*.
-- **Aether now declines**, because it is a name. See `POLISH.md`.
+- **Aether now declines**, because it is a name. See `LANGUAGE.md`.
 
-`EKSPORT LOKALNY` was kept and `POLISH.md` records why: the native word is *kopia*
+`EKSPORT LOKALNY` was kept and `LANGUAGE.md` records why: the native word is *kopia*
 and the cloud section owns it. `WGLĄD` still does two jobs; leave it until use
 says otherwise, and change the *section* rather than the destination.
 
@@ -779,7 +410,7 @@ The parts worth knowing before changing any of it:
 - **There is no zoom control, on purpose.** `longViewSpanFor` turns
   distance-from-today into a scale — under a fortnight a day, then week, month,
   year — and the beads step by whatever scale you are on. A zoom button would
-  have been the menu `DECISIONS.md` rejected.
+  have been the menu `PRODUCT.md` rejected.
 - **An unrecorded period is an open tick below the baseline**, not a bar of no
   height. That is the absent-not-zero rule made visible, and it is the one thing
   in the painter that must not be "simplified". Pages written is the exception
@@ -818,7 +449,7 @@ as the image does.
 ### 3 · The Letter · *built, and run against the real model*
 
 `core/aether/letter.dart`, schema 13's `Letters` table, `letter` in `CALLS` at
-0.7, and `EterPrompts.version` now at 7. `AI_FLOW.md` now documents six calls.
+0.7, and `EterPrompts.version` now at 7. `ENGINEERING.md` now documents six calls.
 
 - **The cache key is the month.** One request per person per month, and a month
   already written is never composed again. There is a test for that specifically,
@@ -834,7 +465,7 @@ as the image does.
   rather than shrinking to fit, and is answered by the writing field below.
   Composition is attempted when the Journal opens — the only moment Eter has,
   since there is no background poll — and is best-effort.
-- `Letters` has **no retention expiry**, deliberately. `AI_FLOW.md` §6 says why.
+- `Letters` has **no retention expiry**, deliberately. `ENGINEERING.md` §6 says why.
 
 **Proven against the deployed endpoint.** `https://eter-ai.eter-ai.workers.dev`
 is live and current, and all eight live-smoke cases pass — prompt built on the
@@ -1177,183 +808,6 @@ order if you want it gone.
 
 ---
 
-## Things that will bite you
-
-**A pinned `SliverPersistentHeader` is not a way to keep a row on screen.** It
-was the obvious answer for the depths row and it failed twice. A pinned header
-must declare its height *before* it is laid out, and that row wraps to two lines
-at 390 dp and three at 200 % text — the first guess overflowed a plain phone by
-37 px. Measuring it and feeding the height back fixed that and not the second
-problem, which is fatal: **a sliver is only built while it is within the
-viewport**, so once the guidance passage doubled and filled the screen, the row
-stopped existing until it had been scrolled to. `cacheExtent` did not save it.
-The row lives outside the scroll now, and that is why guidance lost the first
-glance.
-
-**`flutter test` is a debug build.** Anything gated on `kDebugMode` alone
-appears in every test and every golden — the two Sanctum probes cost fourteen
-failures before they were also gated on `!eterRunningTests()`.
-
-**A test that sleeps a fixed number of milliseconds against an async call will
-fail on a busy machine and pass on yours.** `shell_test.dart` already has
-`waitForWidget`; use it. One flat 30 ms delay in the weekly-view test was found
-this way.
-
-**Two Sanctum controls were reading `DateTime.now()` instead of the injected
-clock**, so against a pinned fixture their seven-day window walked off the seeded
-data and the test began failing when the host clock crossed midnight, with nobody
-touching it. Everything in this product takes `nowProvider`. If something reads
-a window backwards from *now*, check which clock it is asking.
-
-**An example in a prompt can come back in the answer.** A real Polish reading
-contained *"ten układ tends to ask for harmonizowanie energii"* — five English
-words lifted from an instruction that quoted that phrase as the way to hedge.
-`languageFor` now says once, for every call, that quoted examples are shapes and
-never wording. If you add an example, assume it can be copied verbatim.
-
-**Golden tests are the honest reviewer.** They run every language at 320 dp and
-200 % text, which is where translation breaks layouts. They caught a 112 px English
-overflow and a 175 px Polish one on the same row, and they refused to tap when two
-widgets ended up sharing a semantics label. When they fail, read the failure before
-re-recording — **four** times in this branch the failure was a real defect, not a
-stale image. Two of the four were on 1 August: `Go deeper into the chart` ran 181 px
-past the action row in Polish and 9.4 px past it in English, which is how that
-button ended up a short noun in both languages. The action row at 320 dp × 200 %
-has room for roughly nine characters; budget for that before writing a verb.
-
-**An overflow fails `--update-goldens` too**, which is the behaviour you want:
-the capture throws before it is written, so a bad layout cannot be recorded as
-truth. It also means a red run under `--update-goldens` is worth reading rather
-than re-running.
-
-**A widget test with no teardown hangs for ten minutes and then says
-`TimeoutException`**, with a stack pointing at `dart:isolate`. It is almost
-always the tree never being disposed: `eterTestDatabase()` leaves Drift a
-zero-duration close timer, and `closeShell` in `shell_test.dart` is what flushes
-it. Put new shell-level tests in that file rather than standing up a second
-harness — one was written on 1 August and hung until it moved.
-
-**The prototype fixture has no birth time, so no golden drew a chart's
-angles.** `ascendantReliable` is false for that profile, which means every
-shell capture in the suite shows the Vessel's wheel with no cusps and neither
-angle named — the half of the surface with nothing in it. The `ASC` and `MC`
-letters were drawn at `0.995 × outer` and centred there, which put them
-*inside* the sign ring (six pixels of overlap with the sign glyphs) and about
-nine pixels past the widget's own edge, so the container decided whether you
-read `ASC` or `AS`. It fired on every chart from anybody who told Eter their
-birth time — which is to say, on the owner's chart and not on any test's.
-The letters now have a lane outside the rim and the wheel gives it up;
-`test/golden/chart_wheel_golden_test.dart` is the capture that draws houses,
-and it exists so this gap does not reopen.
-
-**A silent video still takes audio focus.** Both loops — the shell's ambient
-field and the Arcana plates — are muted with `setVolume(0)`, but `video_player`
-manages audio focus by default, so starting one *paused whatever the person was
-listening to*. The field loop starts with the shell, which meant opening Eter at
-all stopped your music. Nothing in the repository could see it; it was one line
-in logcat on launch — `requestAudioFocus() … CONTENT_TYPE_MOVIE …
-callingPack=com.eterhealth.eter`. Both sites now pass
-`VideoPlayerOptions(mixWithOthers: true)`. If a third video is ever added, it
-needs the same option, and the check is: launch, then
-`adb logcat -d | grep requestAudioFocus` — it must find nothing.
-
-**A scope on `MaterialApp.home` is a scope no pushed route can see.** `home` is
-a route, and a modal sheet or dialog is its *sibling* rather than its child, so
-it inherits nothing. `EterStringsScope` sat there, and `EterStrings.of`
-documents its own fallback as English — so the Journal's History sheet came up
-HISTORY / CLOSE / "Tuesday 4 August" on a Polish phone, silently, for as long as
-the sheet has existed. It is on `builder` now, which wraps every route the
-Navigator shows. No test could see it because a widget test pumps a sheet under
-whatever scope it likes; `modal_language_test.dart` pushes one the way the app
-does, and keeps the old shape as a test of its own.
-
-**Flutter does not hyphenate, and a broken word is not an overflow.** A word
-wider than its line is broken wherever the engine runs out of room — no hyphen,
-no error, because nothing overflowed. Real Polish guidance at 68 pt read "tętno
-spocz / ynkowe" and every golden was clean, because the word came from the model
-rather than from a fixture. `core/type_fitting.dart` sizes a passage against its
-own longest word, and holds back a logical pixel: fitting a word to *exactly*
-the line width still breaks it.
-
-**`RichText` does not scale with the reader's setting.** `Text` does; `RichText`
-is not a `Text`. `EterArrival` is built of `RichText`, so the product's most
-important passage was the only prose in the app that ignored the system font
-size — in both directions, and a phone set to 85 % rendered it at 100 % while
-every measurement of it assumed otherwise.
-
-**A map comprehension keeps the last of each key.** `{for (final row in rows)
-row.dimension: row}` over rows that arrive *newest first* keeps the **oldest** of
-each dimension. That is how recomposing a day updated the synthesis and left
-health, mind and spirit showing the earlier reasoning. If a list is ordered and
-you want the first of each key, write the loop.
-
-**A surface below the fold is a surface no capture draws.** A `ListView` builds
-nothing it cannot see, and the Sanctum's goldens photograph what is on screen —
-so the export/import panel at the bottom of that scroll had never been laid out
-by anything in the suite. `Choose a file` had been overflowing its row by 110 px
-at 320 dp with text doubled since the day it was written, in front of people and
-nowhere else. `EterAction` lets a label wrap now, and
-`sanctum_export_panel_test.dart` renders the panel directly. If you add anything
-to that panel, it is the only place that will see it.
-
-**A surface behind a platform plugin is a surface no test renders.**
-`eterRunningTests()` disables video outright and the geocoder throws under the
-test binding, so the Arcana loops and the birth-place suggestion rows are both
-invisible to the whole suite — they pass every run without ever being drawn.
-Give anything in that position its own test with a fake, and drive the widget
-directly rather than through the surface that owns it. Doing that for the
-suggestion rows found a `Duplicate keys found` crash and a 44 dp tap target on
-the first run.
-
-**Polish decides layout more often than English.** But not always: `DASHBOARD` is
-nine letterspaced caps against `PULPIT`'s six, so the Sanctum mark collided in
-*English* first. Render both.
-
-**`flutter test --update-goldens` will happily bake in a bug.** If a capture throws
-an overflow, updating records the yellow stripes as the new truth. Check the
-failure reason.
-
-**Schema migrations must be idempotent.** `_addColumnIfMissing` and the backfill
-pattern in `app_database.dart` exist because a half-applied migration once left the
-app unable to open. Follow that shape; never key on `from`.
-
-**Consent is re-read, never cached.** Every path re-reads the profile so revoking
-takes effect on the next pass. Do not add a cached flag.
-
-**A record nobody made is absent, not zero.** This is the single rule most likely
-to be violated by new code — averages, charts, summaries. v1 told somebody who had
-not logged food that they were 828 kcal down. `long_view.dart` and
-`sleep_totals.dart` both carry the rule in their doc comments.
-
----
-
-## Owner-only, still outstanding
-
-None of these can be done from the repo. `RELEASE.md` §2 is the full list; the ones
-that block the most:
-
-1. **Bind the rate limiter.** Both bindings are still commented out in
-   `server/wrangler.toml`, so the deployed worker has no per-install cap of any
-   kind — not even the KV fallback whose weakness it logs as
-   `limits=kv-approximate`. Google's free tier is the only ceiling, on an
-   endpoint anybody holding the client token can reach. This moved to the top of
-   the list the moment the endpoint went live.
-2. **Upload keystore** — create it early; losing it means losing the ability to
-   update the listing.
-3. **Redeploy `server/worker.js` whenever it changes.** It is deployed and
-   current as of 31 July, but it drifted three commits behind once already and
-   the symptom was `400 Unknown call: letter` with nothing wrong in the
-   repository. `test/worker_contract_test.dart` catches the half that lives
-   here; only `npx wrangler deploy` catches the other half.
-4. **Store subscription products** — `eter.monthly` $4.99, `eter.yearly` $39.99,
-   **20 PLN/month in Poland** as a regional price, not a conversion.
-5. **A public privacy-policy URL**, and the health-data declarations.
-6. **Firestore rules deploy** — the live project's rules predate the mirror and
-   would deny it.
-7. **Rotate the development Gemini key** before any public build.
-**The English lettering on the card art is deliberate** — asked about on
-3 August, and the owner's answer is that it stays. Do not "fix" it.
-
 ---
 
 ## The repeated card, and the reading that explains it
@@ -1392,3 +846,34 @@ whole of the Vessel's writing and they are now a fifth of it.
 **Done, 4 August:** `test/fixtures/live/` holds a v10 recording of this call
 made from invented inputs. The Polish passages above are the owner's own chart
 and are quoted here only; they are not, and must not become, a fixture.
+
+---
+
+## Owner-only, still outstanding
+
+None of these can be done from the repo. `RELEASE.md` §2 is the full list; the ones
+that block the most:
+
+1. **Bind the rate limiter.** Both bindings are still commented out in
+   `server/wrangler.toml`, so the deployed worker has no per-install cap of any
+   kind — not even the KV fallback whose weakness it logs as
+   `limits=kv-approximate`. Google's free tier is the only ceiling, on an
+   endpoint anybody holding the client token can reach. This moved to the top of
+   the list the moment the endpoint went live.
+2. **Upload keystore** — create it early; losing it means losing the ability to
+   update the listing.
+3. **Redeploy `server/worker.js` whenever it changes.** It is deployed and
+   current as of 31 July, but it drifted three commits behind once already and
+   the symptom was `400 Unknown call: letter` with nothing wrong in the
+   repository. `test/worker_contract_test.dart` catches the half that lives
+   here; only `npx wrangler deploy` catches the other half.
+4. **Store subscription products** — `eter.monthly` $4.99, `eter.yearly` $39.99,
+   **20 PLN/month in Poland** as a regional price, not a conversion.
+5. **A public privacy-policy URL**, and the health-data declarations.
+6. **Firestore rules deploy** — the live project's rules predate the mirror and
+   would deny it.
+7. **Rotate the development Gemini key** before any public build.
+**The English lettering on the card art is deliberate** — asked about on
+3 August, and the owner's answer is that it stays. Do not "fix" it.
+
+---

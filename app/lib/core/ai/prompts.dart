@@ -1662,7 +1662,7 @@ Return JSON only: {"passage": ...}''',
   /// Two constraints are worth stating here as well as in the instruction,
   /// because they are the ones a later editor would soften. The recalls are
   /// **the model's own words**, never the person's — a letter that says "you
-  /// told me" about a note nobody wrote is the exact failure `AI_FLOW.md` §1a
+  /// told me" about a note nobody wrote is the exact failure `ENGINEERING.md` §1a
   /// exists to prevent. And a month with little in it gets a short letter: the
   /// instruction refuses padding explicitly, because a monthly page is the
   /// surface with the strongest pull towards inventing significance.

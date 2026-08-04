@@ -81,7 +81,7 @@ abstract final class LongViewSource {
       db.loadJournalForRange(window.from, endExclusive),
       // Recalls are Aether's own words and only ever marginalia. Withheld
       // entirely when the journal may not be read, because a recall can quote a
-      // page — `AI_FLOW.md` §1a.
+      // page — `ENGINEERING.md` §1a.
       if (journalAllowed)
         db.loadGuidanceRecalls(today: to, days: window.days)
       else

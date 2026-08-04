@@ -590,7 +590,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   ///
   /// It buys exactly one thing: a single quiet local notification in the
   /// evening, inviting a page, at the real sunset. No morning reading, no
-  /// streak, no re-engagement — `DECISIONS.md`. Nothing leaves the device for
+  /// streak, no re-engagement — `PRODUCT.md`. Nothing leaves the device for
   /// it; there is no server involved in a local notification.
   final DateTime? eveningInvitationConsentAt;
 
@@ -598,7 +598,7 @@ class ProfileRow extends DataClass implements Insertable<ProfileRow> {
   ///
   /// One at a time, deliberately. The feature is two people sharing a sentence
   /// a day, and a list of correspondents would be a feed — which is the thing
-  /// `STEERING_BRIEF.md` says Eter must never become. Pairing again replaces
+  /// `PRODUCT.md` says Eter must never become. Pairing again replaces
   /// this rather than adding to it.
   ///
   /// Only the pair's id lives here. Nothing about the other person is stored

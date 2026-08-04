@@ -1,4 +1,4 @@
-// A local stand-in for the endpoint described in docs/AI_ENDPOINT.md.
+// A local stand-in for the endpoint described in docs/ENGINEERING.md.
 //
 // It exists so the app can be exercised end to end on one machine before any
 // server is deployed. It does the two things that matter: it holds the model

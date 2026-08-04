@@ -6,7 +6,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/tokens.dart';
 
 /// The shared shell header: the ETER wordmark inside the shell's celestial
-/// signature. Commissioned in `docs/ASSET_MANIFEST.md` as code, not bitmap:
+/// signature. Commissioned in `docs/ENGINEERING.md` as code, not bitmap:
 /// one-colour paths tinted by the register, identical geometry on the Journal
 /// and the Dashboard, and excluded from semantics because it is the shell's
 /// decoration, not information.

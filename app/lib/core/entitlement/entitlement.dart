@@ -1,6 +1,6 @@
 /// Who may reach Aether, and why.
 ///
-/// `STEERING_BRIEF.md` asks for one application with feature entitlements and
+/// `PRODUCT.md` asks for one application with feature entitlements and
 /// warns, twice, against coupling subscription checks to individual widgets. So
 /// this file is the only place the rule lives: one pure resolver, one value, read
 /// at section level. No surface asks "is this person subscribed" — surfaces ask
@@ -94,7 +94,7 @@ class EterEntitlement {
   /// promise. Thirty crosses day 21, so the decision to pay is made by somebody
   /// who has read a true sentence about themselves.
   ///
-  /// See `docs/DECISIONS.md`.
+  /// See `docs/PRODUCT.md`.
   static const trialDays = 30;
 
   /// Resolves access. Pure: every input is passed in.

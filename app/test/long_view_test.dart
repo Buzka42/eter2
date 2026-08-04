@@ -219,7 +219,7 @@ void main() {
 
     test('a month shows no note rather than one of thirty', () {
       // Picking one arbitrarily would imply it summarised the month. These are
-      // Aether's own words about what it had already said, and `AI_FLOW.md` §1a
+      // Aether's own words about what it had already said, and `ENGINEERING.md` §1a
       // forbids treating them as a claim about anything.
       expect(year(const []).cells.every((cell) => cell.note == null), isTrue);
     });

@@ -56,7 +56,7 @@ void main() {
         match.group(1)!: double.parse(match.group(2)!),
     };
 
-    // `AI_FLOW.md` §2: interpretation 0.1, day story 0.5, the writing calls
+    // `ENGINEERING.md` §2: interpretation 0.1, day story 0.5, the writing calls
     // 0.7. A call that quietly acquired a different temperature would change
     // what Aether writes without changing a prompt or a version.
     expect(temperatures['journalInterpretation'], 0.1);

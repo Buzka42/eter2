@@ -10,10 +10,10 @@ say — Eter's Polish should sound written, not localised.
 
 Members taking a value show the sentence with its placeholder in place. Polish
 inflects around those, which is why they are methods rather than strings
-interpolated at the call site; see `docs/LANGUAGES.md` §3.
+interpolated at the call site; see `docs/LANGUAGE.md` §3.
 
 Excluded: anything identical in both tables. Those are identifiers, canonical
-names, numerals and the wordmark — they never translate, and `LANGUAGES.md` §2
+names, numerals and the wordmark — they never translate, and `LANGUAGE.md` §2
 explains why translating one would break the symbolic engine.
 
 ## common

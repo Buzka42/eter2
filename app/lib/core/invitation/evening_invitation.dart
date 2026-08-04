@@ -2,7 +2,7 @@
 ///
 /// One quiet local notification in the evening, inviting a page. **Off by
 /// default.** Nothing else: no morning reading, no streak nudge, no
-/// re-engagement, no "you haven't opened Eter in a while". `DECISIONS.md`
+/// re-engagement, no "you haven't opened Eter in a while". `PRODUCT.md`
 /// closes that question, and this file is the whole of it.
 ///
 /// It is scheduled on the **real sunset** the register already computes rather

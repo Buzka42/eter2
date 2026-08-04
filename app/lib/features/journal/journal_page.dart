@@ -740,7 +740,7 @@ class _JournalHistorySheetState extends ConsumerState<_JournalHistorySheet> {
   ///
   /// This is the whole of the Long View's navigation: there is no control for
   /// it. Keep turning back and the day widens — a fortnight out it is a week, a
-  /// couple of months out a month, a year out a year. `DECISIONS.md` chose
+  /// couple of months out a month, a year out a year. `PRODUCT.md` chose
   /// extension over a menu, and a menu is what a "zoom" button would have been.
   ///
   /// The thresholds themselves are [longViewSpanFor], which is domain rather
@@ -1750,7 +1750,7 @@ class _LongViewPanelState extends State<_LongViewPanel> {
 ///
 /// Composition is attempted here rather than on a schedule because the Journal
 /// opening is the only moment Eter reliably has: there is no background poll in
-/// this product, and `AI_FLOW.md` says so. The attempt is cheap after the first
+/// this product, and `ENGINEERING.md` says so. The attempt is cheap after the first
 /// of the month, since the month is the cache key and `LetterComposer` returns
 /// the stored row without a request.
 class _LetterArrival extends ConsumerStatefulWidget {

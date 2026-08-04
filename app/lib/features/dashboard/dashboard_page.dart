@@ -293,7 +293,7 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
             // One extra line beneath today's guidance, and that is the whole
             // surface of the Correspondence. Not a screen, not a feed, and
             // nothing when there is no correspondence or they have not written
-            // today — see `DECISIONS.md` on extension over destinations.
+            // today — see `PRODUCT.md` on extension over destinations.
                   _CorrespondingLine(today: today, now: now),
                   const SizedBox(height: EterSpace.s48),
                   if (open != null)

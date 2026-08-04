@@ -23,10 +23,10 @@ import 'strings.dart';
 ///   languages so a Polish reader meets the same character an English one does.
 /// * **Wgląd** — *guidance*, and also the right-hand destination. One word for
 ///   both, by the product owner's choice: the surface is the insight, and the
-///   section within it is the pure form of it. See `docs/POLISH.md`.
+///   section within it is the pure form of it. See `docs/LANGUAGE.md`.
 /// * **Krąg** — *the Vessel*. **Zacisze** — *the Sanctum*. **Głębia** — the
 ///   disclosure. **Dziennik** — *the Journal*. None is the literal translation;
-///   `docs/POLISH.md` records what each was chosen over and why.
+///   `docs/LANGUAGE.md` records what each was chosen over and why.
 /// * **Rejestr** — *register*, in the musical sense the English word carries
 ///   here, not a ledger.
 ///

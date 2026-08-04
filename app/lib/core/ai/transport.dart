@@ -57,7 +57,7 @@ class EterAiConfig {
   /// nothing about the person, never assembled into a payload, and never stored
   /// server-side except as a short-lived counter keyed on a hash of it. It cannot
   /// be linked to an account, an address or a name by anyone holding it. The
-  /// `AI_FLOW.md` §1 rule — no identifier reaches the *model* — is unchanged; this
+  /// `ENGINEERING.md` §1 rule — no identifier reaches the *model* — is unchanged; this
   /// travels in a header, for the server, and is dropped before the request is
   /// forwarded.
   ///

@@ -295,7 +295,7 @@ class EterSanctumMark extends StatelessWidget {
   /// ornament.
   ///
   /// Static. Not a pulse: a breathing control on a contemplative surface is the
-  /// kind of motion `UI_BRIEF.md` calls excessive, and it would need a
+  /// kind of motion `PRODUCT.md` calls excessive, and it would need a
   /// reduced-motion branch to earn nothing. Two stops at low alpha, no ring, no
   /// bloom — the point is that the eye registers something behind the line, not
   /// that it sees a light.

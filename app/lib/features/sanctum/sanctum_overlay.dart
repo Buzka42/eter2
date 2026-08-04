@@ -1211,7 +1211,7 @@ class _PersonalizationControlsState
         // extending the Journal's date axis rather than by a destination of its
         // own — and something reachable only by a gesture is something a person
         // has to already know about. The Sanctum is the index; see
-        // `docs/DECISIONS.md` on extension over a menu.
+        // `docs/PRODUCT.md` on extension over a menu.
         Text(strings.headingLongView, style: text.labelSmall),
         const SizedBox(height: EterSpace.s8),
         Text(strings.longViewNote, style: text.bodyMedium),
@@ -2275,7 +2275,7 @@ class _ChoiceGroup extends StatelessWidget {
 /// Pairing, and the only place in the Sanctum that names another person.
 ///
 /// The Correspondence itself is one line beneath today's guidance. This is the
-/// index entry and the switch — `DECISIONS.md` puts every feature's name here
+/// index entry and the switch — `PRODUCT.md` puts every feature's name here
 /// so nothing lives only behind a gesture, and this one additionally has to be
 /// somewhere you can *end* it, which is the part that must never be hard to
 /// find.

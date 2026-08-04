@@ -191,7 +191,7 @@ final syncServiceProvider = Provider<SyncService?>((ref) {
 /// `ETER_AI_ENDPOINT`. Null is a supported, shipped configuration: the app is
 /// complete without a model and every surface says so rather than pretending.
 ///
-/// See `docs/AI_FLOW.md` §6 and `core/ai/transport.dart` for why the endpoint
+/// See `docs/ENGINEERING.md` §6 and `core/ai/transport.dart` for why the endpoint
 /// belongs to the product owner and the model key never reaches this client.
 /// The single network transport, or null when this build has no endpoint **or**
 /// nothing entitles a call right now.
@@ -234,7 +234,7 @@ final subscriptionProvider = StreamProvider<EterSubscription?>((ref) {
 /// **The one entitlement value.** Read this at section level; never assemble the
 /// rule again anywhere else.
 ///
-/// `STEERING_BRIEF.md` warns twice against coupling subscription checks to
+/// `PRODUCT.md` warns twice against coupling subscription checks to
 /// individual widgets, so a surface asks what access exists and picks its sentence.
 /// It never asks whether somebody has paid.
 final entitlementProvider = Provider<EterEntitlement>((ref) {

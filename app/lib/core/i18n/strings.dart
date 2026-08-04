@@ -892,13 +892,13 @@ abstract class EterStrings {
 
   /// The axis pulled back. Named in the Sanctum as well as reached by turning,
   /// because extension is discoverable only to somebody already turning pages —
-  /// see `docs/DECISIONS.md`.
+  /// see `docs/PRODUCT.md`.
   String get headingLongView;
 
   /// The Sanctum's entry for it. The Long View is reached by turning back in
   /// the Journal, and extension is only discoverable to somebody already
   /// turning pages — so this is the sentence that stops it living behind a
-  /// gesture alone. `UI_BRIEF.md` non-negotiable 7.
+  /// gesture alone. `PRODUCT.md` non-negotiable 7.
   String get longViewNote;
 
   // ---------------------------------------------------------------- the letter
@@ -914,7 +914,7 @@ abstract class EterStrings {
   // ----------------------------------------------------- the evening invitation
 
   /// The one thing in Eter that can interrupt somebody, and the Sanctum entry
-  /// that governs it. Off by default; `DECISIONS.md` grants exactly this and
+  /// that governs it. Off by default; `PRODUCT.md` grants exactly this and
   /// nothing else.
   // ------------------------------------------------------- the Correspondence
 
@@ -1073,7 +1073,7 @@ class TutorialPassage {
   /// Draws the Sanctum's own mark beside the passage.
   ///
   /// The one symbol in the product a person has to recognise before they can use
-  /// it, so the tutorial shows it rather than describing it. `UI_BRIEF.md`
+  /// it, so the tutorial shows it rather than describing it. `PRODUCT.md`
   /// non-negotiable 7 forbids *unexplained* symbols; this is the explanation, and
   /// without it a glyph-only affordance would not be allowed to exist.
   final bool showsSanctumMark;

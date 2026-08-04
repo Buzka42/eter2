@@ -42,7 +42,7 @@ class ArrivalPassage {
 /// The signature arrival — guidance and journal entries do not appear, they
 /// arrive, as if the sentences were being written into the air.
 ///
-/// The grammar, from `docs/UI_DIRECTION.md`:
+/// The grammar, from `docs/PRODUCT.md`:
 ///
 /// * A sentence begins slightly displaced (never more than 4 dp), softly
 ///   blurred and low-contrast.

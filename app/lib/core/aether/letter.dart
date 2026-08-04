@@ -17,7 +17,7 @@ import 'safety_policy.dart';
 /// * the month's `GuidanceRecalls` — Aether's own compressed notes, one per
 ///   day. These are **the model's words about what it had already said**. A
 ///   letter that says "you told me" about a note nobody wrote is the precise
-///   failure `AI_FLOW.md` §1a exists to prevent, and the instruction forbids it
+///   failure `ENGINEERING.md` §1a exists to prevent, and the instruction forbids it
 ///   in as many words.
 /// * the retrospectives whose window fell in the month — sentences Eter
 ///   composed on the device, carrying their own counts. Every figure in a
