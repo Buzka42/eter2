@@ -1,9 +1,60 @@
 # Eter · where the work stands, and what to do next
 
-Written 30 July – 1 August 2026 across three long sessions on branch
-`eter-audit-fixes`, the second of them with a real phone attached.
+Written 30 July – 4 August 2026 across five long sessions on branch
+`eter-audit-fixes`, two of them with a real phone attached.
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
+
+---
+
+## Pick up here · 4 August
+
+Everything is committed and green. **One piece of code is unfinished and it is
+named below.** After that, the backlog is device work and owner-only work.
+
+### 1. Finish the Vessel's surface — the only unfinished code
+
+The machinery is built, tested and committed; the surface still renders the old
+order. Full detail in *What is left in the Vessel* below. In one line:
+`vessel_section.dart` must hold the four new parts' results and compose them in
+sequence, in the owner's order — wheel led by Sun/Moon/Ascendant, twelve house
+cards with passages, the angles, the chart synopsis, the figure place by place,
+the figure's synopsis.
+
+### 2. Nothing from 3–4 August has been seen by a person or a model
+
+This is the larger risk and it is not code. Every change below was verified by
+tests and by goldens; **almost none of it has been run on the phone, and none of
+the new writing has been read.**
+
+- The four new Vessel parts have never been composed against the live model.
+  `test/fixtures/live/` still holds the **v8** recording; prompts are at **v9**.
+  The rule in this document is that a fixture which parses is not a fixture that
+  reads well — that is the whole lesson of v6.
+- Positions has never been composed with the natal context attached, so nobody
+  has read what it now says about a retrograde.
+- The doubled guidance, the always-present depths row, the Body's macro fields
+  and the Journal's confirmation prompt have not been looked at on a device.
+- **The depths row now sits above the guidance passage**, so guidance no longer
+  owns the first glance. That was forced — see the section below for why — and
+  it is the change most worth the owner's eye.
+
+Re-record the fixtures with *invented* inputs. The owner's own chart and record
+must not become a fixture.
+
+### 3. The phone, as it was left
+
+A debug build carrying the endpoint defines (`--dart-define=ETER_AI_TOKEN=eter-ai`,
+endpoint `https://eter-ai.eter-ai.workers.dev`), the evening invitation switched
+**on**, and two debug-only controls in the Sanctum — `SEND INVITATION NOW` and
+`SCHEDULE IN 60s` — gated on `kDebugMode && !eterRunningTests()`. A test
+notification may still be in the shade; it uses the invitation's own fixed id, so
+tomorrow's real one replaces it rather than stacking.
+
+The build is older than the tree. Nothing from the nutrition or Vessel work is on
+it.
+
+---
 
 **State of the tree:** nothing uncommitted. `flutter analyze` clean. **872 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
@@ -338,8 +389,13 @@ carries that birth as its first specimen.
 
 ## The restructure of 3–4 August, and what is left of it
 
-The owner asked for four things overnight. Three are done; the Vessel is half
-done and the half that remains is the surface, not the machinery.
+Six things were asked for across the session: guidance at twice the size; the
+disclosures gone and the depths row pinned; the Vessel rebuilt in six parts;
+Positions kept but made specific to the chart; nutrition moved and
+macronutrients tracked; and carbohydrate counted without being advised on.
+
+**Five and a half are done.** Everything but the Vessel's *surface*, whose
+machinery is built and tested. Sixteen commits, every one green.
 
 **Done — guidance at twice the size.** `displayMedium` 34 → 68, leading scaled
 with it because the theme stores `height` as a *ratio* and doubling the size
@@ -846,6 +902,38 @@ order if you want it gone.
 ---
 
 ## Things that will bite you
+
+**A pinned `SliverPersistentHeader` is not a way to keep a row on screen.** It
+was the obvious answer for the depths row and it failed twice. A pinned header
+must declare its height *before* it is laid out, and that row wraps to two lines
+at 390 dp and three at 200 % text — the first guess overflowed a plain phone by
+37 px. Measuring it and feeding the height back fixed that and not the second
+problem, which is fatal: **a sliver is only built while it is within the
+viewport**, so once the guidance passage doubled and filled the screen, the row
+stopped existing until it had been scrolled to. `cacheExtent` did not save it.
+The row lives outside the scroll now, and that is why guidance lost the first
+glance.
+
+**`flutter test` is a debug build.** Anything gated on `kDebugMode` alone
+appears in every test and every golden — the two Sanctum probes cost fourteen
+failures before they were also gated on `!eterRunningTests()`.
+
+**A test that sleeps a fixed number of milliseconds against an async call will
+fail on a busy machine and pass on yours.** `shell_test.dart` already has
+`waitForWidget`; use it. One flat 30 ms delay in the weekly-view test was found
+this way.
+
+**Two Sanctum controls were reading `DateTime.now()` instead of the injected
+clock**, so against a pinned fixture their seven-day window walked off the seeded
+data and the test began failing when the host clock crossed midnight, with nobody
+touching it. Everything in this product takes `nowProvider`. If something reads
+a window backwards from *now*, check which clock it is asking.
+
+**An example in a prompt can come back in the answer.** A real Polish reading
+contained *"ten układ tends to ask for harmonizowanie energii"* — five English
+words lifted from an instruction that quoted that phrase as the way to hedge.
+`languageFor` now says once, for every call, that quoted examples are shapes and
+never wording. If you add an example, assume it can be copied verbatim.
 
 **Golden tests are the honest reviewer.** They run every language at 320 dp and
 200 % text, which is where translation breaks layouts. They caught a 112 px English
