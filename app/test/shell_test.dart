@@ -690,7 +690,10 @@ void main() {
     expect(find.textContaining('It does not change'), findsOneWidget);
     // Everything the device computed is here without a model being asked.
     expect(find.text('LIFE PATH 8'), findsOneWidget);
-    expect(find.text('SUN'), findsOneWidget);
+    // The Sun is not a row in the list any more: it leads the wheel, under
+    // `YOUR CARD`, with the Moon and the Ascendant beneath it. Printing it
+    // again below would be the same card twice with two different names.
+    expect(find.text('SUN'), findsNothing);
     expect(find.text('MOON'), findsOneWidget);
     expect(find.text('ASCENDANT'), findsOneWidget);
     expect(find.textContaining('Birth time is unknown'), findsOneWidget);
@@ -756,9 +759,15 @@ void main() {
     );
     await tester.pump();
 
-    // Movements about the configuration, not one passage per card.
-    expect(provider.calls, 1);
-    expect(find.text('WHAT THE CHART KEEPS DOING'), findsOneWidget);
+    // Five parts, one call each, and never twice for the same part.
+    expect(provider.calls, 5);
+    expect(
+      provider.schemas.toSet(),
+      {'movements', 'houses', 'figure', 'passage'},
+    );
+    // Movements about the configuration, not one passage per card. Twice
+    // over now: the chart's synopsis and the angles share that shape.
+    expect(find.text('WHAT THE CHART KEEPS DOING'), findsWidgets);
     expect(
       find.textContaining('These placements answer each other'),
       findsWidgets,
@@ -766,6 +775,57 @@ void main() {
     // And the whole chart went in one request rather than a card at a time.
     expect(provider.requestedKeys, contains('lifePath'));
     expect(provider.requestedKeys, contains('neptune'));
+    await closeShell(tester);
+  });
+
+  testWidgets('the Vessel is read in six parts, in the owner\'s order',
+      (tester) async {
+    await db.updateProfileConsents(aiAllowed: true);
+    await db.updateBirthContext(
+      birthTimeMinutes: 405,
+      birthTimePrecision: 'exact',
+      birthUtcOffsetMinutes: 60,
+      birthPlace: 'Warsaw, Poland',
+      birthLatitude: 52.2297,
+      birthLongitude: 21.0122,
+    );
+    await pumpShell(tester, vesselProvider: _VesselProvider());
+    await openVessel(tester);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
+    await tester.pump();
+    await waitForWidget(tester, find.text('THE FIGURE AS A WHOLE'));
+
+    // The wheel is led by the three points, then the houses, the angles, the
+    // whole chart, the figure place by place, and the figure as one thing.
+    // Order is the request, so the order is what is checked — and it is
+    // checked by where each heading actually is on the page rather than by
+    // the order the finders happen to return.
+    final headings = [
+      'YOUR CARD',
+      'THE HOUSES',
+      'THE ANGLES',
+      'THE WHOLE CHART',
+      'THE FIGURE',
+      'THE FIGURE AS A WHOLE',
+    ];
+    var previous = double.negativeInfinity;
+    for (final heading in headings) {
+      final finder = find.text(heading);
+      expect(finder, findsOneWidget, reason: '$heading is missing');
+      final top = tester.getTopLeft(finder).dy;
+      expect(top, greaterThan(previous), reason: '$heading is out of order');
+      previous = top;
+    }
+
+    // Twelve houses, each with its own passage, and the first one says it is
+    // the Ascendant rather than pretending to be a second point.
+    for (var house = 1; house <= 12; house++) {
+      expect(find.text('HOUSE $house'), findsOneWidget, reason: '$house');
+    }
+    // The Ascendant leads the wheel and is not printed again as a row.
+    expect(find.text('ASCENDANT'), findsOneWidget);
     await closeShell(tester);
   });
 
@@ -1317,21 +1377,63 @@ class _DashboardAetherProvider implements AetherProvider {
   }
 }
 
+/// Answers every one of the Vessel's five parts, each in its own shape.
+///
+/// The parts share a call name and a provider and are told apart by the schema
+/// they ask for — keyed passages, one long passage, or titled movements. A fake
+/// that answered movements to all five would leave four parts refused on every
+/// open, which is how this one started.
 class _VesselProvider implements VesselReadingProvider {
   int calls = 0;
   final requestedKeys = <String>[];
+
+  /// Every part this provider was asked for, in order.
+  final schemas = <String>[];
 
   @override
   Future<String> compose(VesselReadingProviderRequest request) async {
     calls += 1;
     final positions = request.context['positions'] as List<Object?>;
+    final keys = positions
+        .map((raw) => (raw as Map<String, Object>)['key']! as String)
+        .toList();
     requestedKeys
       ..clear()
-      ..addAll(
-        positions.map(
-          (raw) => (raw as Map<String, Object>)['key']! as String,
-        ),
-      );
+      ..addAll(keys);
+
+    final required = request.responseSchema['required'] as List<Object?>?;
+    if (required?.contains('passages') ?? false) {
+      // The houses and the figure share a schema and are keyed differently —
+      // house numbers against position keys — so they are told apart by the
+      // instruction rather than by the context, which carries both.
+      final isHouses = request.system.contains('You are writing the twelve houses');
+      schemas.add(isHouses ? 'houses' : 'figure');
+      final wanted = isHouses
+          ? [
+              for (final house
+                  in request.context['houses'] as List<Object?>? ?? const [])
+                '${(house as Map<String, Object>)['house']}',
+            ]
+          : keys;
+      return jsonEncode({
+        'passages': [
+          for (final key in wanted)
+            {
+              'key': key,
+              'passage': 'This place answers the rest of the chart quietly.',
+            },
+        ],
+      });
+    }
+    if (required?.contains('passage') ?? false) {
+      schemas.add('passage');
+      return jsonEncode({
+        'passage': 'The figure answers itself more than it answers anything '
+            'outside.',
+      });
+    }
+
+    schemas.add('movements');
     return jsonEncode({
       'movements': [
         {

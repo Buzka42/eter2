@@ -439,6 +439,22 @@ class EterStringsEn extends EterStrings {
   String get recomposedChartReading => 'The chart has been read again.';
 
   @override
+  String get headingHouses => 'THE HOUSES';
+  @override
+  String houseLabel(int house) => 'HOUSE $house';
+  @override
+  String houseOccupants(String bodies) => 'In this house: $bodies';
+
+  @override
+  String get headingAngles => 'THE ANGLES';
+  @override
+  String get headingWholeChart => 'THE WHOLE CHART';
+  @override
+  String get headingTheFigure => 'THE FIGURE';
+  @override
+  String get headingFigureAsAWhole => 'THE FIGURE AS A WHOLE';
+
+  @override
   String get readingWaitsForBirthTime =>
       'The reading waits for your birth time. Without it the angles are a '
       'guess at noon, and a chart is mostly its angles.';

@@ -318,6 +318,32 @@ abstract class EterStrings {
   /// error: there is no control here, and the next opening tries again.
   String get chartReadingNotWrittenYet;
 
+  /// The twelve houses, each carrying the card of the sign on its cusp.
+  String get headingHouses;
+
+  /// `HOUSE 4`. The number is the house's own, 1..12, and never translated
+  /// into a Roman numeral: the wheel prints the same digits.
+  String houseLabel(int house);
+
+  /// The bodies standing in a house, already joined and localised.
+  ///
+  /// An empty house prints nothing at all rather than saying "none" — a house
+  /// with nobody in it is absent, not zero, and it is an ordinary thing for a
+  /// chart to have.
+  String houseOccupants(String bodies);
+
+  /// What the geometry between the bodies says.
+  String get headingAngles;
+
+  /// The chart read as one thing. The longest part of this surface.
+  String get headingWholeChart;
+
+  /// The figure, place by place.
+  String get headingTheFigure;
+
+  /// The figure read as one thing, and as long as the chart's synopsis.
+  String get headingFigureAsAWhole;
+
   String get approximateTimeAndPlace;
   String get approximateTime;
   String get approximatePlace;

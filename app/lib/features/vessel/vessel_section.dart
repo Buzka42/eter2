@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/aether/guidance_mode.dart';
 import '../../core/arcana/arcana_card_media.dart';
+import '../../core/arcana/house_cards.dart';
 import '../../core/arcana/major_arcana.dart';
 import '../../core/arcana/matrix.dart';
 import '../../core/arcana/symbol_content.dart';
@@ -51,6 +52,16 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   String? _profileFingerprint;
   bool _composing = false;
 
+  /// The parts already asked for while this Vessel has been open.
+  ///
+  /// The compose pass is hung on a post-frame callback, so it runs again on
+  /// every rebuild — and a part that fails leaves its row unwritten, which is
+  /// exactly the condition that starts the pass. Without this, one part the
+  /// model keeps refusing would be requested again on every frame that
+  /// touched this surface, and every one of those requests is billed. Once
+  /// per opening is what the retry was ever meant to be.
+  final _attempted = <String>{};
+
   @override
   void initState() {
     super.initState();
@@ -87,6 +98,10 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   }
 
   Future<_VesselData?> _load() async {
+    // A reload means the birth context changed, so this is a different chart
+    // with different rows. Whatever was refused for the old one says nothing
+    // about this one.
+    _attempted.clear();
     final profile = await widget.db.loadProfile();
     if (profile == null) return null;
     _profileFingerprint = [
@@ -123,17 +138,32 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
       birthLatitude: profile.birthLatitude,
       birthLongitude: profile.birthLongitude,
     );
-    final stored = await widget.db.loadVesselReading(
-      inputHash: hash,
-      positionKey: vesselConfigurationKey,
-    );
+    Future<String?> storedPart(String key) async =>
+        (await widget.db.loadVesselReading(inputHash: hash, positionKey: key))
+            ?.contentJson;
+
+    final stored = await storedPart(vesselConfigurationKey);
+    final housesJson = await storedPart(VesselReadingPart.houses.storageKey);
+    final aspectsJson = await storedPart(VesselReadingPart.aspects.storageKey);
+    final matrixJson = await storedPart(VesselReadingPart.matrix.storageKey);
+    final matrixSynopsisJson =
+        await storedPart(VesselReadingPart.matrixSynopsis.storageKey);
+
     return _VesselData(
       content: content,
       chart: chart,
       lifePath: lifePath,
-      movements: stored == null
-          ? const []
-          : VesselConfiguration.decode(stored.contentJson),
+      movements:
+          stored == null ? const [] : VesselConfiguration.decode(stored),
+      housePassages: _keyed(housesJson),
+      // The angles come back in the movements shape, the same one the chart's
+      // synopsis uses — it is the part where relating *is* the content.
+      aspectMovements:
+          aspectsJson == null ? const [] : VesselConfiguration.decode(aspectsJson),
+      figurePassages: _keyed(matrixJson),
+      figureSynopsis: matrixSynopsisJson == null
+          ? ''
+          : VesselSynopsis.decode(matrixSynopsisJson),
       dob: profile.dob,
       inputHash: hash,
       mode: switch (profile.guidanceMode) {
@@ -155,6 +185,15 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     );
   }
 
+  /// The keyed parts as a lookup, so the surface can ask for one house or one
+  /// place without walking a list twelve times.
+  static Map<String, String> _keyed(String? contentJson) => contentJson == null
+      ? const {}
+      : {
+          for (final passage in VesselKeyedPassage.decode(contentJson))
+            passage.key: passage.passage,
+        };
+
   /// Writes the chart's reading if it is missing and can be written.
   ///
   /// Silent, and with no control anywhere near it. The reading is composed
@@ -164,7 +203,7 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
   /// permanently unwritten, because there is no longer a button to ask again
   /// with and no background poll to notice.
   Future<void> _composeIfMissing(_VesselData data) async {
-    if (_composing || data.movements.isNotEmpty) return;
+    if (_composing || data.isWritten) return;
     // Nothing is written from a noon guess. A chart's angles are most of what
     // makes a configuration particular, and a reading of the wrong ones would
     // cache for life.
@@ -190,20 +229,102 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
         content: data.content,
       );
       if (request == null) return;
-      final result = await VesselReadingComposer(
+      final composer = VesselReadingComposer(
         database: widget.db,
         provider: provider,
-      ).compose(
-        inputHash: data.inputHash,
-        request: request,
-        now: widget.now,
       );
-      if (!mounted) return;
-      setState(() => data.movements = result.movements);
+
+      // Each part is attempted alone and caught alone. They are five separate
+      // rows for exactly this reason: a part that fails must not take the four
+      // that succeeded with it, and the surface shows whatever has been
+      // written so far rather than nothing at all.
+      //
+      // `needed` is false where the part is already written, or where there is
+      // nothing for it to be written about — no houses without reliable
+      // angles, no angles on a chart the engine found none in. Both would
+      // otherwise be asked for on every open, forever.
+      Future<void> attempt(
+        VesselReadingPart part, {
+        required bool needed,
+        required Future<void> Function() one,
+      }) async {
+        if (!needed || !_attempted.add(part.storageKey)) return;
+        try {
+          await one();
+        } catch (_) {
+          // Best-effort in the strict sense: the surface says that part is not
+          // written yet, which is true, and says nothing about why. The next
+          // time the Vessel is opened it tries again.
+        }
+      }
+
+      await attempt(
+        VesselReadingPart.chartSynopsis,
+        needed: data.movements.isEmpty,
+        one: () async {
+          final result = await composer.compose(
+            inputHash: data.inputHash,
+            request: request,
+            now: widget.now,
+          );
+          data.movements = result.movements;
+        },
+      );
+      await attempt(
+        VesselReadingPart.houses,
+        needed: data.housePassages.isEmpty && request.houses.isNotEmpty,
+        one: () async {
+          data.housePassages = _keyed(await composer.composePart(
+            inputHash: data.inputHash,
+            request: request,
+            part: VesselReadingPart.houses,
+            now: widget.now,
+          ));
+        },
+      );
+      await attempt(
+        VesselReadingPart.aspects,
+        needed: data.aspectMovements.isEmpty && request.aspects.isNotEmpty,
+        one: () async {
+          data.aspectMovements = VesselConfiguration.decode(
+            await composer.composePart(
+              inputHash: data.inputHash,
+              request: request,
+              part: VesselReadingPart.aspects,
+              now: widget.now,
+            ),
+          );
+        },
+      );
+      await attempt(
+        VesselReadingPart.matrix,
+        needed: data.figurePassages.isEmpty,
+        one: () async {
+          data.figurePassages = _keyed(await composer.composePart(
+            inputHash: data.inputHash,
+            request: request,
+            part: VesselReadingPart.matrix,
+            now: widget.now,
+          ));
+        },
+      );
+      await attempt(
+        VesselReadingPart.matrixSynopsis,
+        needed: data.figureSynopsis.isEmpty,
+        one: () async {
+          data.figureSynopsis = VesselSynopsis.decode(
+            await composer.composePart(
+              inputHash: data.inputHash,
+              request: request,
+              part: VesselReadingPart.matrixSynopsis,
+              now: widget.now,
+            ),
+          );
+        },
+      );
     } catch (_) {
-      // Best-effort in the strict sense: the surface says the reading is not
-      // written yet, which is true, and says nothing about why. The next time
-      // the Vessel opens it tries again.
+      // Everything outside the per-part attempts: no profile, no request, a
+      // transport that cannot be built at all.
     } finally {
       if (mounted) setState(() => _composing = false);
     }
@@ -260,7 +381,25 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
                 ),
               ),
               const SizedBox(height: EterSpace.s24),
+              // The wheel is led by the three points a person is most likely
+              // to already know about themselves. Their passages travel with
+              // them here rather than waiting in the list below, which is why
+              // the list further down does not print these three again.
               _SunCard(data: data),
+              if (data.figurePassages['sun'] case final passage?) ...[
+                const SizedBox(height: EterSpace.s8),
+                _Passage(passage),
+              ],
+              const SizedBox(height: EterSpace.s24),
+              for (final key in const ['moon', 'ascendant'])
+                for (final position in data
+                    .positions(strings)
+                    .where((one) => one.key == key))
+                  _PositionCard(
+                    position: position,
+                    passage: data.figurePassages[key],
+                    fullWidth: _fullWidth(context, data),
+                  ),
               if (data.usedApproximateTime || data.usedApproximatePlace) ...[
                 const SizedBox(height: EterSpace.s16),
                 Text(
@@ -274,28 +413,56 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
               // why the owner could look at the Vessel and see nothing but a
               // column of cards analysed one at a time. It was there.
               //
-              // Everything the Vessel has to say is on the page now, in order.
+              // Everything the Vessel has to say is on the page now, in the
+              // order the owner asked for: the wheel and its three points,
+              // the twelve houses, the angles, the whole chart, the figure
+              // place by place, and the figure as one thing.
+
+              // 2 · the twelve houses, each with the card on its cusp.
+              if (data.houses.isNotEmpty) ...[
+                _SectionHeading(strings.headingHouses),
+                for (final house in data.houses)
+                  _HouseCard(
+                    house: house,
+                    data: data,
+                    passage: data.housePassages['${house.house}'],
+                    fullWidth: _fullWidth(context, data),
+                  ),
+                const SizedBox(height: EterSpace.s8),
+              ],
+
+              // 3 · what the geometry says.
+              if (data.aspectMovements.isNotEmpty) ...[
+                _SectionHeading(strings.headingAngles),
+                _Movements(data.aspectMovements),
+              ],
+
+              // 4 · the whole chart, and the longest part of the surface.
+              _SectionHeading(strings.headingWholeChart),
               _ChartReading(
                 data: data,
                 composing: _composing,
               ),
               const SizedBox(height: EterSpace.s24),
-              // The whole chart in one list: the Life Path, the three
-              // personal points, the figure, and the seven remaining
-              // bodies. Each keeps its card, which is what the deck is
-              // for; the writing above is about how they stand together.
+
+              // 5 · the figure, place by place — the Life Path, the places in
+              // the figure, and the remaining bodies. The Sun, Moon and
+              // Ascendant are not printed again; they led the wheel above.
+              _SectionHeading(strings.headingTheFigure),
               for (final position in data.everyPosition(strings))
-                _PositionCard(
-                  position: position,
-                  // The Sun card is already on screen at full width a few
-                  // lines above; a position resolving to the same card does
-                  // not print it twice.
-                  showCard: position.key != 'sun',
-                  fullWidth:
-                      Theme.of(context).brightness == Brightness.dark &&
-                          data.mode != GuidanceMode.grounded,
-                ),
-              const SizedBox(height: EterSpace.s24),
+                if (!const ['sun', 'moon', 'ascendant'].contains(position.key))
+                  _PositionCard(
+                    position: position,
+                    passage: data.figurePassages[position.key],
+                    fullWidth: _fullWidth(context, data),
+                  ),
+
+              // 6 · the figure as one thing.
+              if (data.figureSynopsis.isNotEmpty) ...[
+                _SectionHeading(strings.headingFigureAsAWhole),
+                _Passage(data.figureSynopsis),
+                const SizedBox(height: EterSpace.s24),
+              ],
               _Positions(data: data, now: widget.now),
             ],
             const SizedBox(height: EterSpace.s32),
@@ -311,6 +478,171 @@ class _VesselSectionState extends ConsumerState<VesselSection> {
     }
     if (data.usedApproximateTime) return strings.approximateTime;
     return strings.approximatePlace;
+  }
+}
+
+/// Whether a card in this column takes the Sun card's measure.
+///
+/// The Sun card's clamp at night outside the grounded register; the 132 dp
+/// thumbnail by day and in grounded. One decision, in one place, because every
+/// card on this surface has to make it the same way.
+bool _fullWidth(BuildContext context, _VesselData data) =>
+    Theme.of(context).brightness == Brightness.dark &&
+    data.mode != GuidanceMode.grounded;
+
+/// The name of one of the six parts.
+///
+/// A rule and a label, so the parts read as parts. There is no control here
+/// and nothing collapses: `READ DEEPER` and every `CLOSE` are gone from this
+/// surface, and a heading that could be tapped would be inviting somebody to
+/// look for one.
+class _SectionHeading extends StatelessWidget {
+  const _SectionHeading(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final ink = EterInk.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EterSpace.s16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(height: 1, color: ink.line),
+          const SizedBox(height: EterSpace.s8),
+          Text(label, style: Theme.of(context).textTheme.labelSmall),
+        ],
+      ),
+    );
+  }
+}
+
+/// One written passage, in the measure the Vessel reads its prose at.
+class _Passage extends StatelessWidget {
+  const _Passage(this.passage);
+
+  final String passage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      passage,
+      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontSize: 18,
+            height: 1.5,
+            fontWeight: FontWeight.w400,
+          ),
+    );
+  }
+}
+
+/// Titled movements — the shape the chart's synopsis and the angles share.
+class _Movements extends StatelessWidget {
+  const _Movements(this.movements);
+
+  final List<VesselMovement> movements;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final movement in movements) ...[
+          Text(movement.title.toUpperCase(), style: text.labelSmall),
+          const SizedBox(height: EterSpace.s4),
+          _Passage(movement.passage),
+          const SizedBox(height: EterSpace.s24),
+        ],
+      ],
+    );
+  }
+}
+
+/// One house: the card on its cusp, who is standing in it, and its passage.
+///
+/// The first house says so. It *is* the Ascendant — `houseCusps[0]` is the
+/// ascending degree — and its card is already on screen above, so without the
+/// note it reads as the same plate printed twice for no reason.
+class _HouseCard extends StatelessWidget {
+  const _HouseCard({
+    required this.house,
+    required this.data,
+    required this.passage,
+    required this.fullWidth,
+  });
+
+  final HouseCard house;
+  final _VesselData data;
+  final String? passage;
+  final bool fullWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final strings = EterStrings.of(context);
+    final title = strings.arcanaTitle(house.card.assetSlug);
+    final label = strings.houseLabel(house.house);
+    final keywords = data.content.card(house.card)?.keywords ?? const [];
+    final occupants = data.occupantsOf(house.house);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: EterSpace.s24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(EterSpace.rChip),
+              child: LayoutBuilder(
+                builder: (context, constraints) => EterArcanaPlate(
+                  card: house.card,
+                  width: fullWidth
+                      ? constraints.maxWidth.clamp(200.0, 420.0)
+                      : 132,
+                  semanticLabel: strings.positionCardSemantic(
+                    cardTitle: title,
+                    positionLabel: label,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: EterSpace.s12),
+          Text(label, style: text.labelSmall),
+          const SizedBox(height: EterSpace.s4),
+          Text(
+            keywords.isEmpty ? title : '$title · ${keywords.join(', ')}',
+            style: text.titleMedium,
+          ),
+          const SizedBox(height: EterSpace.s4),
+          Text(
+            strings.positionDetail(
+              signName: strings.signName(house.sign.label),
+              degrees: house.degreeInSign.toStringAsFixed(1),
+              retrograde: false,
+            ),
+            style: text.bodySmall,
+          ),
+          // Nothing at all for an empty house. A house with nobody in it is an
+          // ordinary thing for a chart to have, and printing "none" would make
+          // it look like a measurement that came back zero.
+          if (occupants.isNotEmpty) ...[
+            const SizedBox(height: EterSpace.s4),
+            Text(
+              strings.houseOccupants(
+                [for (final name in occupants) strings.bodyName(name)].join(', '),
+              ),
+              style: text.bodySmall,
+            ),
+          ],
+          if (passage != null) ...[
+            const SizedBox(height: EterSpace.s12),
+            _Passage(passage!),
+          ],
+        ],
+      ),
+    );
   }
 }
 
@@ -638,41 +970,27 @@ class _ChartReading extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final movement in data.movements) ...[
-          Text(movement.title.toUpperCase(), style: text.labelSmall),
-          const SizedBox(height: EterSpace.s4),
-          Text(
-            movement.passage,
-            style: text.headlineSmall?.copyWith(
-              fontSize: 18,
-              height: 1.5,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: EterSpace.s24),
-        ],
-      ],
-    );
+    return _Movements(data.movements);
   }
 }
 
-/// One position, with its card, inside the opened menu.
+/// One position, with its card and the passage written about it.
 ///
-/// It carries no passage of its own any more. What it says is what the device
-/// computed — the body, the sign and degree, the card and its keywords — and
-/// the writing about how it stands to the rest is above, once.
+/// The passage came back with the split into parts: the figure is read place
+/// by place again, but shortly, and the relating is saved for the synopsis
+/// that follows. A place with no passage yet shows what the device computed
+/// and nothing else, which is still a true row.
 class _PositionCard extends StatelessWidget {
   const _PositionCard({
     required this.position,
-    this.showCard = true,
+    this.passage,
     this.fullWidth = false,
   });
 
   final _VesselPosition position;
-  final bool showCard;
+
+  /// This place's own passage, or null while it is unwritten.
+  final String? passage;
 
   /// Whether this card takes the Sun card's measure rather than the 132 dp
   /// thumbnail. Decided by the caller, who knows the sky and the register.
@@ -689,28 +1007,30 @@ class _PositionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showCard) ...[
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(EterSpace.rChip),
-                child: LayoutBuilder(
-                  builder: (context, constraints) => EterArcanaPlate(
-                    card: position.card,
-                    // The same clamp the Sun card uses, so "full" means equal
-                    // rather than merely bigger.
-                    width: fullWidth
-                        ? constraints.maxWidth.clamp(200.0, 420.0)
-                        : 132,
-                    semanticLabel: strings.positionCardSemantic(
-                      cardTitle: title,
-                      positionLabel: position.label(strings),
-                    ),
+          // Always drawn. The Sun used to be the exception, because its card
+          // stood at full width a few lines above and would have been printed
+          // twice; the Sun, Moon and Ascendant are lifted out of this list
+          // entirely now, so there is nothing left to suppress.
+          Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(EterSpace.rChip),
+              child: LayoutBuilder(
+                builder: (context, constraints) => EterArcanaPlate(
+                  card: position.card,
+                  // The same clamp the Sun card uses, so "full" means equal
+                  // rather than merely bigger.
+                  width: fullWidth
+                      ? constraints.maxWidth.clamp(200.0, 420.0)
+                      : 132,
+                  semanticLabel: strings.positionCardSemantic(
+                    cardTitle: title,
+                    positionLabel: position.label(strings),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: EterSpace.s12),
-          ],
+          ),
+          const SizedBox(height: EterSpace.s12),
           Text(position.label(strings).toUpperCase(), style: text.labelSmall),
           const SizedBox(height: EterSpace.s4),
           Text(
@@ -720,6 +1040,10 @@ class _PositionCard extends StatelessWidget {
           if (detail != null) ...[
             const SizedBox(height: EterSpace.s4),
             Text(detail, style: text.bodySmall),
+          ],
+          if (passage != null) ...[
+            const SizedBox(height: EterSpace.s12),
+            _Passage(passage!),
           ],
         ],
       ),
@@ -733,6 +1057,10 @@ class _VesselData {
     required this.chart,
     required this.lifePath,
     required this.movements,
+    required this.housePassages,
+    required this.aspectMovements,
+    required this.figurePassages,
+    required this.figureSynopsis,
     required this.dob,
     required this.inputHash,
     required this.mode,
@@ -746,6 +1074,20 @@ class _VesselData {
   final int lifePath;
   /// The whole chart read as one thing, or empty while it is unwritten.
   List<VesselMovement> movements;
+
+  /// One passage per house, keyed by the house number as a string.
+  Map<String, String> housePassages;
+
+  /// What the geometry says, in the movements shape.
+  List<VesselMovement> aspectMovements;
+
+  /// One passage per place in the list, keyed by the position's own key —
+  /// the same keys `everyPosition` carries.
+  Map<String, String> figurePassages;
+
+  /// The figure read as one thing, or empty while it is unwritten.
+  String figureSynopsis;
+
   final DateTime dob;
   final String inputHash;
   final GuidanceMode mode;
@@ -770,6 +1112,40 @@ class _VesselData {
   /// An approximate time counts — the owner asked for that explicitly — so
   /// this is about whether a time was given at all, not about its precision.
   bool get knowsBirthTime => !usedApproximatePlace && birthTimeGiven;
+
+  /// Whether the angles rest on something real enough to draw houses from.
+  ///
+  /// The same condition `buildChartReadingRequest` uses to decide whether to
+  /// send them, so the surface never has a band of houses the reading was
+  /// never asked about.
+  bool get anglesReliable => !usedApproximateTime && !usedApproximatePlace;
+
+  /// The houses this chart actually has, with the card on each cusp.
+  List<HouseCard> get houses =>
+      anglesReliable && chart.houseCusps.length == 12
+          ? houseCardsFor(chart)
+          : const [];
+
+  /// The bodies standing in a house, in the chart's own order.
+  List<String> occupantsOf(int house) => [
+        for (final point in chart.positions)
+          if (point.name != 'Ascendant' &&
+              point.name != 'Midheaven' &&
+              houseOf(point.longitude, chart.houseCusps) == house)
+            point.name,
+      ];
+
+  /// Whether every part that can be written has been.
+  ///
+  /// The houses are excluded when the angles cannot support them: without
+  /// them there is nothing to compose, so a chart with no birth place would
+  /// otherwise ask again on every open, forever.
+  bool get isWritten =>
+      movements.isNotEmpty &&
+      (aspectMovements.isNotEmpty || chart.aspects.isEmpty) &&
+      figurePassages.isNotEmpty &&
+      figureSynopsis.isNotEmpty &&
+      (housePassages.isNotEmpty || houses.isEmpty);
 
   final bool birthTimeGiven;
 

@@ -9,17 +9,38 @@ the product owner has settled, then the specific document each task names.
 
 ## Pick up here · 4 August
 
-Everything is committed and green. **One piece of code is unfinished and it is
-named below.** After that, the backlog is device work and owner-only work.
+Everything is committed and green. **All of the code asked for is written.**
+What is left is device work, reading, and owner-only work.
 
-### 1. Finish the Vessel's surface — the only unfinished code
+### 1. The Vessel's surface · *done, and never seen*
 
-The machinery is built, tested and committed; the surface still renders the old
-order. Full detail in *What is left in the Vessel* below. In one line:
-`vessel_section.dart` must hold the four new parts' results and compose them in
-sequence, in the owner's order — wheel led by Sun/Moon/Ascendant, twelve house
-cards with passages, the angles, the chart synopsis, the figure place by place,
-the figure's synopsis.
+`vessel_section.dart` now holds all five parts and renders the owner's order:
+the wheel led by the Sun, Moon and Ascendant with their passages, the twelve
+house cards, the angles, the chart synopsis, the figure place by place, the
+figure's synopsis. Then today's Positions, which is the only part that changes.
+
+Three things about it worth knowing before changing any of it:
+
+- **The Sun, Moon and Ascendant are lifted out of the position list.** They
+  lead the wheel and are not printed again below, which is why `SUN` is no
+  longer a row anywhere and the surface no longer has a "don't draw this card
+  twice" special case.
+- **A part is asked for at most once per opening.** The compose pass hangs on
+  a post-frame callback, so it runs again on every rebuild, and a part that
+  failed leaves exactly the empty row that starts the pass. Without the
+  `_attempted` set a part the model kept refusing would be requested — and
+  billed — on every frame that touched this surface. The set is cleared when
+  the birth context changes, because that is a different chart.
+- **The houses are composed only when the angles are real**, the same
+  condition `buildChartReadingRequest` uses to decide whether to send them.
+  The surface never shows a band of houses the reading was never asked about.
+
+`InitialVesselReadings` still composes only the chart's synopsis when a birth
+time is saved; the other four arrive on the first opening of the Vessel. That
+is deliberate — five calls at save time to write four parts nobody is looking
+at yet — and it is the reason the surface has to render partial states well.
+
+**Not seen by anybody.** Composed only against fakes. See item 2.
 
 ### 2. Nothing from 3–4 August has been seen by a person or a model
 
@@ -27,6 +48,11 @@ This is the larger risk and it is not code. Every change below was verified by
 tests and by goldens; **almost none of it has been run on the phone, and none of
 the new writing has been read.**
 
+- **The Vessel's whole surface has never been on a phone in this shape.** Six
+  parts in one column, twelve house cards among them, each with a plate — the
+  loop budget caps concurrent decoders at six and hands them back off-screen,
+  but that was measured on a column of eighteen plates and this one is longer.
+  Worth re-running the frame-differencing check described under *Cards* below.
 - The four new Vessel parts have never been composed against the live model.
   `test/fixtures/live/` still holds the **v8** recording; prompts are at **v9**.
   The rule in this document is that a fixture which parses is not a fixture that
@@ -56,7 +82,7 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **872 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **873 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -120,7 +146,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 872 pass, 10 skipped
+flutter test          # expect 873 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -387,15 +413,16 @@ carries that birth as its first specimen.
 
 ---
 
-## The restructure of 3–4 August, and what is left of it
+## The restructure of 3–4 August, and what came of it
 
 Six things were asked for across the session: guidance at twice the size; the
 disclosures gone and the depths row pinned; the Vessel rebuilt in six parts;
 Positions kept but made specific to the chart; nutrition moved and
 macronutrients tracked; and carbohydrate counted without being advised on.
 
-**Five and a half are done.** Everything but the Vessel's *surface*, whose
-machinery is built and tested. Sixteen commits, every one green.
+**All six are done**, the Vessel's surface last, on 4 August. Every commit
+green. None of it has been read against the live model — that is item 2 at the
+top of this document and it is the largest remaining risk.
 
 **Done — guidance at twice the size.** `displayMedium` 34 → 68, leading scaled
 with it because the theme stores `height` as a *ratio* and doubling the size
@@ -499,10 +526,9 @@ zero, a meal nobody broke down shows no macro line, and a day where only
 carbohydrate was written down is a day nobody described rather than a day of
 pure carbohydrate.
 
-### What is left in the Vessel, and it is only the surface
+### The Vessel's surface · *done, 4 August*
 
-The Vessel still renders the old order: wheel, Sun card, chart synopsis, then
-one card per position. The six-part order the owner asked for —
+The six-part order the owner asked for —
 
 1. the chart wheel, led by the Sun, Moon and Ascendant
 2. a card and a passage for each of the twelve houses
@@ -511,11 +537,22 @@ one card per position. The six-part order the owner asked for —
 5. the figure, place by place
 6. the figure's synopsis
 
-— needs `vessel_section.dart` to hold the four new parts' results and compose
-them in sequence. `composePart` returns the stored JSON and
-`VesselKeyedPassage.decode` / `VesselSynopsis.decode` read it; the request
-already carries `houses` and `aspects`. Nothing else is missing, and
-`test/vessel_parts_test.dart` covers the composer half.
+— is what `vessel_section.dart` renders. `composePart` returns the stored JSON
+and `VesselKeyedPassage.decode` / `VesselSynopsis.decode` read it; the request
+already carried `houses` and `aspects`. `test/vessel_parts_test.dart` covers
+the composer half and *the Vessel is read in six parts, in the owner's order*
+in `shell_test.dart` covers the surface — it checks where each heading lands on
+the page rather than the order finders happen to return, because a `Column` will
+report its children in order no matter what order they were built in.
+
+Six strings were added for the headings and the houses. `TRANSLATIONS.md` is
+regenerated and now pairs **480**; read the Polish once more if you like, and
+note `houseOccupants` deliberately has no verb — *stoi* and *stoją* depend on
+how many bodies are in the house, and one chart has both.
+
+**Read the section above under "Pick up here" before changing this surface.**
+The once-per-opening guard and the Sun/Moon/Ascendant lift are both the kind of
+thing that looks like an omission until you know why.
 
 **Not done either:** re-recording `test/fixtures/live/` for prompt v9, and
 reading what the four new parts actually write against the live model. The rule

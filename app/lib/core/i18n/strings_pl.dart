@@ -454,6 +454,25 @@ class EterStringsPl extends EterStrings {
   String get recomposedChartReading => 'Kosmogram został przeczytany na nowo.';
 
   @override
+  String get headingHouses => 'DOMY';
+  @override
+  String houseLabel(int house) => 'DOM $house';
+
+  // Bez czasownika: „stoi” i „stoją” zależą od liczby ciał, a lista bywa
+  // jednoelementowa i wieloelementowa w tym samym kosmogramie.
+  @override
+  String houseOccupants(String bodies) => 'W tym domu: $bodies';
+
+  @override
+  String get headingAngles => 'KĄTY';
+  @override
+  String get headingWholeChart => 'CAŁY KOSMOGRAM';
+  @override
+  String get headingTheFigure => 'FIGURA';
+  @override
+  String get headingFigureAsAWhole => 'FIGURA JAKO CAŁOŚĆ';
+
+  @override
   String get readingWaitsForBirthTime =>
       'Odczytanie czeka na godzinę urodzenia. Bez niej kąty są zgadywane na '
       'południe, a kosmogram to przede wszystkim kąty.';

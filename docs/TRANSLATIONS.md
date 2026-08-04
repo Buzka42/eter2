@@ -122,6 +122,13 @@ explains why translating one would break the symbolic engine.
 | `trendHeartRateVariability` | Heart rate variability trend | Trend zmienności rytmu serca |
 | `trendWeight` | Weight trend | Trend wagi |
 | `unitBpm` | bpm | ud./min |
+| `derivedMealPrompt()` | $meal · about $kcal kcal | $meal · około $kcal kcal |
+| `confirmMealSemantic` | confirm this meal | potwierdź ten posiłek |
+| `correctInBody` | The figures can be corrected in the Body. | Liczby można poprawić w Ciele. |
+| `fieldProteinG` | protein g | białko g |
+| `fieldCarbsG` | carbs g | węgl. g |
+| `fieldFatG` | fat g | tłuszcz g |
+| `macrosLine()` | protein ${protein}gcarbs ${carbs}gfat ${fat}g · | białko ${protein} gwęglowodany ${carbs} gtłuszcz ${fat} g · |
 | `kcalEstimateNotCounted()` | ESTIMATE · $kcal KCAL · NOT COUNTED | OSZACOWANIE · $kcal KCAL · POZA SUMĄ |
 | `correctEstimateFirst` | Correct the estimate before it enters today’s total. | Popraw oszacowanie, zanim wejdzie do dzisiejszej sumy. |
 
@@ -162,6 +169,13 @@ explains why translating one would break the symbolic engine.
 | `recomposeChartReading` | Again | Na nowo |
 | `recomposeChartReadingNote` | The chart’s reading is written once and kept. Ask for it again after correcting anything above. | Odczytanie kosmogramu powstaje raz i zostaje. Poproś o nie ponownie po poprawieniu czegokolwiek powyżej. |
 | `recomposedChartReading` | The chart has been read again. | Kosmogram został przeczytany na nowo. |
+| `headingHouses` | THE HOUSES | DOMY |
+| `houseLabel()` | HOUSE $house | DOM $house |
+| `houseOccupants()` | In this house: $bodies | W tym domu: $bodies |
+| `headingAngles` | THE ANGLES | KĄTY |
+| `headingWholeChart` | THE WHOLE CHART | CAŁY KOSMOGRAM |
+| `headingTheFigure` | THE FIGURE | FIGURA |
+| `headingFigureAsAWhole` | THE FIGURE AS A WHOLE | FIGURA JAKO CAŁOŚĆ |
 | `readingWaitsForBirthTime` | The reading waits for your birth time. Without it the angles are a guess at noon, and a chart is mostly its angles. | Odczytanie czeka na godzinę urodzenia. Bez niej kąty są zgadywane na południe, a kosmogram to przede wszystkim kąty. |
 | `composingChartReading` | Reading the chart… | Czytam kosmogram… |
 | `chartReadingNotWrittenYet` | The reading is not written yet. Eter will try again the next time you open this. | Odczytanie jeszcze nie powstało. Eter spróbuje ponownie przy następnym otwarciu. |
@@ -564,4 +578,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-466 strings paired.
+480 strings paired.
