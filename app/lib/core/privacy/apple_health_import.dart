@@ -45,13 +45,36 @@ class AppleHealthImportSource {
   static bool looksLikeExport(String head) =>
       head.contains('<HealthData') || head.contains('HKQuantityTypeIdentifier');
 
+  /// The five types this reads. Everything else in the file is counted as it
+  /// goes past and never parsed.
+  static const _wanted = {
+    'HKQuantityTypeIdentifierBodyMass',
+    'HKCategoryTypeIdentifierSleepAnalysis',
+    'HKQuantityTypeIdentifierRestingHeartRate',
+    'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
+    'HKQuantityTypeIdentifierRespiratoryRate',
+  };
+
+  /// The `type` attribute, by looking for it rather than by parsing the tag.
+  ///
+  /// The full attribute parse is a regex over the whole tag and it is most of
+  /// the cost of a scan — spent, in a real export, overwhelmingly on records
+  /// that are about to be thrown away.
+  static String? typeOf(String tag) {
+    const marker = 'type="';
+    final at = tag.indexOf(marker);
+    if (at < 0) return null;
+    final from = at + marker.length;
+    final to = tag.indexOf('"', from);
+    return to < 0 ? null : tag.substring(from, to);
+  }
+
   /// Reads the export from a stream of text chunks.
   ///
   /// Everything kept is small: weights, nights and daily vitals are hundreds or
   /// thousands of rows, not the millions the file holds. Everything not kept is
   /// counted as it goes past and never accumulates.
   Future<ForeignRecords> read(Stream<String> chunks) async {
-    final scanner = AppleHealthScanner();
     final weight = <ForeignWeightEntry>[];
     final sleep = <ForeignSleepSegment>[];
     final ignored = <String, int>{};
@@ -64,6 +87,19 @@ class AppleHealthImportSource {
     final respiratory = <String, _Mean>{};
 
     void count(String what) => ignored[what] = (ignored[what] ?? 0) + 1;
+
+    // The filter and the report are the same pass. Skipping a record early is
+    // what makes a large file bearable; counting it there is what keeps
+    // "not brought across: Step count, Heart rate" true.
+    final scanner = AppleHealthScanner(
+      keep: (tag) {
+        final type = typeOf(tag);
+        if (type == null) return false;
+        if (_wanted.contains(type)) return true;
+        count(_readableType(type));
+        return false;
+      },
+    );
 
     void handle(AppleHealthRecord record) {
       final start = record.start;
@@ -118,8 +154,10 @@ class AppleHealthImportSource {
           _add(respiratory, start, record.value);
 
         default:
-          // Named, not lumped. `HKQuantityTypeIdentifierStepCount` reads as
-          // "Step count", which is what somebody wants to be told was left.
+          // Unreachable: the scanner's filter counted and dropped everything
+          // that is not one of the five, so nothing else arrives here. Kept as
+          // a total rather than removed, because a type added to `_wanted`
+          // without a branch here would otherwise vanish in silence.
           count(_readableType(record.type));
       }
     }

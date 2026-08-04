@@ -90,7 +90,20 @@ DateTime? parseAppleDate(String? raw) {
 /// almost every chunk of a real file, and the leftover has to survive until the
 /// rest of that tag arrives.
 class AppleHealthScanner {
-  AppleHealthScanner({this.maximumTagLength = 64 * 1024});
+  AppleHealthScanner({this.maximumTagLength = 64 * 1024, this.keep});
+
+  /// Decides, from the raw text of a tag, whether it is worth reading.
+  ///
+  /// The file is overwhelmingly made of records nothing here wants: three
+  /// years of a worn watch is a couple of hundred thousand heart-rate samples
+  /// around four thousand nights of sleep. Parsing the attributes of every one
+  /// of them — a regex over every tag — is most of the cost of the scan, and
+  /// all of that work is thrown away.
+  ///
+  /// A substring test over the tag is far cheaper than that and cannot be
+  /// wrong in the dangerous direction: it is applied to the tag's own text, so
+  /// a filter that matches too much only costs time.
+  final bool Function(String tag)? keep;
 
   /// A guard against a file that is not what it claims to be. A `<Record` with
   /// no closing `>` would otherwise grow the buffer until the phone gives up;
@@ -104,6 +117,10 @@ class AppleHealthScanner {
   /// A chunk that ends mid-tag keeps the partial tag for the next call, so the
   /// caller can pass a stream through unchanged.
   List<AppleHealthRecord> add(String chunk) {
+    // Copied to a local because a field cannot be promoted: it could in
+    // principle be a getter returning something different on each read, so the
+    // language will not let a null check stand for the call.
+    final filter = keep;
     final records = <AppleHealthRecord>[];
     var text = _carry + chunk;
     var from = 0;
@@ -131,8 +148,11 @@ class AppleHealthScanner {
         _carry = text.substring(open);
         return records;
       }
-      final attributes = parseAttributes(text.substring(after, close));
-      if (attributes.isNotEmpty) records.add(AppleHealthRecord(attributes));
+      final tag = text.substring(after, close);
+      if (filter == null || filter(tag)) {
+        final attributes = parseAttributes(tag);
+        if (attributes.isNotEmpty) records.add(AppleHealthRecord(attributes));
+      }
       from = close + 1;
     }
 
@@ -140,8 +160,8 @@ class AppleHealthScanner {
     // of a tag — a chunk that ends on `<Rec` is ordinary. Keeping the last few
     // characters costs nothing, and anything complete inside them has already
     // been consumed above, so nothing can be emitted twice.
-    final keep = text.length < 16 ? text.length : 16;
-    _carry = text.substring(text.length - keep);
+    final tail = text.length < 16 ? text.length : 16;
+    _carry = text.substring(text.length - tail);
     return records;
   }
 
