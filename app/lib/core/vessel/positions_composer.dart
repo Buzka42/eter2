@@ -7,7 +7,9 @@ import '../aether/safety_policy.dart';
 import '../ai/prompts.dart';
 import '../db/app_database.dart';
 import '../i18n/language.dart';
+import '../symbolic/natal_chart.dart';
 import '../symbolic/transits.dart';
+import 'positions_natal.dart';
 
 class PositionsException implements Exception {
   const PositionsException(this.reason);
@@ -111,6 +113,7 @@ class PositionsComposer {
     required bool ascendantReliable,
     required DateTime now,
     bool compose = false,
+    NatalChart? chart,
   }) async {
     final existing = await database.loadTransitReading(
       date: reading.forDate,
@@ -143,6 +146,17 @@ class PositionsComposer {
       transits: reading.toJson(),
       ascendantReliable: ascendantReliable,
       language: AppLanguage.forProfile(profile?.language),
+      // Optional so every existing caller and fake keeps working, and so a
+      // surface with no chart to hand degrades to the old reading rather than
+      // failing. When it is here the reading can say what today is landing on
+      // instead of only what today is.
+      natal: chart == null
+          ? const {}
+          : positionsNatalContext(
+              chart: chart,
+              reading: reading,
+              ascendantReliable: ascendantReliable,
+            ),
     );
     final raw = await transport.compose(PositionsProviderRequest(
       system: prompt.system,

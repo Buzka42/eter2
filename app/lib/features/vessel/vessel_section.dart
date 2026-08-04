@@ -477,6 +477,9 @@ class _PositionsState extends ConsumerState<_Positions> {
             !widget.data.usedApproximatePlace,
         now: widget.now,
         compose: compose,
+        // The chart this surface already holds. Without it the reading can
+        // name a transit and cannot say what it is landing on.
+        chart: widget.data.chart,
       );
       if (!mounted) return;
       setState(() {

@@ -670,6 +670,7 @@ Return JSON only: {"story": ..., "digest": {...}}''',
     required Map<String, Object?> transits,
     required bool ascendantReliable,
     required AppLanguage language,
+    Map<String, Object?> natal = const {},
   }) {
     final provisional = ascendantReliable
         ? ''
@@ -686,9 +687,15 @@ WHAT YOU ARE GIVEN
 Today's date, the Moon's phase and sign, the Sun's sign, and the contacts
 currently within orb between today's bodies and that person's natal points —
 each with its aspect, its orb in degrees, and whether it is still tightening
-("applying") or already past ("separating"). All of it was calculated on the
-device. You are not casting anything, and you must not add a contact that is
-not in the list.
+("applying") or already past ("separating").
+
+You are also given **"sky"**: every body today, its sign and degree, and
+whether it is **retrograde**; and **"natal"**: that person's own chart — where
+each point sits, and which of their houses today's bodies are currently
+crossing.
+
+All of it was calculated on the device. You are not casting anything, and you
+must not add a contact that is not in the list.
 
 ${provisional}WHAT TO WRITE
 - "passage": three to five sentences on the shape of today. Lead with the
@@ -697,6 +704,17 @@ ${provisional}WHAT TO WRITE
   attention, patience, a difficult conversation, rest — rather than what it
   "brings". Tendencies, never events: "a day that tends to reward" and never
   "you will".
+
+  **Read the sky against this chart, never on its own.** "Mercury is
+  retrograde" is true for everybody alive and is therefore not a reading of
+  anybody. What makes it this person's day is where that retrograde is falling:
+  which of *their* houses it is crossing, and which of *their* natal points it
+  is touching. So say the second thing, not the first — a retrograde in the
+  house of work, against a natal placement it squares, asks for something
+  specific, and that is the sentence worth writing.
+
+  A retrograde with no contact and in a house nothing of theirs occupies is
+  worth a clause at most. Do not manufacture a consequence for it.
 - "guidanceNote": one sentence, at most 140 characters, that the day's guidance
   may carry. It must stand on its own without the passage, and it must be about
   how to meet the day rather than about the planets. This is the only part of
@@ -717,7 +735,7 @@ $safety
 ${languageFor(language)}
 
 Return JSON only: {"passage": ..., "guidanceNote": ...}''',
-      user: transits,
+      user: {...transits, if (natal.isNotEmpty) 'natal': natal},
       responseSchema: _positionsSchema,
     );
   }

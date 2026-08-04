@@ -98,6 +98,17 @@ class TransitReading {
 
   /// Bounded context for a provider. Derived positions only — no birth inputs,
   /// no coordinates, no identity.
+  /// The bodies standing still or walking backwards today.
+  ///
+  /// Retrograde motion was computed and then thrown away: `sky` has carried it
+  /// per position all along and nothing downstream was given it, so the one
+  /// fact a person is most likely to already know about today's sky — that
+  /// Mercury is retrograde — was the one fact the reading could not mention.
+  List<String> get retrograde => [
+        for (final position in sky)
+          if (position.retrograde) position.name,
+      ];
+
   Map<String, Object?> toJson({int maxContacts = 5}) => {
         'forDate': forDate,
         'moonPhase': moonPhaseLabel,
@@ -106,6 +117,19 @@ class TransitReading {
             .sign,
         'sunSign':
             sky.firstWhere((position) => position.name == 'Sun').sign,
+        // The whole sky, not two signs out of it. Where a body stands today
+        // and whether it is retrograde is what makes a transit *this* transit
+        // rather than a category of transit.
+        'sky': [
+          for (final position in sky)
+            {
+              'body': position.name,
+              'sign': position.sign,
+              'degrees': double.parse(position.degreeInSign.toStringAsFixed(1)),
+              if (position.retrograde) 'retrograde': true,
+            },
+        ],
+        'retrograde': retrograde,
         'contacts': contacts
             .take(maxContacts)
             .map((contact) => contact.toJson())
