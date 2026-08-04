@@ -423,6 +423,55 @@ abstract interface class JournalClassificationProvider {
   Future<String> classify(JournalClassificationRequest request);
 }
 
+/// The body an energy estimate is made against.
+///
+/// **Owner's decision, 4 August**, and it is a change to what crosses the
+/// boundary: an estimate of what a described training cost is not a general
+/// fact, it is a fact about a particular body, and a model given no body at
+/// all was estimating for nobody. Weight and body composition are what make it
+/// specific — the same half hour costs a 60 kg body and a 110 kg body plainly
+/// different amounts.
+///
+/// Every field is optional and an absent one is **omitted, never defaulted**.
+/// A guessed body would produce a confident number about a person who never
+/// gave one, which is the failure this product exists not to have. The
+/// instruction tells the model to say so in its assumptions instead.
+///
+/// Still no identity: no name, no date of birth, no place. An age in years is
+/// derived on the device and sent as a number, as guidance already does.
+class JournalBodyContext {
+  const JournalBodyContext({
+    this.weightKg,
+    this.heightCm,
+    this.bodyFatPercent,
+    this.ageYears,
+    this.sex,
+  });
+
+  final double? weightKg;
+  final double? heightCm;
+  final double? bodyFatPercent;
+  final int? ageYears;
+
+  /// `female` | `male` | `other`, as the profile stores it.
+  final String? sex;
+
+  bool get isEmpty =>
+      weightKg == null &&
+      heightCm == null &&
+      bodyFatPercent == null &&
+      ageYears == null &&
+      sex == null;
+
+  Map<String, Object> toJson() => {
+        if (weightKg != null) 'weightKg': weightKg!,
+        if (heightCm != null) 'heightCm': heightCm!,
+        if (bodyFatPercent != null) 'bodyFatPercent': bodyFatPercent!,
+        if (ageYears != null) 'ageYears': ageYears!,
+        if (sex != null) 'sex': sex!,
+      };
+}
+
 class JournalClassificationRequest {
   const JournalClassificationRequest({
     required this.text,
@@ -430,12 +479,16 @@ class JournalClassificationRequest {
     required this.responseSchema,
     required this.language,
     this.clarification,
+    this.body = const JournalBodyContext(),
   });
 
   final String text;
   final String source;
   final Map<String, Object> responseSchema;
   final String? clarification;
+
+  /// What the energy estimates are made against. See [JournalBodyContext].
+  final JournalBodyContext body;
 
   /// Which language the derived prose comes back in.
   ///

@@ -49,11 +49,18 @@ class JournalClassifier {
       text: entry.entryText,
       source: entry.source,
       responseSchema: journalClassificationSchema,
-      language: AppLanguage.forProfile(
-        (await database.loadProfile())?.language,
-      ),
+      language: AppLanguage.forProfile(profile?.language),
       clarification:
           clarification?.trim().isEmpty == true ? null : clarification?.trim(),
+      // What an energy estimate is made against. Absent fields are omitted
+      // rather than defaulted — see `JournalBodyContext`.
+      body: JournalBodyContext(
+        weightKg: profile?.weightKg,
+        heightCm: profile?.heightCm,
+        bodyFatPercent: profile?.bodyFatPercent,
+        ageYears: profile == null ? null : _ageYears(profile.dob, DateTime.now()),
+        sex: profile?.sex,
+      ),
     ));
     final result = parser.parse(raw);
     final alreadyApplied =
@@ -91,4 +98,16 @@ class JournalClassificationOutcome {
   /// Null when nothing was committed through the body services, either because
   /// the page named none of them or because it had already been applied.
   final JournalBodyCommitResult? body;
+}
+
+/// Whole years, from a date of birth that never leaves the device.
+///
+/// The same shape guidance uses: an age crosses the boundary as a number and a
+/// date of birth does not.
+int _ageYears(DateTime dob, DateTime on) {
+  var age = on.year - dob.year;
+  if (on.month < dob.month || (on.month == dob.month && on.day < dob.day)) {
+    age -= 1;
+  }
+  return age;
 }

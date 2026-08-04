@@ -338,6 +338,7 @@ class TransportJournalClassificationProvider
       entryText: request.text,
       clarification: request.clarification,
       language: request.language,
+      body: request.body,
     );
     return transport.send(
       call: EterAiCall.journalInterpretation,

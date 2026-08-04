@@ -1,33 +1,41 @@
 {
   "synthesis": {
     "sentences": [
-      "Rest settled short ahead of the deadline while the body held its steady rhythm.",
-      "Quiet margins will serve the hours that follow."
+      "Rest settled into a steady rhythm across the week while the mind carried the weight of a deadline.",
+      "The records show consistent movement alongside nights that fell just short of full recovery.",
+      "A quiet pause will serve the body better than pushing for more distance today."
     ],
-    "primaryAction": "Close the laptop twenty minutes early tonight."
+    "primaryAction": "Step outside for ten minutes without a destination or a device."
   },
   "health": {
     "sentences": [
-      "Active energy held near the previous baseline alongside consistent morning recovery.",
-      "Sleep duration hovered just under seven hours through the week."
+      "The physical measurements reflect remarkable stability in both heart rate and active energy expended each day.",
+      "Sleep lingered close to six hours and forty-seven minutes nightly, providing a modest baseline rather than deep restoration.",
+      "Active calories remained uniform near the four hundred thirty mark throughout the week.",
+      "Resting heart rate held steady at fifty-four beats per minute while variability stayed at sixty-two milliseconds.",
+      "These numbers indicate a body maintaining equilibrium under persistent demand rather than expanding its capacity."
     ],
-    "primaryAction": "Take a short walk without a destination after lunch.",
+    "primaryAction": "Drink a full glass of water and stretch the shoulders before starting the morning.",
     "evidence": {
       }
   },
   "mind": {
     "sentences": [
-      "Desk work consumed the edges of attention as the heavy task drew near.",
-      "Stepping away from the screen will help clear the lingering static."
+      "Attention was drawn entirely toward finishing the task at hand before the weekend arrived.",
+      "Desk work absorbed the hours, leaving little room for unstructured thought or mental wandering.",
+      "The written notes mention eating at the workspace, signaling a blurring of boundaries between labor and nourishment.",
+      "Such sustained focus requires deliberate closure so the brain recognizes when the labor has ended."
     ],
-    "primaryAction": "Eat the next meal away from the workspace."
+    "primaryAction": "Close all work tabs on the screen before stepping away for the evening."
   },
   "spirit": {
     "sentences": [
-      "Stretches of intense focus ask for deliberate pauses to restore perspective.",
-      "Patience with oneself remains the quiet task of these days."
+      "Meaning this week was found in endurance and meeting obligations rather than grand exploration.",
+      "The stretch of days asks how much of your energy is traded away for urgency.",
+      "Orientation turns now toward reclaiming quiet corners where attention belongs solely to you.",
+      "Fulfilling responsibilities matters, but protecting your own stillness matters equally."
     ],
-    "primaryAction": "Spend five minutes looking out a window without reading."
+    "primaryAction": "Spend five minutes in silence with your eyes closed before noon."
   },
-  "recall": "short sleep before deadline. desk meals noted. steady steps maintained. offered early logout and screen break."
+  "recall": "steady metrics. stable rhr and hrv. long week with desk work and sleep under seven hours. offered short walk and digital boundary."
 }

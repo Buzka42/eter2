@@ -7,12 +7,12 @@
       "proteinG": 18,
       "carbsG": 38,
       "fatG": 22,
-      "confidence": 0.8,
+      "confidence": 0.7,
       "assumptions": [
-        "assumed two standard poached eggs",
+        "assumed two large eggs",
         "assumed two slices of rye bread",
         "assumed one tablespoon of butter",
-        "assumed a flat white made with whole milk"
+        "assumed a standard flat white with whole milk"
       ]
     }
   ],

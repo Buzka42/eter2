@@ -54,11 +54,47 @@ class DailyActivitySummaryService {
       ),
     );
 
+    final sex = switch (profile.sex) {
+      'female' => energy.Sex.female,
+      'male' => energy.Sex.male,
+      _ => energy.Sex.other,
+    };
+
     for (final entry in byDate.entries) {
-      final active =
+      final measured =
           entry.value.fold<double>(0, (sum, row) => sum + row.activeKcal);
       final steps =
           entry.value.fold<int>(0, (sum, row) => sum + (row.steps ?? 0));
+
+      // Energy is filled in **per minute**, for the minutes that have none.
+      //
+      // Health Connect on a real phone gave 22,720 steps across three days and
+      // zero active kilocalories: the step counter is the handset's own, and
+      // nothing on it writes `ActiveCaloriesBurned`. The day's burn was
+      // resting alone, so somebody who had walked ten thousand steps saw the
+      // same figure as somebody who had not left a chair.
+      //
+      // Per minute rather than per day, and that distinction is the whole of
+      // it. A training session logged through the Journal writes real energy
+      // into the minutes it covers — so a day-level "estimate only when the
+      // day has nothing" would have thrown away the walking on every day
+      // somebody trained. This way each minute contributes exactly once:
+      // measured where something measured it, estimated from its own steps
+      // where nothing did, and nothing at all where there were no steps.
+      //
+      // It also cannot double-count a session against the steps taken during
+      // it: those minutes already carry energy, so they are not estimated.
+      final stepsWithoutEnergy = entry.value.fold<int>(
+        0,
+        (sum, row) => row.activeKcal > 0 ? sum : sum + (row.steps ?? 0),
+      );
+      final active = measured +
+          energy.activeKcalFromSteps(
+            steps: stepsWithoutEnergy,
+            weightKg: profile.weightKg,
+            heightCm: height,
+            sex: sex,
+          );
       final elapsedMinutes =
           entry.key == endDate ? endLocal.hour * 60 + endLocal.minute : 1440;
       await database.recordDayTotal(

@@ -266,6 +266,16 @@ Future<String> _interpretation(EterAiTransport transport) async {
 Future<String> _bodyInterpretation(EterAiTransport transport) async {
   final raw = await TransportJournalClassificationProvider(transport).classify(
     JournalClassificationRequest(
+      // The body the energy estimate is made against. Without it the model is
+      // estimating for nobody: the same half hour costs a 60 kg body and a
+      // 110 kg body plainly different amounts.
+      body: const JournalBodyContext(
+        weightKg: 88,
+        heightCm: 180,
+        bodyFatPercent: 10,
+        ageYears: 33,
+        sex: 'male',
+      ),
       text: _text(
         '84.2 on the scale this morning. Easy run along the river, about '
             'half an hour. Then back squats, 100 kilos for five, three times, '
@@ -292,6 +302,18 @@ Future<String> _bodyInterpretation(EterAiTransport transport) async {
     parsed.strength.map((item) => item.name).join(' ').toLowerCase(),
     anyOf(contains('squat'), contains('przysiad')),
   );
+
+  // The estimate is made against the body it was given, so it has to land
+  // somewhere a half-hour easy run for an 88 kg body actually lands. Wide
+  // bounds on purpose — this is checking that the number is *about* a body,
+  // not pinning a model's arithmetic.
+  final run = parsed.activity.first;
+  // ignore: avoid_print
+  print('activity: ${run.activity} ${run.durationMinutes}min '
+      '${run.kcal}kcal · assumptions: ${run.assumptions}');
+  expect(run.kcal, greaterThan(150));
+  expect(run.kcal, lessThan(700));
+  expect(run.assumptions, isNotEmpty);
   expect(
     parsed.strength.first.sets.first.loadKg,
     closeTo(100, 0.01),

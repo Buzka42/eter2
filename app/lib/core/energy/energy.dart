@@ -60,6 +60,50 @@ double restingKcalPerDay({
 
 double rmrPerMin(double rmrPerDay) => rmrPerDay / 1440;
 
+/// Walking energy, from steps, for the case where a source counts steps and
+/// reports no calories at all.
+///
+/// **Why this exists.** Health Connect on a real phone delivered 22,720 steps
+/// across three days and **zero** active energy: the step counter is the
+/// handset's own, and nothing on that phone writes `ActiveCaloriesBurned`. The
+/// day's burn was therefore resting alone, and somebody who had walked ten
+/// thousand steps was told the same number as somebody who had not moved.
+///
+/// **Why it is not a violation of absent-not-zero.** The rule is that a
+/// measurement nobody made must not be invented. This invents nothing: the
+/// steps are measured, and this is the arithmetic that turns a measured
+/// distance into the energy it costs. What would break the rule is the
+/// opposite — reporting zero for a day that plainly had movement in it, which
+/// is what was happening.
+///
+/// **The model, and what it is not.** Stride from height (Bassett: 0.415 of
+/// standing height for men, 0.413 for women), and **net** walking cost of
+/// about half a kilocalorie per kilogram per kilometre. Net, not gross,
+/// because resting burn is already counted for every minute of the day and
+/// gross would charge those minutes twice.
+///
+/// It is an estimate of walking. It does not know about hills, running, or a
+/// bag of shopping, and it is deliberately conservative: understating movement
+/// is a smaller lie than overstating it, in a product whose whole argument is
+/// that it will not flatter anybody.
+double activeKcalFromSteps({
+  required int steps,
+  required double weightKg,
+  required double heightCm,
+  required Sex sex,
+}) {
+  if (steps <= 0 || weightKg <= 0 || heightCm <= 0) return 0;
+  final strideMetres = heightCm * (sex == Sex.female ? 0.413 : 0.415) / 100;
+  final kilometres = steps * strideMetres / 1000;
+  return kilometres * weightKg * netWalkKcalPerKgPerKm;
+}
+
+/// Net cost of walking a kilometre, per kilogram of body, above resting.
+///
+/// Gross is about 1.0; half of that is the part resting burn has not already
+/// accounted for.
+const netWalkKcalPerKgPerKm = 0.5;
+
 /// Everything the body has spent so far today: resting burn accrued since
 /// midnight plus logged activity.
 ///

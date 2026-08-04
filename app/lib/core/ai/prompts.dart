@@ -24,10 +24,13 @@
 ///    this product dishonest.
 library;
 
+import 'dart:convert';
+
 import '../aether/guidance_mode.dart';
 import '../aether/request_contract.dart';
 import '../i18n/language.dart';
 import '../aether/guidance_contract.dart';
+import '../journal/classification_contract.dart';
 import '../vessel/reading_composer.dart';
 
 /// One prepared call: an instruction, a payload and the schema the answer must
@@ -152,7 +155,20 @@ abstract final class EterPrompts {
   /// *return*, and it is the one contact in the list a person may already have
   /// a word for. Positions now says that every contact is between something
   /// moving today and something fixed of theirs, and names the same-body case.
-  static const version = 13;
+  ///
+  /// **14 · an energy estimate is a fact about a particular body.** Owner's
+  /// decision, 4 August. The journal's interpretation was asked what a
+  /// described training cost and was told nothing at all about the body doing
+  /// it — so it was estimating for nobody, and the same half hour costs a
+  /// 60 kg body and a 110 kg body plainly different amounts. It now receives
+  /// weight, height, body fat, age in years and sex, and is told to say what
+  /// it leaned on. The first live answer: "Easy run along the river, 30 min,
+  /// 310 kcal — assumed an easy pace for 30 minutes for 88 kg at 10% fat."
+  ///
+  /// Every field is omitted when absent rather than defaulted, and a request
+  /// with no body at all says so and keeps its confidence low. Identity still
+  /// never crosses: an age is a number, a date of birth is not sent.
+  static const version = 14;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -1000,7 +1016,30 @@ Return JSON only: {"passage": ..., "guidanceNote": ...}''',
     required String entryText,
     String? clarification,
     required AppLanguage language,
+    JournalBodyContext body = const JournalBodyContext(),
   }) {
+    // The body an energy estimate is made against, or a statement that there
+    // is none. Owner's decision, 4 August: the same half hour costs a 60 kg
+    // body and a 110 kg body plainly different amounts, and a model given
+    // nothing was estimating for nobody.
+    final bodyBlock = body.isEmpty
+        ? '''
+THE BODY
+You are given nothing about this body. Estimate energy from the activity alone,
+say in "assumptions" that it rests on an average adult, and keep the confidence
+low. Do not invent a weight.'''
+        : '''
+THE BODY
+${jsonEncode(body.toJson())}
+
+Use it. An energy estimate is a fact about a particular body, not a general
+one, and weight is most of it — with body fat, lean mass is the better ground
+still, because it is the tissue doing the spending. Say in "assumptions" what
+you leaned on ("for 88 kg at 10% fat"), so the person can see why the number is
+what it is and correct it if the body has changed.
+
+Anything absent here is genuinely unknown. Do not fill it in, and do not treat
+its absence as an average — say what you could not account for.''';
     return EterPrompt(
       system: '''
 You are reading one page of a person's journal, with their standing
@@ -1009,6 +1048,8 @@ keep is read this way; they were not asked about this one in particular, and
 they are not waiting on an answer. So derive what is there and nothing more.
 You are not interpreting their feelings back at them, not replying, and not
 offering advice.
+
+$bodyBlock
 
 WHAT TO DERIVE
 - "food": meals or foods they say they ate. For each, a short name, an energy
@@ -1047,6 +1088,12 @@ WHAT TO DERIVE
 - "activity": movement they say they did, with a duration and an energy
   estimate carrying the same confidence and assumptions a meal does. Walking,
   running, cycling, swimming, a class. Not lifting — that is the next field.
+
+  **Estimate the energy against the body above**, and against what they
+  actually described: an easy half hour and a hard half hour are not the same
+  number, and neither are they for the same person a year apart. Where they
+  gave an intensity, a pace or a distance, use it and say you did. This figure
+  is the one Eter shows as what the day cost, so it is worth getting near.
 - "strength": resistance work, as exercises with their sets. Reps always, load
   in kilograms when they gave one and omitted when they did not, because
   bodyweight work is real work. Do not estimate the energy: it is derived from

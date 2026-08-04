@@ -479,6 +479,24 @@ class _EterAppState extends ConsumerState<EterApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
+          // **Above the Navigator, not inside it.**
+          //
+          // These two were `home:` — which is a *route*, so anything pushed on
+          // top of it is a sibling rather than a child and inherits neither.
+          // `EterStrings.of` documents its fallback as English, so the Journal's
+          // History sheet came up in English on a Polish phone: HISTORY, CLOSE,
+          // "Tuesday 4 August", KEEP LOCAL. Every modal route in the app had
+          // the same fault and nothing in the suite could see it, because a
+          // widget test pumps the sheet under whatever scope it likes.
+          //
+          // `builder` wraps every route the Navigator ever shows.
+          builder: (context, child) => EterStringsScope(
+            strings: EterStrings.forLanguage(language),
+            child: EterRegisterScope(
+              register: register,
+              child: child ?? const SizedBox.shrink(),
+            ),
+          ),
           home: EterStringsScope(
             strings: EterStrings.forLanguage(language),
             child: EterRegisterScope(
