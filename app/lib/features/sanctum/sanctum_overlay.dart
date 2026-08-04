@@ -16,6 +16,7 @@ import '../../core/correspondence/correspondence.dart';
 import '../../core/correspondence/correspondence_service.dart';
 import '../../core/db/app_database.dart';
 import '../../core/profile/birth_offset.dart';
+import '../../core/widget/home_screen_widget.dart';
 import '../../core/profile/date_input.dart';
 import '../../core/profile/birth_time.dart';
 import '../../core/diagnostics/crash_reporter.dart';
@@ -262,9 +263,18 @@ class SanctumOverlay extends ConsumerWidget {
                       },
                       onChanged: profile == null
                           ? null
-                          : (value) => db.updateProfileConsents(
+                          : (value) async {
+                              await db.updateProfileConsents(
                                 aiAllowed: value == 'allowed',
-                              ),
+                              );
+                              // The home screen is the one surface a
+                              // revocation cannot reach on its own: the rows
+                              // stay, and a launcher goes on drawing whatever
+                              // it was last given. Withdrawing consent has to
+                              // take the words off it.
+                              await HomeScreenWidget(database: db)
+                                  .refresh(now: DateTime.now());
+                            },
                     ),
                     const SizedBox(height: EterSpace.s24),
                     _ChoiceGroup(

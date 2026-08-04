@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The same night ground the launcher icon is sampled from, so the widget
+         and the icon sit on a home screen as one thing. -->
+    <color name="eter_widget_ground">#04162E</color>
+    <color name="eter_widget_ink">#ECE7DE</color>
+    <color name="eter_widget_ink_muted">#8A93A6</color>
+
+    <!-- Never translated: the product is called Eter in every language and the
+         wordmark is drawn type rather than copy. -->
+    <string name="eter_widget_mark" translatable="false">ETER</string>
+    <string name="eter_widget_label">Eter</string>
+    <string name="eter_widget_description">Today\'s sentence from Eter</string>
+</resources>

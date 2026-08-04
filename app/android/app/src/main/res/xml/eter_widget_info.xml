@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Never updated on a timer.
+
+  `updatePeriodMillis` is zero on purpose: the sentence changes once a day, when
+  guidance composes, and the app pushes it then. A periodic update would wake
+  the phone to redraw text that had not changed — and the shortest period
+  Android honours is half an hour, which is neither often enough to matter nor
+  rare enough to be free.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="180dp"
+    android:minHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="2"
+    android:updatePeriodMillis="0"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:description="@string/eter_widget_description"
+    android:initialLayout="@layout/eter_widget" />

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The night ground, rounded as the launcher rounds everything else. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/eter_widget_ground" />
+    <corners android:radius="20dp" />
+</shape>

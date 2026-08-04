@@ -52,6 +52,56 @@ class MainActivity : FlutterFragmentActivity() {
                 else -> result.notImplemented()
             }
         }
+
+        // The home-screen widget's only supply line.
+        //
+        // The widget process reads a preference and never the database. A
+        // second reader of a schema that migrates, holding a lock outside the
+        // app's own lifetime, would be a bad trade for one line of text — and
+        // it would put a whole record within reach of a process that needs a
+        // sentence.
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "eter/widget",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "publish" -> {
+                    getSharedPreferences(
+                        EterWidgetProvider.PREFERENCES,
+                        MODE_PRIVATE,
+                    ).edit().apply {
+                        // A null sentence clears it. Withdrawing consent, or a
+                        // day nothing composed, has to be able to take the
+                        // words off the home screen — leaving them there would
+                        // be the one place in this product where revoking
+                        // something changed nothing.
+                        val sentence = call.argument<String>("sentence")
+                        if (sentence == null) {
+                            remove(EterWidgetProvider.KEY_SENTENCE)
+                            remove(EterWidgetProvider.KEY_DATE)
+                        } else {
+                            putString(EterWidgetProvider.KEY_SENTENCE, sentence)
+                            putString(
+                                EterWidgetProvider.KEY_DATE,
+                                call.argument<String>("date"),
+                            )
+                        }
+                        // Which day the app believes it is. The widget compares
+                        // rather than reading a clock of its own, so a redraw
+                        // the system triggers at midnight cannot disagree with
+                        // the app about what "today" means.
+                        putString(
+                            EterWidgetProvider.KEY_TODAY,
+                            call.argument<String>("today"),
+                        )
+                        apply()
+                    }
+                    EterWidgetProvider.refresh(this)
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     /**
