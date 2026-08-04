@@ -647,13 +647,26 @@ class _NutritionLine extends StatefulWidget {
 
 class _NutritionLineState extends State<_NutritionLine> {
   late final TextEditingController _kcal;
+  late final TextEditingController _protein;
+  late final TextEditingController _carbs;
+  late final TextEditingController _fat;
   bool _editing = false;
   bool _saving = false;
+  /// A meal is removed in two taps, like every other local deletion here.
+  /// One tap next to a keyboard is how somebody loses a row they meant to
+  /// correct.
+  bool _confirmingDelete = false;
 
   @override
   void initState() {
     super.initState();
     _kcal = TextEditingController(text: widget.meal.kcal.round().toString());
+    // Blank rather than "0" where nothing was estimated. An empty field is a
+    // measure nobody has given; a zero is a claim that there was none of it.
+    String grams(double? value) => value == null ? '' : value.round().toString();
+    _protein = TextEditingController(text: grams(widget.meal.proteinG));
+    _carbs = TextEditingController(text: grams(widget.meal.carbsG));
+    _fat = TextEditingController(text: grams(widget.meal.fatG));
   }
 
   @override
@@ -667,17 +680,29 @@ class _NutritionLineState extends State<_NutritionLine> {
   @override
   void dispose() {
     _kcal.dispose();
+    _protein.dispose();
+    _carbs.dispose();
+    _fat.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final value = double.tryParse(_kcal.text.trim());
+    // An empty field stays null. Parsing a blank to zero would write "no
+    // protein" where the person simply did not say.
+    double? grams(TextEditingController field) {
+      final text = field.text.trim();
+      return text.isEmpty ? null : double.tryParse(text);
+    }
     if (value == null || value <= 0 || _saving) return;
     setState(() => _saving = true);
     await widget.db.updateNutritionEntry(
       widget.meal.id,
       NutritionEntriesCompanion(
         kcal: Value(value),
+        proteinG: Value(grams(_protein)),
+        carbsG: Value(grams(_carbs)),
+        fatG: Value(grams(_fat)),
         confirmed: const Value(true),
       ),
     );
@@ -687,6 +712,22 @@ class _NutritionLineState extends State<_NutritionLine> {
         _editing = false;
       });
     }
+  }
+
+  Future<void> _delete() async {
+    await widget.db.deleteNutritionEntry(widget.meal.id);
+    // No setState afterwards: the row is gone and this widget goes with it
+    // when the nutrition stream emits.
+  }
+
+  /// The meal's macronutrients as one line, or null when none were recorded.
+  String? _macros(EterStrings strings) {
+    String? grams(double? value) => value == null ? null : value.round().toString();
+    final protein = grams(widget.meal.proteinG);
+    final carbs = grams(widget.meal.carbsG);
+    final fat = grams(widget.meal.fatG);
+    if (protein == null && carbs == null && fat == null) return null;
+    return strings.macrosLine(protein: protein, carbs: carbs, fat: fat);
   }
 
   @override
@@ -723,6 +764,16 @@ class _NutritionLineState extends State<_NutritionLine> {
                             : ink.lineStrong,
                       ),
                     ),
+                    // The macronutrients, when any were estimated. Left out
+                    // entirely rather than shown as zeroes: a meal nobody
+                    // broke down is not a meal of no protein.
+                    if (_macros(strings) case final line?) ...[
+                      const SizedBox(height: EterSpace.s4),
+                      Text(
+                        line,
+                        style: text.labelSmall?.copyWith(color: ink.labelMuted),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -734,6 +785,19 @@ class _NutritionLineState extends State<_NutritionLine> {
                 busy: _saving,
                 onPressed:
                     _editing ? _save : () => setState(() => _editing = true),
+              ),
+              const SizedBox(width: EterSpace.s8),
+              // Deleting a meal from here removes it outright. The other
+              // direction already holds: reverting the journal page a meal was
+              // derived from takes its rows with it, through
+              // `revertJournalEntryRows`.
+              EterAction(
+                key: ValueKey('nutrition-delete-${widget.meal.id}'),
+                label: _confirmingDelete ? strings.deleteNow : strings.delete,
+                emphasis: EterActionEmphasis.quiet,
+                onPressed: _confirmingDelete
+                    ? _delete
+                    : () => setState(() => _confirmingDelete = true),
               ),
             ],
           ),
@@ -759,6 +823,29 @@ class _NutritionLineState extends State<_NutritionLine> {
                     style: text.bodySmall,
                   ),
                 ),
+              ],
+            ),
+            const SizedBox(height: EterSpace.s8),
+            // Grams, and blank means not recorded. Carbohydrate is here
+            // because it is counted; nothing in this product advises on it.
+            Wrap(
+              spacing: EterSpace.s12,
+              runSpacing: EterSpace.s8,
+              children: [
+                for (final (key, label, controller) in [
+                  ('protein', strings.fieldProteinG, _protein),
+                  ('carbs', strings.fieldCarbsG, _carbs),
+                  ('fat', strings.fieldFatG, _fat),
+                ])
+                  SizedBox(
+                    width: 104,
+                    child: TextField(
+                      key: ValueKey('nutrition-$key-${widget.meal.id}'),
+                      controller: controller,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: label),
+                    ),
+                  ),
               ],
             ),
           ],

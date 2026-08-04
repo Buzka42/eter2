@@ -288,6 +288,22 @@ class EterStringsPl extends EterStrings {
 
   @override
   String get fieldKcal => 'kcal';
+
+  @override
+  String get fieldProteinG => 'białko g';
+
+  @override
+  String get fieldCarbsG => 'węgl. g';
+
+  @override
+  String get fieldFatG => 'tłuszcz g';
+
+  @override
+  String macrosLine({String? protein, String? carbs, String? fat}) => [
+        if (protein != null) 'białko ${protein} g',
+        if (carbs != null) 'węglowodany ${carbs} g',
+        if (fat != null) 'tłuszcz ${fat} g',
+      ].join(' · ');
   @override
   String kcalConfirmed(int kcal) => '$kcal kcal';
   @override

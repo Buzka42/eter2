@@ -201,6 +201,16 @@ abstract class EterStrings {
   String get unitKg;
 
   String get fieldKcal;
+
+  /// Macronutrient field labels, in grams. Short because three of them sit in
+  /// one row beside the calories.
+  String get fieldProteinG;
+  String get fieldCarbsG;
+  String get fieldFatG;
+
+  /// The macronutrients of one meal, in the order they are always read.
+  /// Anything not recorded is left out rather than shown as a zero.
+  String macrosLine({String? protein, String? carbs, String? fat});
   String kcalConfirmed(int kcal);
   String kcalEstimateNotCounted(int kcal);
   String get correctEstimateFirst;
