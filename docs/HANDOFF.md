@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **860 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **872 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -69,7 +69,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 860 pass, 10 skipped
+flutter test          # expect 872 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -421,17 +421,27 @@ all; and a shortfall is only ever counted on a recorded day. Intake is in the
 context fingerprint, so confirming a meal recomposes the day instead of being
 noticed tomorrow.
 
-### Nutrition, what is left
+**Done — nutrition, the whole of it.** Confirming a derived meal happens in the
+**Journal**, under the page it came from: by the time somebody is looking at a
+balance they have left the page, and what they can still remember is what was on
+the plate. Only unconfirmed meals prompt. Correcting the figures stays in the
+Body, which now shows and edits protein, carbohydrate and fat beside the
+calories, and can delete a meal in two taps. One row serves both surfaces, so
+they cannot drift — deleting from the Body removes it from the page, and
+reverting the page takes its meals with it, both pinned by tests.
 
-**Food confirmation still happens in the Body, not the Journal.** The owner
-wants it to appear as a prompt where the page was written, leaving the Body to
-correct calories and macronutrients only. The columns already exist —
-`NutritionEntries` has `proteinG`, `carbsG`, `fatG` and `confirmed` — so this is
-surface and flow, not schema.
+**Carbohydrate is counted and not advised on.** It has no floor and no target,
+and there is no version of "eat fewer carbohydrates" in this product. One
+exception, computed on the device rather than left to the model: when a recorded
+day was very nearly all carbohydrate *and* protein came in under its floor, the
+advice may suggest trading some of one for the other — as a sentence about the
+missing protein, not about the carbohydrate being wrong. Dominance is measured
+by **energy, not weight**, because a gram of fat is not a gram of anything else.
 
-**Macronutrients are not shown anywhere yet.** They are stored, and they now
-reach guidance, but neither the Body nor the Journal displays protein, carbs or
-fat to the person whose food it is.
+Blank means not recorded, everywhere: an empty field saves as null rather than
+zero, a meal nobody broke down shows no macro line, and a day where only
+carbohydrate was written down is a day nobody described rather than a day of
+pure carbohydrate.
 
 ### What is left in the Vessel, and it is only the surface
 
