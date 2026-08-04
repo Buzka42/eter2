@@ -146,8 +146,19 @@ behind them. Recorded so they are not mistaken for verified.
 - **The push-to-talk race.** `_holding` guards a release that arrives before the
   recogniser is ready. Verified by a device run and by reading; it lives in async
   widget state and has no automated test.
-- **Prompt fixtures.** The five parsers are tested against hand-written JSON, never
-  against recorded real model output — good, malformed, unsafe and empty.
+- ~~**Prompt fixtures.**~~ Resolved 4 August. `test/fixtures/live/` holds a
+  recorded response per call, in both languages, replayed through the real
+  parsers with no network — and reading them is what produced prompt versions
+  10 and 11.
+- **The home-screen widget.** Android's half is built, the receiver is
+  confirmed in the built APK, and the Dart half is tested against a fake sink.
+  **Nobody has placed one on a home screen.** The iOS half does not exist:
+  WidgetKit and SwiftUI cannot be built or verified without a Mac.
+- **Reading other apps.** Daylio, Bearable and Apple Health import, and the
+  behaviour is well covered by tests — but **no real export from any of the
+  three has ever been read.** Daylio's columns are exact; Bearable's value
+  formats are inferred from independent analyses of real files, and the two
+  places to change are named in `bearable_import.dart`.
 - **Firestore rules.** Committed and covering every mirrored collection, but the
   live project's rules predate the mirror and would deny it. Deploying them is in
   §2.
