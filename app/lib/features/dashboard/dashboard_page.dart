@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/arrival.dart';
 import '../../core/aether/composer.dart';
+import '../../core/type_fitting.dart';
 import '../../core/widget/home_screen_widget.dart';
 import '../../core/aether/context_assembler.dart';
 import '../../core/aether/guidance_contract.dart';
@@ -177,14 +178,16 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
     // Display scale responds to width: the concept plates' large type is a
     // mood cue, not a fixed size.
     //
-    // Doubled, at the owner's instruction: guidance is the one passage the
-    // product exists to deliver and it was reading like body copy on a phone.
-    // The line height is scaled with the size rather than kept, because
-    // `cormorant` stores height as a ratio — doubling only the size would
-    // halve the leading and set the passage solid.
-    final displayStyle = _doubled(MediaQuery.sizeOf(context).width < 360
+    // The theme's own display size, and no multiplier.
+    //
+    // It was doubled to 68 pt on 3 August, on the reading that "twice the
+    // size" meant the type. It did not: the instruction was twice the
+    // *length*, and one look at 68 pt on a real phone settled it — four words
+    // filled the screen. The length now lives where it belongs, in
+    // `aetherMaximumDimensionSentences` and the prompt that asks for it.
+    final displayStyle = MediaQuery.sizeOf(context).width < 360
         ? text.displaySmall
-        : text.displayMedium);
+        : text.displayMedium;
     final supportingStyle = text.headlineSmall?.copyWith(
       fontSize: 19,
       height: 28 / 19,
@@ -262,14 +265,33 @@ class _DashboardPageState extends ConsumerState<DashboardPage> {
                   );
                 }
                 final content = _GuidanceContent.parse(synthesis.contentJson);
-                return EterArrival(
-                  key: ValueKey('guidance-${synthesis.id}'),
-                  passages: [
-                    ArrivalPassage(content.passage, style: displayStyle),
-                    if (content.supporting != null)
-                      ArrivalPassage(content.supporting!,
-                          style: supportingStyle),
-                  ],
+                // The size is settled against the passage's own longest word.
+                // Flutter does not hyphenate: a word wider than the line is
+                // broken wherever it runs out of room, with no hyphen and no
+                // overflow error, and at 68 pt on a 1080 px phone the first
+                // real Polish guidance read "tętno spocz / ynkowe". Nothing in
+                // the suite could have caught it — the word came from the
+                // model, not from a fixture. See `core/type_fitting.dart`.
+                return LayoutBuilder(
+                  builder: (context, constraints) => EterArrival(
+                    key: ValueKey('guidance-${synthesis.id}'),
+                    passages: [
+                      ArrivalPassage(
+                        content.passage,
+                        style: displayStyle == null
+                            ? null
+                            : eterFitStyleToWords(
+                                text: content.passage,
+                                style: displayStyle,
+                                maxWidth: constraints.maxWidth,
+                                textScaler: MediaQuery.textScalerOf(context),
+                              ),
+                      ),
+                      if (content.supporting != null)
+                        ArrivalPassage(content.supporting!,
+                            style: supportingStyle),
+                    ],
+                  ),
                 );
               },
             ),
@@ -527,10 +549,8 @@ class _ExpandedGuidance extends StatelessWidget {
     return FutureBuilder<List<GuidanceHistoryRow>>(
       future: rows,
       builder: (context, snapshot) {
-        final byDimension = {
-          for (final row in snapshot.data ?? const <GuidanceHistoryRow>[])
-            row.dimension: row,
-        };
+        final byDimension =
+            eterNewestByDimension(snapshot.data ?? const []);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -724,11 +744,7 @@ class _EvidenceReceiptState extends State<_EvidenceReceipt> {
 /// unchanged and the lines would set solid at twice the weight. Nothing else in
 /// the product doubles type, which is why this is a local helper rather than a
 /// theme entry: guidance is the one passage that carries the day.
-TextStyle? _doubled(TextStyle? style) {
-  final size = style?.fontSize;
-  if (style == null || size == null) return style;
-  return style.copyWith(fontSize: size * 2);
-}
+
 
 /// The synthesis content contract: a primary passage and an optional
 /// supporting one. The pipeline is unbuilt, so parse defensively — a bare
@@ -858,4 +874,33 @@ class _CorrespondingLineState extends ConsumerState<_CorrespondingLine> {
       },
     );
   }
+}
+
+/// The newest row for each dimension, from a list ordered newest first.
+///
+/// A named function for three lines, because the three lines it replaced were
+/// a map literal that did the opposite:
+///
+/// ```dart
+/// {for (final row in rows) row.dimension: row}
+/// ```
+///
+/// In a map comprehension a later entry overwrites an earlier one, and
+/// `watchGuidanceForDate` returns rows newest first — so that map held the
+/// **oldest** composition of the day for every dimension. The synthesis is
+/// selected a few hundred lines above with `firstOrNull` on the same list and
+/// got the newest one. Recomposing a day therefore replaced the opening
+/// passage and left health, mind and spirit showing the earlier reasoning,
+/// under a control whose own description is "the whole day, not one section".
+///
+/// Found on a phone: recomposing twice and watching three of the four parts
+/// refuse to change, then reading the rows out of the device's own database.
+Map<String, GuidanceHistoryRow> eterNewestByDimension(
+  List<GuidanceHistoryRow> newestFirst,
+) {
+  final newest = <String, GuidanceHistoryRow>{};
+  for (final row in newestFirst) {
+    newest.putIfAbsent(row.dimension, () => row);
+  }
+  return newest;
 }

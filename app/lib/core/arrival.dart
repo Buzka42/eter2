@@ -344,7 +344,17 @@ class _PassageView extends StatelessWidget {
 
     return Transform.translate(
       offset: Offset(0, displacement),
-      child: RichText(text: TextSpan(children: spans)),
+      // `RichText` does not scale with the reader's setting on its own — that
+      // is `Text`'s doing, and this is not a `Text`. Without this line the one
+      // passage the product exists to deliver was the only prose in the app
+      // that ignored the system font size, in both directions: a reader who
+      // had made everything larger got the same guidance, and a phone set to
+      // 85 % rendered it at 100 % while every measurement of it assumed
+      // otherwise. That mismatch is what let a word break in half.
+      child: RichText(
+        text: TextSpan(children: spans),
+        textScaler: MediaQuery.textScalerOf(context),
+      ),
     );
   }
 }

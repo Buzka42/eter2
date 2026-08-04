@@ -27,6 +27,7 @@ library;
 import '../aether/guidance_mode.dart';
 import '../aether/request_contract.dart';
 import '../i18n/language.dart';
+import '../aether/guidance_contract.dart';
 import '../vessel/reading_composer.dart';
 
 /// One prepared call: an instruction, a payload and the schema the answer must
@@ -131,7 +132,19 @@ abstract final class EterPrompts {
   /// August and all of them were fixed — nothing had ever swept the model's
   /// own prose. `languageFor` now carries a Polish-only section, because this
   /// is a fact about the language rather than about the product.
-  static const version = 11;
+  ///
+  /// **12 · guidance says more, in the same type.** The instruction of 3
+  /// August was "twice the size" and it was read as font size: the display
+  /// type went to 68 pt. The first phone it was ever seen on settled that in a
+  /// second — four words filled the screen — and the owner's meaning was twice
+  /// the *length*. So the type is back at the theme's size and the prose grew
+  /// instead: the three dimensions go to **six sentences** and the synthesis to
+  /// **three**, held shorter than the rest because it is the line the widget
+  /// shows and the only one the Correspondence may send. The prompt says
+  /// plainly that the room is for specificity and not for padding, because a
+  /// dimension that says one thing five ways is worse than the two sentences
+  /// it replaced.
+  static const version = 12;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -624,7 +637,8 @@ WHAT TO WRITE
 Exactly four dimensions, as JSON, and nothing outside the JSON:
 
 - "synthesis" — the day in one breath. This is the only text most people will
-  read: it opens the app. Two sentences at most. No preamble, no greeting, no
+  read: it opens the app. **Two or three sentences**, and three is the usual
+  answer where the day has anything in it. No preamble, no greeting, no
   "today's guidance is". Begin with the observation itself.
   **Carry no figure here — not as digits and not spelled out in words.** Say
   "rest settled short of what the week had been", never "rest settled near six
@@ -638,9 +652,20 @@ Exactly four dimensions, as JSON, and nothing outside the JSON:
   grounded voice this is still about the person's own values and direction, not
   the cosmos.
 
-Each dimension has one to three sentences and one "primaryAction": a single
-concrete thing the person could do today, phrased as an invitation, short
-enough to read at a glance. Never more than one action per dimension.
+Each of the three dimensions below the synthesis has **four or five
+sentences** — never fewer than three, never more than six — and one
+"primaryAction": a single concrete thing the person could do today, phrased as
+an invitation, short enough to read at a glance. Never more than one action per
+dimension.
+
+Three sentences is the shape of a dimension that stopped before saying what its
+claim rests on. Use the length for that: what the records show, what it follows
+from, what it does *not* settle, and what would change the reading. A day whose
+sleep was never recorded says so, and says what that leaves unknown.
+
+Length is room to be specific and not permission to repeat. Five sentences
+saying one thing five ways is worse than three that say three things — but the
+answer to that is a fourth thing worth saying, not a shorter dimension.
 
 Each dimension may carry "evidence": an object naming the records you actually
 used, e.g. {"sleepMinutes": 402, "localDate": "2026-07-27"}. Include it
@@ -684,6 +709,12 @@ dimensions with the same word. Do not name yourself or refer to being an AI.''',
     );
   }
 
+  /// The three dimensions below the synthesis.
+  ///
+  /// Six sentences, not three: the owner asked for twice the length here, and
+  /// the length is where the specificity lives — a dimension with room can say
+  /// what the records show *and* what they leave unknown, which two sentences
+  /// cannot do without becoming a hedge.
   static const _dimensionSchema = <String, Object?>{
     'type': 'object',
     'required': ['sentences', 'primaryAction'],
@@ -691,8 +722,34 @@ dimensions with the same word. Do not name yourself or refer to being an AI.''',
     'properties': {
       'sentences': {
         'type': 'array',
+        // A floor as well as a ceiling. Asked only for a ceiling, the model
+        // wrote the shortest thing the range allowed — the first live run
+        // after the range widened came back with the same two sentences it had
+        // always written, and the length the owner asked for was not delivered
+        // by permitting it.
+        'minItems': aetherMinimumDimensionSentences,
+        'maxItems': aetherMaximumDimensionSentences,
+        'items': {'type': 'string', 'minLength': 1},
+      },
+      'primaryAction': {'type': 'string', 'minLength': 1},
+      'evidence': {'type': 'object'},
+    },
+  };
+
+  /// The synthesis is held shorter than the dimensions on purpose.
+  ///
+  /// It is the line the widget shows, the line the Correspondence may send,
+  /// and the only text most people read. Half again as long as it was, not
+  /// twice: a passage that opens the app has to stay sayable in one breath.
+  static const _synthesisSchema = <String, Object?>{
+    'type': 'object',
+    'required': ['sentences', 'primaryAction'],
+    'additionalProperties': false,
+    'properties': {
+      'sentences': {
+        'type': 'array',
         'minItems': 1,
-        'maxItems': 3,
+        'maxItems': aetherMaximumSynthesisSentences,
         'items': {'type': 'string', 'minLength': 1},
       },
       'primaryAction': {'type': 'string', 'minLength': 1},
@@ -705,7 +762,7 @@ dimensions with the same word. Do not name yourself or refer to being an AI.''',
     'required': ['synthesis', 'health', 'mind', 'spirit', 'recall'],
     'additionalProperties': false,
     'properties': {
-      'synthesis': _dimensionSchema,
+      'synthesis': _synthesisSchema,
       'health': _dimensionSchema,
       'mind': _dimensionSchema,
       'spirit': _dimensionSchema,

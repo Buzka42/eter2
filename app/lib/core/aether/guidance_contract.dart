@@ -8,6 +8,37 @@ class AetherContractException implements Exception {
   final String reason;
 }
 
+/// How long a dimension may run.
+///
+/// **Twice what it was**, at the owner's instruction on 4 August. The earlier
+/// instruction — "twice the size" — had been read as font size and the display
+/// type was doubled to 68 pt; seeing that on a real phone made the misreading
+/// obvious in a second. What was wanted was more said, not larger letters.
+///
+/// The room is for specificity, and the prompt says so: a dimension that can
+/// name what the records show *and* what they leave unknown needs more than
+/// two sentences to do it without turning into a hedge.
+const aetherMaximumDimensionSentences = 6;
+
+/// The floor, and it is the half that actually changed anything.
+///
+/// Widening the ceiling alone did nothing: the first live composition after
+/// the range opened to six came back with the same two sentences per dimension
+/// it had always written. A model asked for "up to six" writes two. The length
+/// had to be required, not permitted.
+///
+/// Three rather than four, because it is a floor and not the target — the
+/// instruction asks for four or five — and because a genuinely empty day
+/// should not be padded to a quota.
+const aetherMinimumDimensionSentences = 3;
+
+/// The synthesis is held shorter, at half again rather than double.
+///
+/// It is the line the home-screen widget shows, the line the Correspondence
+/// may send to another person, and the only text most people read. It has to
+/// stay sayable in one breath.
+const aetherMaximumSynthesisSentences = 3;
+
 class AetherGuidanceDimension {
   const AetherGuidanceDimension({
     required this.key,
@@ -203,10 +234,18 @@ class AetherGuidanceParser {
         throw AetherContractException('Invalid $key guidance shape');
       }
       final rawSentences = value['sentences'] as List;
+      // The synthesis is capped shorter than the three dimensions, for the
+      // reasons on those two constants. Checked here as well as in the schema,
+      // because the schema is the endpoint's promise and this is the wall.
+      final ceiling = key == 'synthesis'
+          ? aetherMaximumSynthesisSentences
+          : aetherMaximumDimensionSentences;
       if (rawSentences.isEmpty ||
-          rawSentences.length > 3 ||
+          rawSentences.length > ceiling ||
           rawSentences.any((sentence) => sentence is! String)) {
-        throw AetherContractException('$key requires one to three sentences');
+        throw AetherContractException(
+          '$key requires between one and $ceiling sentences',
+        );
       }
       final sentences =
           rawSentences.cast<String>().map((s) => s.trim()).toList();
