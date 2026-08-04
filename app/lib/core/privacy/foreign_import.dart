@@ -25,6 +25,7 @@ library;
 import 'package:drift/drift.dart';
 
 import '../db/app_database.dart';
+import '../energy/energy.dart';
 
 /// The status imported pages carry.
 ///
@@ -85,12 +86,63 @@ class ForeignWeightEntry {
   final String source;
 }
 
+/// One stretch of sleep, as the other app staged it.
+class ForeignSleepSegment {
+  const ForeignSleepSegment({
+    required this.start,
+    required this.end,
+    required this.stage,
+    required this.source,
+  });
+
+  final DateTime start;
+  final DateTime end;
+
+  /// `awake` | `light` | `deep` | `rem` | `unknown`, as `SleepSegments`
+  /// defines them.
+  final String stage;
+  final String source;
+
+  /// The night a segment belongs to is the local date it *ended* on, which is
+  /// the rule the live pipeline already uses. Sleep crosses midnight, so the
+  /// date it started on is the wrong answer for almost every night there is.
+  String get nightOf {
+    final local = end.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    return '${local.year}-$month-$day';
+  }
+}
+
+/// One day's vitals, as far as the file knew them.
+class ForeignDailyVital {
+  const ForeignDailyVital({
+    required this.date,
+    required this.source,
+    this.restingHr,
+    this.hrvMs,
+    this.respiratoryRate,
+  });
+
+  /// Local `YYYY-MM-DD`.
+  final String date;
+  final String source;
+  final double? restingHr;
+  final double? hrvMs;
+  final double? respiratoryRate;
+
+  bool get isEmpty =>
+      restingHr == null && hrvMs == null && respiratoryRate == null;
+}
+
 /// Everything one foreign file turned out to hold.
 class ForeignRecords {
   const ForeignRecords({
     this.journal = const [],
     this.lifestyle = const [],
     this.weight = const [],
+    this.sleep = const [],
+    this.vitals = const [],
     this.ignored = const {},
     this.unreadableRows = 0,
   });
@@ -98,6 +150,8 @@ class ForeignRecords {
   final List<ForeignJournalEntry> journal;
   final List<ForeignLifestyleEntry> lifestyle;
   final List<ForeignWeightEntry> weight;
+  final List<ForeignSleepSegment> sleep;
+  final List<ForeignDailyVital> vitals;
 
   /// What the file carried that Eter has nowhere to keep, and how much of it —
   /// `{'Medication': 212}`. Named rather than counted in one lump: a person
@@ -110,7 +164,11 @@ class ForeignRecords {
   final int unreadableRows;
 
   bool get isEmpty =>
-      journal.isEmpty && lifestyle.isEmpty && weight.isEmpty;
+      journal.isEmpty &&
+      lifestyle.isEmpty &&
+      weight.isEmpty &&
+      sleep.isEmpty &&
+      vitals.isEmpty;
 }
 
 /// What an import did, in enough detail to be told to somebody.
@@ -120,6 +178,9 @@ class ForeignImportResult {
     required this.journalWritten,
     required this.lifestyleWritten,
     required this.weightWritten,
+    this.sleepNightsWritten = 0,
+    this.vitalDaysWritten = 0,
+    this.vitalDaysLeftAlone = 0,
     required this.duplicatesSkipped,
     required this.ignored,
     required this.unreadableRows,
@@ -134,6 +195,21 @@ class ForeignImportResult {
   final int lifestyleWritten;
   final int weightWritten;
 
+  /// Nights of sleep written. Counted in nights rather than segments because
+  /// a night is what a person recognises; eleven segments is a fact about the
+  /// watch.
+  final int sleepNightsWritten;
+
+  final int vitalDaysWritten;
+
+  /// Days whose vitals were already here and were left as they were.
+  ///
+  /// `DailyVitals` holds one row per date whatever measured it, so a file
+  /// cannot be merged into a day the device already knows about — and the file
+  /// is the one that must give way. Reported rather than silent: it is the
+  /// answer to "why does last March still look empty".
+  final int vitalDaysLeftAlone;
+
   /// Records that were already here. The number that makes importing the same
   /// file twice a safe thing to do rather than a thing to warn about.
   final int duplicatesSkipped;
@@ -146,7 +222,12 @@ class ForeignImportResult {
   final DateTime? earliest;
   final DateTime? latest;
 
-  int get written => journalWritten + lifestyleWritten + weightWritten;
+  int get written =>
+      journalWritten +
+      lifestyleWritten +
+      weightWritten +
+      sleepNightsWritten +
+      vitalDaysWritten;
 
   bool get isPartial => ignored.isNotEmpty || unreadableRows > 0;
 }
@@ -197,6 +278,9 @@ class ForeignImporter {
     var journalWritten = 0;
     var lifestyleWritten = 0;
     var weightWritten = 0;
+    var sleepNights = 0;
+    var vitalDays = 0;
+    var vitalDaysLeftAlone = 0;
     var duplicates = 0;
     DateTime? earliest;
     DateTime? latest;
@@ -294,6 +378,72 @@ class ForeignImporter {
             );
         weightWritten++;
       }
+
+      // Sleep goes in a night at a time, through the same call the live
+      // pipeline uses. It replaces this source's segments for that night and
+      // touches no other source's, which is what makes importing the same file
+      // twice leave one night rather than two overlapping copies of it.
+      final byNight = <(String, String), List<ForeignSleepSegment>>{};
+      for (final segment in records.sleep) {
+        span(segment.end);
+        byNight
+            .putIfAbsent((segment.nightOf, segment.source), () => [])
+            .add(segment);
+      }
+      for (final entry in byNight.entries) {
+        final (night, source) = entry.key;
+        // The same rule the hub follows: a source that gives both a whole
+        // undifferentiated night *and* its stages has described the same
+        // minutes twice, and keeping both doubles every total built on it.
+        final staged =
+            entry.value.where((one) => one.stage != 'unknown').toList();
+        final segments = staged.isEmpty ? entry.value : staged;
+        await database.replaceSleepForNight(
+          nightOf: night,
+          source: source,
+          segments: [
+            for (final segment in segments)
+              SleepSegmentsCompanion.insert(
+                startUtc: segment.start.toUtc(),
+                endUtc: segment.end.toUtc(),
+                stage: segment.stage,
+                source: segment.source,
+                priority: SourcePriority.importedFile.index,
+                nightOf: night,
+              ),
+          ],
+        );
+        sleepNights++;
+      }
+
+      for (final vital in records.vitals) {
+        if (vital.isEmpty) continue;
+        // One row per date, whatever measured it — so a file cannot be merged
+        // into a day the device already knows about, and the file is the one
+        // that gives way. It is a snapshot of what another phone thought;
+        // whatever is here was measured on this one.
+        final existing = await database
+            .customSelect(
+              'SELECT 1 FROM daily_vitals WHERE date = ? LIMIT 1',
+              variables: [Variable<String>(vital.date)],
+              readsFrom: {database.dailyVitals},
+            )
+            .get();
+        if (existing.isNotEmpty) {
+          vitalDaysLeftAlone++;
+          continue;
+        }
+        await database.into(database.dailyVitals).insert(
+              DailyVitalsCompanion.insert(
+                date: vital.date,
+                restingHr: Value(vital.restingHr),
+                hrvMs: Value(vital.hrvMs),
+                respiratoryRate: Value(vital.respiratoryRate),
+                source: vital.source,
+              ),
+            );
+        vitalDays++;
+      }
     });
 
     return ForeignImportResult(
@@ -301,6 +451,9 @@ class ForeignImporter {
       journalWritten: journalWritten,
       lifestyleWritten: lifestyleWritten,
       weightWritten: weightWritten,
+      sleepNightsWritten: sleepNights,
+      vitalDaysWritten: vitalDays,
+      vitalDaysLeftAlone: vitalDaysLeftAlone,
       duplicatesSkipped: duplicates,
       ignored: records.ignored,
       unreadableRows: records.unreadableRows,

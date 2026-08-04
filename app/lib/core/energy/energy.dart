@@ -219,6 +219,10 @@ double blendFinalKcal({
 // ---------------------------------------------------------------------------
 
 /// Priority high→low. Lower index wins.
+///
+/// The index is stored in the database, so a value may be **appended** and
+/// never inserted or reordered: renumbering these would silently re-rank every
+/// row already written.
 enum SourcePriority {
   liveStrap,
   liveWatchSession,
@@ -226,6 +230,15 @@ enum SourcePriority {
   vendorDirect,
   hub,
   phoneSensors,
+
+  /// A file somebody exported from another app and imported here.
+  ///
+  /// Last on purpose, and it is not a judgement about the other app. A file is
+  /// a snapshot of what was true when it was written: it cannot be corrected,
+  /// it may overlap a live source by months, and where the two disagree about
+  /// a night the live one was measured on this device and this one was typed
+  /// into a different one. Being outranked by everything is exactly right.
+  importedFile,
 }
 
 class MinuteBucket {
