@@ -254,6 +254,20 @@ void main() {
       expect(result.duplicatesSkipped, 1);
     });
 
+    test('an imported page is one the Journal will actually show', () async {
+      // The difference between an import and a no-op. Pages reach the Journal
+      // through `loadJournalForRange`, which filters by status — so a status
+      // chosen to keep the interpretation queue away could just as easily have
+      // hidden the pages from the person who imported them.
+      await import(csv(['2026-01-31,x,x,08:00,good,,,"A note."']));
+      final visible = await database.loadJournalForRange(
+        DateTime(2026, 1, 31),
+        DateTime(2026, 2, 1),
+      );
+      expect(visible, hasLength(1));
+      expect(visible.single.entryText, 'A note.');
+    });
+
     test('a file nobody can read is not an error', () async {
       // Being handed a PDF is a mistake, not a failure.
       final result = await ForeignImporter(database).importContent(

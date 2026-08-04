@@ -157,7 +157,7 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **883 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **978 tests
 pass, 14 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 2. Schema is at **15**, and the upgrade
@@ -221,7 +221,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 883 pass, 14 skipped
+flutter test          # expect 978 pass, 14 skipped
 flutter analyze       # expect clean
 ```
 
@@ -875,7 +875,7 @@ person: changing this icon was necessary but it fixed nothing at the time, and
 it was recorded here as though it had. The notification was never reaching the
 point of having an icon. See the section above.
 
-### 5 · Import · *done*, and the prompt fixtures · *blocked on the endpoint*
+### 5 · Import · *done, including other apps*, and the prompt fixtures
 
 **Import is built.** `core/privacy/local_data_import.dart`, reached from the
 Sanctum under `BRING A RECORD BACK`, directly beneath the export it undoes.
@@ -889,9 +889,62 @@ Sanctum under `BRING A RECORD BACK`, directly beneath the export it undoes.
 - The insert is raw SQL. Drift's `validateIntegrity` is written for rows the app
   is composing; a restore is putting back bytes this same schema wrote.
 
-**Still worth doing, and not started:** reading *other* apps — Daylio, Bearable,
-Apple Health XML. That is the version that gets somebody to switch, and it is a
-different job: those are foreign shapes, not Eter's own snapshot.
+**Reading other apps · done, 4 August.** Daylio, Bearable and Apple Health, in
+`core/privacy/`, reached from the Sanctum beneath the restore. This is the
+version that gets somebody to switch, and almost every rule in it is the
+opposite of the restore's:
+
+- **It does not need an empty device**, because somebody importing three years
+  of Daylio has usually been using Eter for a fortnight first — that is what
+  sends them looking. So every record carries a natural key checked against
+  what is here: the same words at the same minute are the same page. Importing
+  the same file twice adds nothing; an overlapping export adds only what is new.
+- **Nothing imported is queued for interpretation.** `AutoInterpret` acts on
+  `pending`; an import of nine hundred old pages would be nine hundred model
+  calls nobody asked for. Imported pages carry their own status — and a test
+  pins that the Journal still *shows* them, because a status chosen to keep the
+  queue away could as easily have hidden them from the person.
+- **What cannot be kept is named and counted**, not dropped. "Imported 1,412
+  records" and "…and ignored your medication log" are different sentences.
+
+Three judgement calls worth knowing before changing any of it:
+
+- **Daylio's five shipped moods rank one to five and a custom mood takes no
+  number at all** — ranking it in the middle would be a measurement nobody
+  made. The mood names are read in Polish too: the export is written in the
+  app's own language, and a reader that knew only the English five would
+  import a decade of feelings as unranked words.
+- **Bearable's file does not say what scale its ratings are on.** Eter keeps
+  self-reports on 1..5 and the Long View averages and plots them, so a raw 8
+  is not a rough import but a corrupt one. The scale is read off the file: a
+  rating above five is proof it is not a five-point scale, which is the only
+  inference that cannot be wrong in the dangerous direction. A test ties the
+  imported range to `LifestyleReading.marks.length` rather than to the number
+  five.
+- **Apple Health is streamed, and mostly left alone.** The file runs to
+  hundreds of megabytes, so `apple_health_scanner.dart` is fed chunks and
+  keeps only what straddles a boundary. It takes the long history — weight,
+  sleep, resting heart rate, variability — and refuses steps and active
+  energy, which already have a pipeline here: a file carries no notion of
+  which device measured what, so importing them would double every day a live
+  source is already reporting. `SourcePriority.importedFile` is appended last
+  so nothing imported outranks the device, and a day whose vitals are already
+  recorded is left exactly as it is and counted.
+
+Two things are refused rather than guessed anywhere they appear: a weight with
+no stated unit, and a date that is not a real date. The first halves or doubles
+somebody's body; the second files a page against a day that never happened.
+
+**Not verified on a device**, like everything else from 3–4 August. And **no
+real export has been read** — the formats come from the apps' own documentation
+and from independent analyses of real files. Daylio's eight columns are exact;
+Bearable's value formats are inferred, and the two places to change when a real
+file turns up are named in `bearable_import.dart`.
+
+**Apple Health exports a `.zip`** and Eter reads the `export.xml` inside it. The
+Sanctum says so, because a person who picks the archive would otherwise get an
+unreadable-file sentence with no idea why. Unpacking it here would mean a zip
+dependency reading an arbitrary archive off somebody's phone.
 
 **Verified on the device.** The picker opens unfiltered, as intended — Android's
 document picker filters by MIME type and would hide a `.json` the file manager
@@ -1095,6 +1148,15 @@ callingPack=com.eterhealth.eter`. Both sites now pass
 `VideoPlayerOptions(mixWithOthers: true)`. If a third video is ever added, it
 needs the same option, and the check is: launch, then
 `adb logcat -d | grep requestAudioFocus` — it must find nothing.
+
+**A surface below the fold is a surface no capture draws.** A `ListView` builds
+nothing it cannot see, and the Sanctum's goldens photograph what is on screen —
+so the export/import panel at the bottom of that scroll had never been laid out
+by anything in the suite. `Choose a file` had been overflowing its row by 110 px
+at 320 dp with text doubled since the day it was written, in front of people and
+nowhere else. `EterAction` lets a label wrap now, and
+`sanctum_export_panel_test.dart` renders the panel directly. If you add anything
+to that panel, it is the only place that will see it.
 
 **A surface behind a platform plugin is a surface no test renders.**
 `eterRunningTests()` disables video outright and the geocoder throws under the
