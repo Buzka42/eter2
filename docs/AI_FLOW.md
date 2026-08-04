@@ -21,9 +21,24 @@ streaming, no background poll.
 | **guidance** | Dashboard composes for the day (`AetherComposer`) | `aiConsentAt`; journal material additionally needs `journalAiConsentAt` | 4 `GuidanceHistory` rows + 1 `GuidanceRecalls` row |
 | **journalInterpretation** | **Automatic**, on every kept entry — `JournalAutoInterpreter`, max 5 per pass, when the Journal opens | `aiConsentAt` | `JournalEntries.extractionJson` + unconfirmed `NutritionEntries` + `LifestyleEntries` |
 | **journalDayStory** | Journal opens, and after each entry saves | `aiConsentAt` **and** `journalAiConsentAt` | One `JournalDayStories` row (story + digest) |
-| **vesselReadings** | The moment a birth time is saved, and retried when the Vessel opens if it is still missing. No control asks for it | `aiConsentAt`, **and a stated birth time** | One `VesselReadings` row per chart, under the reserved key `configuration` |
+| **vesselReadings** | The moment a birth time is saved, and retried when the Vessel opens if any part is still missing. No control asks for it | `aiConsentAt`, **and a stated birth time** | One `VesselReadings` row per chart **per part** — five reserved keys, the chart's synopsis keeping `configuration` |
 | **positions** | `READ TODAY` in the Vessel | `aiConsentAt` | One `TransitReadings` row per (date, chart hash) |
 | **letter** | The Journal opens in a new month (`LetterComposer`) | `aiConsentAt`; journal-derived recalls additionally need `journalAiConsentAt` | One `Letters` row per month |
+
+**Six kinds of call, and the Vessel's is made five times.** The Vessel is read
+in six parts — the wheel, the twelve houses, the angles, the chart's synopsis,
+the figure place by place, and the figure's synopsis — of which the wheel is
+device arithmetic and the other five are composed. All five go out under the
+**same `vesselReadings` call name**: the worker checks the name and nothing
+else, because the prompt and the schema are built on the device. This is why
+the split needed no redeploy, and it is why `server/worker.js` still knows
+about six names.
+
+Each part caches under its own reserved key, so a part that fails is retried
+alone and the four that succeeded are not paid for twice. A part is asked for
+**at most once per opening** of the Vessel: the retry hangs on a post-frame
+callback, and without that guard a part the model kept refusing would be
+requested — and billed — on every frame that touched the surface.
 
 The chart, the Life Path, the Arcana and the daily card involve **no model at
 all** — they are device arithmetic (`core/symbolic`, `core/arcana`).
@@ -35,6 +50,7 @@ Code map:
 
 ```
 core/ai/prompts.dart        the system instruction + JSON Schema for all six
+                            (and `vesselPart`, one per part of the Vessel)
 core/ai/transport.dart      the only network call in the app; six thin adapters
 server/worker.js            the owner-controlled endpoint (Cloudflare Worker)
 core/aether/*               guidance: assemble → request → prompt → parse → store
@@ -281,7 +297,7 @@ excluded from totals until the person reviews it.
 |---|---|---|
 | guidance | `contextFingerprint` — FNV-1a over the whole stable payload | Identical context returns the stored 4-row set, no network |
 | day story | `sourceFingerprint` — FNV-1a over the day's prose in order | Unedited day, no network |
-| vessel readings | `inputHash` over birth inputs | Only *missing* positions are requested |
+| vessel readings | `(inputHash, part)` over birth inputs | Only *missing* parts are requested, and each at most once per opening |
 | positions | `(date, inputHash)` | One call per day per chart |
 | interpretation | `appliedAt != null` | An applied entry is never sent twice; `needsDetail` is not retried unprompted |
 | letter | the month, `YYYY-MM` | A month already written is never composed again — one request per person per month |
@@ -308,6 +324,25 @@ Every row of model output records the `EterPrompts.version` that composed it,
 in a nullable `promptVersion` column. Null means the row predates the column —
 an honest "we no longer know" rather than a backfilled guess. Bumping
 `EterPrompts.version` therefore makes stale output identifiable.
+
+**It is at 11**, and the last three are worth knowing because each of them was
+found by *reading* recorded output rather than by any test:
+
+- **10** — the Vessel's five parts, on their first live run, produced an
+  archive narrator ("the records show"), the request's own field names in the
+  prose ("occupants"), keywords recited as lists, orbs printed to two decimals,
+  ten of twelve houses opening with one clause and a swapped noun, and a
+  synopsis naming places by their internal keys. Every one of those passed the
+  parser and the safety policy.
+- **11** — the Polish side, recorded for the first time. Polish marks gender on
+  the past tense, and nothing had chosen one: the day story addressed the
+  reader as masculine and, two calls later, the letter had Eter call itself
+  feminine. The owner's rule is to agree with the profile and default to the
+  masculine, and `languageFor` carries a Polish-only section saying so.
+- Also at 11: the letter's "we" is no longer only an instruction.
+  `LetterParser` refuses it outright, in both languages, because four
+  consecutive prompt versions forbade it and a recorded letter still closed
+  with "We saw the short nights return".
 
 Model output expires on its own rather than when someone remembers to clear it
 (`AppDatabase.runLocalRetention`):
