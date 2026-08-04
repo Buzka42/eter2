@@ -120,7 +120,18 @@ abstract final class EterPrompts {
   /// their internal keys — "the sun, the era, and mercury". `_vesselRegister`
   /// is the shared half; `recurrences` stopped carrying keys at all, because a
   /// field the answer must not quote is a field the request should not have.
-  static const version = 10;
+  ///
+  /// **11 · the Polish side, recorded for the first time.** The product ships
+  /// in two languages and only one of them had ever been through this. Polish
+  /// marks gender on the past tense, and both halves of the failure were
+  /// there: the day story addressed the reader as *Obudziłeś się … Miałeś*,
+  /// masculine, for somebody nobody has asked; and the letter wrote
+  /// *Zobaczyłam*, Eter giving itself a gender that no one chose and that the
+  /// next call would choose differently. The strings were swept for this on 2
+  /// August and all of them were fixed — nothing had ever swept the model's
+  /// own prose. `languageFor` now carries a Polish-only section, because this
+  /// is a fact about the language rather than about the product.
+  static const version = 11;
 
   // -------------------------------------------------------------------------
   // Shared language
@@ -447,7 +458,11 @@ SAFETY — these hold in every mode
   /// The instruction itself stays in English regardless: an English directive
   /// inside an otherwise-English system prompt is followed far more reliably
   /// than the same directive written in the target language.
-  static String languageFor(AppLanguage language) => '''
+  static String languageFor(
+    AppLanguage language, {
+    EterGrammaticalGender gender = EterGrammaticalGender.masculine,
+  }) =>
+      '''
 LANGUAGE
 Write every word a person will read in ${language.modelName}. That is all
 prose: passages, sentences, actions, stories, questions, assumptions, names of
@@ -467,7 +482,45 @@ in English because these instructions are. Examples are illustrations of a
 shape, never wording to reuse: render the equivalent in the language above and
 never copy an example into your answer word for word. This is the one place the
 rule about keeping English is reversed, and getting it the wrong way round puts
-an English fragment in the middle of a sentence nobody can read.''';
+an English fragment in the middle of a sentence nobody can read.
+${language == AppLanguage.polish ? _polishGender(gender) : ''}''';
+
+  /// The one thing English cannot warn you about, because English does not
+  /// have it.
+  ///
+  /// Found by recording the Polish side on 4 August — the first time it had
+  /// ever been recorded. The day story addressed the reader as
+  /// *Obudziłeś się … przeszedłeś … Miałeś* and the letter, two calls later,
+  /// had Eter refer to itself as *Zobaczyłam*. Neither of those was decided by
+  /// anybody: the same profile would have got a different answer on the next
+  /// call, and a person who reads two pages of Eter would have met two
+  /// different voices.
+  ///
+  /// The strings were swept for exactly this on 2 August and every one of them
+  /// was fixed. Nothing swept the model's own prose, which is the half of the
+  /// Polish in this product that nobody was reading.
+  ///
+  /// **The owner's decision, 4 August: agree, and default to the masculine.**
+  /// Avoiding gender entirely was tried first and it works — the impersonal
+  /// past in -no and -to is grammatical and genderless — but it reads as a
+  /// report filed about somebody rather than a page written to them
+  /// (*pojawiono się przed budzikiem*), and a whole day's story in it happens
+  /// to nobody in particular.
+  static String _polishGender(EterGrammaticalGender gender) => '''
+
+GRAMMATICAL GENDER
+The Polish past tense carries gender, and so do adjectives and participles
+agreeing with the person addressed. There is no avoiding the choice, so it is
+made here rather than left to the sentence you happen to be writing.
+
+Address the reader in the ${gender == EterGrammaticalGender.feminine ? 'feminine' : 'masculine'}, throughout, in every call.
+Never offer both endings, never write a doubled form with a slash or brackets,
+and never switch part-way through a page. Eter speaks about itself in the same
+gender for the same reason: one voice, and the same one every month.
+
+This is agreement, not a description of anybody. Nothing you write may state,
+imply or comment on the reader's gender — it is a property of the grammar
+here and of nothing else.''';
 
   /// The rule that keeps the product honest.
   static const absence = '''
@@ -536,6 +589,7 @@ filled in rather than as writing.''';
   static EterPrompt guidance(
     AetherRequest request, {
     required AppLanguage language,
+    EterGrammaticalGender gender = EterGrammaticalGender.masculine,
   }) {
     final hasJournal = request.journal.isNotEmpty;
     // The journal's share of the weighting is earned by any of the three
@@ -618,7 +672,7 @@ Alongside the four dimensions, one more field:
 
 $safety
 
-${languageFor(language)}
+${languageFor(language, gender: gender)}
 
 STYLE
 Complete sentences. No lists, no bullets, no headings, no emoji, no markdown,
@@ -675,6 +729,7 @@ dimensions with the same word. Do not name yourself or refer to being an AI.''',
     required String date,
     required List<({DateTime at, String text})> entries,
     required AppLanguage language,
+    EterGrammaticalGender gender = EterGrammaticalGender.masculine,
   }) {
     return EterPrompt(
       system: '''
@@ -717,7 +772,7 @@ $absence
 
 $safety
 
-${languageFor(language)}
+${languageFor(language, gender: gender)}
 
 Return JSON only: {"story": ..., "digest": {...}}''',
       user: {
@@ -773,6 +828,7 @@ Return JSON only: {"story": ..., "digest": {...}}''',
     required Map<String, Object?> transits,
     required bool ascendantReliable,
     required AppLanguage language,
+    EterGrammaticalGender gender = EterGrammaticalGender.masculine,
     Map<String, Object?> natal = const {},
   }) {
     final provisional = ascendantReliable
@@ -835,7 +891,7 @@ reaching for a contact that is not there.
 
 $safety
 
-${languageFor(language)}
+${languageFor(language, gender: gender)}
 
 Return JSON only: {"passage": ..., "guidanceNote": ...}''',
       user: {...transits, if (natal.isNotEmpty) 'natal': natal},
@@ -1492,6 +1548,7 @@ Return JSON only: {"passage": ...}''',
     required String month,
     required List<String> recalls,
     required List<String> retrospective,
+    EterGrammaticalGender gender = EterGrammaticalGender.masculine,
   }) {
     return EterPrompt(
       system: '''
@@ -1558,7 +1615,7 @@ ${voiceFor(mode)}
 
 $safety
 
-${languageFor(language)}
+${languageFor(language, gender: gender)}
 
 Return JSON only: {"letter": ...}''',
       user: {

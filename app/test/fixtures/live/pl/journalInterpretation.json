@@ -1,0 +1,24 @@
+{
+  "status": "classified",
+  "food": [
+    {
+      "meal": "Dwa jajka w koszulce na żytnim z masłem i flat white",
+      "kcal": 380,
+      "proteinG": 16,
+      "carbsG": 32,
+      "fatG": 20,
+      "confidence": 0.8,
+      "assumptions": [
+        "przyjęto dwie kromki chleba żytniego",
+        "przyjęto standardową porcję masła",
+        "przyjęto flat white na pełnym mleku"
+      ]
+    }
+  ],
+  "lifestyle": [
+    {
+      "kind": "sleep",
+      "note": "Spałem jakieś siedem godzin, budziłem się dwa razy."
+    }
+  ]
+}

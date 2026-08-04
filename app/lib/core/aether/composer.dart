@@ -57,10 +57,16 @@ class AetherComposer {
 
     // From the profile rather than from the caller: guidance composes itself
     // on the day's first look, with no surface involved to pass anything in.
-    final language = AppLanguage.forProfile(
-      (await database.loadProfile())?.language,
+    final profile = await database.loadProfile();
+    final language = AppLanguage.forProfile(profile?.language);
+    final prompt = EterPrompts.guidance(
+      request,
+      language: language,
+      // Polish has to agree with somebody. The profile's own answer where
+      // there is one, and the masculine where there is not — the owner's
+      // rule, and the language's own default.
+      gender: EterGrammaticalGender.forProfileSex(profile?.sex),
     );
-    final prompt = EterPrompts.guidance(request, language: language);
     final raw = await provider.compose(AetherProviderRequest(
       system: prompt.system,
       context: prompt.user.cast<String, Object>(),

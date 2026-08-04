@@ -13,6 +13,27 @@ import 'dart:ui' show Locale, PlatformDispatcher;
 /// no en_GB that spells "kilocalories" differently from en_US, and no pl_PL
 /// distinct from a pl anywhere else. What varies is the language, and the four
 /// codes below are the whole of what the rest of the app needs to know.
+/// Which grammatical gender the model writes the reader in.
+///
+/// English does not need this and Polish cannot avoid it: the past tense
+/// carries gender, so *you slept badly* has to choose an ending before it can
+/// be written at all. The first Polish recording, on 4 August, chose masculine
+/// for a profile that said `other` and then had Eter refer to *itself* in the
+/// feminine two calls later — neither of which anybody decided.
+///
+/// **The owner's rule: where no gender has been chosen, use the masculine.**
+/// It is the same fallback the language itself uses, and it is a decision
+/// rather than a coin toss — which is the whole of what was wrong before.
+enum EterGrammaticalGender {
+  masculine,
+  feminine;
+
+  /// The profile stores `male`, `female` or `other`. Only one of those three
+  /// selects the feminine; `other` and an absent profile take the default.
+  static EterGrammaticalGender forProfileSex(String? sex) =>
+      sex == 'female' ? feminine : masculine;
+}
+
 enum AppLanguage {
   english(
     code: 'en',

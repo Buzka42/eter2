@@ -249,9 +249,11 @@ class JournalDayStoryComposer {
         for (final entry in usable)
           (at: entry.createdAt.toLocal(), text: entry.entryText.trim()),
       ],
-      language: AppLanguage.forProfile(
-        (await database.loadProfile())?.language,
-      ),
+      language: AppLanguage.forProfile(profile?.language),
+      // The story is told back to the person in the second person, which in
+      // Polish cannot be written without a gender. Theirs where they gave one,
+      // the masculine where they did not.
+      gender: EterGrammaticalGender.forProfileSex(profile?.sex),
     );
     final raw = await provider.compose(JournalDayStoryProviderRequest(
       system: prompt.system,

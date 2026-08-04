@@ -1,0 +1,33 @@
+{
+  "synthesis": {
+    "sentences": [
+      "Spokój ułożył się poniżej tego, co przyniosły minione dni, pozostawiając ślad po napięciu.",
+      "Ciało i uwaga potrzebują teraz powrotu do prostego rytmu."
+    ],
+    "primaryAction": "Zaplanuj dziesięć minut całkowitego milczenia w ciągu dnia."
+  },
+  "health": {
+    "sentences": [
+      "Ostatnie noce przyniosły równe, lecz nieco skrócone godziny snu.",
+      "Tętno spoczynkowe i zmienność rytmu serca utrzymują stabilną linię."
+    ],
+    "primaryAction": "Połóż się spać dwadzieścia minut wcześniej niż wczoraj.",
+    "evidence": {
+      }
+  },
+  "mind": {
+    "sentences": [
+      "Praca przy biurku i zbliżający się termin zostawiły ślad w postaci natłoku myśli.",
+      "Uwaga szuka rozproszenia tam, gdzie potrzebuje odpoczynku."
+    ],
+    "primaryAction": "Odłóż telefon na godzinę przed planowanym snem."
+  },
+  "spirit": {
+    "sentences": [
+      "Ten czas uczy przyjmowania zmęczenia bez szukania w nim winy.",
+      "Kierunek wyznacza powolne odbudowywanie wewnętrznej przestrzeni."
+    ],
+    "primaryAction": "Zrób krótką przerwę na spacer bez celu i bez pośpiechu."
+  },
+  "recall": "długi tydzień. sen skrócony. praca pod terminem. zaoferowano wczesne wyciszenie i spacer."
+}

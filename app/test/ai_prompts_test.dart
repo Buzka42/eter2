@@ -584,6 +584,75 @@ void main() {
       }
     });
 
+    group('grammatical gender, which only Polish needs', () {
+      // Polish marks gender on the past tense, so "you slept badly" cannot be
+      // written without choosing an ending. The first Polish recording chose
+      // masculine for the reader on one call and feminine for *Eter* two calls
+      // later — neither decided by anybody. The owner's rule is to agree with
+      // the profile, and to use the masculine where no answer was given.
+      test('English is told nothing about it, because it has none', () {
+        for (final gender in EterGrammaticalGender.values) {
+          expect(
+            EterPrompts.languageFor(AppLanguage.english, gender: gender),
+            isNot(contains('GRAMMATICAL GENDER')),
+          );
+        }
+      });
+
+      test('Polish is told which one, and only one', () {
+        final masculine = EterPrompts.languageFor(
+          AppLanguage.polish,
+          gender: EterGrammaticalGender.masculine,
+        );
+        expect(masculine, contains('GRAMMATICAL GENDER'));
+        expect(masculine, contains('in the masculine'));
+        expect(masculine, isNot(contains('in the feminine')));
+
+        final feminine = EterPrompts.languageFor(
+          AppLanguage.polish,
+          gender: EterGrammaticalGender.feminine,
+        );
+        expect(feminine, contains('in the feminine'));
+        expect(feminine, isNot(contains('in the masculine')));
+      });
+
+      test('the masculine is the default, and what "other" resolves to', () {
+        // A profile that never answered, and one that answered `other`, get
+        // the same thing — and it is the same thing the language itself falls
+        // back to. Only `female` selects the feminine.
+        expect(
+          EterGrammaticalGender.forProfileSex(null),
+          EterGrammaticalGender.masculine,
+        );
+        expect(
+          EterGrammaticalGender.forProfileSex('other'),
+          EterGrammaticalGender.masculine,
+        );
+        expect(
+          EterGrammaticalGender.forProfileSex('male'),
+          EterGrammaticalGender.masculine,
+        );
+        expect(
+          EterGrammaticalGender.forProfileSex('female'),
+          EterGrammaticalGender.feminine,
+        );
+        expect(
+          EterPrompts.languageFor(AppLanguage.polish),
+          contains('in the masculine'),
+        );
+      });
+
+      test('it never asks the writing to comment on the reader', () {
+        // Agreement is a property of the grammar. A page that remarked on
+        // somebody's gender because the verb had to agree would be the fix
+        // becoming a worse fault than the thing it fixed.
+        expect(
+          EterPrompts.languageFor(AppLanguage.polish),
+          contains('Nothing you write may state'),
+        );
+      });
+    });
+
     test('changing the instruction bumped the version', () {
       // Stored beside every generated row, so a future reader can tell which
       // instruction produced a passage. v4 is the one that states the language.

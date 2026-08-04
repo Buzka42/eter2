@@ -191,6 +191,7 @@ class LetterComposer {
     final prompt = EterPrompts.letter(
       mode: _mode(profile?.guidanceMode),
       language: AppLanguage.forProfile(profile?.language),
+      gender: EterGrammaticalGender.forProfileSex(profile?.sex),
       month: month,
       recalls: recalls,
       retrospective: retrospective,

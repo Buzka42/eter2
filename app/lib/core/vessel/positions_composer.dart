@@ -146,6 +146,7 @@ class PositionsComposer {
       transits: reading.toJson(),
       ascendantReliable: ascendantReliable,
       language: AppLanguage.forProfile(profile?.language),
+      gender: EterGrammaticalGender.forProfileSex(profile?.sex),
       // Optional so every existing caller and fake keeps working, and so a
       // surface with no chart to hand degrades to the old reading rather than
       // failing. When it is here the reading can say what today is landing on

@@ -37,3 +37,29 @@ argument for this directory:
 And the one that came back after being forbidden since v6: the letter closed
 with **"We saw the short nights return."** `LetterParser` refuses it outright
 now, in both languages, rather than trusting the instruction a fifth time.
+
+## `pl/` — the Polish side, recorded 4 August
+
+The product ships in two languages and only one of them had ever been through
+this. Record it with `--dart-define=ETER_LANGUAGE=pl` and a `pl/` record
+directory; the invented inputs switch to Polish with it, because a Polish user
+writes Polish and a run that reads English and answers in Polish is a case
+nobody has.
+
+What it found, none of which any parser could:
+
+- **The day story addressed the reader as `Obudziłeś się … Miałeś`** — masculine
+  past tense — and the letter, two calls later, had Eter call *itself*
+  `Zobaczyłam`. Polish marks gender on the past tense, so there is no writing
+  the sentence without choosing; nobody had chosen, so every call chose again.
+  The owner's rule is now in `languageFor`: agree with the profile, and use the
+  masculine where no answer was given.
+- **A harness fault that looked exactly like a product fault.** Two of the
+  Vessel's parts came back written in English with only the proper nouns
+  rendered. The cause was this file's own invented profile never setting
+  `language`, and `AppLanguage.forProfile(null)` means *ask the platform*, not
+  *unset* — so the composer was correctly asked for English. Both composers
+  read the language off the profile. If a recording looks like the model
+  ignoring its instructions, check what the profile actually says first.
+
+Nothing here reads Polish for sense automatically. Read it.

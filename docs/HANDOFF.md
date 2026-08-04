@@ -81,8 +81,42 @@ refuse most letters for saying "on Tuesday". A refusal costs a retry; a letter
 is best-effort, is not cached when it fails, and is attempted again the next
 time the Journal opens.
 
-**Still not read by a person:** the Polish side of any of this. Every recording
-above is English, because that is what the smoke test composes.
+**The Polish side was then recorded too — the first time it ever had been.**
+`--dart-define=ETER_LANGUAGE=pl` composes every call in Polish, with Polish
+invented inputs, into `test/fixtures/live/pl/`. Prompt is at **v11** because of
+what it found:
+
+- **Polish marks gender on the past tense**, so *you slept badly* cannot be
+  written without choosing an ending — and nothing had chosen. The day story
+  addressed the reader as *Obudziłeś się … Miałeś*, and two calls later the
+  letter had Eter call **itself** *Zobaczyłam*. Same profile, same run, two
+  decisions nobody made, and the next call would have made them differently.
+  The strings were swept for exactly this on 2 August; nothing had ever swept
+  the model's own prose.
+
+  Gender-neutral Polish was tried first and it works — the impersonal past in
+  `-no`/`-to` is grammatical and genderless — but it reads as a report filed
+  about somebody (*pojawiono się przed budzikiem*), and a whole day's story in
+  it happens to nobody in particular. **The owner's decision: agree, and use
+  the masculine where nothing was selected.** `EterGrammaticalGender` comes off
+  the profile's own answer and the four calls that address the reader carry it;
+  `female` selects the feminine, `male`/`other`/absent all take the masculine.
+  The Vessel's parts are untouched, because their subject is the chart and
+  never "you".
+
+- **One finding was the harness, not the product, and it was convincing.** Two
+  Vessel parts came back in English with only the proper nouns rendered. The
+  cause was the smoke test's invented profile never setting `language`, and
+  `AppLanguage.forProfile(null)` means *ask the platform*, not *unset* — so the
+  composer was correctly asked for English. A theory about where the LANGUAGE
+  block sits in the prompt was built on it and is reverted. If a recording
+  looks like the model ignoring an instruction, check what the profile says
+  first.
+
+**Still unread:** `przeszłeś` appeared in one Polish day story where
+`przeszedłeś` is correct. One wrong stem in five runs, no rule can catch it,
+and it is the reminder that Polish prose here is checked by whoever reads it
+and by nothing else.
 
 ### 3. What has still not been seen by a person or a model
 
@@ -123,7 +157,7 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **879 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **883 tests
 pass, 14 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 2. Schema is at **15**, and the upgrade
@@ -187,7 +221,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 879 pass, 14 skipped
+flutter test          # expect 883 pass, 14 skipped
 flutter analyze       # expect clean
 ```
 
@@ -631,7 +665,9 @@ and the cloud section owns it. `WGLĄD` still does two jobs; leave it until use
 says otherwise, and change the *section* rather than the destination.
 
 **Watch for:** no test reads Polish for sense, so a spliced or ungrammatical
-sentence passes everything. **And it is not only the strings** — the model's own
+sentence passes everything. **And the model's own Polish was recorded for the
+first time on 4 August** — see item 2 at the top. It was choosing a grammatical
+gender for the reader, and a different one for itself, on every call. **And it is not only the strings** — the model's own
 prose is Polish nobody checks either. On 3 August a real reading contained
 *"ten układ tends to ask for harmonizowanie energii"*: five English words inside
 a Polish sentence, lifted verbatim from an instruction that said, in quotation

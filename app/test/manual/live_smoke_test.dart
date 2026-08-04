@@ -59,6 +59,33 @@ const _token = String.fromEnvironment('ETER_AI_TOKEN');
 /// under a name per call so a later run overwrites rather than accumulates.
 const _record = String.fromEnvironment('ETER_RECORD');
 
+/// Which language every call is composed in — `en` by default, `pl` with
+/// `--dart-define=ETER_LANGUAGE=pl`.
+///
+/// The product ships in two and only one of them had ever been recorded. That
+/// is not a small gap: no test in this repository reads Polish for sense, so a
+/// spliced or half-English sentence passes everything, and the model's own
+/// prose is the half nobody checks at all. A real reading once contained "ten
+/// układ tends to ask for harmonizowanie energii" — five English words inside
+/// a Polish sentence, lifted from an instruction that quoted the phrase as an
+/// example.
+const _languageCode = String.fromEnvironment(
+  'ETER_LANGUAGE',
+  defaultValue: 'en',
+);
+
+const _language =
+    _languageCode == 'pl' ? AppLanguage.polish : AppLanguage.english;
+
+/// Whichever of the two the run is composing in.
+///
+/// The free text in this file is what a person wrote and what Eter noted, and
+/// a Polish user writes Polish. Recording Polish output from English input
+/// would be a case nobody has: the model would be translating as well as
+/// reading, which is a different job from the one it does on a phone.
+String _text(String english, String polish) =>
+    _language == AppLanguage.polish ? polish : english;
+
 Future<String> _recorded(String call, Future<String> Function() run) async {
   final raw = await run();
   if (_record.isNotEmpty) {
@@ -159,17 +186,20 @@ Future<String> _guidance(EterAiTransport transport) async {
     journal: [
       AetherJournalContext(
         createdAt: DateTime.utc(2026, 7, 27, 21),
-        text: 'Long week. Slept badly before the deadline and ate at my desk.',
+        text: _text(
+          'Long week. Slept badly before the deadline and ate at my desk.',
+          'Długi tydzień. Spałem źle przed terminem i jadłem przy biurku.',
+        ),
       ),
     ],
   );
   final raw = await TransportAetherProvider(transport).compose(
     AetherProviderRequest(
       system:
-          EterPrompts.guidance(request, language: AppLanguage.english).system,
+          EterPrompts.guidance(request, language: _language).system,
       context: request.toJson(),
       responseSchema:
-          EterPrompts.guidance(request, language: AppLanguage.english)
+          EterPrompts.guidance(request, language: _language)
               .responseSchema
               .cast<String, Object>(),
     ),
@@ -185,14 +215,20 @@ Future<String> _dayStory(EterAiTransport transport) async {
     entries: [
       (
         at: DateTime(2026, 7, 28, 8, 10),
-        text: 'Woke before the alarm. Porridge and black coffee.'
+        text: _text(
+          'Woke before the alarm. Porridge and black coffee.',
+          'Obudziłem się przed budzikiem. Owsianka i czarna kawa.',
+        )
       ),
       (
         at: DateTime(2026, 7, 28, 19, 40),
-        text: 'Ran six kilometres along the river. Legs heavy, head clear.'
+        text: _text(
+          'Ran six kilometres along the river. Legs heavy, head clear.',
+          'Sześć kilometrów wzdłuż rzeki. Ciężkie nogi, jasna głowa.',
+        )
       ),
     ],
-    language: AppLanguage.english,
+    language: _language,
   );
   final raw = await TransportJournalDayStoryProvider(transport).compose(
     JournalDayStoryProviderRequest(
@@ -207,12 +243,16 @@ Future<String> _dayStory(EterAiTransport transport) async {
 
 Future<String> _interpretation(EterAiTransport transport) async {
   final raw = await TransportJournalClassificationProvider(transport).classify(
-    const JournalClassificationRequest(
-      text: 'Two poached eggs on rye with butter, and a flat white. '
-          'Slept about seven hours, woke twice.',
+    JournalClassificationRequest(
+      text: _text(
+        'Two poached eggs on rye with butter, and a flat white. '
+            'Slept about seven hours, woke twice.',
+        'Dwa jajka w koszulce na żytnim z masłem i flat white. '
+            'Spałem jakieś siedem godzin, budziłem się dwa razy.',
+      ),
       source: 'typed',
       responseSchema: journalClassificationSchema,
-      language: AppLanguage.english,
+      language: _language,
     ),
   );
   _parsed(raw, () => const JournalClassificationParser().parse(raw));
@@ -225,13 +265,18 @@ Future<String> _interpretation(EterAiTransport transport) async {
 /// stated weight does not acquire a confidence it never had.
 Future<String> _bodyInterpretation(EterAiTransport transport) async {
   final raw = await TransportJournalClassificationProvider(transport).classify(
-    const JournalClassificationRequest(
-      text: '84.2 on the scale this morning. Easy run along the river, about '
-          'half an hour. Then back squats, 100 kilos for five, three times, '
-          'and pull-ups until they ran out.',
+    JournalClassificationRequest(
+      text: _text(
+        '84.2 on the scale this morning. Easy run along the river, about '
+            'half an hour. Then back squats, 100 kilos for five, three times, '
+            'and pull-ups until they ran out.',
+        '84,2 na wadze dziś rano. Spokojny bieg wzdłuż rzeki, jakieś pół '
+            'godziny. Potem przysiady ze sztangą, 100 kilo na pięć, trzy '
+            'serie, i podciągnięcia do upadku.',
+      ),
       source: 'typed',
       responseSchema: journalClassificationSchema,
-      language: AppLanguage.english,
+      language: _language,
     ),
   );
   final parsed =
@@ -241,8 +286,12 @@ Future<String> _bodyInterpretation(EterAiTransport transport) async {
   expect(parsed.activity, isNotEmpty);
   expect(parsed.activity.first.durationMinutes, inInclusiveRange(20, 40));
   expect(parsed.activity.first.assumptions, isNotEmpty);
-  expect(parsed.strength.map((item) => item.name).join(' ').toLowerCase(),
-      contains('squat'));
+  // The exercise is named in whatever language the call was composed in, so
+  // the check has to be too: `przysiad` is what a Polish run comes back with.
+  expect(
+    parsed.strength.map((item) => item.name).join(' ').toLowerCase(),
+    anyOf(contains('squat'), contains('przysiad')),
+  );
   expect(
     parsed.strength.first.sets.first.loadKg,
     closeTo(100, 0.01),
@@ -312,11 +361,11 @@ Future<String> _vesselReadings(EterAiTransport transport) async {
   );
   final raw = await TransportVesselReadingProvider(transport).compose(
     VesselReadingProviderRequest(
-      system: EterPrompts.vesselReading(request, language: AppLanguage.english)
+      system: EterPrompts.vesselReading(request, language: _language)
           .system,
       context: request.toJson(),
       responseSchema:
-          EterPrompts.vesselReading(request, language: AppLanguage.english)
+          EterPrompts.vesselReading(request, language: _language)
               .responseSchema
               .cast<String, Object>(),
     ),
@@ -340,6 +389,7 @@ Future<String> _vesselThroughComposer(EterAiTransport transport) async {
     weightKg: 70,
     units: 'metric',
     aiConsentAt: Value(DateTime.utc(2026, 7, 28)),
+    language: Value(_language.code),
   ));
   // A birth time, because nothing is composed without one: a chart cast at
   // noon would be read once and cached for life against angles nobody has.
@@ -396,6 +446,12 @@ Future<String> _vesselPart(
     weightKg: 70,
     units: 'metric',
     aiConsentAt: Value(DateTime.utc(2026, 8, 4)),
+    // Both composers read the language off the *profile*, not off a parameter
+    // — `AppLanguage.forProfile(profile?.language)`. Leaving it null is not
+    // "unset", it is "ask the platform", so a Polish run through this path was
+    // silently composing in English and the recordings looked like the model
+    // ignoring its instructions. It was not.
+    language: Value(_language.code),
   ));
   await database.updateBirthContext(
     birthTimeMinutes: 6 * 60 + 45,
@@ -408,8 +464,8 @@ Future<String> _vesselPart(
 
   final request = buildChartReadingRequest(
     profile: (await database.loadProfile())!,
-    strings: EterStrings.forLanguage(AppLanguage.english),
-    content: await SymbolContent.load(language: AppLanguage.english),
+    strings: EterStrings.forLanguage(_language),
+    content: await SymbolContent.load(language: _language),
   );
   expect(request, isNotNull, reason: 'the request would not build');
   expect(request!.houses, hasLength(12), reason: 'no houses to read');
@@ -455,7 +511,7 @@ Future<String> _positions(EterAiTransport transport) async {
     mode: GuidanceMode.balanced,
     transits: reading.toJson(),
     ascendantReliable: true,
-    language: AppLanguage.english,
+    language: _language,
   );
   final raw = await TransportPositionsProvider(transport).compose(
     PositionsProviderRequest(
@@ -484,24 +540,46 @@ Future<String> _positions(EterAiTransport transport) async {
 Future<String> _letter(EterAiTransport transport) async {
   final prompt = EterPrompts.letter(
     mode: GuidanceMode.balanced,
-    language: AppLanguage.english,
+    language: _language,
     month: '2026-06',
-    recalls: const [
-      'third short night. hrv down. deadline friday. offered early wind-down.',
-      'slept 8h. hrv recovering. lighter mood. suggested keeping the evening.',
-      'no movement logged. wrote about a hard conversation.',
-      'long walk. steps double the week. said it felt like clearing.',
-      'short night again. same week pattern as before the deadline.',
-      'rest day taken deliberately. first time this month.',
-      'steady. nothing to flag.',
-    ],
-    retrospective: const [
-      'Movement was recorded on 22 of 30 days, 9100 steps across 22 measured '
-          'days.',
-      'Sleep was available for 19 of 30 nights, averaging 6.8 hours.',
-      'You made 11 journal entries during this window.',
-      'Missing days are omitted, not treated as zero.',
-    ],
+    recalls: _language == AppLanguage.polish
+        ? const [
+            'trzecia krótka noc. hrv w dół. termin w piątek. '
+                'zaproponowane wcześniejsze wyciszenie.',
+            'przespane 8h. hrv wraca. lżejszy nastrój. '
+                'zasugerowane zachowanie wieczoru.',
+            'brak zapisanego ruchu. wpis o trudnej rozmowie.',
+            'długi spacer. kroki podwojone względem tygodnia. '
+                'zapisane jako oczyszczenie.',
+            'znowu krótka noc. ten sam wzór co przed terminem.',
+            'dzień odpoczynku wzięty świadomie. pierwszy raz w tym miesiącu.',
+            'spokojnie. nic do odnotowania.',
+          ]
+        : const [
+            'third short night. hrv down. deadline friday. offered early '
+                'wind-down.',
+            'slept 8h. hrv recovering. lighter mood. suggested keeping the '
+                'evening.',
+            'no movement logged. wrote about a hard conversation.',
+            'long walk. steps double the week. said it felt like clearing.',
+            'short night again. same week pattern as before the deadline.',
+            'rest day taken deliberately. first time this month.',
+            'steady. nothing to flag.',
+          ],
+    retrospective: _language == AppLanguage.polish
+        ? const [
+            'Ruch zapisano w 22 z 30 dni, 9100 kroków w 22 zmierzonych dniach.',
+            'Sen był dostępny dla 19 z 30 nocy, średnio 6,8 godziny.',
+            'W tym oknie powstało 11 wpisów w dzienniku.',
+            'Brakujące dni są pomijane, nie liczone jako zero.',
+          ]
+        : const [
+            'Movement was recorded on 22 of 30 days, 9100 steps across 22 '
+                'measured days.',
+            'Sleep was available for 19 of 30 nights, averaging 6.8 hours.',
+            'You made 11 journal entries during this window.',
+            'Missing days are omitted, not treated as zero.',
+          ],
   );
   final raw = await TransportLetterProvider(transport).compose(
     LetterProviderRequest(
@@ -511,6 +589,6 @@ Future<String> _letter(EterAiTransport transport) async {
     ),
   );
   // The real parser, including the safety policy and the "we" wall.
-  const LetterParser().parse(raw, language: AppLanguage.english);
+  const LetterParser().parse(raw, language: _language);
   return raw;
 }
