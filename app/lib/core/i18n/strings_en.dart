@@ -1713,7 +1713,8 @@ class EterStringsEn extends EterStrings {
   String get importFromAnotherApp => 'Read a file';
   @override
   String foreignImportDone({required String app, required int records}) =>
-      '$records brought across from $app.';
+      '$records ${records == 1 ? 'record' : 'records'} brought across '
+      'from $app.';
   @override
   String foreignImportNothingNew(String app) =>
       'Everything in that $app file was already here.';

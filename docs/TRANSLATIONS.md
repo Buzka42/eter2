@@ -562,6 +562,14 @@ explains why translating one would break the symbolic engine.
 | `localImportNewerVersion` | That export came from a newer Eter. Update this one first. | Ten eksport pochodzi z nowszego Eteru. Najpierw zaktualizuj ten. |
 | `localImportDeviceHasHistory` | This device already has history, so nothing was restored. | To urządzenie ma już historię, więc nic nie zostało przywrócone. |
 | `localImportFailed` | That file could not be read. Nothing was changed. | Nie udało się odczytać tego pliku. Nic nie zostało zmienione. |
+| `headingForeignImport` | BRING ANOTHER APP’S RECORD | ZAPIS Z INNEJ APLIKACJI |
+| `foreignImportNote` | Eter reads an export from Daylio, Bearable or Apple Health. What comes across is added to what you already have — the same file twice changes nothing the second time. | Eter czyta eksport z Daylio, Bearable albo Apple Health. To, co przyjdzie, dopisuje się do tego, co już masz — ten sam plik drugi raz niczego nie zmienia. |
+| `importFromAnotherApp` | Read a file | Wczytaj plik |
+| `foreignImportDone()` | $records ${records == 1 ? : } brought across from $app. | Przeniesiono $records ${_zapisy(records)} z $app. |
+| `foreignImportNothingNew()` | Everything in that $app file was already here. | Wszystko z tego pliku ($app) już tu było. |
+| `foreignImportLeftBehind()` | Not brought across: $what. | Nie przeniesiono: $what. |
+| `foreignImportUnknownFile` | Eter does not read that file. It reads an export from Daylio, Bearable or Apple Health. | Eter nie czyta tego pliku. Czyta eksport z Daylio, Bearable albo Apple Health. |
+| `foreignImportZipNote` | Apple Health exports a zip. Unpack it first and choose export.xml. | Apple Health eksportuje archiwum zip. Rozpakuj je i wybierz export.xml. |
 | `headingEveningInvitation` | AN EVENING INVITATION | WIECZORNE ZAPROSZENIE |
 | `eveningInvitationOffDetail` | Eter never speaks first. Nothing arrives unless you open it. | Eter nigdy nie odzywa się pierwszy. Nic nie przyjdzie, dopóki go nie otworzysz. |
 | `eveningInvitationAllowedDetail` | One quiet invitation to write, at your own sunset — or at eight, if Eter does not know where you are. Not if you have already written that day, and nothing else: no mornings, no streaks, no reminders to come back. | Jedno ciche zaproszenie do pisania, o twoim zachodzie słońca — albo o dwudziestej, jeśli Eter nie wie, gdzie jesteś. Nie w dniu, w którym już piszesz, i nic poza tym: żadnych poranków, serii ani przypomnień, żeby wrócić. |
@@ -578,4 +586,4 @@ explains why translating one would break the symbolic engine.
 
 ---
 
-480 strings paired.
+488 strings paired.

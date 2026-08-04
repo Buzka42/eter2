@@ -1914,7 +1914,7 @@ class EterStringsPl extends EterStrings {
   String get importFromAnotherApp => 'Wczytaj plik';
   @override
   String foreignImportDone({required String app, required int records}) =>
-      'Przeniesiono $records z $app.';
+      'Przeniesiono $records ${_zapisy(records)} z $app.';
   @override
   String foreignImportNothingNew(String app) =>
       'Wszystko z tego pliku ($app) już tu było.';
