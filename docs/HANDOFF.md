@@ -7,7 +7,84 @@ the product owner has settled, then the specific document each task names.
 
 ---
 
-## Pick up here · 4 August
+## Pick up here · 4–5 August, after a long session with the phone attached
+
+Everything below the horizontal rule was written before a device was in hand.
+**Read this part first**: a phone found nine things in one evening that nothing
+in this repository could, and two of them had been wrong for months.
+
+### What the phone corrected
+
+1. **"Twice the size" never meant the font.** The instruction of 3 August was
+   read as font size and `displayMedium` went to 68 pt. Ten minutes on a real
+   screen ended it — four words filled the phone. It meant twice the *length*.
+   Type is back at the theme's size; the synthesis is three sentences and the
+   three dimensions four to six. **Widening the ceiling alone did nothing**: a
+   model asked for "up to six" wrote two, and the length had to be required.
+2. **Guidance broke a word in half** — *tętno spocz / ynkowe*. Flutter does not
+   hyphenate, and a word wider than its line is broken wherever the engine runs
+   out of room, with no overflow and so no error. `core/type_fitting.dart` sets
+   the passage against its own longest word.
+3. **`EterArrival` ignored the reader's font size** — a bare `RichText` does not
+   scale. The one passage this product exists to deliver was the only prose in
+   the app that did not respect the system setting.
+4. **Recomposing a day only half worked.** `AGAIN` writes four rows; the surface
+   showed the new synthesis above the *old* health, mind and spirit, because a
+   map comprehension over newest-first rows keeps the oldest.
+   `eterNewestByDimension` is a named function so the comprehension cannot come
+   back, and its test fails against the old code.
+5. **Every modal route was in English.** `EterStringsScope` was installed as
+   `MaterialApp.home` — and `home` is a *route*, so anything pushed on top of it
+   inherits nothing. The Journal's History sheet came up HISTORY / CLOSE /
+   "Tuesday 4 August" on a Polish phone. It is on `builder` now, which wraps
+   every route. `modal_language_test.dart` keeps the old shape as a test so the
+   reason cannot be undone by accident.
+6. **The burn figure was resting alone.** Health Connect gave 22,720 steps
+   across three days and zero active kilocalories — the step counter is the
+   handset's and nothing on it writes `ActiveCaloriesBurned`. Steps become
+   energy now where nothing measured any, **per minute** so a logged session
+   never costs the day its walking and never double-counts its own steps. On
+   the owner's data 4 August went from 2,031 to 2,385.
+7. **The model was estimating training energy for nobody.** It now receives
+   weight, height, body fat, age and sex — owner's decision, and a change to
+   what crosses the boundary. Live: *"Easy run along the river, 30 min,
+   310 kcal — assumed an easy pace for 30 minutes for 88 kg at 10% fat."*
+8. **A planet does not stand against itself.** A reading said "the approaching
+   configuration between Jupiter and Jupiter". That is a return.
+9. **The widget went blank after an install** — which is what a store update
+   would do to everyone who had one. The activity refreshes it on open.
+
+### What the phone proved
+
+- **The Vessel's six parts**, drawn for the first time: the wheel with its house
+  band, ASC and MC in their own lane, the Moon leading at full width, twelve
+  house cards, the figure with its passages. **The loop budget holds on the
+  longer column** — 4 decoders held mid-scroll, 3 after a long one, cap 6.
+- **The home-screen widget, end to end.** Placed on a launcher, showing today's
+  sentence. **Speak** opens Eter on the Journal already listening; **Write**
+  opens it with the keyboard up (`mIsInputViewShown=true`). Owner's decision to
+  add the two controls; the file argues the opposite case and says so.
+- **Reading another app's export, on a device.** A Daylio file pushed to
+  Downloads, picked through the real unfiltered picker: *"Przeniesiono 10
+  zapisów z Daylio."* Read it again: *"Wszystko z tego pliku (Daylio) już tu
+  było."*
+- **Guidance at four sentences a dimension**, using the room for what it was
+  meant for: *"Rejestr snu oraz tętna spoczynkowego milczy"* — it states the
+  silence rather than filling it.
+
+### Still not proven
+
+- The three invitation checks a test cannot do: write during the day → that
+  evening stays silent; turn it off → anything pending disappears; reboot →
+  that evening survives.
+- Bearable and Apple Health on a device. No real export from any of the three
+  has ever been read; Daylio's columns are exact, Bearable's value formats are
+  inferred.
+- The iOS widget. It does not exist and cannot be built without a Mac.
+
+---
+
+## Written before the phone · 4 August
 
 Everything is committed and green. **All of the code asked for is written.**
 What is left is device work, reading, and owner-only work.
@@ -157,7 +234,7 @@ it.
 
 ---
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **991 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **1028 tests
 pass, 14 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 2. Schema is at **15**, and the upgrade
@@ -221,7 +298,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 991 pass, 14 skipped
+flutter test          # expect 1028 pass, 14 skipped
 flutter analyze       # expect clean
 ```
 
@@ -1179,6 +1256,36 @@ callingPack=com.eterhealth.eter`. Both sites now pass
 `VideoPlayerOptions(mixWithOthers: true)`. If a third video is ever added, it
 needs the same option, and the check is: launch, then
 `adb logcat -d | grep requestAudioFocus` — it must find nothing.
+
+**A scope on `MaterialApp.home` is a scope no pushed route can see.** `home` is
+a route, and a modal sheet or dialog is its *sibling* rather than its child, so
+it inherits nothing. `EterStringsScope` sat there, and `EterStrings.of`
+documents its own fallback as English — so the Journal's History sheet came up
+HISTORY / CLOSE / "Tuesday 4 August" on a Polish phone, silently, for as long as
+the sheet has existed. It is on `builder` now, which wraps every route the
+Navigator shows. No test could see it because a widget test pumps a sheet under
+whatever scope it likes; `modal_language_test.dart` pushes one the way the app
+does, and keeps the old shape as a test of its own.
+
+**Flutter does not hyphenate, and a broken word is not an overflow.** A word
+wider than its line is broken wherever the engine runs out of room — no hyphen,
+no error, because nothing overflowed. Real Polish guidance at 68 pt read "tętno
+spocz / ynkowe" and every golden was clean, because the word came from the model
+rather than from a fixture. `core/type_fitting.dart` sizes a passage against its
+own longest word, and holds back a logical pixel: fitting a word to *exactly*
+the line width still breaks it.
+
+**`RichText` does not scale with the reader's setting.** `Text` does; `RichText`
+is not a `Text`. `EterArrival` is built of `RichText`, so the product's most
+important passage was the only prose in the app that ignored the system font
+size — in both directions, and a phone set to 85 % rendered it at 100 % while
+every measurement of it assumed otherwise.
+
+**A map comprehension keeps the last of each key.** `{for (final row in rows)
+row.dimension: row}` over rows that arrive *newest first* keeps the **oldest** of
+each dimension. That is how recomposing a day updated the synthesis and left
+health, mind and spirit showing the earlier reasoning. If a list is ordered and
+you want the first of each key, write the loop.
 
 **A surface below the fold is a surface no capture draws.** A `ListView` builds
 nothing it cannot see, and the Sanctum's goldens photograph what is on screen —
