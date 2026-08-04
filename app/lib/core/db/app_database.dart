@@ -1130,6 +1130,41 @@ class AppDatabase extends _$AppDatabase {
   ///
   /// Derived rows carry `journalEntryId` in their metadata, which is what
   /// makes a reading revocable rather than merely regrettable.
+  /// The nutrition rows a journal page produced.
+  ///
+  /// Matched on the `journalEntryId` in each row's metadata, which is what
+  /// `applyJournalClassification` writes and what `revertJournalEntryRows`
+  /// already deletes on. There is no column to index, so this scans — the
+  /// table holds one row per meal per day and the Journal asks for one page at
+  /// a time.
+  Future<List<NutritionEntryRow>> loadNutritionForJournalEntry(
+    int journalEntryId,
+  ) async {
+    final rows = await select(nutritionEntries).get();
+    return [
+      for (final row in rows)
+        if (_decodeMetadata(row.metadataJson)['journalEntryId'] ==
+            journalEntryId)
+          row,
+    ];
+  }
+
+  /// Marks a derived estimate as agreed to, so it counts toward the day.
+  ///
+  /// The Body can also correct the figures; this is the plain yes for somebody
+  /// who is looking at the page the food came from and has nothing to change.
+  Future<void> confirmNutritionEntry(int id) async {
+    await transaction(() async {
+      final existing = await (select(nutritionEntries)
+            ..where((row) => row.id.equals(id)))
+          .getSingleOrNull();
+      if (existing == null || existing.confirmed) return;
+      await (update(nutritionEntries)..where((row) => row.id.equals(id)))
+          .write(const NutritionEntriesCompanion(confirmed: Value(true)));
+      await _refreshDayIntake(existing.recordedAt);
+    });
+  }
+
   Future<void> revertJournalEntryRows(int journalEntryId) async {
     await transaction(() async {
       final nutrition = await select(nutritionEntries).get();

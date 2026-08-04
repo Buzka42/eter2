@@ -1250,6 +1250,15 @@ class _JournalPassageState extends ConsumerState<_JournalPassage> {
               ),
             ],
           ),
+          // The food Eter derived from this page, waiting to be agreed to.
+          //
+          // It used to be reviewable only in the Body, which is the wrong
+          // place: by the time somebody is looking at a balance they have left
+          // the page, and what they can still remember is what was on the
+          // plate. So the prompt appears here, under the words it came from.
+          // Correcting the figures stays in the Body, which is what that
+          // surface is for.
+          if (interpreted) _DerivedMeals(db: widget.db, entryId: widget.entry.id),
           if (question != null) ...[
             Text(question, style: text.bodyMedium),
             const SizedBox(height: EterSpace.s4),
@@ -1805,6 +1814,84 @@ class _LetterArrivalState extends ConsumerState<_LetterArrival> {
                 onPressed: () => unawaited(db.markLetterRead(row.month)),
               ),
               Container(height: 1, width: 64, color: ink.line),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The unconfirmed meals a page produced, and the plain yes for each.
+///
+/// Only the unconfirmed ones. A meal already agreed to belongs to the day's
+/// balance and has no business asking again on the page it came from.
+class _DerivedMeals extends StatefulWidget {
+  const _DerivedMeals({required this.db, required this.entryId});
+
+  final AppDatabase db;
+  final int entryId;
+
+  @override
+  State<_DerivedMeals> createState() => _DerivedMealsState();
+}
+
+class _DerivedMealsState extends State<_DerivedMeals> {
+  late Future<List<NutritionEntryRow>> _meals = _load();
+
+  Future<List<NutritionEntryRow>> _load() =>
+      widget.db.loadNutritionForJournalEntry(widget.entryId);
+
+  Future<void> _confirm(int id) async {
+    await widget.db.confirmNutritionEntry(id);
+    if (mounted) setState(() => _meals = _load());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
+    final strings = EterStrings.of(context);
+    return FutureBuilder<List<NutritionEntryRow>>(
+      future: _meals,
+      builder: (context, snapshot) {
+        final waiting = (snapshot.data ?? const <NutritionEntryRow>[])
+            .where((meal) => !meal.confirmed)
+            .toList();
+        if (waiting.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: EterSpace.s8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final meal in waiting)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: EterSpace.s4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          strings.derivedMealPrompt(
+                            meal: meal.meal,
+                            kcal: meal.kcal.round(),
+                          ),
+                          style: text.labelSmall?.copyWith(color: ink.lineStrong),
+                        ),
+                      ),
+                      const SizedBox(width: EterSpace.s8),
+                      _GlyphAction(
+                        label: strings.confirm,
+                        semanticLabel: strings.confirmMealSemantic,
+                        color: ink.lineStrong,
+                        onTap: () => unawaited(_confirm(meal.id)),
+                      ),
+                    ],
+                  ),
+                ),
+              Text(
+                strings.correctInBody,
+                style: text.labelSmall?.copyWith(color: ink.labelMuted),
+              ),
             ],
           ),
         );

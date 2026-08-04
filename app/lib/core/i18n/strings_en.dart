@@ -274,6 +274,16 @@ class EterStringsEn extends EterStrings {
   String get fieldKcal => 'kcal';
 
   @override
+  String derivedMealPrompt({required String meal, required int kcal}) =>
+      '$meal · about $kcal kcal';
+
+  @override
+  String get confirmMealSemantic => 'confirm this meal';
+
+  @override
+  String get correctInBody => 'The figures can be corrected in the Body.';
+
+  @override
   String get fieldProteinG => 'protein g';
 
   @override

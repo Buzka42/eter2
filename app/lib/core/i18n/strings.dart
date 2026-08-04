@@ -202,6 +202,13 @@ abstract class EterStrings {
 
   String get fieldKcal;
 
+  /// The prompt under a page whose food Eter estimated. It appears where the
+  /// page was written rather than in the Body, because this is where the
+  /// person can still remember what was on the plate.
+  String derivedMealPrompt({required String meal, required int kcal});
+  String get confirmMealSemantic;
+  String get correctInBody;
+
   /// Macronutrient field labels, in grams. Short because three of them sit in
   /// one row beside the calories.
   String get fieldProteinG;
