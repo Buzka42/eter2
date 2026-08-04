@@ -4,6 +4,7 @@ import '../arcana/major_arcana.dart';
 import '../arcana/zodiac.dart';
 import '../clock.dart';
 import '../db/app_database.dart';
+import '../health/macro_targets.dart';
 import '../health/sleep_totals.dart';
 import '../patterns/local_pattern_discovery.dart';
 import '../patterns/pattern_sweep.dart';
@@ -148,6 +149,56 @@ class AetherContextAssembler {
       digests.add(AetherJournalDigest(localDate: row.date, points: points));
     }
 
+    // What was eaten, and the floors it is measured against.
+    //
+    // Confirmed rows only. An unconfirmed estimate is a guess the person has
+    // not agreed to yet, and the brief is explicit that it must not count
+    // toward any total — sending it here would put it into the reasoning by
+    // the back door.
+    final nutrition = await database.loadNutritionForRange(
+      firstDay,
+      localNow.add(const Duration(days: 1)),
+    );
+    final intakeByDate = <String, List<NutritionEntryRow>>{};
+    for (final row in nutrition.where((row) => row.confirmed)) {
+      intakeByDate
+          .putIfAbsent(eterIsoDate(row.recordedAt.toLocal()), () => [])
+          .add(row);
+    }
+    double? sum(List<NutritionEntryRow> rows, double? Function(NutritionEntryRow) of) {
+      final values = [for (final row in rows) if (of(row) case final value?) value];
+      // Absent, not zero: if no row on the day carried this macronutrient,
+      // Eter was not told what it was.
+      return values.isEmpty ? null : values.reduce((a, b) => a + b);
+    }
+
+    final intake = <AetherIntakeContext>[];
+    for (final entry in intakeByDate.entries) {
+      intake.add(AetherIntakeContext(
+        localDate: entry.key,
+        kcal: sum(entry.value, (row) => row.kcal),
+        proteinG: sum(entry.value, (row) => row.proteinG),
+        carbsG: sum(entry.value, (row) => row.carbsG),
+        fatG: sum(entry.value, (row) => row.fatG),
+      ));
+    }
+    intake.sort((a, b) => a.localDate.compareTo(b.localDate));
+
+    // The floors only exist where there is resistance training in the window.
+    final strength = await database.loadStrengthWorkoutsSince(firstDay.toUtc());
+    final targets = macroTargetsFor(
+      weightKg: profile.weightKg,
+      hasStrengthWork: strength.isNotEmpty,
+      recentDays: [
+        for (final day in intake)
+          MacroDay(
+            date: day.localDate,
+            proteinG: day.proteinG,
+            fatG: day.fatG,
+          ),
+      ],
+    );
+
     return requestBuilder.build(
       aiConsented: profile.aiConsentAt != null,
       journalConsented: profile.journalAiConsentAt != null,
@@ -155,6 +206,16 @@ class AetherContextAssembler {
       mode: _mode(profile.guidanceMode),
       leansSymbolic: leansSymbolic,
       health: health,
+      intake: intake,
+      macroFloors: targets.appliesBecauseOfStrength
+          ? AetherMacroFloors(
+              proteinG: targets.proteinG,
+              fatG: targets.fatG,
+              shortfallDays: targets.shortfallDays,
+              recordedDays: targets.recordedDays,
+              lean: targets.shouldLean,
+            )
+          : null,
       patterns: [for (final row in patterns) _pattern(row)],
       lifestyle: [
         for (final row in lifestyle)

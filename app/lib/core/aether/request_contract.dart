@@ -211,6 +211,82 @@ class AetherJournalDigest {
       };
 }
 
+/// What was eaten, and what this body's floors are.
+///
+/// Guidance carried steps, active calories, sleep, resting heart rate and HRV
+/// — and nothing at all about food. So the one thing a person logs by hand
+/// every day was the one thing the day's reading could not mention, and the
+/// protein and fat floors had nowhere to be read from.
+///
+/// Every figure here is nullable and null means **not recorded**, never zero.
+/// A day nobody logged is a day Eter knows nothing about; the difference
+/// between "ate no protein" and "did not say" is the difference between a true
+/// sentence and a false one.
+class AetherIntakeContext {
+  const AetherIntakeContext({
+    required this.localDate,
+    this.kcal,
+    this.proteinG,
+    this.carbsG,
+    this.fatG,
+  });
+
+  final String localDate;
+  final double? kcal;
+  final double? proteinG;
+  final double? carbsG;
+  final double? fatG;
+
+  /// Whether anything at all was logged. A day with no entries is absent from
+  /// the reasoning rather than present as a row of zeroes.
+  bool get recorded =>
+      kcal != null || proteinG != null || carbsG != null || fatG != null;
+
+  Map<String, Object?> toJson() => {
+        'localDate': localDate,
+        if (kcal != null) 'kcal': double.parse(kcal!.toStringAsFixed(0)),
+        if (proteinG != null)
+          'proteinG': double.parse(proteinG!.toStringAsFixed(0)),
+        if (carbsG != null) 'carbsG': double.parse(carbsG!.toStringAsFixed(0)),
+        if (fatG != null) 'fatG': double.parse(fatG!.toStringAsFixed(0)),
+        'recorded': recorded,
+      };
+}
+
+/// The floors this body is measured against, when it lifts.
+///
+/// Sent only when there is strength work in the record: the floors exist
+/// because resistance training raises the protein a body can use, and pressing
+/// them on somebody who does not lift is dietary advice nobody asked for.
+class AetherMacroFloors {
+  const AetherMacroFloors({
+    required this.proteinG,
+    required this.fatG,
+    required this.shortfallDays,
+    required this.recordedDays,
+    required this.lean,
+  });
+
+  final int proteinG;
+  final int fatG;
+
+  /// Counted over recorded days only — a day nobody logged has not missed
+  /// anything.
+  final int shortfallDays;
+  final int recordedDays;
+
+  /// Whether recent days fell short often enough to be worth saying firmly.
+  final bool lean;
+
+  Map<String, Object?> toJson() => {
+        'proteinG': proteinG,
+        'fatG': fatG,
+        'shortfallDays': shortfallDays,
+        'recordedDays': recordedDays,
+        'lean': lean,
+      };
+}
+
 class AetherRequest {
   const AetherRequest({
     required this.schemaVersion,
@@ -220,6 +296,8 @@ class AetherRequest {
     required this.journal,
     required this.contextFingerprint,
     this.symbolic,
+    this.intake = const [],
+    this.macroFloors,
     this.digests = const [],
     this.patterns = const [],
     this.lifestyle = const [],
@@ -239,6 +317,14 @@ class AetherRequest {
   /// Absent when the chart could not be calculated — guidance still composes,
   /// with the measured half only, and the prompt is told so.
   final AetherSymbolicContext? symbolic;
+
+  /// What was eaten over the window, newest last. Empty when nothing was
+  /// logged at all, which the prompt is told to read as silence.
+  final List<AetherIntakeContext> intake;
+
+  /// The protein and fat floors, when there is strength work to justify them.
+  /// Null otherwise, and the prompt then says nothing about macronutrients.
+  final AetherMacroFloors? macroFloors;
 
   /// Whether the sky is the louder half tonight.
   ///
@@ -294,6 +380,9 @@ class AetherRequest {
         'ageYears': ageYears,
         if (bodyFatPercent != null) 'bodyFatPercent': bodyFatPercent!,
         'health': health.map((item) => item.toJson()).toList(),
+        if (intake.isNotEmpty)
+          'intake': intake.map((item) => item.toJson()).toList(),
+        if (macroFloors != null) 'macroFloors': macroFloors!.toJson(),
         if (symbolic != null) 'symbolic': symbolic!.toJson(),
         if (digests.isNotEmpty)
           'journalDigests': digests.map((item) => item.toJson()).toList(),
@@ -343,6 +432,8 @@ class AetherRequestBuilder {
     List<AetherPatternContext> patterns = const [],
     List<AetherLifestyleContext> lifestyle = const [],
     List<AetherRecallContext> recalled = const [],
+    List<AetherIntakeContext> intake = const [],
+    AetherMacroFloors? macroFloors,
     double? bodyFatPercent,
   }) {
     if (!aiConsented) {
@@ -421,6 +512,10 @@ class AetherRequestBuilder {
       'ageYears': ageYears,
       if (bodyFatPercent != null) 'bodyFatPercent': bodyFatPercent,
       'health': health.map((item) => item.toJson()).toList(),
+      // In the fingerprint: confirming a meal changes what the day is working
+      // from, so it should recompose rather than be noticed tomorrow.
+      'intake': intake.map((item) => item.toJson()).toList(),
+      if (macroFloors != null) 'macroFloors': macroFloors.toJson(),
       if (symbolic != null) 'symbolic': symbolic.toJson(),
       'journalDigests': digestPayload.map((item) => item.toJson()).toList(),
       'journal': prose,
@@ -445,6 +540,13 @@ class AetherRequestBuilder {
       patterns: List.unmodifiable(bounded),
       lifestyle: List.unmodifiable(reports),
       recalled: List.unmodifiable(memory),
+      // Days with nothing logged are dropped rather than sent as empty rows.
+      // A silent day is silence, and a row of nulls invites the model to read
+      // it as a day of nothing eaten.
+      intake: List.unmodifiable(
+        intake.where((day) => day.recorded).toList(),
+      ),
+      macroFloors: macroFloors,
       bodyFatPercent: bodyFatPercent,
       journalTruncated: truncated,
       leansSymbolic: leansSymbolic,

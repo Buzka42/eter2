@@ -798,6 +798,34 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// Every nutrition row in a half-open local range, for the assembler.
+  ///
+  /// A `Future` beside the existing stream: guidance assembles once and has no
+  /// use for a subscription, and awaiting `.first` on a watch would leave the
+  /// query open.
+  Future<List<NutritionEntryRow>> loadNutritionForRange(
+    DateTime startLocal,
+    DateTime endLocal,
+  ) =>
+      (select(nutritionEntries)
+            ..where((row) =>
+                row.recordedAt.isBiggerOrEqualValue(startLocal.toUtc()) &
+                row.recordedAt.isSmallerThanValue(endLocal.toUtc()))
+            ..orderBy([(row) => OrderingTerm.asc(row.recordedAt)]))
+          .get();
+
+  /// Strength sessions that ended on or after [sinceUtc].
+  ///
+  /// Only used to answer "does this person lift", which is what decides
+  /// whether the protein and fat floors are advised at all.
+  Future<List<StrengthWorkoutRow>> loadStrengthWorkoutsSince(
+    DateTime sinceUtc,
+  ) =>
+      (select(strengthWorkouts)
+            ..where((row) => row.endedAt.isBiggerOrEqualValue(sinceUtc))
+            ..orderBy([(row) => OrderingTerm.desc(row.endedAt)]))
+          .get();
+
   Stream<List<NutritionEntryRow>> watchNutritionForRange(
     DateTime startUtc,
     DateTime endUtc,
