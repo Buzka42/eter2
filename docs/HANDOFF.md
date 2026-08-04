@@ -5,7 +5,7 @@ Written 30 July – 1 August 2026 across three long sessions on branch
 Read this first if you are picking the work up cold; then `DECISIONS.md` for what
 the product owner has settled, then the specific document each task names.
 
-**State of the tree:** nothing uncommitted. `flutter analyze` clean. **841 tests
+**State of the tree:** nothing uncommitted. `flutter analyze` clean. **854 tests
 pass, 10 skipped** — the skips are the live-provider suite, which needs the
 endpoint token, and one manual test that needs an export file. The live suite
 *has* been run and passes; see item 3. Schema is at **15**, and the upgrade
@@ -69,7 +69,7 @@ noticing on its own: the fallback fired last time because the profile carried
 
 ```bash
 cd app
-flutter test          # expect 841 pass, 10 skipped
+flutter test          # expect 854 pass, 10 skipped
 flutter analyze       # expect clean
 ```
 
@@ -387,7 +387,39 @@ refuses anything past 3000 characters, which is right for a day's reading and
 wrong for a synopsis the owner asked to be **the longest part of the surface**.
 Every rule that is about safety still applies; only the brevity rule is dropped.
 
-### What is left, and it is only the surface
+**Done — Positions reads the sky against the chart.** The menu stays; it was
+writing horoscope. It had the contacts and nothing about the chart being
+contacted, so it could name a transit and not say what it landed on. Two things
+it never had: **retrograde motion**, computed per position all along and thrown
+away before the request was built — the one fact a person is most likely to
+already know about today's sky was the one it could not mention — and the natal
+chart itself. `core/vessel/positions_natal.dart` supplies placements with their
+houses, the twelve houses, and **which of this person's houses today's bodies
+are crossing**, which is the join that was missing. Houses are offered only when
+the angles are real, because "in your house of work" derived from a noon guess
+would be cached and wrong.
+
+**Done — the protein and fat floors** (`core/health/macro_targets.dart`).
+1.7 g/kg and 0.5 g/kg, in whole grams from the person's own weight, advised only
+where there is strength work. A shortfall is only ever found on a *recorded*
+day, and a measure left blank cannot be short. Leaning needs two short recorded
+days: one is a Tuesday.
+
+### Nutrition, and why it is not finished
+
+**Nothing consumes the floors yet.** The guidance request contract
+(`core/aether/request_contract.dart`) carries steps, active kcal, sleep, resting
+heart rate and HRV — and **no nutrition at all**. So wiring the floors into Body
+guidance is not a small addition to an existing field; it needs an intake block
+in the contract, the assembler filling it, and the prompt told what to do with
+it. That is the next piece of work and it is the larger half.
+
+**Also not started:** moving food confirmation out of the Body and into the
+Journal, where the page was written, leaving the Body to correct calories and
+macros only. The columns already exist — `NutritionEntries` has `proteinG`,
+`carbsG`, `fatG` and `confirmed` — so this is surface and flow, not schema.
+
+### What is left in the Vessel, and it is only the surface
 
 The Vessel still renders the old order: wheel, Sun card, chart synopsis, then
 one card per position. The six-part order the owner asked for —
