@@ -122,6 +122,9 @@ class _EterActionState extends State<EterAction> {
         enabled ? ink.lineStrong : ink.labelMuted.withValues(alpha: .5);
     final label = Text(
       widget.label.toUpperCase(),
+      // Centred, because a wrapped label that is ragged-left under a centred
+      // one reads as two controls rather than one.
+      textAlign: TextAlign.center,
       style: text.labelLarge?.copyWith(
         color: color,
         letterSpacing: primary ? 1.8 : 1.4,
@@ -144,7 +147,18 @@ class _EterActionState extends State<EterAction> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (leading != null) ...[leading, const SizedBox(width: EterSpace.s12)],
-        label,
+        // Flexible, so a label longer than its row wraps instead of running
+        // off the edge. The row has space for roughly nine letterspaced
+        // capitals at 320 dp with text doubled, and a label is a translated
+        // string: `Choose a file` overflowed by 110 px there, and had done
+        // since it was written, because it sits at the bottom of the Sanctum's
+        // scroll where no capture has ever laid it out.
+        //
+        // This costs nothing anywhere it already fits — a capture that
+        // overflowed would have thrown rather than been recorded — so no
+        // existing golden moves. It is only the difference between a label
+        // that wraps and one that is cut off in front of somebody.
+        Flexible(child: label),
       ],
     );
 

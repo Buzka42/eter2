@@ -27,6 +27,10 @@ import '../../core/invitation/invitation_scheduler.dart';
 import '../../core/i18n/language.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/privacy/local_data_export.dart';
+import '../../core/privacy/apple_health_import.dart';
+import '../../core/privacy/bearable_import.dart';
+import '../../core/privacy/daylio_import.dart';
+import '../../core/privacy/foreign_import.dart';
 import '../../core/privacy/local_data_import.dart';
 import '../../core/patterns/local_pattern_discovery.dart';
 import '../../core/profile/birth_context.dart';
@@ -410,7 +414,7 @@ class SanctumOverlay extends ConsumerWidget {
                     const SizedBox(height: EterSpace.s32),
                     _PersonalizationControls(database: db),
                     const SizedBox(height: EterSpace.s32),
-                    _LocalExport(database: db),
+                    EterLocalExportPanel(database: db),
                     const SizedBox(height: EterSpace.s32),
                     _LocalDeletion(
                       database: db,
@@ -1834,21 +1838,33 @@ class _HealthConnectionState extends State<_HealthConnection> {
   }
 }
 
-class _LocalExport extends StatefulWidget {
-  const _LocalExport({required this.database});
+/// Taking a record out, putting one back, and reading somebody else's app.
+///
+/// Public, and it is the only widget in this file that is. It sits at the far
+/// end of a long scroll, so the Sanctum's own captures — which photograph what
+/// is on screen — have never laid a pixel of it out, and a `ListView` builds
+/// nothing it cannot see. Anything that overflows down here overflows in front
+/// of a person and nowhere else. `sanctum_export_panel_test.dart` renders it
+/// directly for that reason, which is the same reason the birth-place
+/// suggestion rows have a file of their own.
+class EterLocalExportPanel extends StatefulWidget {
+  const EterLocalExportPanel({super.key, required this.database});
 
   final AppDatabase database;
 
   @override
-  State<_LocalExport> createState() => _LocalExportState();
+  State<EterLocalExportPanel> createState() => EterLocalExportPanelState();
 }
 
-class _LocalExportState extends State<_LocalExport> {
+class EterLocalExportPanelState extends State<EterLocalExportPanel> {
   bool _busy = false;
   String? _message;
   String? _path;
   bool _importing = false;
   String? _importMessage;
+  bool _foreignImporting = false;
+  String? _foreignMessage;
+  String? _foreignLeftBehind;
 
   Future<void> _prepare() async {
     final strings = EterStrings.of(context);
@@ -1884,6 +1900,7 @@ class _LocalExportState extends State<_LocalExport> {
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final ink = EterInk.of(context);
     final strings = EterStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1926,8 +1943,125 @@ class _LocalExportState extends State<_LocalExport> {
             liveRegion: true,
             child: Text(_importMessage!, style: text.bodySmall),
           ),
+        const SizedBox(height: EterSpace.s24),
+        // A different promise from the one above. That one puts an Eter record
+        // back; this one reads somebody else's app, which is the version that
+        // gets a person to move.
+        Text(strings.headingForeignImport, style: text.labelSmall),
+        const SizedBox(height: EterSpace.s8),
+        Text(strings.foreignImportNote, style: text.bodyMedium),
+        const SizedBox(height: EterSpace.s4),
+        Text(
+          strings.foreignImportZipNote,
+          style: text.bodySmall?.copyWith(color: ink.labelMuted),
+        ),
+        const SizedBox(height: EterSpace.s8),
+        EterAction(
+          label: strings.importFromAnotherApp,
+          emphasis: EterActionEmphasis.quiet,
+          busy: _foreignImporting,
+          onPressed: _foreignImporting ? null : _importForeign,
+        ),
+        if (_foreignMessage != null)
+          Semantics(
+            liveRegion: true,
+            child: Text(_foreignMessage!, style: text.bodySmall),
+          ),
+        if (_foreignLeftBehind != null)
+          Text(
+            _foreignLeftBehind!,
+            style: text.bodySmall?.copyWith(color: ink.labelMuted),
+          ),
       ],
     );
+  }
+
+  /// Reads an export from another app.
+  ///
+  /// Two shapes, and the difference is not cosmetic: the mood diaries export a
+  /// CSV small enough to read whole, and Apple Health exports a file that may
+  /// be hundreds of megabytes and is streamed past a scanner instead. The head
+  /// of the file decides which, because deciding by extension would mean
+  /// trusting a name.
+  Future<void> _importForeign() async {
+    final strings = EterStrings.of(context);
+    setState(() {
+      _foreignImporting = true;
+      _foreignMessage = null;
+      _foreignLeftBehind = null;
+    });
+    try {
+      // Unfiltered, for the same reason the restore above is: Android's
+      // document picker filters by MIME type and would hide the very files
+      // this exists to read.
+      final picked = await FilePicker.pickFiles(withData: false);
+      final path = picked?.files.singleOrNull?.path;
+      if (path == null) {
+        if (mounted) setState(() => _foreignImporting = false);
+        return;
+      }
+
+      final file = File(path);
+      final importer = ForeignImporter(widget.database);
+      final head = await _head(file);
+      ForeignImportResult? result;
+      if (AppleHealthImportSource.looksLikeExport(head)) {
+        const apple = AppleHealthImportSource();
+        result = await importer.write(
+          apple.name,
+          await apple.read(file.openRead().transform(utf8.decoder)),
+        );
+      } else {
+        result = await importer.importContent(
+          await file.readAsString(),
+          sources: const [DaylioImportSource(), BearableImportSource()],
+        );
+      }
+
+      if (!mounted) return;
+      if (result == null) {
+        setState(() => _foreignMessage = strings.foreignImportUnknownFile);
+        return;
+      }
+      final outcome = result;
+      setState(() {
+        _foreignMessage = outcome.written == 0
+            ? strings.foreignImportNothingNew(outcome.source)
+            : strings.foreignImportDone(
+                app: outcome.source,
+                records: outcome.written,
+              );
+        // The three largest things left behind, named. A full list of every
+        // symptom somebody ever tracked is not a sentence anybody reads.
+        final left = outcome.ignored.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        _foreignLeftBehind = left.isEmpty
+            ? null
+            : strings.foreignImportLeftBehind(
+                left.take(3).map((entry) => entry.key).join(', '),
+              );
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _foreignMessage = strings.localImportFailed);
+    } finally {
+      if (mounted) setState(() => _foreignImporting = false);
+    }
+  }
+
+  /// Enough of the file to recognise it, and no more.
+  ///
+  /// The point of the Apple Health reader is never to hold the whole file, so
+  /// deciding what the file *is* must not hold it either.
+  static Future<String> _head(File file) async {
+    final chunks = <String>[];
+    var length = 0;
+    await for (final chunk in file.openRead(0, 4096).transform(utf8.decoder)) {
+      chunks.add(chunk);
+      length += chunk.length;
+      if (length >= 2048) break;
+    }
+    return chunks.join();
   }
 
   Future<void> _import() async {

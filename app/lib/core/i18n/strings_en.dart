@@ -1703,6 +1703,30 @@ class EterStringsEn extends EterStrings {
   String get localImportFailed =>
       'That file could not be read. Nothing was changed.';
   @override
+  String get headingForeignImport => 'BRING ANOTHER APP’S RECORD';
+  @override
+  String get foreignImportNote =>
+      'Eter reads an export from Daylio, Bearable or Apple Health. What comes '
+      'across is added to what you already have — the same file twice '
+      'changes nothing the second time.';
+  @override
+  String get importFromAnotherApp => 'Read a file';
+  @override
+  String foreignImportDone({required String app, required int records}) =>
+      '$records brought across from $app.';
+  @override
+  String foreignImportNothingNew(String app) =>
+      'Everything in that $app file was already here.';
+  @override
+  String foreignImportLeftBehind(String what) => 'Not brought across: $what.';
+  @override
+  String get foreignImportUnknownFile =>
+      'Eter does not read that file. It reads an export from Daylio, Bearable '
+      'or Apple Health.';
+  @override
+  String get foreignImportZipNote =>
+      'Apple Health exports a zip. Unpack it first and choose export.xml.';
+  @override
   String get headingEveningInvitation => 'AN EVENING INVITATION';
   @override
   String get eveningInvitationOffDetail =>

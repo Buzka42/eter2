@@ -1904,6 +1904,30 @@ class EterStringsPl extends EterStrings {
   String get localImportFailed =>
       'Nie udało się odczytać tego pliku. Nic nie zostało zmienione.';
   @override
+  String get headingForeignImport => 'ZAPIS Z INNEJ APLIKACJI';
+  @override
+  String get foreignImportNote =>
+      'Eter czyta eksport z Daylio, Bearable albo Apple Health. To, co przyjdzie, '
+      'dopisuje się do tego, co już masz — ten sam plik drugi raz '
+      'niczego nie zmienia.';
+  @override
+  String get importFromAnotherApp => 'Wczytaj plik';
+  @override
+  String foreignImportDone({required String app, required int records}) =>
+      'Przeniesiono $records z $app.';
+  @override
+  String foreignImportNothingNew(String app) =>
+      'Wszystko z tego pliku ($app) już tu było.';
+  @override
+  String foreignImportLeftBehind(String what) => 'Nie przeniesiono: $what.';
+  @override
+  String get foreignImportUnknownFile =>
+      'Eter nie czyta tego pliku. Czyta eksport z Daylio, Bearable albo '
+      'Apple Health.';
+  @override
+  String get foreignImportZipNote =>
+      'Apple Health eksportuje archiwum zip. Rozpakuj je i wybierz export.xml.';
+  @override
   String get headingEveningInvitation => 'WIECZORNE ZAPROSZENIE';
   @override
   String get eveningInvitationOffDetail =>

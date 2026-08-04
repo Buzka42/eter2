@@ -976,6 +976,35 @@ abstract class EterStrings {
   String get localImportDeviceHasHistory;
   String get localImportFailed;
 
+  // ------------------------------------------------- bringing another app in
+
+  /// A different promise from [headingLocalImport], and worth its own heading:
+  /// that one puts an Eter record back, this one reads somebody else's app.
+  String get headingForeignImport;
+  String get foreignImportNote;
+  String get importFromAnotherApp;
+
+  /// What came across, and from where. The app is named because a person with
+  /// three exports in their downloads folder needs to know which one Eter just
+  /// read.
+  String foreignImportDone({required String app, required int records});
+
+  /// Everything in the file was already here — which is the ordinary result of
+  /// importing the same export twice, and is a success rather than a warning.
+  String foreignImportNothingNew(String app);
+
+  /// What the file held that Eter has nowhere to keep, named. Somebody
+  /// deciding whether to keep the other app installed needs this.
+  String foreignImportLeftBehind(String what);
+
+  /// The file is not one of the formats Eter reads. Being handed the wrong
+  /// file is a mistake rather than a failure, and it is worded as one.
+  String get foreignImportUnknownFile;
+
+  /// Apple Health exports a `.zip` with the file inside it, and Eter reads the
+  /// file rather than the archive.
+  String get foreignImportZipNote;
+
   String get headingEveningInvitation;
   String get eveningInvitationOffDetail;
   String get eveningInvitationAllowedDetail;
